@@ -7,6 +7,10 @@
     "test": "mocha",
     "generate-docs": "jsdoc --configure .jsdoc.json --verbose"
   },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/luin/ioredis.git"
+  },
   "keywords": [
     "redis",
     "node",
@@ -29,5 +33,9 @@
     "minami": "^1.1.0",
     "mocha": "^2.2.1",
     "sinon": "^1.14.1"
+  },
+  "engines": {
+    "node": ">= 0.11.16",
+    "iojs": ">= 1.0.0"
   }
 }
