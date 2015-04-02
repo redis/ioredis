@@ -28,4 +28,32 @@ describe('Command', function () {
       expect(result.toString()).to.eql('*4\r\n$3\r\nget\r\n$3\r\nfoo\r\n$3\r\nbar\r\n$4\r\nzooo\r\n');
     });
   });
+
+  describe('#resolve()', function () {
+    it('should return buffer when replyEncoding is not set', function (done) {
+      var command = new Command('get', ['foo'], null, function (err, result) {
+        expect(result).to.be.instanceof(Buffer);
+        expect(result.toString()).to.eql('foo');
+        done();
+      });
+      command.resolve(new Buffer('foo'));
+    });
+
+    it('should covert result to string if replyEncoding is specified', function (done) {
+      var command = new Command('get', ['foo'], 'utf8', function (err, result) {
+        expect(result).to.eql('foo');
+        done();
+      });
+      command.resolve(new Buffer('foo'));
+    });
+
+    it('should regard replyEncoding', function (done) {
+      var base64 = new Buffer('foo').toString('base64');
+      var command = new Command('get', ['foo'], 'base64', function (err, result) {
+        expect(result).to.eql(base64);
+        done();
+      });
+      command.resolve(new Buffer('foo'));
+    });
+  });
 });
