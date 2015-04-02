@@ -49,11 +49,7 @@
             
             <span class="subtitle">Methods</span>
             
-                <li data-name="Command#reject"><a href="Command.html#reject">reject</a></li>
-            
-                <li data-name="Command#resolve"><a href="Command.html#resolve">resolve</a></li>
-            
-                <li data-name="Command#toString"><a href="Command.html#toString">toString</a></li>
+                <li data-name="Command#toWritable"><a href="Command.html#toWritable">toWritable</a></li>
             
             </ul>
             <ul class="events itemMembers">
@@ -83,6 +79,8 @@
                 <li data-name="Redis#duplicate"><a href="Redis.html#duplicate">duplicate</a></li>
             
                 <li data-name="Redis#sendCommand"><a href="Redis.html#sendCommand">sendCommand</a></li>
+            
+                <li data-name="Redis#silentEmit"><a href="Redis.html#silentEmit">silentEmit</a></li>
             
             </ul>
             <ul class="events itemMembers">
@@ -117,12 +115,12 @@
     <div class="nameContainer">
         <h4 class="name" id="Command">
             
-            new Command<span class="signature">(name, <span class="optional">args</span>, <span class="optional">callback</span>)</span>
+            new Command<span class="signature">(name, <span class="optional">args</span>, <span class="optional">replyEncoding</span>, <span class="optional">callback</span>)</span>
         </h4>
     
         
         <div class="tag-source">
-            command.js, line 31
+            command.js, line 34
         </div>
         
     </div>
@@ -235,6 +233,43 @@
 	
         <tr>
             
+                <td class="name"><code>replyEncoding</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+            
+            
+                <td class="default">
+                
+                    null
+                
+                </td>
+            
+            
+            <td class="description last">
+                
+                    
+                        <span class="optional">optional</span>
+                    
+                    
+                        
+                    
+                
+                <p>Set the encoding of the reply,
+by default buffer will be returned.</p></td>
+        </tr>
+	
+	
+	
+        <tr>
+            
                 <td class="name"><code>callback</code></td>
             
             
@@ -322,16 +357,16 @@ If omit, the response will be handled via Promise.</p></td>
 
     
     <pre class="prettyprint"><code>var infoCommand = new Command('info', null, function (err, result) {
-  console.log(result);
+  console.log('result', result);
 });
 
 redis.sendCommand(infoCommand);
 
+// When no callback provided, Command instance will have a `promise` property,
+// which will resolve/reject with the result of the command.
 var getCommand = new Command('get', ['foo']);
-
-// getCommand don't have a callback, so Redis#sendCommand will return a Promise.
-redis.sendCommand(getCommand).then(function (result) {
-  console.log(result);
+getCommand.promise.then(function (result) {
+  console.log('result', result);
 });</code></pre>
     
 
@@ -360,14 +395,14 @@ redis.sendCommand(getCommand).then(function (result) {
             
 <dt>
     <div class="nameContainer">
-        <h4 class="name" id="reject">
+        <h4 class="name" id="toWritable">
             
-            reject<span class="signature">(value)</span>
+            toWritable<span class="signature">()</span><span class="glyphicon glyphicon-circle-arrow-right"></span><span class="type-signature returnType">{string|Buffer}</span>
         </h4>
     
         
         <div class="tag-source">
-            command.js, line 90
+            command.js, line 57
         </div>
         
     </div>
@@ -378,262 +413,7 @@ redis.sendCommand(getCommand).then(function (result) {
     
     
     <div class="description">
-        <p>Return a error to the callback</p>
-    </div>
-    
-
-    
-    
-    
-    
-    
-        
-
-<table class="params">
-    <thead>
-	<tr>
-		
-		<th>Name</th>
-		
-		
-		<th>Type</th>
-		
-		
-		
-		<th class="last">Description</th>
-	</tr>
-	</thead>
-	
-	<tbody>
-	
-	
-        <tr>
-            
-                <td class="name"><code>value</code></td>
-            
-            
-            <td class="type">
-            
-                
-<span class="param-type">Error</span>
-
-
-            
-            </td>
-            
-            
-            
-            <td class="description last">
-                
-                <p>Error instance</p></td>
-        </tr>
-	
-	
-	</tbody>
-</table>
-    
-    
-    
-<dl class="details">
-    
-        
-    
-    
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    <dt class="tag-see">See:</dt>
-    <dd class="tag-see">
-        <ul>
-            <li><a href="Command.html#resolve"><code>Command#resolve</code></a></li>
-        </ul>
-    </dd>
-    
-    
-    
-</dl>
-
-    
-    
-
-    
-
-    
-    
-    
-    
-    
-    
-    
-</dd>
-
-        
-            
-<dt>
-    <div class="nameContainer">
-        <h4 class="name" id="resolve">
-            
-            resolve<span class="signature">(value)</span>
-        </h4>
-    
-        
-        <div class="tag-source">
-            command.js, line 76
-        </div>
-        
-    </div>
-
-    
-</dt>
-<dd>
-    
-    
-    <div class="description">
-        <p>Return a value to the callback</p>
-<p>This method and Command#reject invoke the callback in the next
-event loop via <code>setImmediate</code> to keep the order of the results
-when mix using the callback-style and promise-style. For instance:</p>
-<pre class="prettyprint source"><code>redis.get('foo').then(function () {
-  console.log('this comes first');
-});
-redis.get('bar', function () {
-  console.log('this comes second');
-});</code></pre><p>Without <code>setImmediate</code>, the order will reverse.</p>
-    </div>
-    
-
-    
-    
-    
-    
-    
-        
-
-<table class="params">
-    <thead>
-	<tr>
-		
-		<th>Name</th>
-		
-		
-		<th>Type</th>
-		
-		
-		
-		<th class="last">Description</th>
-	</tr>
-	</thead>
-	
-	<tbody>
-	
-	
-        <tr>
-            
-                <td class="name"><code>value</code></td>
-            
-            
-            <td class="type">
-            
-                
-<span class="param-type">*</span>
-
-
-            
-            </td>
-            
-            
-            
-            <td class="description last">
-                
-                <p>The result of the command</p></td>
-        </tr>
-	
-	
-	</tbody>
-</table>
-    
-    
-    
-<dl class="details">
-    
-        
-    
-    
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    <dt class="tag-see">See:</dt>
-    <dd class="tag-see">
-        <ul>
-            <li><a href="Command.html#reject"><code>Command#reject</code></a></li>
-        </ul>
-    </dd>
-    
-    
-    
-</dl>
-
-    
-    
-
-    
-
-    
-    
-    
-    
-    
-    
-    
-</dd>
-
-        
-            
-<dt>
-    <div class="nameContainer">
-        <h4 class="name" id="toString">
-            
-            toString<span class="signature">()</span><span class="glyphicon glyphicon-circle-arrow-right"></span><span class="type-signature returnType">{string}</span>
-        </h4>
-    
-        
-        <div class="tag-source">
-            command.js, line 53
-        </div>
-        
-    </div>
-
-    
-</dt>
-<dd>
-    
-    
-    <div class="description">
-        <p>toString</p>
+        <p>Convert command to writable buffer or string</p>
     </div>
     
 
@@ -711,7 +491,7 @@ redis.get('bar', function () {
         
 
         <footer>
-            Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-beta3</a> on Tue Mar 31 2015 23:35:51 GMT+0800 (CST)
+            Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-beta3</a> on Thu Apr 02 2015 21:00:00 GMT+0800 (CST)
         </footer>
     </div>
 </div>

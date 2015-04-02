@@ -49,11 +49,7 @@
             
             <span class="subtitle">Methods</span>
             
-                <li data-name="Command#reject"><a href="Command.html#reject">reject</a></li>
-            
-                <li data-name="Command#resolve"><a href="Command.html#resolve">resolve</a></li>
-            
-                <li data-name="Command#toString"><a href="Command.html#toString">toString</a></li>
+                <li data-name="Command#toWritable"><a href="Command.html#toWritable">toWritable</a></li>
             
             </ul>
             <ul class="events itemMembers">
@@ -83,6 +79,8 @@
                 <li data-name="Redis#duplicate"><a href="Redis.html#duplicate">duplicate</a></li>
             
                 <li data-name="Redis#sendCommand"><a href="Redis.html#sendCommand">sendCommand</a></li>
+            
+                <li data-name="Redis#silentEmit"><a href="Redis.html#silentEmit">silentEmit</a></li>
             
             </ul>
             <ul class="events itemMembers">
@@ -122,7 +120,7 @@
     
         
         <div class="tag-source">
-            redis.js, line 55
+            redis.js, line 56
         </div>
         
     </div>
@@ -669,7 +667,7 @@ var authedRedis = new Redis(6380, '192.168.100.1', { auth: 'password' });</code>
     
         
         <div class="tag-source">
-            redis.js, line 116
+            redis.js, line 117
         </div>
         
     </div>
@@ -741,7 +739,7 @@ This method will be invoked automatically when creating a new Redis instance.</p
     
         
         <div class="tag-source">
-            redis.js, line 134
+            redis.js, line 135
         </div>
         
     </div>
@@ -815,7 +813,7 @@ If you want to wait for the pending replies, use Redis#quit instead.</p>
     
         
         <div class="tag-source">
-            redis.js, line 148
+            redis.js, line 149
         </div>
         
     </div>
@@ -890,12 +888,12 @@ var anotherRedis = redis.duplicate();</code></pre>
     <div class="nameContainer">
         <h4 class="name" id="sendCommand">
             
-            sendCommand<span class="signature">(command, <span class="optional">args</span>, <span class="optional">callback</span>)</span>
+            sendCommand<span class="signature">(command)</span>
         </h4>
     
         
         <div class="tag-source">
-            redis/mixin/prototype/commands.js, line 67
+            redis/mixin/prototype/commands.js, line 74
         </div>
         
     </div>
@@ -947,9 +945,6 @@ this command will be useful.</p>
             <td class="type">
             
                 
-<span class="param-type">string</span>
-|
-
 <span class="param-type"><a href="Command.html">Command</a></span>
 
 
@@ -960,72 +955,7 @@ this command will be useful.</p>
             
             <td class="description last">
                 
-                    
-                    
-                        
-                    
-                
-                <p>Command name or a command instance</p></td>
-        </tr>
-	
-	
-	
-        <tr>
-            
-                <td class="name"><code>args</code></td>
-            
-            
-            <td class="type">
-            
-                
-<span class="param-type">Array.&lt;string></span>
-
-
-            
-            </td>
-            
-            
-            
-            <td class="description last">
-                
-                    
-                        <span class="optional">optional</span>
-                    
-                    
-                        
-                    
-                
-                <p>An array of command arguments. See <a href="Command.html"><code>Command</code></a></p></td>
-        </tr>
-	
-	
-	
-        <tr>
-            
-                <td class="name"><code>callback</code></td>
-            
-            
-            <td class="type">
-            
-                
-<span class="param-type">function</span>
-
-
-            
-            </td>
-            
-            
-            
-            <td class="description last">
-                
-                    
-                        <span class="optional">optional</span>
-                    
-                    
-                        
-                    
-                
-                <p>The callback that handles the response. See <a href="Command.html"><code>Command</code></a></p></td>
+                <p>The Command instance to send.</p></td>
         </tr>
 	
 	
@@ -1084,16 +1014,179 @@ this command will be useful.</p>
     <pre class="prettyprint"><code>var redis = new Redis();
 
 // Use callback
-redis.sendCommand('get', ['foo'], function (err, result) {
+var get = new Command('get', ['foo'], 'utf8', function (err, result) {
   console.log(result);
 });
+redis.sendCommand(get);
 
 // Use promise
-redis.sendCommand('info', null).then(function (result) {
+var set = new Command('set', ['foo', 'bar'], 'utf8');
+set.promise.then(function (result) {
   console.log(result);
-});</code></pre>
+});
+redis.sendCommand(set);</code></pre>
     
 
+    
+</dd>
+
+        
+            
+<dt>
+    <div class="nameContainer">
+        <h4 class="name" id="silentEmit">
+            
+            <span class="type-signature ">protected</span>silentEmit<span class="signature">(eventName, arguments)</span><span class="glyphicon glyphicon-circle-arrow-right"></span><span class="type-signature returnType">{boolean}</span>
+        </h4>
+    
+        
+        <div class="tag-source">
+            redis.js, line 218
+        </div>
+        
+    </div>
+
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        <p>Emit only when there's at least one listener.</p>
+    </div>
+    
+
+    
+    
+    
+    
+    
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>eventName</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+            
+            
+            
+            <td class="description last">
+                
+                    
+                    
+                        
+                    
+                
+                <p>Event to emit</p></td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>arguments</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">*</span>
+
+
+            
+            </td>
+            
+            
+            
+            <td class="description last">
+                
+                    
+                    
+                        
+                    
+                        <span class="repeatable">repeatable</span>
+                    
+                
+                <p>Arguments</p></td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+
+
+<h5>Returns:</h5>
+true if event had listeners, false otherwise.
+<br />
+
+    
+    
     
 </dd>
 
@@ -1114,7 +1207,7 @@ redis.sendCommand('info', null).then(function (result) {
         
 
         <footer>
-            Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-beta3</a> on Tue Mar 31 2015 23:35:51 GMT+0800 (CST)
+            Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-beta3</a> on Thu Apr 02 2015 21:00:00 GMT+0800 (CST)
         </footer>
     </div>
 </div>
