@@ -12,7 +12,7 @@ Support Redis >= 2.6.12.
 Feature
 ------
 ioredis is a robust, full-featured Redis client
-that is used in the biggest online commerce company [Alibaba](http://www.alibaba.com/).
+used in the biggest online commerce company [Alibaba](http://www.alibaba.com/).
 
 0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](redis.io/topics/sentinel), [Pipelining](http://redis.io/topics/pipelining) and of course [Lua scripting](http://redis.io/commands/eval) & [Pub/Sub](http://redis.io/topics/pubsub)
 0. High performance.
@@ -23,6 +23,7 @@ that is used in the biggest online commerce company [Alibaba](http://www.alibaba
 0. Support for both TCP/IP and UNIX domain sockets.
 0. Flexible system for defining custom command and registering command plugins.
 0. Supports offine queue and ready checking.
+0. Supports ES6 types such as `Map` and `Set`.
 
 Instal
 ------
@@ -31,7 +32,7 @@ Instal
 $ npm install ioredis
 ```
 
-Usage
+Basic Usage
 ------
 
 ```javascript
@@ -51,4 +52,24 @@ redis.get('foo').then(function (result) {
 // Arguments will be flatten, so both the following two line are same:
 redis.sadd('set', 1, 3, 5, 7);
 redis.sadd('set', [1, 3, 5, 7]);
+```
+
+Connect to Redis
+----------------
+When a new `Redis` instance is created,
+a connection to Redis will be created at the same time.
+
+You can specify which Redis to connect by:
+
+```javascript
+new Redis()       // Will connect to 127.0.0.1:6379
+new Redis(6380)   // 127.0.0.1:6380
+new Redis(6379, '192.168.1.1')        // 192.168.1.1:6379
+new Redis('redis://127.0.0.1:6380')   // 127.0.0.1:6380
+new Redis('/tmp/redis.sock')
+new Redis({
+  port: 6379          // Redis port
+  host: '127.0.0.1'   // Redis host
+  family: 4           // 4(IPv4) or 6(IPv6)
+})
 ```
