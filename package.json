@@ -27,6 +27,7 @@
     "jaguarjs-jsdoc": "0.0.1",
     "jsdoc": "^3.3.0-beta3",
     "minami": "^1.1.0",
-    "mocha": "^2.2.1"
+    "mocha": "^2.2.1",
+    "sinon": "^1.14.1"
   }
 }

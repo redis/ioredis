@@ -1,5 +1,8 @@
 GLOBAL.expect = require('chai').expect;
 
+var sinon = require('sinon');
+GLOBAL.stub = sinon.stub.bind(sinon);
+
 var Redis = GLOBAL.Redis = require('..');
 
 // beforeEach(function (done) {
