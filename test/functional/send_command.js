@@ -43,4 +43,12 @@ describe('send command', function () {
       done();
     });
   });
+
+  it('should support return int value', function (done) {
+    var redis = new Redis();
+    redis.exists('foo', function (err, exists) {
+      expect(typeof exists).to.eql('number');
+      done();
+    });
+  });
 });
