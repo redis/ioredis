@@ -57,7 +57,6 @@ redis.sadd('set', [1, 3, 5, 7]);
 ## Connect to Redis
 When a new `Redis` instance is created,
 a connection to Redis will be created at the same time.
-
 You can specify which Redis to connect by:
 
 ```javascript
@@ -98,7 +97,7 @@ redis.on('message', function (channel, message) {
 });
 
 // There's also a event called 'messageBuffer', which is same to 'message' except
-// return buffers instead of strings.
+// it returns buffers instead of strings.
 redis.on('messageBuffer', function (channel, message) {
   // Both `channel` and `message` are buffers.
 });
