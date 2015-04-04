@@ -24,6 +24,8 @@ used in the biggest online commerce company [Alibaba](http://www.alibaba.com/).
 0. Supports ES6 types such as `Map` and `Set`.
 0. Sophisticated error handling strategy.
 
+<hr>
+
 # Quick Start
 
 ## Install
@@ -121,6 +123,8 @@ redis.getBuffer('foo', function (err, result) {
   // result is a buffer.
 });
 ```
+
+<hr>
 
 # Motivation
 
