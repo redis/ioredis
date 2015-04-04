@@ -125,19 +125,38 @@ redis.getBuffer('foo', function (err, result) {
 
 ## Pipelining
 If you want to send a batch of commands(e.g. > 100), you can use pipelining to queue
-the commands and send them to Redis at once. By this way, the performance will be improved by 50%~300%.
+the commands in the memory and send them to Redis at once. By this way, the performance will be improved by 50%~300%.
+
+`redis.pipeline()` creates a new `Pipeline` instance, and then you can call any Redis
+commands on it just like the `Redis` instance. The commands will be queued in the memory,
+and once you want to send them to Redis, call `exec` method.
 
 ```javascript
-redis.pipeline().set('foo', 'bar').del('cc').exec(function (err, results) {
+var pipeline = redis.pipeline();
+pipeline.set('foo', 'bar');
+pipeline.del('cc');
+pipeline.exec(function (err, results) {
   // `err` is always null, and `results` is an array of responses corresponding the sequence the commands where chained.
   // Each response follows the format `[err, result]`.
 });
 
-// Just like other commands, exec will also return a Promise:
+// You can even chain the commands:
+redis.pipeline().set('foo', 'bar').del('cc').exec(function (err, results) {
+});
+
+// `exec` will also return a Promise:
 var promise = redis.pipeline().set('foo', 'bar').get('foo').exec();
 promise.then(function (result) {
   // result[1][1] === 'bar'
 });
+
+// each command can also have a callback:
+redis.pipeline().set('foo', 'bar').get('foo', function (err, result) {
+  // result === 'bar'
+}).exec(function (err, result) {
+  // result[1][1] === 'bar'
+});
+
 ```
 
 ## Monitor

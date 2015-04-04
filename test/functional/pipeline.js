@@ -38,4 +38,17 @@ describe('pipeline', function () {
       done();
     });
   });
+
+  it('should also invoke the command\'s callback', function (done) {
+    var redis = new Redis();
+    var pending = 1;
+    redis.pipeline().set('foo', 'bar').get('foo', function (err, result) {
+      expect(result).to.eql('bar');
+      pending -= 1;
+    }).exec(function (err, results) {
+      expect(pending).to.eql(0);
+      expect(results[1][1]).to.eql('bar');
+      done();
+    });
+  });
 });
