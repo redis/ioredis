@@ -123,6 +123,41 @@ redis.getBuffer('foo', function (err, result) {
 });
 ```
 
+## Pipelining
+If you want to send a batch of commands,
+using pipelining will improve the performance by 50%~300%.
+
+```javascript
+redis.pipeline().set('foo', 'bar').del('cc').exec(function (err, results) {
+  // `err` is always null, and `results` is an array of responses corresponding the sequence the commands where chained.
+  // Each response follows the format `[err, result]`.
+});
+
+// Just like other commands, exec will also return a Promise:
+var promise = redis.pipeline().set('foo', 'bar').get('foo').exec();
+promise.then(function (result) {
+  // result[1][1] === 'bar'
+});
+```
+
+## Monitor
+Redis supports the MONITOR command,
+which lets you see all commands received by the Redis server across all client connections,
+including from other client libraries and other computers.
+
+The `monitor` method will return a monitor instance
+After you send the MONITOR command, no other commands are valid on that connection. ioredis will emit a monitor event for every new monitor message that comes across.
+The callback for the monitor event takes a timestamp from the Redis server and an array of command arguments.
+
+Here is a simple example:
+
+```javascript
+redis.monitor(function (err, monitor) {
+  monitor.on('monitor', function (time, args) {
+  });
+});
+```
+
 <hr>
 
 # Motivation
