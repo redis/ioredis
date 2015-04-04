@@ -124,8 +124,8 @@ redis.getBuffer('foo', function (err, result) {
 ```
 
 ## Pipelining
-If you want to send a batch of commands,
-using pipelining will improve the performance by 50%~300%.
+If you want to send a batch of commands(e.g. > 100), you can use pipelining to queue
+the commands and send them to Redis at once. By this way, the performance will be improved by 50%~300%.
 
 ```javascript
 redis.pipeline().set('foo', 'bar').del('cc').exec(function (err, results) {
