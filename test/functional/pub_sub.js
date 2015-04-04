@@ -46,6 +46,58 @@ describe('pub/sub', function () {
     });
   });
 
+  it('should receive messages when subscribe a channel', function (done) {
+    var redis = new Redis();
+    var pub = new Redis();
+    var pending = 2;
+    redis.subscribe('foo', function () {
+      pub.publish('foo', 'bar');
+    });
+    redis.on('message', function (channel, message) {
+      expect(channel).to.eql('foo');
+      expect(message).to.eql('bar');
+      if (!--pending) {
+        done();
+      }
+    });
+    redis.on('messageBuffer', function (channel, message) {
+      expect(channel).to.be.instanceof(Buffer);
+      expect(channel.toString()).to.eql('foo');
+      expect(message).to.be.instanceof(Buffer);
+      expect(message.toString()).to.eql('bar');
+      if (!--pending) {
+        done();
+      }
+    });
+  });
+
+  it('should receive messages when psubscribe a pattern', function (done) {
+    var redis = new Redis();
+    var pub = new Redis();
+    var pending = 2;
+    redis.psubscribe('f?oo', function () {
+      pub.publish('fzoo', 'bar');
+    });
+    redis.on('pmessage', function (pattern, channel, message) {
+      expect(pattern).to.eql('f?oo');
+      expect(channel).to.eql('fzoo');
+      expect(message).to.eql('bar');
+      if (!--pending) {
+        done();
+      }
+    });
+    redis.on('pmessageBuffer', function (pattern, channel, message) {
+      expect(pattern).to.eql('f?oo');
+      expect(channel).to.be.instanceof(Buffer);
+      expect(channel.toString()).to.eql('fzoo');
+      expect(message).to.be.instanceof(Buffer);
+      expect(message.toString()).to.eql('bar');
+      if (!--pending) {
+        done();
+      }
+    });
+  });
+
   it('should exit subscriber mode using punsubscribe', function (done) {
     var redis = new Redis();
     redis.psubscribe('f?oo', 'b?ar', function () {

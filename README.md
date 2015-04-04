@@ -98,6 +98,12 @@ redis.on('message', function (channel, message) {
   // Receive message Hello again! from channel music
   console.log('Receive message %s from channel %s', message, channel);
 });
+
+// There's also a event called 'messageBuffer', which is same to 'message' except
+// return buffers instead of strings.
+redis.on('messageBuffer', function (channel, message) {
+  // Both `channel` and `message` are buffers.
+});
 ```
 When a client issues a SUBSCRIBE or PSUBSCRIBE, that connection is put into a "subscriber" mode.
 At that point, only commands that modify the subscription set are valid.
