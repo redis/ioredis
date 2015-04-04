@@ -74,6 +74,37 @@ new Redis({
 })
 ```
 
+Pub/Sub
+-------
+
+Here is a simple example of the API for publish / subscribe.
+This program opens two client connections, subscribes to a channel on one of them,
+and publishes to that channel on the other:
+
+```javascript
+var Redis = require('ioredis');
+var redis = new Redis();
+var pub = new Redis();
+redis.subscribe('news', 'music', function (err, count) {
+  // Now both channel 'news' and 'music' are subscribed successfully.
+  // `count` arg represents the number of channels we are currently subscribed to.
+
+  pub.publish('news', 'Hello world!');
+  pub.publish('music', 'Hello again!');
+});
+
+redis.on('message', function (channel, message) {
+  // Receive message Hello world! from channel news
+  // Receive message Hello again! from channel music
+  console.log('Receive message %s from channel %s', message, channel);
+});
+```
+When a client issues a SUBSCRIBE or PSUBSCRIBE, that connection is put into a "subscriber" mode.
+At that point, only commands that modify the subscription set are valid.
+When the subscription set is empty, the connection is put back into regular mode.
+
+If you need to send regular commands to Redis while in subscriber mode, just open another connection.
+
 Handle Binary Data
 ------------
 Arguments can be buffers:
