@@ -14,7 +14,7 @@ Feature
 ioredis is a robust, full-featured Redis client
 used in the biggest online commerce company [Alibaba](http://www.alibaba.com/).
 
-0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](redis.io/topics/sentinel), [Pipelining](http://redis.io/topics/pipelining) and of course [Lua scripting](http://redis.io/commands/eval) & [Pub/Sub](http://redis.io/topics/pubsub)
+0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](redis.io/topics/sentinel), [Pipelining](http://redis.io/topics/pipelining) and of course [Lua scripting](http://redis.io/commands/eval) & [Pub/Sub](http://redis.io/topics/pubsub)(with the support of binary messages).
 0. High performance.
 0. Delightful API supports both Node-style callback and Promise.
 0. Supports Redis commands transforming.
@@ -24,6 +24,7 @@ used in the biggest online commerce company [Alibaba](http://www.alibaba.com/).
 0. Flexible system for defining custom command and registering command plugins.
 0. Supports offine queue and ready checking.
 0. Supports ES6 types such as `Map` and `Set`.
+0. Sophisticated error handling strategy.
 
 Instal
 ------
