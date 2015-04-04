@@ -516,7 +516,7 @@ with the value of this option when connected.</p></td>
 the Redis server, the server might still be loading the database from disk.
 While loading, the server not respond to any commands.
 To work around this, when this option is <code>true</code>,
-ioRedis will check the status of the Redis server,
+ioredis will check the status of the Redis server,
 and when the Redis server is able to process commands,
 a <code>ready</code> event will be emitted.</p></td>
         </tr>
@@ -907,7 +907,7 @@ var anotherRedis = redis.duplicate();</code></pre>
         <p>Send a command to Redis</p>
 <p>This method is used internally by the <code>Redis#set</code>, <code>Redis#lpush</code> etc.
 Most of the time you won't invoke this method directly.
-However when you want to send a command that is not supported by ioRedis yet,
+However when you want to send a command that is not supported by ioredis yet,
 this command will be useful.</p>
     </div>
     

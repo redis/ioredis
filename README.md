@@ -5,7 +5,7 @@ ioredis
 [![Dependency Status](https://david-dm.org/luin/ioredis.svg)](https://david-dm.org/luin/ioredis)
 [![Join the chat at https://gitter.im/luin/ioredis](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/luin/ioredis?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-**[WIP]** A delightful, performance-focused Redis client for Node and io.js
+**[Work In Progress]** A delightful, performance-focused Redis client for Node and io.js
 
 Support Redis >= 2.6.12 and (Node.js >= 0.11.6 or io.js).
 
@@ -89,3 +89,28 @@ redis.getBuffer('foo', function (err, result) {
   // result is a buffer.
 });
 ```
+
+Motivation
+----------------------
+
+Firstly we used the Redis client [node_redis](https://github.com/mranney/node_redis),
+however over a period of time we found out it's not robust enough for us to use
+in the production environment. The library has some not trivial bugs and many unresolved
+issues in the GitHub(165 so far), for instance:
+
+```javascript
+var redis = require('redis');
+var client = redis.createClient();
+
+client.set('foo', 'message');
+client.set('bar', 'Hello world');
+client.mget('foo', 'bar');
+
+client.subscribe('channel');
+client.on('message', function (msg) {
+  // Will print "Hello world", although no `publish` in invoked.
+  console.log('received ', msg);
+});
+```
+
+I submited some pull requests but sadly none of them has been merged, so here ioredis is.
