@@ -24,7 +24,7 @@ describe('pub/sub', function () {
     });
   });
 
-  it('should exit subscriber mode when unsubscribe', function (done) {
+  it('should exit subscriber mode using unsubscribe', function (done) {
     var redis = new Redis();
     redis.subscribe('foo', 'bar', function () {
       redis.unsubscribe('foo', 'bar', function (err, count) {
@@ -46,7 +46,39 @@ describe('pub/sub', function () {
     });
   });
 
+  it('should exit subscriber mode using punsubscribe', function (done) {
+    var redis = new Redis();
+    redis.psubscribe('f?oo', 'b?ar', function () {
+      redis.punsubscribe('f?oo', 'b?ar', function (err, count) {
+        expect(count).to.eql(0);
+        redis.set('foo', 'bar', function (err) {
+          expect(err).to.eql(null);
+
+          redis.psubscribe('z?oo', 'f?oo', function () {
+            redis.punsubscribe(function (err, count) {
+              expect(count).to.eql(0);
+              redis.set('foo', 'bar', function (err) {
+                expect(err).to.eql(null);
+                done();
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+
   it('should able to send quit command in the subscriber mode', function (done) {
-    done();
+    var redis = new Redis();
+    var pending = 1;
+    redis.subscribe('foo', function () {
+      redis.quit(function () {
+        pending -= 1;
+      });
+    });
+    redis.on('close', function () {
+      expect(pending).to.eql(0);
+      done();
+    });
   });
 });
