@@ -1,5 +1,4 @@
-ioredis
-========
+# ioredis
 
 [![Build Status](https://travis-ci.org/luin/ioredis.png?branch=master)](https://travis-ci.org/luin/ioredis)
 [![Dependency Status](https://david-dm.org/luin/ioredis.svg)](https://david-dm.org/luin/ioredis)
@@ -9,14 +8,13 @@ ioredis
 
 Support Redis >= 2.6.12 and (Node.js >= 0.11.6 or io.js).
 
-Feature
-------
+# Feature
 ioredis is a robust, full-featured Redis client
 used in the biggest online commerce company [Alibaba](http://www.alibaba.com/).
 
 0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](redis.io/topics/sentinel), [Pipelining](http://redis.io/topics/pipelining) and of course [Lua scripting](http://redis.io/commands/eval) & [Pub/Sub](http://redis.io/topics/pubsub)(with the support of binary messages).
 0. High performance.
-0. Delightful API supports both Node-style callback and Promise.
+0. Delightful API both accept node-style callbacks and return promises.
 0. Supports Redis commands transforming.
 0. Abstraction for Transaction, Lua scripting and `SCAN`, `SSCAN`, `ZSCAN`, `HSCAN`.
 0. Supports binary data.
@@ -26,15 +24,14 @@ used in the biggest online commerce company [Alibaba](http://www.alibaba.com/).
 0. Supports ES6 types such as `Map` and `Set`.
 0. Sophisticated error handling strategy.
 
-Instal
-------
+# Quick Start
 
+## Install
 ```shell
 $ npm install ioredis
 ```
 
-Basic Usage
-------
+## Basic Usage
 
 ```javascript
 var Redis = require('ioredis');
@@ -55,8 +52,7 @@ redis.sadd('set', 1, 3, 5, 7);
 redis.sadd('set', [1, 3, 5, 7]);
 ```
 
-Connect to Redis
-----------------
+## Connect to Redis
 When a new `Redis` instance is created,
 a connection to Redis will be created at the same time.
 
@@ -75,8 +71,7 @@ new Redis({
 })
 ```
 
-Pub/Sub
--------
+## Pub/Sub
 
 Here is a simple example of the API for publish / subscribe.
 This program opens two client connections, subscribes to a channel on one of them,
@@ -112,8 +107,7 @@ When the subscription set is empty, the connection is put back into regular mode
 
 If you need to send regular commands to Redis while in subscriber mode, just open another connection.
 
-Handle Binary Data
-------------
+## Handle Binary Data
 Arguments can be buffers:
 ```javascript
 redis.set('foo', new Buffer('bar'));
@@ -128,8 +122,7 @@ redis.getBuffer('foo', function (err, result) {
 });
 ```
 
-Motivation
-----------------------
+# Motivation
 
 Firstly we used the Redis client [node_redis](https://github.com/mranney/node_redis),
 however over a period of time we found out it's not robust enough for us to use
