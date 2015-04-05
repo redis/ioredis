@@ -16,7 +16,7 @@ used in the biggest online commerce company [Alibaba](http://www.alibaba.com/).
 0. High performance.
 0. Delightful API both accept node-style callbacks and return promises.
 0. Supports Redis commands transforming.
-0. Abstraction for Transaction, Lua scripting and `SCAN`, `SSCAN`, `ZSCAN`, `HSCAN`.
+0. Abstraction for Lua scripting alowing you to define custom commands.
 0. Supports binary data.
 0. Support for both TCP/IP and UNIX domain sockets.
 0. Flexible system for defining custom command and registering command plugins.
@@ -227,7 +227,7 @@ redis.echoBuffer('k1', 'k2', 'a1', 'a2', function (err, result) {});
 redis.pipeline().set('foo', 'bar').echo('k1', 'k2', 'a1', 'a2').exec();
 
 // If the number of keys can't be determined when define a command, you can just
-// omit the `numberOfKeys` property, and the first arguments will represents the
+// omit the `numberOfKeys` property, and the first argument will represents the
 // number of keys every time the custom command is invoked:
 redis.defineCommand('echoDynamicKeyNumber', {
   lua: 'return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}'
