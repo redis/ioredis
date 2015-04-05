@@ -178,8 +178,8 @@ redis.multi().set('foo').set('foo', 'new value').exec(function (err, results) {
 });
 ```
 
-In terms of the interface, `multi` differs from `pipeline` in that when specified a callback
-to each chained commands, the queueing state will be returned instead of the result of the command:
+In terms of the interface, `multi` differs from `pipeline` in that when specify a callback
+to each chained command, the queueing state will be returned instead of the result of the command:
 
 ```javascript
 redis.multi().set('foo', 'bar', function (err, result) {
@@ -196,6 +196,47 @@ redis.set('foo', 'bar');
 redis.get('foo');
 redis.exec(function (err, result) {
   // result === [[null, 'OK'], [null, 'bar']]
+});
+```
+
+## Lua Scripting
+ioredis supports all of the scripting commands such as `EVAL`, `EVALSHA` and `SCRIPT`.
+However it's tedious to use in real world scenarios since developers have to take
+care of script caching and to detect when to use `EVAL` and when to use `EVALSHA`.
+ioredis expose a `defineCommand` method to make scripting much easier to use:
+
+```javascript
+var redis = new Redis();
+
+// This will define a command echo:
+redis.defineCommand('echo', {
+  numberOfKeys: 2,
+  lua: 'return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}'
+});
+
+// Now `echo` can be used just like any other ordinary commands,
+// and ioredis will try to use `EVALSHA` internally when possible for better performance.
+redis.echo('k1', 'k2', 'a1', 'a2', function (err, result) {
+  // result === ['k1', 'k2', 'a1', 'a2']
+});
+
+// Also, a `echoBuffer` is also defined automatically to return buffers instead of strings:
+redis.echoBuffer('k1', 'k2', 'a1', 'a2', function (err, result) {});
+
+// And of course it can also be used with pipeline:
+redis.pipeline().set('foo', 'bar').echo('k1', 'k2', 'a1', 'a2').exec();
+
+// If the number of keys can't be determined when define a command, you can just
+// omit the `numberOfKeys` property, and the first arguments will represents the
+// number of keys every time the custom command is invoked:
+redis.defineCommand('echoDynamicKeyNumber', {
+  lua: 'return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}'
+});
+
+// Now you have to pass the number of keys as the first argument every time
+// you invoke the `echoDynamicKeyNumber` command:
+redis.echoDynamicKeyNumber(2, 'k1', 'k2', 'a1', 'a2', function (err, result) {
+  // result === ['k1', 'k2', 'a1', 'a2']
 });
 ```
 
