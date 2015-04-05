@@ -84,4 +84,22 @@ describe('scripting', function () {
       done();
     });
   });
+
+  it('should use evalsha when script is loaded', function (done) {
+    var redis = new Redis();
+
+    redis.on('ready', function () {
+      redis.defineCommand('test', {
+        lua: 'return 1'
+      });
+      redis.monitor(function (err, monitor) {
+        monitor.on('monitor', function (_, command) {
+          expect(command[0]).to.eql('evalsha');
+          monitor.disconnect();
+          done();
+        });
+        redis.test(0);
+      });
+    });
+  });
 });

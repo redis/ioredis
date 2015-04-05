@@ -229,9 +229,9 @@ redis.echoBuffer('k1', 'k2', 'a1', 'a2', function (err, result) {
 redis.pipeline().set('foo', 'bar').echo('k1', 'k2', 'a1', 'a2').exec();
 ```
 
-If the number of keys can't be determined when define a command, you can just
-omit `numberOfKeys` property, and the first argument will represents the
-number of keys every time the custom command is invoked:
+If the number of keys can't be determined when defining a command, you can just
+omit `numberOfKeys` property, and pass the number of keys as the first argument
+when you call the command:
 
 ```javascript
 redis.defineCommand('echoDynamicKeyNumber', {
