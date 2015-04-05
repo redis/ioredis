@@ -165,8 +165,7 @@ Therefore by default when `multi` is called, a `Pipeline` instance is created au
 so that you can use `multi` just like `pipeline`:
 
 ```javascript
-var multi = redis.multi();
-multi.set('foo', 'bar').get('foo').exec(function (err, results) {
+redis.multi().set('foo', 'bar').get('foo').exec(function (err, results) {
   // results === [[null, 'OK'], [null, 'bar']]
 });
 ```
@@ -174,8 +173,7 @@ If there's a syntactically error in the transaction's command chain(wrong number
 none of the commands will be executed and an error is returned:
 
 ```javascript
-var multi = redis.multi();
-multi.set('foo').set('foo', 'new value').exec(function (err, results) {
+redis.multi().set('foo').set('foo', 'new value').exec(function (err, results) {
   // err === new Error('...Transaction discarded because of previous errors.');
 });
 ```
@@ -184,8 +182,7 @@ In terms of the interface, `multi` differs from `pipeline` in that when specifie
 to each chained commands, the queueing state will be returned instead of the result of the command:
 
 ```javascript
-var mulit = redis.multi();
-multi.set('foo', 'bar', function (err, result) {
+redis.multi().set('foo', 'bar', function (err, result) {
   // result === 'QUEUED'
 }).exec(/* ... */);
 ```
