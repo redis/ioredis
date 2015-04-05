@@ -136,7 +136,7 @@ var pipeline = redis.pipeline();
 pipeline.set('foo', 'bar');
 pipeline.del('cc');
 pipeline.exec(function (err, results) {
-  // `err` is always null, and `results` is an array of responses corresponding the sequence the commands where chained.
+  // `err` is always null, and `results` is an array of responses corresponding the sequence the commands where queued.
   // Each response follows the format `[err, result]`.
 });
 
@@ -157,6 +157,18 @@ redis.pipeline().set('foo', 'bar').get('foo', function (err, result) {
   // result[1][1] === 'bar'
 });
 
+```
+
+## Transaction
+Most of the time transaction commands `multi`/`exec` are used together with pipeline.
+Therefore by default when `multi` is called, a `Pipeline` instance is created automatically,
+so that you can use `multi` just like `pipeline`:
+
+```javascript
+var multi = redis.multi();
+multi.set('foo', 'bar').get('foo').exec(function (err, results) {
+  // results === ['OK', 'bar']
+});
 ```
 
 ## Monitor
