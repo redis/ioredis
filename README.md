@@ -220,7 +220,7 @@ redis.echo('k1', 'k2', 'a1', 'a2', function (err, result) {
   // result === ['k1', 'k2', 'a1', 'a2']
 });
 
-// Also, a `echoBuffer` is also defined automatically to return buffers instead of strings:
+// `echoBuffer` is also defined automatically to return buffers instead of strings:
 redis.echoBuffer('k1', 'k2', 'a1', 'a2', function (err, result) {});
 
 // And of course it can also be used with pipeline:
