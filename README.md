@@ -147,7 +147,7 @@ redis.pipeline().set('foo', 'bar').del('cc').exec(function (err, results) {
 // `exec` will also return a Promise:
 var promise = redis.pipeline().set('foo', 'bar').get('foo').exec();
 promise.then(function (result) {
-  // result[1][1] === 'bar'
+  // result === [[null, 'OK'], [null, 'bar']]
 });
 
 // each command can also have a callback:
@@ -167,7 +167,38 @@ so that you can use `multi` just like `pipeline`:
 ```javascript
 var multi = redis.multi();
 multi.set('foo', 'bar').get('foo').exec(function (err, results) {
-  // results === ['OK', 'bar']
+  // results === [[null, 'OK'], [null, 'bar']]
+});
+```
+If there's a syntactically error in the transaction's command chain(wrong number of arguments, wrong command name, ...),
+none of the commands will be executed and an error is returned:
+
+```javascript
+var multi = redis.multi();
+multi.set('foo').set('foo', 'new value').exec(function (err, results) {
+  // err === new Error('...Transaction discarded because of previous errors.');
+});
+```
+
+In terms of the interface, `multi` differs from `pipeline` in that when specified a callback
+to each chained commands, the queueing state will be returned instead of the result of the command:
+
+```javascript
+var mulit = redis.multi();
+multi.set('foo', 'bar', function (err, result) {
+  // result === 'QUEUED'
+}).exec(/* ... */);
+```
+
+If you want to use transaction without pipeline, just pass { pipeline: false } to `multi`,
+and every command will be sent to Redis immediately without waiting `exec` invoked:
+
+```javascript
+redis.multi({ pipeline: false });
+redis.set('foo', 'bar');
+redis.get('foo');
+redis.exec(function (err, result) {
+  // result === [[null, 'OK'], [null, 'bar']]
 });
 ```
 

@@ -28,4 +28,43 @@ describe('transaction', function () {
       done();
     });
   });
+
+  it('should also support command callbacks', function (done) {
+    var redis = new Redis();
+    var pending = 1;
+    redis.multi().set('foo', 'bar').get('foo', function (err, value) {
+      pending -= 1;
+      expect(value).to.eql('QUEUED');
+    }).exec(function (err, result) {
+      expect(result).to.eql([[null, 'OK'], [null, 'bar']]);
+      if (!pending) {
+        done();
+      }
+    });
+  });
+
+  it('should also handle errors in command callbacks', function (done) {
+    var redis = new Redis();
+    var pending = 1;
+    redis.multi().set('foo', function (err) {
+      expect(err.toString()).to.match(/wrong number of arguments/);
+      pending -= 1;
+    }).exec(function (err) {
+      expect(err.toString()).to.match(/Transaction discarded because of previous errors/);
+      if (!pending) {
+        done();
+      }
+    });
+  });
+
+  it('should work without pipeline', function (done) {
+    var redis = new Redis();
+    redis.multi({ pipeline: false });
+    redis.set('foo', 'bar');
+    redis.get('foo');
+    redis.exec(function (err, results) {
+      expect(results).to.eql([[null, 'OK'], [null, 'bar']]);
+      done();
+    });
+  });
 });
