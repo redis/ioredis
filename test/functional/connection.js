@@ -31,7 +31,7 @@ describe('connection', function () {
   it('should receive replies after connection is disconnected', function (done) {
     var redis = new Redis();
     redis.set('foo', 'bar', function () {
-      redis.connection.destroy();
+      redis.connection.end();
     });
     redis.get('foo', function (err, res) {
       expect(res).to.eql('bar');
