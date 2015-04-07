@@ -49,7 +49,7 @@ redis.get('foo').then(function (result) {
   console.log(result);
 });
 
-// Arguments will be flatten, so both the following two line are same:
+// Arguments to commands are flatten, so the following are same:
 redis.sadd('set', 1, 3, 5, 7);
 redis.sadd('set', [1, 3, 5, 7]);
 ```
@@ -60,7 +60,7 @@ a connection to Redis will be created at the same time.
 You can specify which Redis to connect to by:
 
 ```javascript
-new Redis()       // Will connect to 127.0.0.1:6379
+new Redis()       // Connect to 127.0.0.1:6379
 new Redis(6380)   // 127.0.0.1:6380
 new Redis(6379, '192.168.1.1')        // 192.168.1.1:6379
 new Redis('redis://127.0.0.1:6380')   // 127.0.0.1:6380
@@ -145,7 +145,7 @@ pipeline.exec(function (err, results) {
 redis.pipeline().set('foo', 'bar').del('cc').exec(function (err, results) {
 });
 
-// `exec` will also return a Promise:
+// `exec` also returns a Promise:
 var promise = redis.pipeline().set('foo', 'bar').get('foo').exec();
 promise.then(function (result) {
   // result === [[null, 'OK'], [null, 'bar']]
