@@ -102,4 +102,23 @@ describe('scripting', function () {
       });
     });
   });
+
+  it('should reload custom commands after script flush', function (done) {
+    var redis = new Redis();
+
+    redis.defineCommand('test', {
+      numberOfKeys: 1,
+      lua: 'return redis.call("get", KEYS[1])'
+    });
+
+    redis.script('flush', function (err, result) {
+      expect(err).to.eql(null);
+      console.log(result);
+      redis.set('foo', 'bar');
+      redis.test('foo', function (err, result) {
+        expect(result).to.eql('bar');
+        done();
+      });
+    });
+  });
 });
