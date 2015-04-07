@@ -14,13 +14,13 @@ used in the biggest online commerce company [Alibaba](http://www.alibaba.com/).
 
 0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](redis.io/topics/sentinel), [Pipelining](http://redis.io/topics/pipelining) and of course [Lua scripting](http://redis.io/commands/eval) & [Pub/Sub](http://redis.io/topics/pubsub)(with the support of binary messages).
 0. High performance.
-0. Delightful API both accept node-style callbacks and return promises.
-0. Supports Redis commands transforming.
-0. Abstraction for Lua scripting alowing you to define custom commands.
-0. Supports binary data.
+0. Delightful API. Supports both NodeJS callbacks and or promises.
+0. Supports Redis commands transform.
+0. Abstraction for Lua scripting, allowing you to define custom commands.
+0. Support for binary data.
 0. Support for both TCP/IP and UNIX domain sockets.
 0. Flexible system for defining custom command and registering command plugins.
-0. Supports offine queue and ready checking.
+0. Supports offline queue and ready checking.
 0. Supports ES6 types such as `Map` and `Set`.
 0. Sophisticated error handling strategy.
 
@@ -57,7 +57,7 @@ redis.sadd('set', [1, 3, 5, 7]);
 ## Connect to Redis
 When a new `Redis` instance is created,
 a connection to Redis will be created at the same time.
-You can specify which Redis to connect by:
+You can specify which Redis to connect to by:
 
 ```javascript
 new Redis()       // Will connect to 127.0.0.1:6379
@@ -75,8 +75,8 @@ new Redis({
 ## Pub/Sub
 
 Here is a simple example of the API for publish / subscribe.
-This program opens two client connections, subscribes to a channel on one of them,
-and publishes to that channel on the other:
+This program opens two client connections. It subscribes to a channel with one connection,
+and publishes to that channel with the other:
 
 ```javascript
 var Redis = require('ioredis');
@@ -102,6 +102,7 @@ redis.on('messageBuffer', function (channel, message) {
   // Both `channel` and `message` are buffers.
 });
 ```
+
 When a client issues a SUBSCRIBE or PSUBSCRIBE, that connection is put into a "subscriber" mode.
 At that point, only commands that modify the subscription set are valid.
 When the subscription set is empty, the connection is put back into regular mode.
@@ -114,8 +115,8 @@ Arguments can be buffers:
 redis.set('foo', new Buffer('bar'));
 ```
 
-And every command has a buffer method(by adding a suffix of "Buffer" to the command name)
-to reply a buffer instead of a utf8 string:
+And every command has a method that returns a Buffer (by adding a suffix of "Buffer" to the command name).
+To get a buffer instead of a utf8 string:
 
 ```javascript
 redis.getBuffer('foo', function (err, result) {
@@ -125,11 +126,11 @@ redis.getBuffer('foo', function (err, result) {
 
 ## Pipelining
 If you want to send a batch of commands(e.g. > 100), you can use pipelining to queue
-the commands in the memory and send them to Redis at once. By this way, performance will be improved by 50%~300%.
+the commands in the memory, then send them to Redis all at once. This way the performance improves by 50%~300%.
 
-`redis.pipeline()` creates a `Pipeline` instance, and then you can call any Redis
-commands on it just like the `Redis` instance. The commands will be queued in the memory,
-and once you want to send them to Redis, call `exec` method.
+`redis.pipeline()` creates a `Pipeline` instance. You can call any Redis
+commands on it just like the `Redis` instance. The commands are queued in the memory
+and flushed to Redis by calling `exec` method:
 
 ```javascript
 var pipeline = redis.pipeline();
@@ -160,7 +161,7 @@ redis.pipeline().set('foo', 'bar').get('foo', function (err, result) {
 ```
 
 ## Transaction
-Most of the time transaction commands `multi`/`exec` are used together with pipeline.
+Most of the time the transaction commands `multi` & `exec` are used together with pipeline.
 Therefore by default when `multi` is called, a `Pipeline` instance is created automatically,
 so that you can use `multi` just like `pipeline`:
 
@@ -169,8 +170,8 @@ redis.multi().set('foo', 'bar').get('foo').exec(function (err, results) {
   // results === [[null, 'OK'], [null, 'bar']]
 });
 ```
-If there's a syntactically error in the transaction's command chain(wrong number of arguments, wrong command name, ...),
-none of the commands will be executed and an error is returned:
+If there's a syntax error in the transaction's command chain (e.g. wrong number of arguments, wrong command name, etc),
+then none of the commands would be executed, and an error is returned:
 
 ```javascript
 redis.multi().set('foo').set('foo', 'new value').exec(function (err, results) {
@@ -178,8 +179,8 @@ redis.multi().set('foo').set('foo', 'new value').exec(function (err, results) {
 });
 ```
 
-In terms of the interface, `multi` differs from `pipeline` in that when specify a callback
-to each chained command, the queueing state will be returned instead of the result of the command:
+In terms of the interface, `multi` differs from `pipeline` in that when specifying a callback
+to each chained command, the queueing state is passed to the callback instead of the result of the command:
 
 ```javascript
 redis.multi().set('foo', 'bar', function (err, result) {
@@ -187,8 +188,8 @@ redis.multi().set('foo', 'bar', function (err, result) {
 }).exec(/* ... */);
 ```
 
-If you want to use transaction without pipeline, just pass { pipeline: false } to `multi`,
-and every command will be sent to Redis immediately without waiting `exec` invoked:
+If you want to use transaction without pipeline, pass { pipeline: false } to `multi`,
+and every command would be sent to Redis immediately without waiting for an `exec` invokation:
 
 ```javascript
 redis.multi({ pipeline: false });
@@ -229,8 +230,8 @@ redis.echoBuffer('k1', 'k2', 'a1', 'a2', function (err, result) {
 redis.pipeline().set('foo', 'bar').echo('k1', 'k2', 'a1', 'a2').exec();
 ```
 
-If the number of keys can't be determined when defining a command, you can just
-omit `numberOfKeys` property, and pass the number of keys as the first argument
+If the number of keys can't be determined when defining a command, you can
+omit the `numberOfKeys` property, and pass the number of keys as the first argument
 when you call the command:
 
 ```javascript
@@ -250,8 +251,8 @@ Redis supports the MONITOR command,
 which lets you see all commands received by the Redis server across all client connections,
 including from other client libraries and other computers.
 
-The `monitor` method will return a monitor instance
-After you send the MONITOR command, no other commands are valid on that connection. ioredis will emit a monitor event for every new monitor message that comes across.
+The `monitor` method returns a monitor instance.
+After you send the MONITOR command, no other commands are valid on that connection. ioredis would emit a monitor event for every new monitor message that comes across.
 The callback for the monitor event takes a timestamp from the Redis server and an array of command arguments.
 
 Here is a simple example:
@@ -263,37 +264,14 @@ redis.monitor(function (err, monitor) {
 });
 ```
 
-## Auto-reconnect
-By default, ioredis will try to reconnect when the connection to Redis is lost
-except when the connection is closed manually bu `redis.disconnect()` or `redis.quit()`.
-
-It's very flexible to control the how long to wait to reconnect after disconnected
-using the `retryStrategy` option:
-
-```javascript
-var redis = new Redis({
-  // This is the default value of `retryStrategy`
-  retryStrategy: function (times) {
-    var delay = Math.min(times * 2, 10000);
-    return delay;
-  }
-});
-```
-
-`retryStrategy` is a function that will be called when the connection is lost.
-The argument `times` represents this is the nth reconnection being made and
-the return value represents how long(ms) to wait to reconnect. When the
-return value isn't a number, ioredis will stop trying reconnect and the connection
-will be lost forever if user don't call `redis.connect()` manually.
-
 <hr>
 
 # Motivation
 
-Firstly we used the Redis client [node_redis](https://github.com/mranney/node_redis),
-however over a period of time we found out it's not robust enough for us to use
-in the production environment. The library has some not trivial bugs and many unresolved
-issues in the GitHub(165 so far), for instance:
+Originally we used the Redis client [node_redis](https://github.com/mranney/node_redis),
+but over a period of time we found that it's not robust enough for us to use
+in our production environment. The library has some non-trivial bugs and many unresolved
+issues on the GitHub(165 so far). For instance:
 
 ```javascript
 var redis = require('redis');
@@ -310,4 +288,4 @@ client.on('message', function (msg) {
 });
 ```
 
-I submited some pull requests but sadly none of them has been merged, so here ioredis is.
+I submitted some pull requests but sadly none of them has been merged, so here's ioredis.
