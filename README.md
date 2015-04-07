@@ -49,18 +49,18 @@ redis.get('foo').then(function (result) {
   console.log(result);
 });
 
-// Arguments will be flatten, so both the following two line are same:
+// Arguments to commands are flatten, so the following are same:
 redis.sadd('set', 1, 3, 5, 7);
 redis.sadd('set', [1, 3, 5, 7]);
 ```
 
 ## Connect to Redis
 When a new `Redis` instance is created,
-a connection to Redis will be created at the same time.
+a connection to Redis is created at the same time.
 You can specify which Redis to connect by:
 
 ```javascript
-new Redis()       // Will connect to 127.0.0.1:6379
+new Redis()       // Connect to 127.0.0.1:6379
 new Redis(6380)   // 127.0.0.1:6380
 new Redis(6379, '192.168.1.1')        // 192.168.1.1:6379
 new Redis('redis://127.0.0.1:6380')   // 127.0.0.1:6380
@@ -125,7 +125,7 @@ redis.getBuffer('foo', function (err, result) {
 
 ## Pipelining
 If you want to send a batch of commands(e.g. > 100), you can use pipelining to queue
-the commands in the memory and send them to Redis at once. By this way, performance will be improved by 50%~300%.
+the commands in the memory and send them to Redis at once. By this way, performance would be improved by 50%~300%.
 
 `redis.pipeline()` creates a `Pipeline` instance, and then you can call any Redis
 commands on it just like the `Redis` instance. The commands will be queued in the memory,
@@ -144,7 +144,7 @@ pipeline.exec(function (err, results) {
 redis.pipeline().set('foo', 'bar').del('cc').exec(function (err, results) {
 });
 
-// `exec` will also return a Promise:
+// `exec` also returns a Promise:
 var promise = redis.pipeline().set('foo', 'bar').get('foo').exec();
 promise.then(function (result) {
   // result === [[null, 'OK'], [null, 'bar']]
@@ -170,7 +170,7 @@ redis.multi().set('foo', 'bar').get('foo').exec(function (err, results) {
 });
 ```
 If there's a syntactically error in the transaction's command chain(wrong number of arguments, wrong command name, ...),
-none of the commands will be executed and an error is returned:
+none of the commands would be executed and an error is returned:
 
 ```javascript
 redis.multi().set('foo').set('foo', 'new value').exec(function (err, results) {
@@ -179,7 +179,7 @@ redis.multi().set('foo').set('foo', 'new value').exec(function (err, results) {
 ```
 
 In terms of the interface, `multi` differs from `pipeline` in that when specify a callback
-to each chained command, the queueing state will be returned instead of the result of the command:
+to each chained command, the queueing state is returned instead of the result of the command:
 
 ```javascript
 redis.multi().set('foo', 'bar', function (err, result) {
@@ -187,7 +187,7 @@ redis.multi().set('foo', 'bar', function (err, result) {
 }).exec(/* ... */);
 ```
 
-If you want to use transaction without pipeline, just pass { pipeline: false } to `multi`,
+If you want to use transaction without pipeline, just pass `{ pipeline: false }` to `multi`,
 and every command will be sent to Redis immediately without waiting `exec` invoked:
 
 ```javascript
