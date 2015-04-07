@@ -264,14 +264,15 @@ redis.monitor(function (err, monitor) {
 ```
 
 ## Auto-reconnect
-By default, ioredis will try to reconnect when connection to Redis is lost
-except when the connection is closed manually(e.g. `redis.disconnect()` or `redis.quit()`).
+By default, ioredis will try to reconnect when the connection to Redis is lost
+except when the connection is closed manually bu `redis.disconnect()` or `redis.quit()`.
 
 It's very flexible to control the how long to wait to reconnect after disconnected
-by the `retryStrategy` option:
+using the `retryStrategy` option:
 
 ```javascript
 var redis = new Redis({
+  // This is the default value of `retryStrategy`
   retryStrategy: function (times) {
     var delay = Math.min(times * 2, 10000);
     return delay;
@@ -279,9 +280,9 @@ var redis = new Redis({
 });
 ```
 
-`retryStrategy` is a function that will be called when the connection is lost,
-the argument `times` represents this is the nth reconnection being made and
-the return value representing how long(ms) to wait to reconnect. When the
+`retryStrategy` is a function that will be called when the connection is lost.
+The argument `times` represents this is the nth reconnection being made and
+the return value represents how long(ms) to wait to reconnect. When the
 return value isn't a number, ioredis will stop trying reconnect and the connection
 will be lost forever if user don't call `redis.connect()` manually.
 
