@@ -27,4 +27,15 @@ describe('connection', function () {
       }
     });
   });
+
+  it('should receive replies after connection is disconnected', function (done) {
+    var redis = new Redis();
+    redis.set('foo', 'bar', function () {
+      redis.connection.destroy();
+    });
+    redis.get('foo', function (err, res) {
+      expect(res).to.eql('bar');
+      done();
+    });
+  });
 });

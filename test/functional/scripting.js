@@ -1,3 +1,5 @@
+var Command = require('../../lib/command');
+
 describe('scripting', function () {
   describe('#numberOfKeys', function () {
     it('should recognize the numberOfKeys property', function (done) {
@@ -113,11 +115,36 @@ describe('scripting', function () {
 
     redis.script('flush', function (err, result) {
       expect(err).to.eql(null);
-      console.log(result);
       redis.set('foo', 'bar');
       redis.test('foo', function (err, result) {
         expect(result).to.eql('bar');
         done();
+      });
+    });
+  });
+
+  it('should reload custom commands when connect', function (done) {
+    var redis = new Redis();
+
+    redis.defineCommand('test', {
+      numberOfKeys: 1,
+      lua: 'return redis.call("get", KEYS[1])'
+    });
+
+    redis.once('connect', function () {
+      var flush = new Redis();
+      flush.script('flush', function () {
+        redis.disconnect();
+      });
+      redis.on('close', function () {
+        redis.connect();
+        redis.on('connect', function () {
+          redis.set('foo', 'bar');
+          redis.test('foo', function (err, result) {
+            expect(result).to.eql('bar');
+            done();
+          });
+        });
       });
     });
   });
