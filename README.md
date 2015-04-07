@@ -265,9 +265,9 @@ redis.monitor(function (err, monitor) {
 
 ## Auto-reconnect
 By default, ioredis will try to reconnect when the connection to Redis is lost
-except when the connection is closed manually bu `redis.disconnect()` or `redis.quit()`.
+except when the connection is closed manually by `redis.disconnect()` or `redis.quit()`.
 
-It's very flexible to control the how long to wait to reconnect after disconnected
+It's very flexible to control how long to wait to reconnect after disconnected
 using the `retryStrategy` option:
 
 ```javascript
