@@ -10,7 +10,12 @@ var Redis = GLOBAL.Redis = require('..');
 //   this.redis.once('connect', done);
 // });
 
-// afterEach(function (done) {
-//   this.redis.once('close', done);
-//   this.redis.disconnect();
-// });
+afterEach(function (done) {
+  var redis = new Redis();
+  redis.flushall(function () {
+    redis.script('flush', function () {
+      redis.disconnect();
+      done();
+    });
+  });
+});

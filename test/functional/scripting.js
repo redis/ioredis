@@ -38,7 +38,7 @@ describe('scripting', function () {
 
       redis.test('k1', 'k2', 'a1', 'a2', function (err, result) {
         expect(err).to.be.instanceof(Error);
-        expect(err.toString()).to.match(/`numberOfKeys` is not defined/);
+        expect(err.toString()).to.match(/value is not an integer/);
         done();
       });
     });
@@ -82,7 +82,7 @@ describe('scripting', function () {
     redis.pipeline().set('test', 'pipeline').test('test').exec(function (err, results) {
       expect(err).to.eql(null);
       expect(results[1][0]).to.be.instanceof(Error);
-      expect(results[1][0].toString()).to.match(/`numberOfKeys` is not defined/);
+      expect(results[1][0].toString()).to.match(/value is not an integer/);
       done();
     });
   });
@@ -95,17 +95,21 @@ describe('scripting', function () {
         lua: 'return 1'
       });
       redis.monitor(function (err, monitor) {
+        var sent = false;
         monitor.on('monitor', function (_, command) {
-          expect(command[0]).to.eql('evalsha');
-          monitor.disconnect();
-          done();
+          if (!sent) {
+            sent = true;
+            expect(command[0]).to.eql('evalsha');
+            monitor.disconnect();
+            done();
+          }
         });
         redis.test(0);
       });
     });
   });
 
-  it('should reload custom commands after script flush', function (done) {
+  it('should try to use EVALSHA and fallback to EVAL if fails', function (done) {
     var redis = new Redis();
 
     redis.defineCommand('test', {
@@ -113,38 +117,52 @@ describe('scripting', function () {
       lua: 'return redis.call("get", KEYS[1])'
     });
 
-    redis.script('flush', function (err, result) {
-      expect(err).to.eql(null);
-      redis.set('foo', 'bar');
-      redis.test('foo', function (err, result) {
-        expect(result).to.eql('bar');
-        done();
+    redis.once('ready', function () {
+      var flush = new Redis();
+      flush.script('flush', function () {
+        var expectedComands = ['evalsha', 'eval', 'get', 'evalsha', 'get'];
+        redis.monitor(function (err, monitor) {
+          monitor.on('monitor', function (_, command) {
+            var name = expectedComands.shift();
+            expect(name).to.eql(command[0]);
+            if (!expectedComands.length) {
+              monitor.disconnect();
+              done();
+            }
+          });
+          redis.test('bar', function () {
+            redis.test('foo');
+          });
+        });
       });
     });
   });
 
-  it('should reload custom commands when connect', function (done) {
+  it('should load scripts first before execute pipeline', function (done) {
     var redis = new Redis();
 
-    redis.defineCommand('test', {
+    redis.defineCommand('testGet', {
       numberOfKeys: 1,
       lua: 'return redis.call("get", KEYS[1])'
     });
 
-    redis.once('connect', function () {
-      var flush = new Redis();
-      flush.script('flush', function () {
-        redis.disconnect();
+    redis.testGet('init', function () {
+      redis.defineCommand('testSet', {
+        numberOfKeys: 1,
+        lua: 'return redis.call("set", KEYS[1], "bar")'
       });
-      redis.on('close', function () {
-        redis.connect();
-        redis.on('connect', function () {
-          redis.set('foo', 'bar');
-          redis.test('foo', function (err, result) {
-            expect(result).to.eql('bar');
+      var expectedComands = ['script', 'script', 'evalsha', 'get', 'evalsha', 'set', 'get'];
+      redis.monitor(function (err, monitor) {
+        monitor.on('monitor', function (_, command) {
+          var name = expectedComands.shift();
+          expect(name).to.eql(command[0]);
+          if (!expectedComands.length) {
+            monitor.disconnect();
             done();
-          });
+          }
         });
+        var pipe = redis.pipeline();
+        pipe.testGet('foo').testSet('foo').get('foo').exec();
       });
     });
   });

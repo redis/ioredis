@@ -287,6 +287,15 @@ the return value represents how long(ms) to wait to reconnect. When the
 return value isn't a number, ioredis will stop trying reconnect and the connection
 will be lost forever if user don't call `redis.connect()` manually.
 
+## Offline Queue
+When a command can't be processed by Redis(e.g. the connection hasn't been established or
+Redis is loading data from disk), by default it's added to the offline queue and will be
+executed when it can be processed. You can disable this feature by set `enableOfflineQueue`
+option to `false`:
+
+```javascript
+var redis = new Redis({ enableOfflineQueue: false });
+```
 <hr>
 
 # Motivation

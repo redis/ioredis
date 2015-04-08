@@ -16,7 +16,7 @@ describe('select', function () {
         redis.connection.destroy();
         redis.select('3');
         redis.set('foo', '3');
-        redis.select('2');
+        redis.select('0');
         redis.get('foo', function (err, res) {
           expect(res).to.eql('2');
           redis.select('3');
