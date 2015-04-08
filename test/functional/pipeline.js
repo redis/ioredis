@@ -52,7 +52,7 @@ describe('pipeline', function () {
     });
   });
 
-  it.only('should support inline transaction', function (done) {
+  it('should support inline transaction', function (done) {
     var redis = new Redis();
 
     redis.pipeline().multi().set('foo', 'bar').get('foo').exec().exec(function (err, result) {
