@@ -150,14 +150,17 @@ var promise = redis.pipeline().set('foo', 'bar').get('foo').exec();
 promise.then(function (result) {
   // result === [[null, 'OK'], [null, 'bar']]
 });
+```
 
-// each command can also have a callback:
+Each chained command can also have a callback, which will be invoked when the command
+get a reply:
+
+```javascript
 redis.pipeline().set('foo', 'bar').get('foo', function (err, result) {
   // result === 'bar'
 }).exec(function (err, result) {
   // result[1][1] === 'bar'
 });
-
 ```
 
 ## Transaction
@@ -198,6 +201,13 @@ redis.get('foo');
 redis.exec(function (err, result) {
   // result === [[null, 'OK'], [null, 'bar']]
 });
+```
+
+Inline transaction is supported by pipeline, that means you can group a subset commands
+in the pipeline into a transaction:
+
+```javascript
+redis.pipeline().get('foo').mulit().set('foo', 'bar').get('foo').exec().get('foo').exec();
 ```
 
 ## Lua Scripting

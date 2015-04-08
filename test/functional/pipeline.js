@@ -51,4 +51,16 @@ describe('pipeline', function () {
       done();
     });
   });
+
+  it.only('should support inline transaction', function (done) {
+    var redis = new Redis();
+
+    redis.pipeline().multi().set('foo', 'bar').get('foo').exec().exec(function (err, result) {
+      expect(result[0][1]).to.eql('OK');
+      expect(result[1][1]).to.eql('QUEUED');
+      expect(result[2][1]).to.eql('QUEUED');
+      expect(result[3][1]).to.eql(['OK', 'bar']);
+      done();
+    });
+  });
 });
