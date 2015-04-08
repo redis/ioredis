@@ -1,6 +1,6 @@
 describe('select', function () {
-  it('should auto select the specifie db', function (done) {
-    var redis = new Redis({ select: 2 });
+  it('should support auto select', function (done) {
+    var redis = new Redis({ db: 2 });
     redis.set('foo', '2');
     redis.select('2');
     redis.get('foo', function (err, res) {

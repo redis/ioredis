@@ -14,7 +14,7 @@ describe('connection', function () {
   });
 
   it('should send AUTH command before any other commands', function (done) {
-    var redis = new Redis({ auth: '123' });
+    var redis = new Redis({ password: '123' });
     redis.get('foo');
     var times = 0;
     var sendCommand = stub(redis, 'sendCommand', function (command) {

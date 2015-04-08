@@ -18,19 +18,19 @@ describe('Redis', function () {
         expect(option3).to.have.property('host', '192.168.1.1');
 
         var option4 = getOption(6381, '192.168.1.1', {
-          auth: '123',
-          select: 2
+          password: '123',
+          db: 2
         });
         expect(option4).to.have.property('port', 6381);
         expect(option4).to.have.property('host', '192.168.1.1');
-        expect(option4).to.have.property('auth', '123');
-        expect(option4).to.have.property('select', 2);
+        expect(option4).to.have.property('password', '123');
+        expect(option4).to.have.property('db', 2);
 
         var option5 = getOption('redis://:authpassword@127.0.0.1:6380/4');
         expect(option5).to.have.property('port', 6380);
         expect(option5).to.have.property('host', '127.0.0.1');
-        expect(option5).to.have.property('auth', 'authpassword');
-        expect(option5).to.have.property('select', 4);
+        expect(option5).to.have.property('password', 'authpassword');
+        expect(option5).to.have.property('db', 4);
 
         var option6 = getOption('/tmp/redis.sock');
         expect(option6).to.have.property('path', '/tmp/redis.sock');
