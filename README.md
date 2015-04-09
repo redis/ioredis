@@ -86,7 +86,7 @@ var redis = new Redis();
 var pub = new Redis();
 redis.subscribe('news', 'music', function (err, count) {
   // Now both channel 'news' and 'music' are subscribed successfully.
-  // `count` arg represents the number of channels we are currently subscribed to.
+  // `count` represents the number of channels we are currently subscribed to.
 
   pub.publish('news', 'Hello world!');
   pub.publish('music', 'Hello again!');
@@ -139,7 +139,8 @@ var pipeline = redis.pipeline();
 pipeline.set('foo', 'bar');
 pipeline.del('cc');
 pipeline.exec(function (err, results) {
-  // `err` is always null, and `results` is an array of responses corresponding the sequence the commands where queued.
+  // `err` is always null, and `results` is an array of responses
+  // corresponding the sequence the commands where queued.
   // Each response follows the format `[err, result]`.
 });
 
@@ -287,7 +288,7 @@ using the `retryStrategy` option:
 var redis = new Redis({
   // This is the default value of `retryStrategy`
   retryStrategy: function (times) {
-    var delay = Math.min(times * 2, 10000);
+    var delay = Math.min(times * 2, 2000);
     return delay;
   }
 });
@@ -327,9 +328,9 @@ redis.set('foo', 'bar');
 The arguments passed to the constructor are different from ones you used to connect to a single node, where:
 
 * `name` identifies a group of Redis instances composed of a master and one or more slaves (`mymaster` in the example);
-* `sentinels` are a list of sentinels to connect to. The list does not need to enumerate all your sentinel instances, but a few so that if one is down the client will try the next one. The client is able to remember the last sentinel that was able to reply correctly and will use it for the next requests.
+* `sentinels` are a list of sentinels to connect to. The list does not need to enumerate all your sentinel instances, but a few so that if one is down the client will try the next one.
 
-ioredis **guarantees** that the node you connected to always be a master even after a failover. When a failover happens, instead of trying to reconnect with the failed node(which will be demoted to a slave when it's available again), ioredis will ask sentinels for the new master and connect to it. All commands sent during the failover are queued and will be executed when the new connection is established so that none of the commands will be lost.
+ioredis **guarantees** that the node you connected to always be a master even after a failover. When a failover happens, instead of trying to reconnect with the failed node(which will be demoted to slave when it's available again), ioredis will ask sentinels for the new master node and connect to it. All commands sent during the failover are queued and will be executed when the new connection is established so that none of the commands will be lost.
 
 It's possible to connect to a slave instead of a master by specifying a option `role` with the value of `slave`, and ioredis will try to connect to a random slave of the specified master, with the guarantee of the connected node is always a slave. If the current node is promoted to master because of a failover, ioredis will disconnect with it and ask sentinels for another slave node to connect to.
 

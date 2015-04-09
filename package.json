@@ -1,6 +1,6 @@
 {
   "name": "ioredis",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A delightful, performance-focused Redis client for Node and io.js",
   "main": "index.js",
   "scripts": {
@@ -28,9 +28,7 @@
   },
   "devDependencies": {
     "chai": "^2.2.0",
-    "jaguarjs-jsdoc": "0.0.1",
     "jsdoc": "^3.3.0-beta3",
-    "minami": "^1.1.0",
     "mocha": "^2.2.1",
     "sinon": "^1.14.1"
   },
