@@ -318,7 +318,6 @@ To connect using Sentinel, use:
 ```javascript
 var redis = new Redis({
   sentinels: [{ host: 'localhost', port: 26379 }, { host: 'localhost', port: 26380 }],
-  role: 'master',
   name: 'mymaster'
 });
 
@@ -328,8 +327,11 @@ redis.set('foo', 'bar');
 The arguments passed to the constructor are different from ones you used to connect to a single node, where:
 
 * `name` identifies a group of Redis instances composed of a master and one or more slaves (`mymaster` in the example);
-* `role` represents the role of node you want to connect. The allowed roles are `master` and `slave`. ioredis **guarantees** that at any time, even after a failover, the node you connected with should always be master(or slave if the value of `role` is `slave`). When a failover happens, ioredis will ask sentinels for the current master(or slave) and connect to it automatically. All commands during the failover are queued and will be executed when the new connection is established so that none of the commands will lost;
 * `sentinels` are a list of sentinels to connect to. The list does not need to enumerate all your sentinel instances, but a few so that if one is down the client will try the next one. The client is able to remember the last sentinel that was able to reply correctly and will use it for the next requests.
+
+ioredis **guarantees** that the node you connected to always be a master even after a failover. When a failover happens, instead of trying to reconnect with the failed node(which will be demoted to a slave when it's available again), ioredis will ask sentinels for the new master and connect to it. All commands sent during the failover are queued and will be executed when the new connection is established so that none of the commands will be lost.
+
+It's possible to connect to a slave instead of a master by specifying a option `role` with the value of `slave`, and ioredis will try to connect to a random slave of the specified master, with the guarantee of the connected node is always a slave. If the current node is promoted to master because of a failover, ioredis will disconnect with it and ask sentinels for another slave node to connect to.
 
 <hr>
 
