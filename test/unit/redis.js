@@ -41,6 +41,12 @@ describe('Redis', function () {
         });
         expect(option7).to.have.property('port', 6380);
         expect(option7).to.have.property('host', '192.168.1.1');
+
+        var option8 = getOption(6380, {
+          host: '192.168.1.1'
+        });
+        expect(option8).to.have.property('port', 6380);
+        expect(option8).to.have.property('host', '192.168.1.1');
       } catch (err) {
         Redis.prototype.connect.restore();
         throw err;
