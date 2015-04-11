@@ -37,30 +37,33 @@ MockServer.prototype.disconnect = function (callback) {
 };
 
 MockServer.prototype.write = function (c, data) {
-  var str = '';
-  if (data[0] === MockServer.REDIS_OK) {
-    str = '+OK\r\n';
-  } else if (data instanceof Error) {
-    str = '-ERR ' + data.message + '\r\n';
-  } else if (Array.isArray(data)) {
-    str = '*' + data.length + '\r\n';
-    data.forEach(function (item) {
-      if (typeof item === 'number') {
-        str += ':' + item + '\r\n';
-      } else {
-        item = item.toString();
-        str += '$' + item.length + '\r\n';
-        str += item + '\r\n';
-      }
-    });
-  } else if (typeof data === 'number') {
-    str += ':' + data + '\r\n';
-  } else {
-    data = data.toString();
-    str += '$' + data.length + '\r\n';
-    str += data + '\r\n';
+  c.write(convert('', data));
+
+  function convert(str, data) {
+    var result;
+    if (typeof data === 'undefined') {
+      data = MockServer.REDIS_OK;
+    }
+    if (data === MockServer.REDIS_OK) {
+      result = '+OK\r\n';
+    } else if (data instanceof Error) {
+      result = '-ERR ' + data.message + '\r\n';
+    } else if (Array.isArray(data)) {
+      result = '*' + data.length + '\r\n';
+      data.forEach(function (item) {
+        result += convert(str, item);
+      });
+    } else if (typeof data === 'number') {
+      result = ':' + data + '\r\n';
+    } else if (data === null) {
+      result = '$-1\r\n';
+    } else {
+      data = data.toString();
+      result = '$' + data.length + '\r\n';
+      result += data + '\r\n';
+    }
+    return str + result;
   }
-  c.write(str);
 };
 
 MockServer.REDIS_OK = '+OK';
