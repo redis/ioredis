@@ -331,9 +331,9 @@ The arguments passed to the constructor are different from ones you used to conn
 * `name` identifies a group of Redis instances composed of a master and one or more slaves (`mymaster` in the example);
 * `sentinels` are a list of sentinels to connect to. The list does not need to enumerate all your sentinel instances, but a few so that if one is down the client will try the next one.
 
-ioredis **guarantees** that the node you connected to always be a master even after a failover. When a failover happens, instead of trying to reconnect with the failed node(which will be demoted to slave when it's available again), ioredis will ask sentinels for the new master node and connect to it. All commands sent during the failover are queued and will be executed when the new connection is established so that none of the commands will be lost.
+ioredis **guarantees** that the node you connected with is always a master even after a failover. When a failover happens, instead of trying to reconnect with the failed node(which will be demoted to slave when it's available again), ioredis will ask sentinels for the new master node and connect to it. All commands sent during the failover are queued and will be executed when the new connection is established so that none of the commands will be lost.
 
-It's possible to connect to a slave instead of a master by specifying a option `role` with the value of `slave`, and ioredis will try to connect to a random slave of the specified master, with the guarantee of the connected node is always a slave. If the current node is promoted to master because of a failover, ioredis will disconnect with it and ask sentinels for another slave node to connect to.
+It's possible to connect to a slave instead of a master by specifying the option `role` with the value of `slave`, and ioredis will try to connect to a random slave of the specified master, with the guarantee that the connected node is always a slave. If the current node is promoted to master owing to a failover, ioredis will disconnect with it and ask sentinels for another slave node to connect to.
 
 <hr>
 
