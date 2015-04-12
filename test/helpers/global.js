@@ -11,12 +11,12 @@ GLOBAL.MockServer = require('./mock_server');
 //   this.redis.once('connect', done);
 // });
 
-afterEach(function (done) {
-  var redis = new Redis();
-  redis.flushall(function () {
-    redis.script('flush', function () {
-      redis.disconnect();
-      done();
-    });
-  });
-});
+// afterEach(function (done) {
+//   var redis = new Redis();
+//   redis.flushall(function () {
+//     redis.script('flush', function () {
+//       redis.disconnect();
+//       done();
+//     });
+//   });
+// });
