@@ -13,7 +13,7 @@ Support Redis >= 2.6.12 and (Node.js >= 0.11.6 or io.js).
 ioredis is a robust, full-featured Redis client
 used in the world's biggest online commerce company [Alibaba](http://www.alibaba.com/).
 
-0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](redis.io/topics/sentinel), [Pipelining](http://redis.io/topics/pipelining) and of course [Lua scripting](http://redis.io/commands/eval) & [Pub/Sub](http://redis.io/topics/pubsub)(with the support of binary messages).
+0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial)(WIP), [Sentinel](redis.io/topics/sentinel), [Pipelining](http://redis.io/topics/pipelining) and of course [Lua scripting](http://redis.io/commands/eval) & [Pub/Sub](http://redis.io/topics/pubsub)(with the support of binary messages).
 0. High performance.
 0. Delightful API. Supports both Node-style callbacks and promises.
 0. Supports Redis commands transform.
