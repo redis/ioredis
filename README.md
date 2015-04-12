@@ -360,3 +360,11 @@ client.on('message', function (msg) {
 ```
 
 I submitted some pull requests but sadly none of them has been merged, so here's ioredis.
+
+# Acknowledge
+
+The JavaScript and hiredis parsers are modified from [node_redis](https://github.com/mranney/node_redis) (MIT License, Copyright (c) 2010 Matthew Ranney, http://ranney.com/)
+
+# License
+
+Mit
