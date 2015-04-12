@@ -1,7 +1,19 @@
 language: node_js
+
 node_js:
   - "0.11.6"
   - "0.12"
   - "iojs"
+
 services:
   - redis-server
+
+script:
+  - npm run test:cov
+
+addons:
+  code_climate:
+    repo_token: 4cee2f60edbf31acac6ddff823f0b93e2e9882c3e5c55130049e0fd878549f84
+
+after_success:
+  - cat ./coverage/lcov.info | ./node_modules/.bin/codeclimate
