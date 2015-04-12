@@ -11,8 +11,7 @@ describe('sentinel', function () {
         sentinels: [
           { host: '127.0.0.1', port: '26379' }
         ],
-        name: 'master',
-        retryStrategy: null
+        name: 'master'
       });
 
     });
@@ -29,8 +28,7 @@ describe('sentinel', function () {
           { host: '127.0.0.1', port: '26379' },
           { host: '127.0.0.1', port: '26380' }
         ],
-        name: 'master',
-        retryStrategy: null
+        name: 'master'
       });
     });
 
@@ -40,8 +38,7 @@ describe('sentinel', function () {
           { host: '127.0.0.1', port: '26379' },
           { host: '127.0.0.1', port: '26380' }
         ],
-        name: 'master',
-        retryStrategy: null
+        name: 'master'
       });
 
       redis.once('error', function (error) {
@@ -57,8 +54,7 @@ describe('sentinel', function () {
           { host: '127.0.0.1', port: '26379' },
           { host: '127.0.0.1', port: '26380' }
         ],
-        name: 'master',
-        retryStrategy: null
+        name: 'master'
       });
 
       redis.once('error', function (err) {
@@ -87,8 +83,7 @@ describe('sentinel', function () {
         sentinels: [
           { host: '127.0.0.1', port: '26379' }
         ],
-        name: 'master',
-        retryStrategy: null
+        name: 'master'
       });
       redis.disconnect();
     });
@@ -113,8 +108,7 @@ describe('sentinel', function () {
         sentinels: [
           { host: '127.0.0.1', port: '26379' }
         ],
-        name: 'master',
-        retryStrategy: null
+        name: 'master'
       });
     });
 
@@ -138,8 +132,7 @@ describe('sentinel', function () {
           { host: '127.0.0.1', port: '26379' },
           { host: '127.0.0.1', port: '26380' }
         ],
-        name: 'master',
-        retryStrategy: null
+        name: 'master'
       });
     });
 
@@ -172,8 +165,7 @@ describe('sentinel', function () {
           { host: '127.0.0.1', port: '26380' }
         ],
         name: 'master',
-        roleRetryDelay: 0,
-        retryStrategy: null
+        roleRetryDelay: 0
       });
     });
   });
@@ -198,8 +190,7 @@ describe('sentinel', function () {
           { host: '127.0.0.1', port: '26379' }
         ],
         name: 'master',
-        role: 'slave',
-        retryStrategy: null
+        role: 'slave'
       });
     });
 
@@ -224,8 +215,7 @@ describe('sentinel', function () {
           { host: '127.0.0.1', port: '26380' }
         ],
         name: 'master',
-        role: 'slave',
-        retryStrategy: null
+        role: 'slave'
       });
     });
 
@@ -248,7 +238,7 @@ describe('sentinel', function () {
 
       var slave = new MockServer(16381, function (argv) {
         if (argv[0] === 'info') {
-          return 'role:slave';
+          return 'role:master';
         }
       });
 
@@ -258,9 +248,47 @@ describe('sentinel', function () {
           { host: '127.0.0.1', port: '26380' }
         ],
         name: 'master',
-        role: 'master',
-        roleRetryDelay: 0,
-        retryStrategy: null
+        role: 'slave',
+        roleRetryDelay: 0
+      });
+    });
+  });
+
+  describe('failover', function () {
+    it('should switch to new master automatically without any commands being lost', function (done) {
+      var sentinel = new MockServer(26379, function (argv) {
+        if (argv[0] === 'sentinel' && argv[1] === 'get-master-addr-by-name') {
+          return ['127.0.0.1', '16380'];
+        }
+      });
+      var master = new MockServer(16380);
+      master.on('connect', function (c) {
+        c.destroy();
+        master.disconnect();
+        redis.get('foo', function (err, res) {
+          expect(res).to.eql('bar');
+          redis.disconnect();
+          newMaster.disconnect(function () {
+            sentinel.disconnect(done);
+          });
+        });
+        var newMaster = new MockServer(16381, function (argv) {
+          if (argv[0] === 'get' && argv[1] === 'foo') {
+            return 'bar';
+          }
+        });
+        sentinel.handler = function (argv) {
+          if (argv[0] === 'sentinel' && argv[1] === 'get-master-addr-by-name') {
+            return ['127.0.0.1', '16381'];
+          }
+        };
+      });
+
+      var redis = new Redis({
+        sentinels: [
+          { host: '127.0.0.1', port: '26379' }
+        ],
+        name: 'master'
       });
     });
   });

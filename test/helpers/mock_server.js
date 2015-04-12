@@ -7,6 +7,7 @@ function MockServer (port, handler) {
   EventEmitter.call(this);
 
   var _this = this;
+  this.handler = handler;
   this.socket = net.createServer(function (c) {
     _this.emit('connect', c);
     c.on('end', function () {
@@ -19,8 +20,8 @@ function MockServer (port, handler) {
       for (var i = 0; i < data.length; i += 2) {
         args.push(data[i]);
       }
-      if (handler) {
-        _this.write(c, handler(args));
+      if (_this.handler) {
+        _this.write(c, _this.handler(args));
       } else {
         _this.write(c, MockServer.REDIS_OK);
       }
@@ -37,7 +38,9 @@ MockServer.prototype.disconnect = function (callback) {
 };
 
 MockServer.prototype.write = function (c, data) {
-  c.write(convert('', data));
+  if (c.writable) {
+    c.write(convert('', data));
+  }
 
   function convert(str, data) {
     var result;
