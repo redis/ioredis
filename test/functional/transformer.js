@@ -1,4 +1,4 @@
-describe.only('transformer', function () {
+describe('transformer', function () {
   describe('default transformer', function () {
     describe('hmset', function () {
       it('should support object', function (done) {
