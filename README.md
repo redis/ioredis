@@ -177,7 +177,7 @@ There are three built-in transformers, two argument transformers for `hmset` & `
 a reply transformer for `hgetall`. Transformers for `hmset` and `hgetall` has been mentioned
 above, and the transformer for `mset` is similar to the one for `hmset`:
 
-```
+```javascript
 redis.mset({ k1: 'v1', k2: 'v2' });
 redis.get('k1', function (err, result) {
   // result === 'v1';
