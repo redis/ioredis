@@ -126,70 +126,6 @@ redis.getBuffer('foo', function (err, result) {
 });
 ```
 
-## Arguments & Replies Transform
-Most Redis commands take one or more Strings as arguments,
-and replies are sent back as a single String or an Array of Strings. However sometimes
-you may want something different: For instance it would be more convenient if HGETALL
-command returns a hash (e.g. `{key: val1, key2: v2}`) rather than an array of key values (e.g. `[key1,val1,key2,val2]`).
-
-ioredis has a flexible system for transforming arguments and replies. There are two types
-of transformers, argument transform and reply transformer:
-
-```javascript
-var Redis = require('ioredis');
-
-// define a argument transformer that convert
-// hmset('key', { k1: 'v1', k2: 'v2' })
-// or
-// hmset('key', new Map([['k1', 'v1'], ['k2', 'v2']]))
-// into
-// hmset('key', 'k1', 'v1', 'k2', 'v2')
-Redis.Command.setArgumentTransformer('hmset', function (args) {
-  if (args.length === 2) {
-    var pos = 1;
-    if (typeof Map !== 'undefined' && args[1] instanceof Map) {
-      return [args[0]].concat(utils.convertMapToArray(args[1]));
-    }
-    if ( typeof args[1] === 'object' && args[1] !== null) {
-      return [args[0]].concat(utils.convertObjectToArray(args[1]));
-    }
-  }
-  return args;
-});
-
-// define a reply transformer that convert the reply
-// ['k1', 'v1', 'k2', 'v2']
-// into
-// { k1: 'v1', 'k2': 'v2' }
-Redis.Command.setReplyTransformer('hgetall', function (result) {
-  if (Array.isArray(result)) {
-    var obj = {};
-    for (var i = 0; i < result.length; i += 2) {
-      obj[result[i]] = result[i + 1];
-    }
-    return obj;
-  }
-  return result;
-});
-```
-
-There are three built-in transformers, two argument transformers for `hmset` & `mset` and
-a reply transformer for `hgetall`. Transformers for `hmset` and `hgetall` has been mentioned
-above, and the transformer for `mset` is similar to the one for `hmset`:
-
-```javascript
-redis.mset({ k1: 'v1', k2: 'v2' });
-redis.get('k1', function (err, result) {
-  // result === 'v1';
-});
-
-redis.mset(new Map([['k3', 'v3'], ['k4', 'v4']]));
-redis.get('k3', function (err, result) {
-  // result === 'v3';
-});
-```
-
-
 ## Pipelining
 If you want to send a batch of commands(e.g. > 100), you can use pipelining to queue
 the commands in the memory, then send them to Redis all at once. This way the performance improves by 50%~300%.
@@ -275,6 +211,69 @@ in the pipeline into a transaction:
 
 ```javascript
 redis.pipeline().get('foo').mulit().set('foo', 'bar').get('foo').exec().get('foo').exec();
+```
+
+## Arguments & Replies Transform
+Most Redis commands take one or more Strings as arguments,
+and replies are sent back as a single String or an Array of Strings. However sometimes
+you may want something different: For instance it would be more convenient if HGETALL
+command returns a hash (e.g. `{key: val1, key2: v2}`) rather than an array of key values (e.g. `[key1,val1,key2,val2]`).
+
+ioredis has a flexible system for transforming arguments and replies. There are two types
+of transformers, argument transform and reply transformer:
+
+```javascript
+var Redis = require('ioredis');
+
+// define a argument transformer that convert
+// hmset('key', { k1: 'v1', k2: 'v2' })
+// or
+// hmset('key', new Map([['k1', 'v1'], ['k2', 'v2']]))
+// into
+// hmset('key', 'k1', 'v1', 'k2', 'v2')
+Redis.Command.setArgumentTransformer('hmset', function (args) {
+  if (args.length === 2) {
+    var pos = 1;
+    if (typeof Map !== 'undefined' && args[1] instanceof Map) {
+      return [args[0]].concat(utils.convertMapToArray(args[1]));
+    }
+    if ( typeof args[1] === 'object' && args[1] !== null) {
+      return [args[0]].concat(utils.convertObjectToArray(args[1]));
+    }
+  }
+  return args;
+});
+
+// define a reply transformer that convert the reply
+// ['k1', 'v1', 'k2', 'v2']
+// into
+// { k1: 'v1', 'k2': 'v2' }
+Redis.Command.setReplyTransformer('hgetall', function (result) {
+  if (Array.isArray(result)) {
+    var obj = {};
+    for (var i = 0; i < result.length; i += 2) {
+      obj[result[i]] = result[i + 1];
+    }
+    return obj;
+  }
+  return result;
+});
+```
+
+There are three built-in transformers, two argument transformers for `hmset` & `mset` and
+a reply transformer for `hgetall`. Transformers for `hmset` and `hgetall` has been mentioned
+above, and the transformer for `mset` is similar to the one for `hmset`:
+
+```javascript
+redis.mset({ k1: 'v1', k2: 'v2' });
+redis.get('k1', function (err, result) {
+  // result === 'v1';
+});
+
+redis.mset(new Map([['k3', 'v3'], ['k4', 'v4']]));
+redis.get('k3', function (err, result) {
+  // result === 'v3';
+});
 ```
 
 ## Lua Scripting
