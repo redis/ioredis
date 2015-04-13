@@ -20,7 +20,6 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 0. Abstraction for Lua scripting, allowing you to define custom commands.
 0. Support for binary data.
 0. Support for both TCP/IP and UNIX domain sockets.
-0. Flexible system for registering command wrapper.
 0. Supports offline queue and ready checking.
 0. Supports ES6 types such as `Map` and `Set`.
 0. Sophisticated error handling strategy.
@@ -174,7 +173,7 @@ Redis.Command.setReplyTransformer('hgetall', function (result) {
 });
 ```
 
-There are three built-in transformers, two argument transformer for `hmset` & `mset` and
+There are three built-in transformers, two argument transformers for `hmset` & `mset` and
 a reply transformer for `hgetall`. Transformers for `hmset` and `hgetall` has been mentioned
 above, and the transformer for `mset` is similar to the one for `hmset`:
 
