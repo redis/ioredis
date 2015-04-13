@@ -2,13 +2,6 @@ var Command = require('../../lib/command');
 
 describe('Command', function () {
   describe('constructor()', function () {
-    it('should reject when the command isnt a string', function () {
-      var command = new Command(123);
-      return command.promise.catch(function (err) {
-        expect(err).to.be.instanceof(Error);
-      });
-    });
-
     it('should flatten the args', function () {
       var command = new Command('get', ['foo', ['bar', ['zoo']]]);
       expect(command.args).to.eql(['foo', 'bar', ['zoo']]);

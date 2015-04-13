@@ -16,11 +16,11 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial)(WIP), [Sentinel](redis.io/topics/sentinel), [Pipelining](http://redis.io/topics/pipelining) and of course [Lua scripting](http://redis.io/commands/eval) & [Pub/Sub](http://redis.io/topics/pubsub)(with the support of binary messages).
 0. High performance.
 0. Delightful API. Supports both Node-style callbacks and promises.
-0. Supports Redis commands transform.
+0. Supports command arguments and replies transform.
 0. Abstraction for Lua scripting, allowing you to define custom commands.
 0. Support for binary data.
 0. Support for both TCP/IP and UNIX domain sockets.
-0. Flexible system for defining custom command and registering command plugins.
+0. Flexible system for registering command wrapper.
 0. Supports offline queue and ready checking.
 0. Supports ES6 types such as `Map` and `Set`.
 0. Sophisticated error handling strategy.
@@ -126,6 +126,70 @@ redis.getBuffer('foo', function (err, result) {
   // result is a buffer.
 });
 ```
+
+## Arguments & Replies Transform
+Most Redis commands take one or more Strings as arguments,
+and replies are sent back as a single String or an Array of Strings. However sometimes
+you may want something different: For instance it would be more convenient if HGETALL
+command returns a hash (e.g. `{key: val1, key2: v2}`) rather than an array of key values (e.g. `[key1,val1,key2,val2]`).
+
+ioredis has a flexible system for transforming arguments and replies. There are two types
+of transformers, argument transform and reply transformer:
+
+```javascript
+var Redis = require('ioredis');
+
+// define a argument transformer that convert
+// hmset('key', { k1: 'v1', k2: 'v2' })
+// or
+// hmset('key', new Map([['k1', 'v1'], ['k2', 'v2']]))
+// into
+// hmset('key', 'k1', 'v1', 'k2', 'v2')
+Redis.Command.setArgumentTransformer('hmset', function (args) {
+  if (args.length === 2) {
+    var pos = 1;
+    if (typeof Map !== 'undefined' && args[1] instanceof Map) {
+      return [args[0]].concat(utils.convertMapToArray(args[1]));
+    }
+    if ( typeof args[1] === 'object' && args[1] !== null) {
+      return [args[0]].concat(utils.convertObjectToArray(args[1]));
+    }
+  }
+  return args;
+});
+
+// define a reply transformer that convert the reply
+// ['k1', 'v1', 'k2', 'v2']
+// into
+// { k1: 'v1', 'k2': 'v2' }
+Redis.Command.setReplyTransformer('hgetall', function (result) {
+  if (Array.isArray(result)) {
+    var obj = {};
+    for (var i = 0; i < result.length; i += 2) {
+      obj[result[i]] = result[i + 1];
+    }
+    return obj;
+  }
+  return result;
+});
+```
+
+There are three built-in transformers, two argument transformer for `hmset` & `mset` and
+a reply transformer for `hgetall`. Transformers for `hmset` and `hgetall` has been mentioned
+above, and the transformer for `mset` is similar to the one for `hmset`:
+
+```
+redis.mset({ k1: 'v1', k2: 'v2' });
+redis.get('k1', function (err, result) {
+  // result === 'v1';
+});
+
+redis.mset(new Map([['k3', 'v3'], ['k4', 'v4']]));
+redis.get('k3', function (err, result) {
+  // result === 'v3';
+});
+```
+
 
 ## Pipelining
 If you want to send a batch of commands(e.g. > 100), you can use pipelining to queue
@@ -354,7 +418,7 @@ client.mget('foo', 'bar');
 
 client.subscribe('channel');
 client.on('message', function (msg) {
-  // Will print "Hello world", although no `publish` in invoked.
+  // Will print "Hello world", although no `publish` is invoked.
   console.log('received ', msg);
 });
 ```
