@@ -397,6 +397,49 @@ ioredis **guarantees** that the node you connected with is always a master even 
 
 It's possible to connect to a slave instead of a master by specifying the option `role` with the value of `slave`, and ioredis will try to connect to a random slave of the specified master, with the guarantee that the connected node is always a slave. If the current node is promoted to master owing to a failover, ioredis will disconnect with it and ask sentinels for another slave node to connect to.
 
+## Cluster
+Support for Cluster is currently experimental and under active development. It's not recommended to use it in production.
+If you encounter any problems, welcome to submit an issue :-).
+
+You can connect to a cluster like this:
+
+```javascript
+var Redis = require('ioredis');
+
+var cluster = new Redis.Cluster([{
+  port: 6380,
+  host: '127.0.0.1'
+}, {
+  port: 6381,
+  host: '127.0.0.1'
+}]);
+
+cluster.set('foo', 'bar');
+cluster.get('foo', function (err, res) {
+  // res === 'bar'
+});
+```
+When using `Redis.Cluster` to connect to a cluster, there are some differences from using `Redis`:
+
+0. The argument is a list of nodes of the cluster you want to connect.
+Just like Sentinel, The list does not need to enumerate all your cluster nodes,
+but a few so that if one is down the client will try the next one, and the client will discover other nodes automatically when at least one node is connnected.
+0. Some comands can't be used in the cluster mode, like `info` and `pipeline`, custom commands also don't work.
+
+## Lazy Connect
+When a new `Redis` instance is created, it will connect to Redis server automatically.
+If you want to keep disconnected util a command is called, you can pass the `lazyConnect` option to
+the constructor:
+
+```javascript
+// No attempting to connect to the Redis server here.
+var redis = new Redis({ lazyConnect: true });
+
+// Now let's connect to the Redis server
+redis.get('foo', function () {
+});
+```
+
 <hr>
 
 # Motivation
