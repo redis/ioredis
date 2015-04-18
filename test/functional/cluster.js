@@ -42,6 +42,28 @@ describe('cluster', function () {
         }
       }
     });
+
+    it('should send command the the correct node', function (done) {
+      var node1 = new MockServer(30001, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return [
+            [0, 1, ['127.0.0.1', 30001]],
+            [2, 16383, ['127.0.0.1', 30002]]
+          ];
+        }
+      });
+      var node2 = new MockServer(30002, function (argv) {
+        if (argv[0] === 'get' && argv[1] === 'foo') {
+          cluster.disconnect();
+          disconnect([node1, node2], done);
+        }
+      });
+
+      var cluster = new Redis.Cluster([
+        { host: '127.0.0.1', port: '30001' }
+      ], { lazyConnect: false });
+      cluster.get('foo');
+    });
   });
 });
 
