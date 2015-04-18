@@ -422,9 +422,9 @@ cluster.get('foo', function (err, res) {
 When using `Redis.Cluster` to connect to a cluster, there are some differences from using `Redis`:
 
 0. The argument is a list of nodes of the cluster you want to connect.
-Just like Sentinel, The list does not need to enumerate all your cluster nodes,
+Just like Sentinel, the list does not need to enumerate all your cluster nodes,
 but a few so that if one is down the client will try the next one, and the client will discover other nodes automatically when at least one node is connnected.
-0. Some comands can't be used in the cluster mode, like `info` and `pipeline`, custom commands also don't work.
+0. Some comands can't be used in the cluster mode, e.g. `info` and `pipeline`, custom commands also don't work(currently).
 
 ## Lazy Connect
 When a new `Redis` instance is created, it will connect to Redis server automatically.
