@@ -4,7 +4,18 @@ describe('utils', function () {
     it('should return correctly', function () {
       expect(utils.bufferEqual(new Buffer('123'), new Buffer('abc'))).to.eql(false);
       expect(utils.bufferEqual(new Buffer('abc'), new Buffer('abc'))).to.eql(true);
+      expect(utils.bufferEqual(new Buffer('bc'), new Buffer('abc'))).to.eql(false);
       expect(utils.bufferEqual(new Buffer(''), new Buffer(''))).to.eql(true);
+    });
+
+    it('should work when Buffer#equals not exists', function () {
+      var equals = Buffer.prototype.equals;
+      delete Buffer.prototype.equals;
+      expect(utils.bufferEqual(new Buffer('123'), new Buffer('abc'))).to.eql(false);
+      expect(utils.bufferEqual(new Buffer('abc'), new Buffer('abc'))).to.eql(true);
+      expect(utils.bufferEqual(new Buffer('bc'), new Buffer('abc'))).to.eql(false);
+      expect(utils.bufferEqual(new Buffer(''), new Buffer(''))).to.eql(true);
+      Buffer.prototype.equals = equals;
     });
   });
 
