@@ -31,6 +31,7 @@ describe('pipeline', function () {
   it('should handle error correctly', function (done) {
     var redis = new Redis();
     redis.pipeline().set('foo').exec(function (err, results) {
+      console.log(results);
       expect(err).to.eql(null);
       expect(results.length).to.eql(1);
       expect(results[0].length).to.eql(1);
