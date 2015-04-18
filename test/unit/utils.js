@@ -93,10 +93,14 @@ describe('utils', function () {
     });
   });
 
-  describe('.crc16', function () {
+  describe('.calcSlot', function () {
     it('should return correctly', function () {
-      expect(utils.crc16('123')).to.eql(639670098);
-      expect(utils.crc16('abc')).to.eql(2088017366);
+      expect(utils.calcSlot('123')).to.eql(5970);
+      expect(utils.calcSlot('ab{c')).to.eql(4619);
+      expect(utils.calcSlot('ab{c}2')).to.eql(7365);
+      expect(utils.calcSlot('ab{{c}2')).to.eql(2150);
+      expect(utils.calcSlot('ab{qq}{c}2')).to.eql(5598);
+      expect(utils.calcSlot('ab}')).to.eql(11817);
     });
   });
 });
