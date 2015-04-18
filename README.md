@@ -432,8 +432,8 @@ If you want to keep disconnected util a command is called, you can pass the `laz
 the constructor:
 
 ```javascript
-// No attempting to connect to the Redis server here.
 var redis = new Redis({ lazyConnect: true });
+// No attempting to connect to the Redis server here.
 
 // Now let's connect to the Redis server
 redis.get('foo', function () {
