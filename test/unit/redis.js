@@ -47,6 +47,11 @@ describe('Redis', function () {
         expect(option).to.have.property('host', '192.168.1.1');
 
         option = getOption({
+          path: '/tmp/redis.sock'
+        });
+        expect(option).to.have.property('path', '/tmp/redis.sock');
+
+        option = getOption({
           port: '6380'
         });
         expect(option).to.have.property('port', 6380);

@@ -104,7 +104,9 @@ describe('scripting', function () {
             done();
           }
         });
-        redis.test(0);
+        redis.test(0, function () {
+          redis.disconnect();
+        });
       });
     });
   });

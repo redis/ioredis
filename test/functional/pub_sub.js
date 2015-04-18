@@ -9,6 +9,7 @@ describe('pub/sub', function () {
     redis.subscribe('foo', 'zoo', function (err, count) {
       expect(count).to.eql(3);
       expect(pending).to.eql(0);
+      redis.disconnect();
       done();
     });
   });
@@ -19,6 +20,7 @@ describe('pub/sub', function () {
       redis.set('foo', 'bar', function (err) {
         expect(err instanceof Error);
         expect(err.toString()).to.match(/subscriber mode/);
+        redis.disconnect();
         done();
       });
     });
@@ -37,6 +39,7 @@ describe('pub/sub', function () {
               expect(count).to.eql(0);
               redis.set('foo', 'bar', function (err) {
                 expect(err).to.eql(null);
+                redis.disconnect();
                 done();
               });
             });
@@ -57,6 +60,7 @@ describe('pub/sub', function () {
       expect(channel).to.eql('foo');
       expect(message).to.eql('bar');
       if (!--pending) {
+        redis.disconnect();
         done();
       }
     });
@@ -66,6 +70,7 @@ describe('pub/sub', function () {
       expect(message).to.be.instanceof(Buffer);
       expect(message.toString()).to.eql('bar');
       if (!--pending) {
+        redis.disconnect();
         done();
       }
     });
@@ -83,6 +88,8 @@ describe('pub/sub', function () {
       expect(channel).to.eql('fzoo');
       expect(message).to.eql('bar');
       if (!--pending) {
+        redis.disconnect();
+        pub.disconnect();
         done();
       }
     });
@@ -93,6 +100,8 @@ describe('pub/sub', function () {
       expect(message).to.be.instanceof(Buffer);
       expect(message.toString()).to.eql('bar');
       if (!--pending) {
+        redis.disconnect();
+        pub.disconnect();
         done();
       }
     });
@@ -111,6 +120,7 @@ describe('pub/sub', function () {
               expect(count).to.eql(0);
               redis.set('foo', 'bar', function (err) {
                 expect(err).to.eql(null);
+                redis.disconnect();
                 done();
               });
             });
@@ -130,7 +140,28 @@ describe('pub/sub', function () {
     });
     redis.on('close', function () {
       expect(pending).to.eql(0);
+      redis.disconnect();
       done();
+    });
+  });
+
+  it('should restore subscription after reconnecting', function (done) {
+    var redis = new Redis();
+    var pub = new Redis();
+    redis.subscribe('foo', 'bar', function () {
+      redis.on('ready', function () {
+        var pending = 2;
+        redis.on('message', function (channel, message) {
+          if (!--pending) {
+            redis.disconnect();
+            pub.disconnect();
+            done();
+          }
+        });
+        pub.publish('foo', 'hi1');
+        pub.publish('bar', 'hi2');
+      });
+      redis.disconnect({ reconnect: true });
     });
   });
 });
