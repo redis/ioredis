@@ -26,6 +26,9 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 
 <hr>
 
+# Links
+[API Documentation](API.md)
+
 # Quick Start
 
 ## Install
@@ -425,20 +428,6 @@ When using `Redis.Cluster` to connect to a cluster, there are some differences f
 Just like Sentinel, the list does not need to enumerate all your cluster nodes,
 but a few so that if one is down the client will try the next one, and the client will discover other nodes automatically when at least one node is connnected.
 0. Some comands can't be used in the cluster mode, e.g. `info` and `pipeline`, custom commands also don't work(currently).
-
-## Lazy Connect
-When a new `Redis` instance is created, it will connect to Redis server automatically.
-If you want to keep disconnected util a command is called, you can pass the `lazyConnect` option to
-the constructor:
-
-```javascript
-var redis = new Redis({ lazyConnect: true });
-// No attempting to connect to the Redis server here.
-
-// Now let's connect to the Redis server
-redis.get('foo', function () {
-});
-```
 
 <hr>
 

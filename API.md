@@ -2,9 +2,6 @@
 
 **Classes**
 
-* [class: Command](#Command)
-  * [new Command(name, [args], [replyEncoding], [callback])](#new_Command)
-  * [command.toWritable()](#Command#toWritable)
 * [class: Redis](#Redis)
   * [new Redis([port], [host], [options])](#new_Redis)
   * [~~redis.createClient~~](#Redis#createClient)
@@ -12,51 +9,10 @@
   * [redis.disconnect()](#Redis#disconnect)
   * [redis.duplicate()](#Redis#duplicate)
   * [redis.monitor([callback])](#Redis#monitor)
+* [class: RedisCluster](#RedisCluster)
+  * [new RedisCluster(startupNodes, startupNodes[].port, startupNodes[].host, options)](#new_RedisCluster)
+  * [redisCluster.disconnect()](#RedisCluster#disconnect)
  
-<a name="Command"></a>
-#class: Command
-**Members**
-
-* [class: Command](#Command)
-  * [new Command(name, [args], [replyEncoding], [callback])](#new_Command)
-  * [command.toWritable()](#Command#toWritable)
-
-<a name="new_Command"></a>
-##new Command(name, [args], [replyEncoding], [callback])
-Command instance
-
-It's rare that you need to create a Command instance yourself.
-
-**Params**
-
-- name `string` - Command name  
-- \[args=null\] `Array.<string>` - An array of command arguments  
-- \[replyEncoding=null\] `string` - Set the encoding of the reply,
-by default buffer will be returned.  
-- \[callback=null\] `function` - The callback that handles the response.
-If omit, the response will be handled via Promise.  
-
-**Example**  
-```js
-var infoCommand = new Command('info', null, function (err, result) {
-  console.log('result', result);
-});
-
-redis.sendCommand(infoCommand);
-
-// When no callback provided, Command instance will have a `promise` property,
-// which will resolve/reject with the result of the command.
-var getCommand = new Command('get', ['foo']);
-getCommand.promise.then(function (result) {
-  console.log('result', result);
-});
-```
-
-<a name="Command#toWritable"></a>
-##command.toWritable()
-Convert command to writable buffer or string
-
-**Returns**: `string` | `Buffer`  
 <a name="Redis"></a>
 #class: Redis
 **Extends**: `[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)`  
@@ -104,6 +60,18 @@ commands are added to a queue and are executed once the connection is "ready"
 "ready" means the Redis server has loaded the database from disk, otherwise means the connection
 to the Redis server has been established). If this option is false,
 when execute the command when the connection isn't ready, an error will be returned.  
+  - \[lazyConnect=false\] `boolean` - By default,
+When a new `Redis` instance is created, it will connect to Redis server automatically.
+If you want to keep disconnected util a command is called, you can pass the `lazyConnect` option to
+the constructor:
+```javascript
+var redis = new Redis({ lazyConnect: true });
+// No attempting to connect to the Redis server here.
+// Now let's connect to the Redis server
+redis.get('foo', function () {
+});
+```  
+  - \[retryStrategy\] `function` - See "Quick Start" section  
 
 **Extends**: `[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)`  
 **Example**  
@@ -179,4 +147,34 @@ redis.monitor().then(function (monitor) {
   });
 });
 ```
+
+<a name="RedisCluster"></a>
+#class: RedisCluster
+**Extends**: `[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)`  
+**Members**
+
+* [class: RedisCluster](#RedisCluster)
+  * [new RedisCluster(startupNodes, startupNodes[].port, startupNodes[].host, options)](#new_RedisCluster)
+  * [redisCluster.disconnect()](#RedisCluster#disconnect)
+
+<a name="new_RedisCluster"></a>
+##new RedisCluster(startupNodes, startupNodes[].port, startupNodes[].host, options)
+Creates a Redis instance
+
+**Params**
+
+- startupNodes `Array.<Object>`  
+- startupNodes[].port `number` - The port  
+- startupNodes[].host `string` - The host  
+- options `Object`  
+  - \[enableOfflineQueue=true\] `boolean` - See Redis class  
+  - \[lazyConnect=true\] `boolean` - See Redis class  
+  - \[refreshAfterFails=10\] `number` - When a MOVED error is returned, it's considered
+a failure. When the times of failures reach `refreshAfterFails`, client will call CLUSTER SLOTS
+command to refresh the slots.  
+
+**Extends**: `[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)`  
+<a name="RedisCluster#disconnect"></a>
+##redisCluster.disconnect()
+Disconnect from every node in the cluster.
 

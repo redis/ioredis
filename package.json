@@ -7,7 +7,7 @@
     "test": "NODE_ENV=test mocha",
     "test:debug": "NODE_ENV=test DEBUG=ioredis:* mocha",
     "test:cov": "NODE_ENV=test node  ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -R spec",
-    "generate-docs": "jsdoc --configure .jsdoc.json --verbose"
+    "generate-docs": "jsdoc2md lib/redis.js lib/redis_cluster.js > API.md"
   },
   "repository": {
     "type": "git",
