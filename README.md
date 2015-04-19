@@ -429,7 +429,33 @@ Just like Sentinel, the list does not need to enumerate all your cluster nodes,
 but a few so that if one is down the client will try the next one, and the client will discover other nodes automatically when at least one node is connnected.
 0. Some comands can't be used in the cluster mode, e.g. `info` and `pipeline`, custom commands also don't work(currently).
 
+## hiredis
+If [hiredis](https://github.com/redis/hiredis-node) is installed(by `npm install hiredis`),
+ioredis will use it by default. Otherwise, a pure JavaScript parser will be used.
+Typically there's not much differences between them in terms of performance.
+
 <hr>
+
+# Benchmark
+
+```shell
+> npm run bench
+                      simple set
+          65,438 op/s » ioredis
+          36,954 op/s » node_redis
+
+                      simple get
+          71,109 op/s » ioredis
+          36,825 op/s » node_redis
+
+                      simple get with pipeline
+          11,123 op/s » ioredis
+           3,820 op/s » node_redis
+
+                      lrange 100
+          58,812 op/s » ioredis
+          46,703 op/s » node_redis
+```
 
 # Motivation
 
