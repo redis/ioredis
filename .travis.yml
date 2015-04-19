@@ -16,7 +16,7 @@ env:
 - INSTALL_HIREDIS="false"
 
 before_script:
-- if ["${INSTALL_HIREDIS}" = "true" ]; then npm install hiredis; fi
+- if [["${INSTALL_HIREDIS}" = "true" ]]; then npm install hiredis; fi
 
 addons:
   code_climate:
