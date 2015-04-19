@@ -15,7 +15,7 @@
 
   describe(type + ' parser', function () {
     it('should return the correct reply', function (done) {
-      var parser = new Parser({ return_buffers: true });
+      var parser = new Parser({ returnBuffers: true });
       parser.on('reply', function (res) {
         expect(res.toString()).to.eql('OK');
         done();
@@ -24,7 +24,7 @@
     });
 
     it('should support return string directly', function (done) {
-      var parser = new Parser({ return_buffers: false });
+      var parser = new Parser({ returnBuffers: false });
       parser.on('reply', function (res) {
         expect(res).to.eql('OK');
         done();
@@ -32,8 +32,17 @@
       parser.execute(new Buffer('+OK\r\n'));
     });
 
+    it('should return integer correctly', function (done) {
+      var parser = new Parser({ returnBuffers: false });
+      parser.on('reply', function (res) {
+        expect(res).to.eql(178);
+        done();
+      });
+      parser.execute(new Buffer(':178\r\n'));
+    });
+
     it('should return error correctly', function (done) {
-      var parser = new Parser({ return_buffers: false });
+      var parser = new Parser({ returnBuffers: false });
       parser.on('reply error', function (res) {
         expect(res).to.be.instanceof(Redis.ReplyError);
         expect(res.name).to.eql('ReplyError');
@@ -44,12 +53,24 @@
     });
 
     it('should return array correctly', function (done) {
-      var parser = new Parser({ return_buffers: false });
+      var parser = new Parser({ returnBuffers: false });
       parser.on('reply', function (res) {
         expect(res).to.eql(['foo', [3, 'bar']]);
         done();
       });
       parser.execute(new Buffer('*2\r\n$3\r\nfoo\r\n*2\r\n:3\r\n$3\r\nbar\r\n'));
+    });
+
+    it('should support partial data', function (done) {
+      var parser = new Parser({ returnBuffers: false });
+      parser.on('reply', function (res) {
+        expect(res).to.eql(['foo', [3, 'bar']]);
+        done();
+      });
+      parser.execute(new Buffer('*2\r\n$3\r\nfoo\r'));
+      setTimeout(function () {
+        parser.execute(new Buffer('\n*2\r\n:3\r\n$3\r\nbar\r\n'));
+      }, 0);
     });
   });
 });

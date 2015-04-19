@@ -2,6 +2,7 @@ var net = require('net');
 var util = require('util');
 var EventEmitter = require('events').EventEmitter;
 var enableDestroy = require('server-destroy');
+var Parser = require('../../lib/parsers/javascript');
 
 function MockServer (port, handler) {
   EventEmitter.call(this);
@@ -10,21 +11,22 @@ function MockServer (port, handler) {
   this.handler = handler;
   this.socket = net.createServer(function (c) {
     _this.emit('connect', c);
-    c.on('end', function () {
-      _this.emit('disconnect', c);
-    });
 
-    c.on('data', function (data) {
-      data = data.toString().split('\r\n').slice(2);
-      var args = [];
-      for (var i = 0; i < data.length; i += 2) {
-        args.push(data[i]);
-      }
+    var parser = new Parser({ returnBuffer: false });
+    parser.on('reply', function (args) {
       if (_this.handler) {
         _this.write(c, _this.handler(args));
       } else {
         _this.write(c, MockServer.REDIS_OK);
       }
+    });
+
+    c.on('end', function () {
+      _this.emit('disconnect', c);
+    });
+
+    c.on('data', function (data) {
+      parser.execute(data);
     });
   });
   this.socket.listen(port);
