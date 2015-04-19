@@ -236,7 +236,6 @@ var Redis = require('ioredis');
 // hmset('key', 'k1', 'v1', 'k2', 'v2')
 Redis.Command.setArgumentTransformer('hmset', function (args) {
   if (args.length === 2) {
-    var pos = 1;
     if (typeof Map !== 'undefined' && args[1] instanceof Map) {
       return [args[0]].concat(utils.convertMapToArray(args[1]));
     }
