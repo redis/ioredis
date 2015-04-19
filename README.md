@@ -362,7 +362,7 @@ var redis = new Redis({
 `retryStrategy` is a function that will be called when the connection is lost.
 The argument `times` represents this is the nth reconnection being made and
 the return value represents how long(ms) to wait to reconnect. When the
-return value isn't a number, ioredis will stop trying reconnect and the connection
+return value isn't a number, ioredis will stop trying reconnecting and the connection
 will be lost forever if user don't call `redis.connect()` manually.
 
 ## Offline Queue
