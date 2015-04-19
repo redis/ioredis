@@ -52,7 +52,7 @@ MockServer.prototype.write = function (c, data) {
     if (data === MockServer.REDIS_OK) {
       result = '+OK\r\n';
     } else if (data instanceof Error) {
-      result = '-ERR ' + data.message + '\r\n';
+      result = '-' + data.message + '\r\n';
     } else if (Array.isArray(data)) {
       result = '*' + data.length + '\r\n';
       data.forEach(function (item) {
