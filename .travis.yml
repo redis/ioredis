@@ -12,11 +12,11 @@ script:
 - npm run test:cov
 
 env:
-- INSTALL_HIREDIS="true"
-- INSTALL_HIREDIS="false"
+- INSTALL_HIREDIS="yes"
+- INSTALL_HIREDIS="no"
 
 before_script:
-- if [["${INSTALL_HIREDIS}" = "true" ]]; then npm install hiredis; fi
+- if [ "$INSTALL_HIREDIS" = "yes" ]; then npm install hiredis; fi
 
 addons:
   code_climate:
