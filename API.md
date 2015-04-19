@@ -10,7 +10,7 @@
   * [redis.duplicate()](#Redis#duplicate)
   * [redis.monitor([callback])](#Redis#monitor)
 * [class: RedisCluster](#RedisCluster)
-  * [new RedisCluster(startupNodes, startupNodes[].port, startupNodes[].host, options)](#new_RedisCluster)
+  * [new RedisCluster(startupNodes, options)](#new_RedisCluster)
   * [redisCluster.disconnect()](#RedisCluster#disconnect)
  
 <a name="Redis"></a>
@@ -154,18 +154,16 @@ redis.monitor().then(function (monitor) {
 **Members**
 
 * [class: RedisCluster](#RedisCluster)
-  * [new RedisCluster(startupNodes, startupNodes[].port, startupNodes[].host, options)](#new_RedisCluster)
+  * [new RedisCluster(startupNodes, options)](#new_RedisCluster)
   * [redisCluster.disconnect()](#RedisCluster#disconnect)
 
 <a name="new_RedisCluster"></a>
-##new RedisCluster(startupNodes, startupNodes[].port, startupNodes[].host, options)
+##new RedisCluster(startupNodes, options)
 Creates a Redis instance
 
 **Params**
 
-- startupNodes `Array.<Object>`  
-- startupNodes[].port `number` - The port  
-- startupNodes[].host `string` - The host  
+- startupNodes `Array.<Object>` - An array of nodes in the cluster, [{ port: number, host: string }]  
 - options `Object`  
   - \[enableOfflineQueue=true\] `boolean` - See Redis class  
   - \[lazyConnect=true\] `boolean` - See Redis class  
