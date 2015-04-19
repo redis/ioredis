@@ -438,28 +438,33 @@ Typically there's not much differences between them in terms of performance.
 
 # Benchmark
 
+Compares with [node_redis](https://github.com/mranney/node_redis):
+
 ```shell
 > npm run bench
-                simple set
-    65,438 op/s » ioredis
-    36,954 op/s » node_redis
+                   simple set
+       65,438 op/s » ioredis
+       36,954 op/s » node_redis
 
-                simple get
-    71,109 op/s » ioredis
-    36,825 op/s » node_redis
+                   simple get
+       71,109 op/s » ioredis
+       36,825 op/s » node_redis
 
-                simple get with pipeline
-    11,123 op/s » ioredis
-     3,820 op/s » node_redis
+                   simple get with pipeline
+       11,123 op/s » ioredis
+        3,820 op/s » node_redis
 
-                lrange 100
-    58,812 op/s » ioredis
-    46,703 op/s »
+                   lrange 100
+       58,812 op/s » ioredis
+       46,703 op/s » node_redis
 
-es:  4
-Benches: 8
-Elapsed: 61,715.11 ms node_redis
+
+  Suites:  4
+  Benches: 8
+  Elapsed: 61,715.11 ms
 ```
+
+You can view the code at `benchmark.js`.
 
 # Motivation
 
