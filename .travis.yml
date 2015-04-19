@@ -1,19 +1,34 @@
 language: node_js
 
 node_js:
-  - "0.11.6"
-  - "0.12"
-  - "iojs"
+- '0.11.6'
+- '0.12'
+- 'iojs'
 
 services:
-  - redis-server
+- redis-server
 
 script:
-  - npm run test:cov
+- npm run test:cov
+
+env:
+- INSTALL_HIREDIS="true"
+- INSTALL_HIREDIS="false"
+
+before_script:
+- if ["${INSTALL_HIREDIS}" = "true" ]; then npm install hiredis; fi
 
 addons:
   code_climate:
     repo_token: 4cee2f60edbf31acac6ddff823f0b93e2e9882c3e5c55130049e0fd878549f84
 
 after_success:
-  - cat ./coverage/lcov.info | ./node_modules/.bin/codeclimate
+- cat ./coverage/lcov.info | ./node_modules/.bin/codeclimate
+
+deploy:
+  provider: npm
+  email: i@zihua.li
+  api_key:
+    secure: bFORLe2N0jAhg2k/2SdvZQxLWsag9ghnbJWlB8BY72j86xWnMPSS0vnpzbuX7Sl4s6OMkWrCfOb9E14xuNgah/vb7yDRU1+xL9uXkYeHL+dm9A6066geT1ial9PZfZnZEwowGhbRa/Czig/bVIoiBo3ZK1CNcRbs3sc1C29l2bQ=
+  on:
+    tags: true
