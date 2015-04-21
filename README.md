@@ -463,7 +463,7 @@ Compares with [node_redis](https://github.com/mranney/node_redis):
   Elapsed: 61,715.11 ms
 ```
 
-You can view the code at `benchmark.js`.
+You can find the code at `benchmark.js`.
 
 # Motivation
 
