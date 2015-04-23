@@ -475,7 +475,7 @@ $ npm test
 
 `FLUSH ALL` will be invoked after each test, so make sure there's no valuable data in it before running tests.
 
-# DEBUG
+# Debug
 
 You can set the `DEBUG` env to `ioredis:*` to print debug info:
 
