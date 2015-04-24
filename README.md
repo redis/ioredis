@@ -27,8 +27,8 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 <hr>
 
 # Links
-[API Documentation](API.md)
-[Migrating from node_redis](https://github.com/luin/ioredis/wiki/Migrating-from-node_redis)
+* [API Documentation](API.md)
+* [Migrating from node_redis](https://github.com/luin/ioredis/wiki/Migrating-from-node_redis)
 
 # Quick Start
 
