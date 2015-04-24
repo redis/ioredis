@@ -6,12 +6,13 @@ describe('auth', function () {
         authed = true;
       } else if (argv[0] === 'get' && argv[1] === 'foo') {
         expect(authed).to.eql(true);
+        redis.disconnect();
         server.disconnect();
         done();
       }
     });
     var redis = new Redis({ port: 17379, password: 'pass' });
-    redis.get('foo');
+    redis.get('foo').catch(function () {});
   });
 
   it('should resend auth after reconnect', function (done) {
@@ -25,6 +26,7 @@ describe('auth', function () {
         authed = true;
       } else if (argv[0] === 'get' && argv[1] === 'foo') {
         expect(authed).to.eql(true);
+        redis.disconnect();
         server.disconnect();
         done();
       }
@@ -33,7 +35,7 @@ describe('auth', function () {
     redis.once('ready', function () {
       begin = true;
       redis.disconnect({ reconnect: true });
-      redis.get('foo');
+      redis.get('foo').catch(function () {});
     });
   });
 });

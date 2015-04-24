@@ -78,6 +78,8 @@ new Redis({
 })
 ```
 
+See [API Documentation](API.md#new_Redis) for all available options.
+
 ## Pub/Sub
 
 Here is a simple example of the API for publish / subscribe.

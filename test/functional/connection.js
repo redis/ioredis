@@ -38,4 +38,21 @@ describe('connection', function () {
       done();
     });
   });
+
+  it('should close the connection when timeout', function (done) {
+    var redis = new Redis(6379, '192.0.0.0', { connectTimeout: 1 });
+    redis.get('foo', function (err) {
+      expect(err.message).to.match(/Connection is closed/);
+      done();
+    });
+  });
+
+  it('should clear the timeout when connected', function (done) {
+    var redis = new Redis({ connectTimeout: 10000 });
+    stub(redis.connection, 'setTimeout', function (timeout) {
+      expect(timeout).to.eql(0);
+      redis.connection.setTimeout.restore();
+      done();
+    });
+  });
 });
