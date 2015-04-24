@@ -44,6 +44,28 @@ describe('send command', function () {
     });
   });
 
+  it('should support utf8', function (done) {
+    var redis = new Redis();
+    redis.set(new Buffer('你好'), new String('你好'));
+    redis.getBuffer('你好', function (err, result) {
+      expect(result.toString()).to.eql('你好');
+      redis.get('你好', function (err, result) {
+        expect(result).to.eql('你好');
+        done();
+      });
+    });
+  });
+
+  it('should consider null as empty str', function (done) {
+    var redis = new Redis();
+    redis.set('foo', null, function () {
+      redis.get('foo', function (err, res) {
+        expect(res).to.eql('');
+        done();
+      });
+    });
+  });
+
   it('should support return int value', function (done) {
     var redis = new Redis();
     redis.exists('foo', function (err, exists) {

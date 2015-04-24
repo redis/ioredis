@@ -103,4 +103,13 @@ describe('utils', function () {
       expect(utils.calcSlot('ab}')).to.eql(11817);
     });
   });
+
+  describe('.toArg', function () {
+    it('should return correctly', function () {
+      expect(utils.toArg(null)).to.eql('');
+      expect(utils.toArg(undefined)).to.eql('');
+      expect(utils.toArg('abc')).to.eql('abc');
+      expect(utils.toArg(123)).to.eql('123');
+    });
+  });
 });
