@@ -60,6 +60,7 @@ commands are added to a queue and are executed once the connection is "ready"
 "ready" means the Redis server has loaded the database from disk, otherwise means the connection
 to the Redis server has been established). If this option is false,
 when execute the command when the connection isn't ready, an error will be returned.  
+  - \[connectTimeout=10000\] `number` - The milliseconds before a timeout occurs during the initial connection to the Redis server.  
   - \[lazyConnect=false\] `boolean` - By default,
 When a new `Redis` instance is created, it will connect to Redis server automatically.
 If you want to keep disconnected util a command is called, you can pass the `lazyConnect` option to
