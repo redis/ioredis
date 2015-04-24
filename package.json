@@ -17,7 +17,9 @@
   "keywords": [
     "redis",
     "node",
-    "io"
+    "io",
+    "cluster",
+    "sentinel"
   ],
   "author": "luin <i@zihua.li> (http://zihua.li)",
   "license": "MIT",
