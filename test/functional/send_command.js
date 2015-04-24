@@ -44,6 +44,16 @@ describe('send command', function () {
     });
   });
 
+  it('should handle empty buffer', function (done) {
+    var redis = new Redis();
+    redis.set(new Buffer('foo'), new Buffer(''));
+    redis.getBuffer(new Buffer('foo'), function (err, result) {
+      expect(result).to.be.instanceof(Buffer);
+      expect(result.toString()).to.eql('');
+      done();
+    });
+  });
+
   it('should support utf8', function (done) {
     var redis = new Redis();
     redis.set(new Buffer('你好'), new String('你好'));
