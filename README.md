@@ -133,8 +133,8 @@ redis.getBuffer('foo', function (err, result) {
 ```
 
 ## Pipelining
-If you want to send a batch of commands(e.g. > 100), you can use pipelining to queue
-the commands in the memory, then send them to Redis all at once. This way the performance improves by 50%~300%.
+If you want to send a batch of commands(e.g. > 5), you can use pipelining to queue
+the commands in the memory, then send them to Redis all at once. This way the performance improves by 50%~300%(See [benchmark section](#benchmark)).
 
 `redis.pipeline()` creates a `Pipeline` instance. You can call any Redis
 commands on it just like the `Redis` instance. The commands are queued in the memory
