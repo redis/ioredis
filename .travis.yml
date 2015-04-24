@@ -24,11 +24,3 @@ addons:
 
 after_success:
 - cat ./coverage/lcov.info | ./node_modules/.bin/codeclimate
-
-deploy:
-  provider: npm
-  email: i@zihua.li
-  api_key:
-    secure: bFORLe2N0jAhg2k/2SdvZQxLWsag9ghnbJWlB8BY72j86xWnMPSS0vnpzbuX7Sl4s6OMkWrCfOb9E14xuNgah/vb7yDRU1+xL9uXkYeHL+dm9A6066geT1ial9PZfZnZEwowGhbRa/Czig/bVIoiBo3ZK1CNcRbs3sc1C29l2bQ=
-  on:
-    tags: true
