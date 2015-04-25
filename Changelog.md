@@ -1,5 +1,9 @@
 ## Changelog
 
+### v1.0.10 - April 25, 2015
+
+* [UPDATE] Improve performance for calculating slots.
+
 ### v1.0.9 - April 25, 2015
 
 * [ADD] Support for single node commands in cluster mode.
