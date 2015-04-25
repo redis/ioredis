@@ -1,5 +1,9 @@
 ## Changelog
 
+### v1.0.9 - April 25, 2015
+
+* [ADD] Support for single node commands in cluster mode.
+
 ### v1.0.8 - April 25, 2015
 
 * [Add] Promise support for Cluster
