@@ -404,7 +404,7 @@ ioredis **guarantees** that the node you connected with is always a master even 
 It's possible to connect to a slave instead of a master by specifying the option `role` with the value of `slave`, and ioredis will try to connect to a random slave of the specified master, with the guarantee that the connected node is always a slave. If the current node is promoted to master owing to a failover, ioredis will disconnect with it and ask sentinels for another slave node to connect to.
 
 ## Cluster
-Support for Cluster is currently experimental. It's not recommended to use it in production.
+Support for Cluster is currently experimental and under active development. It's not recommended to use it in production.
 If you encounter any problems, welcome to submit an issue :-).
 
 You can connect to a cluster like this:
