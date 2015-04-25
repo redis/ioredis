@@ -101,6 +101,7 @@ describe('utils', function () {
       expect(utils.calcSlot('ab{{c}2')).to.eql(2150);
       expect(utils.calcSlot('ab{qq}{c}2')).to.eql(5598);
       expect(utils.calcSlot('ab}')).to.eql(11817);
+      expect(utils.calcSlot('encoding')).to.eql(3060);
     });
   });
 
