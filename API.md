@@ -4,9 +4,10 @@
 
 * [class: Redis](#Redis)
   * [new Redis([port], [host], [options])](#new_Redis)
-  * [~~redis.createClient~~](#Redis#createClient)
+  * [~~Redis.createClient()~~](#Redis.createClient)
   * [redis.connect()](#Redis#connect)
   * [redis.disconnect()](#Redis#disconnect)
+  * [~~redis.end()~~](#Redis#end)
   * [redis.duplicate()](#Redis#duplicate)
   * [redis.monitor([callback])](#Redis#monitor)
 * [class: RedisCluster](#RedisCluster)
@@ -20,9 +21,10 @@
 
 * [class: Redis](#Redis)
   * [new Redis([port], [host], [options])](#new_Redis)
-  * [~~redis.createClient~~](#Redis#createClient)
+  * [~~Redis.createClient()~~](#Redis.createClient)
   * [redis.connect()](#Redis#connect)
   * [redis.disconnect()](#Redis#disconnect)
+  * [~~redis.end()~~](#Redis#end)
   * [redis.duplicate()](#Redis#duplicate)
   * [redis.monitor([callback])](#Redis#monitor)
 
@@ -61,6 +63,7 @@ commands are added to a queue and are executed once the connection is "ready"
 to the Redis server has been established). If this option is false,
 when execute the command when the connection isn't ready, an error will be returned.  
   - \[connectTimeout=10000\] `number` - The milliseconds before a timeout occurs during the initial connection to the Redis server.  
+  - \[autoResubscribe=true\] `boolean` - After reconnected, if the previous connection was in the subscriber mode, client will auto re-subscribe these channels.  
   - \[lazyConnect=false\] `boolean` - By default,
 When a new `Redis` instance is created, it will connect to Redis server automatically.
 If you want to keep disconnected util a command is called, you can pass the `lazyConnect` option to
@@ -91,8 +94,8 @@ var urlRedis2 = new Redis('//localhost:6379');
 var authedRedis = new Redis(6380, '192.168.100.1', { auth: 'password' });
 ```
 
-<a name="Redis#createClient"></a>
-##~~redis.createClient~~
+<a name="Redis.createClient"></a>
+##~~Redis.createClient()~~
 Create a Redis instance
 
 ***Deprecated***  
@@ -109,6 +112,11 @@ This method closes the connection immediately,
 and may lose some pending replies that haven't written to clien.
 If you want to wait for the pending replies, use Redis#quit instead.
 
+<a name="Redis#end"></a>
+##~~redis.end()~~
+Disconnect from Redis.
+
+***Deprecated***  
 <a name="Redis#duplicate"></a>
 ##redis.duplicate()
 Create a new instance, using the same options.
