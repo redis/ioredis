@@ -1,5 +1,9 @@
 ## Changelog
 
+### v1.0.8 - April 25, 2015
+
+* [Add] Promise support for Cluster
+
 ### v1.0.7 - April 25, 2015
 
 * [ADD] Option `autoResubscribe` to prevent auto re-subscribe.
