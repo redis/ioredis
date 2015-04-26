@@ -1,5 +1,9 @@
 ## Changelog
 
+### v1.0.11 - April 26, 2015
+
+* [ADD] Option of `showFriendlyErrorStack` for outputing friendly error stack.
+
 ### v1.0.10 - April 25, 2015
 
 * [UPDATE] Improve performance for calculating slots.
