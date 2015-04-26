@@ -1,3 +1,5 @@
+'use strict';
+
 describe('pub/sub', function () {
   it('should invoke the callback when subscribe successfully', function (done) {
     var redis = new Redis();

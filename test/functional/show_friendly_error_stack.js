@@ -1,3 +1,5 @@
+'use strict';
+
 describe('showFriendlyErrorStack', function () {
   it('should show friendly error stack', function (done) {
     var redis = new Redis({ showFriendlyErrorStack: true });

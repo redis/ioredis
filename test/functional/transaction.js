@@ -1,3 +1,5 @@
+'use strict';
+
 describe('transaction', function () {
   it('should works like pipeline by default', function (done) {
     var redis = new Redis();

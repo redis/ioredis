@@ -1,3 +1,5 @@
+'use strict';
+
 describe('select', function () {
   it('should support auto select', function (done) {
     var redis = new Redis({ db: 2 });

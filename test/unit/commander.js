@@ -1,3 +1,5 @@
+'use strict';
+
 var Commander = require('../../lib/commander');
 
 describe('Commander', function () {

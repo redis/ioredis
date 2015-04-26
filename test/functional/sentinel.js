@@ -1,3 +1,5 @@
+'use strict';
+
 describe('sentinel', function () {
   describe('connect', function () {
     it('should connect to sentinel successfully', function (done) {

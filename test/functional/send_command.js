@@ -1,3 +1,5 @@
+'use strict';
+
 describe('send command', function () {
   it('should support callback', function (done) {
     var redis = new Redis();

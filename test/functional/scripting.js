@@ -1,4 +1,4 @@
-var Command = require('../../lib/command');
+'use strict';
 
 describe('scripting', function () {
   describe('#numberOfKeys', function () {

@@ -1,3 +1,5 @@
+'use strict';
+
 ['javascript', 'hiredis'].forEach(function (type) {
   var Parser;
   if (type === 'hiredis') {

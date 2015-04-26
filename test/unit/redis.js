@@ -1,3 +1,5 @@
+'use strict';
+
 describe('Redis', function () {
   describe('constructor', function () {
     it('should parse options correctly', function () {

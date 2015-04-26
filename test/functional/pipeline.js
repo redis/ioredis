@@ -1,3 +1,5 @@
+'use strict';
+
 describe('pipeline', function () {
   it('should return correct result', function (done) {
     var redis = new Redis();

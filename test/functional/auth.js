@@ -1,3 +1,5 @@
+'use strict';
+
 describe('auth', function () {
   it('should send auth before other commands', function (done) {
     var authed = false;

@@ -1,7 +1,9 @@
+'use strict';
+
 describe('lazy connect', function () {
   it('should not call `connect` when init', function () {
     stub(Redis.prototype, 'connect').throws(new Error('`connect` should not be called'));
-    var redis = new Redis({ lazyConnect: true });
+    new Redis({ lazyConnect: true });
     Redis.prototype.connect.restore();
   });
 

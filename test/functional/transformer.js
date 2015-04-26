@@ -1,3 +1,5 @@
+'use strict';
+
 describe('transformer', function () {
   describe('default transformer', function () {
     describe('hmset', function () {

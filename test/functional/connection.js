@@ -1,3 +1,5 @@
+'use strict';
+
 describe('connection', function () {
   it('should emit "connect" when connected', function (done) {
     var redis = new Redis();
@@ -17,7 +19,7 @@ describe('connection', function () {
     var redis = new Redis({ password: '123' });
     redis.get('foo');
     var times = 0;
-    var sendCommand = stub(redis, 'sendCommand', function (command) {
+    stub(redis, 'sendCommand', function (command) {
       times += 1;
       if (times === 1) {
         expect(command.name).to.eql('auth');
