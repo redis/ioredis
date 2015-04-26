@@ -432,7 +432,7 @@ When using `Redis.Cluster` to connect to a cluster, there are some differences f
 0. The argument is a list of nodes of the cluster you want to connect.
 Just like Sentinel, the list does not need to enumerate all your cluster nodes,
 but a few so that if one is down the client will try the next one, and the client will discover other nodes automatically when at least one node is connnected.
-0. Some features are not available in the cluster mode, e.g. `pipeline` and custom commands(currently).
+0. Pipelining is not available in the cluster currently.
 
 ## hiredis
 If [hiredis](https://github.com/redis/hiredis-node) is installed(by `npm install hiredis`),
