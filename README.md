@@ -589,6 +589,16 @@ client.on('message', function (msg) {
 
 I submitted some pull requests but sadly none of them has been merged, so here's ioredis.
 
+# Join in!
+
+We are happy to receive bug reports, fixes, documentation enhancements, and any other improvements.
+
+# Roadmap
+
+- [] Transparent Key Prefixing
+- [] [Distributed Lock](http://redis.io/topics/distlock)
+- [] Connection Pooling & Read-Write Splitting
+
 # Acknowledge
 
 The JavaScript and hiredis parsers are modified from [node_redis](https://github.com/mranney/node_redis) (MIT License, Copyright (c) 2010 Matthew Ranney, http://ranney.com/).
