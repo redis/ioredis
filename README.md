@@ -217,7 +217,7 @@ Inline transaction is supported by pipeline, that means you can group a subset c
 in the pipeline into a transaction:
 
 ```javascript
-redis.pipeline().get('foo').mulit().set('foo', 'bar').get('foo').exec().get('foo').exec();
+redis.pipeline().get('foo').multi().set('foo', 'bar').get('foo').exec().get('foo').exec();
 ```
 
 ## Arguments & Replies Transform
