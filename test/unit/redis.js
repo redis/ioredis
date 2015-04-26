@@ -56,6 +56,11 @@ describe('Redis', function () {
         });
         expect(option).to.have.property('port', 6380);
 
+        option = getOption({
+          showFriendlyErrorStack: true
+        });
+        expect(option).to.have.property('showFriendlyErrorStack', true);
+
         option = getOption(6380, {
           host: '192.168.1.1'
         });
