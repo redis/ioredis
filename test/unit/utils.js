@@ -113,4 +113,12 @@ describe('utils', function () {
       expect(utils.toArg(123)).to.eql('123');
     });
   });
+
+  describe('.optimizeErrorStack', function () {
+    it('should return correctly', function () {
+      var error = new Error();
+      var res = utils.optimizeErrorStack(error, new Error().stack + '\n@', __dirname);
+      expect(res.stack.split('\n').pop()).to.eql('@');
+    });
+  });
 });
