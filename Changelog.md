@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.0.12 - April 27, 2015
+
 * [ADD] Support for defining custom commands in Cluster.
 * [PERFORMANCE] Use native array instead of fastqueue.
 
