@@ -1,83 +1,51 @@
-#Index
-
-**Classes**
-
-* [class: Redis](#Redis)
-  * [new Redis([port], [host], [options])](#new_Redis)
-  * [~~Redis.createClient()~~](#Redis.createClient)
-  * [redis.connect()](#Redis#connect)
-  * [redis.disconnect()](#Redis#disconnect)
-  * [~~redis.end()~~](#Redis#end)
-  * [redis.duplicate()](#Redis#duplicate)
-  * [redis.monitor([callback])](#Redis#monitor)
-* [class: RedisCluster](#RedisCluster)
-  * [new RedisCluster(startupNodes, options)](#new_RedisCluster)
-  * [redisCluster.disconnect()](#RedisCluster#disconnect)
- 
+## Classes
+<dl>
+<dt><a href="#Redis">Redis</a> ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code></dt>
+<dd></dd>
+<dt><a href="#RedisCluster">RedisCluster</a> ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code></dt>
+<dd></dd>
+<dt><a href="#Commander">Commander</a></dt>
+<dd></dd>
+</dl>
 <a name="Redis"></a>
-#class: Redis
-**Extends**: `[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)`  
-**Members**
+## Redis ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
+**Kind**: global class  
+**Extends:** <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>, <code>[Commander](#Commander)</code>  
 
-* [class: Redis](#Redis)
-  * [new Redis([port], [host], [options])](#new_Redis)
-  * [~~Redis.createClient()~~](#Redis.createClient)
-  * [redis.connect()](#Redis#connect)
-  * [redis.disconnect()](#Redis#disconnect)
-  * [~~redis.end()~~](#Redis#end)
-  * [redis.duplicate()](#Redis#duplicate)
-  * [redis.monitor([callback])](#Redis#monitor)
+* [Redis](#Redis) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
+  * [new Redis([port], [host], [options])](#new_Redis_new)
+  * _instance_
+    * [.connect()](#Redis#connect)
+    * [.disconnect()](#Redis#disconnect)
+    * ~~[.end()](#Redis#end)~~
+    * [.duplicate()](#Redis#duplicate)
+    * [.monitor([callback])](#Redis#monitor)
+    * [.defineCommand(name, definition)](#Commander#defineCommand)
+  * _static_
+    * ~~[.createClient()](#Redis.createClient)~~
 
-<a name="new_Redis"></a>
-##new Redis([port], [host], [options])
+<a name="new_Redis_new"></a>
+### new Redis([port], [host], [options])
 Creates a Redis instance
 
-**Params**
 
-- \[port=6379\] `number` | `string` | `Object` - Port of the Redis server,
-or a URL string(see the examples below),
-or the `options` object(see the third argument).  
-- \[host=localhost\] `string` | `Object` - Host of the Redis server,
-when the first argument is a URL string,
-this argument is an object represents the options.  
-- \[options\] `Object` - Other options.  
-  - \[port=6379\] `number` - Port of the Redis server.  
-  - \[host=localhost\] `string` - Host of the Redis server.  
-  - \[family=4\] `string` - Version of IP stack. Defaults to 4.  
-  - \[path=null\] `string` - Local domain socket path. If set the `port`, `host`
-and `family` will be ignored.  
-  - \[auth=null\] `string` - If set, client will send AUTH command
-with the value of this option when connected.  
-  - \[enableReadyCheck=true\] `boolean` - When a connection is established to
-the Redis server, the server might still be loading the database from disk.
-While loading, the server not respond to any commands.
-To work around this, when this option is `true`,
-ioredis will check the status of the Redis server,
-and when the Redis server is able to process commands,
-a `ready` event will be emitted.  
-  - \[enableOfflineQueue=true\] `boolean` - By default,
-if there is no active connection to the Redis server,
-commands are added to a queue and are executed once the connection is "ready"
-(when `enableReadyCheck` is `true`,
-"ready" means the Redis server has loaded the database from disk, otherwise means the connection
-to the Redis server has been established). If this option is false,
-when execute the command when the connection isn't ready, an error will be returned.  
-  - \[connectTimeout=10000\] `number` - The milliseconds before a timeout occurs during the initial connection to the Redis server.  
-  - \[autoResubscribe=true\] `boolean` - After reconnected, if the previous connection was in the subscriber mode, client will auto re-subscribe these channels.  
-  - \[lazyConnect=false\] `boolean` - By default,
-When a new `Redis` instance is created, it will connect to Redis server automatically.
-If you want to keep disconnected util a command is called, you can pass the `lazyConnect` option to
-the constructor:
-```javascript
-var redis = new Redis({ lazyConnect: true });
-// No attempting to connect to the Redis server here.
-// Now let's connect to the Redis server
-redis.get('foo', function () {
-});
-```  
-  - \[retryStrategy\] `function` - See "Quick Start" section  
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| [port] | <code>number</code> &#124; <code>string</code> &#124; <code>Object</code> | <code>6379</code> | Port of the Redis server, or a URL string(see the examples below), or the `options` object(see the third argument). |
+| [host] | <code>string</code> &#124; <code>Object</code> | <code>&quot;localhost&quot;</code> | Host of the Redis server, when the first argument is a URL string, this argument is an object represents the options. |
+| [options] | <code>Object</code> |  | Other options. |
+| [options.port] | <code>number</code> | <code>6379</code> | Port of the Redis server. |
+| [options.host] | <code>string</code> | <code>&quot;localhost&quot;</code> | Host of the Redis server. |
+| [options.family] | <code>string</code> | <code>4</code> | Version of IP stack. Defaults to 4. |
+| [options.path] | <code>string</code> | <code>null</code> | Local domain socket path. If set the `port`, `host` and `family` will be ignored. |
+| [options.auth] | <code>string</code> | <code>null</code> | If set, client will send AUTH command with the value of this option when connected. |
+| [options.enableReadyCheck] | <code>boolean</code> | <code>true</code> | When a connection is established to the Redis server, the server might still be loading the database from disk. While loading, the server not respond to any commands. To work around this, when this option is `true`, ioredis will check the status of the Redis server, and when the Redis server is able to process commands, a `ready` event will be emitted. |
+| [options.enableOfflineQueue] | <code>boolean</code> | <code>true</code> | By default, if there is no active connection to the Redis server, commands are added to a queue and are executed once the connection is "ready" (when `enableReadyCheck` is `true`, "ready" means the Redis server has loaded the database from disk, otherwise means the connection to the Redis server has been established). If this option is false, when execute the command when the connection isn't ready, an error will be returned. |
+| [options.connectTimeout] | <code>number</code> | <code>10000</code> | The milliseconds before a timeout occurs during the initial connection to the Redis server. |
+| [options.autoResubscribe] | <code>boolean</code> | <code>true</code> | After reconnected, if the previous connection was in the subscriber mode, client will auto re-subscribe these channels. |
+| [options.lazyConnect] | <code>boolean</code> | <code>false</code> | By default, When a new `Redis` instance is created, it will connect to Redis server automatically. If you want to keep disconnected util a command is called, you can pass the `lazyConnect` option to the constructor: ```javascript var redis = new Redis({ lazyConnect: true }); // No attempting to connect to the Redis server here. // Now let's connect to the Redis server redis.get('foo', function () { }); ``` |
+| [options.retryStrategy] | <code>function</code> |  | See "Quick Start" section |
 
-**Extends**: `[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)`  
 **Example**  
 ```js
 var Redis = require('ioredis');
@@ -93,51 +61,55 @@ var urlRedis = new Redis('redis://user:password@redis-service.com:6379/');
 var urlRedis2 = new Redis('//localhost:6379');
 var authedRedis = new Redis(6380, '192.168.100.1', { auth: 'password' });
 ```
-
-<a name="Redis.createClient"></a>
-##~~Redis.createClient()~~
-Create a Redis instance
-
-***Deprecated***  
 <a name="Redis#connect"></a>
-##redis.connect()
+### redis.connect()
 Create a connection to Redis.
 This method will be invoked automatically when creating a new Redis instance.
 
+**Kind**: instance method of <code>[Redis](#Redis)</code>  
+**Access:** public  
 <a name="Redis#disconnect"></a>
-##redis.disconnect()
+### redis.disconnect()
 Disconnect from Redis.
 
 This method closes the connection immediately,
 and may lose some pending replies that haven't written to clien.
 If you want to wait for the pending replies, use Redis#quit instead.
 
+**Kind**: instance method of <code>[Redis](#Redis)</code>  
+**Access:** public  
 <a name="Redis#end"></a>
-##~~redis.end()~~
+### ~~redis.end()~~
+***Deprecated***
+
 Disconnect from Redis.
 
-***Deprecated***  
+**Kind**: instance method of <code>[Redis](#Redis)</code>  
 <a name="Redis#duplicate"></a>
-##redis.duplicate()
+### redis.duplicate()
 Create a new instance, using the same options.
 
+**Kind**: instance method of <code>[Redis](#Redis)</code>  
+**Access:** public  
 **Example**  
 ```js
 var redis = new Redis(6380);
 var anotherRedis = redis.duplicate();
 ```
-
 <a name="Redis#monitor"></a>
-##redis.monitor([callback])
+### redis.monitor([callback])
 Listen for all requests received by the server in real time.
 
 This command will create a new connection to Redis and send a
 MONITOR command via the new connection in order to avoid disturbing
 the current connection.
 
-**Params**
+**Kind**: instance method of <code>[Redis](#Redis)</code>  
+**Access:** public  
 
-- \[callback\] `function` - The callback function. If omit, a promise will be returned.  
+| Param | Type | Description |
+| --- | --- | --- |
+| [callback] | <code>function</code> | The callback function. If omit, a promise will be returned. |
 
 **Example**  
 ```js
@@ -156,32 +128,95 @@ redis.monitor().then(function (monitor) {
   });
 });
 ```
+<a name="Commander#defineCommand"></a>
+### redis.defineCommand(name, definition)
+Define a custom command using lua script
 
+**Kind**: instance method of <code>[Redis](#Redis)</code>  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| name | <code>string</code> |  | the command name |
+| definition | <code>object</code> |  |  |
+| definition.lua | <code>string</code> |  | the lua code |
+| [definition.numberOfKeys] | <code>number</code> | <code></code> | the number of keys. If omit, you have to pass the number of keys as the first argument every time you invoke the command |
+
+<a name="Redis.createClient"></a>
+### ~~Redis.createClient()~~
+***Deprecated***
+
+Create a Redis instance
+
+**Kind**: static method of <code>[Redis](#Redis)</code>  
 <a name="RedisCluster"></a>
-#class: RedisCluster
-**Extends**: `[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)`  
-**Members**
+## RedisCluster ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
+**Kind**: global class  
+**Extends:** <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>, <code>[Commander](#Commander)</code>  
 
-* [class: RedisCluster](#RedisCluster)
-  * [new RedisCluster(startupNodes, options)](#new_RedisCluster)
-  * [redisCluster.disconnect()](#RedisCluster#disconnect)
+* [RedisCluster](#RedisCluster) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
+  * [new RedisCluster(startupNodes, options)](#new_RedisCluster_new)
+  * [.disconnect()](#RedisCluster#disconnect)
+  * [.defineCommand(name, definition)](#Commander#defineCommand)
 
-<a name="new_RedisCluster"></a>
-##new RedisCluster(startupNodes, options)
+<a name="new_RedisCluster_new"></a>
+### new RedisCluster(startupNodes, options)
 Creates a Redis instance
 
-**Params**
 
-- startupNodes `Array.<Object>` - An array of nodes in the cluster, [{ port: number, host: string }]  
-- options `Object`  
-  - \[enableOfflineQueue=true\] `boolean` - See Redis class  
-  - \[lazyConnect=true\] `boolean` - See Redis class  
-  - \[refreshAfterFails=10\] `number` - When a MOVED error is returned, it's considered
-a failure. When the times of failures reach `refreshAfterFails`, client will call CLUSTER SLOTS
-command to refresh the slots.  
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| startupNodes | <code>Array.&lt;Object&gt;</code> |  | An array of nodes in the cluster, [{ port: number, host: string }] |
+| options | <code>Object</code> |  |  |
+| [options.enableOfflineQueue] | <code>boolean</code> | <code>true</code> | See Redis class |
+| [options.lazyConnect] | <code>boolean</code> | <code>true</code> | See Redis class |
+| [options.refreshAfterFails] | <code>number</code> | <code>10</code> | When a MOVED error is returned, it's considered a failure. When the times of failures reach `refreshAfterFails`, client will call CLUSTER SLOTS command to refresh the slots. |
 
-**Extends**: `[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)`  
 <a name="RedisCluster#disconnect"></a>
-##redisCluster.disconnect()
+### redisCluster.disconnect()
 Disconnect from every node in the cluster.
+
+**Kind**: instance method of <code>[RedisCluster](#RedisCluster)</code>  
+**Access:** public  
+<a name="Commander#defineCommand"></a>
+### redisCluster.defineCommand(name, definition)
+Define a custom command using lua script
+
+**Kind**: instance method of <code>[RedisCluster](#RedisCluster)</code>  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| name | <code>string</code> |  | the command name |
+| definition | <code>object</code> |  |  |
+| definition.lua | <code>string</code> |  | the lua code |
+| [definition.numberOfKeys] | <code>number</code> | <code></code> | the number of keys. If omit, you have to pass the number of keys as the first argument every time you invoke the command |
+
+<a name="Commander"></a>
+## Commander
+**Kind**: global class  
+
+* [Commander](#Commander)
+  * [new Commander()](#new_Commander_new)
+  * [.defineCommand(name, definition)](#Commander#defineCommand)
+
+<a name="new_Commander_new"></a>
+### new Commander()
+Commander
+
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| [options.showFriendlyErrorStack] | <code>boolean</code> | <code>false</code> | Whether to show a friendly error stack. Will decrease the performance significantly. |
+
+<a name="Commander#defineCommand"></a>
+### commander.defineCommand(name, definition)
+Define a custom command using lua script
+
+**Kind**: instance method of <code>[Commander](#Commander)</code>  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| name | <code>string</code> |  | the command name |
+| definition | <code>object</code> |  |  |
+| definition.lua | <code>string</code> |  | the lua code |
+| [definition.numberOfKeys] | <code>number</code> | <code></code> | the number of keys. If omit, you have to pass the number of keys as the first argument every time you invoke the command |
 
