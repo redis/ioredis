@@ -523,26 +523,26 @@ Compares with [node_redis](https://github.com/mranney/node_redis):
 
 ```shell
 > npm run bench
-                   simple set
-       65,438 op/s » ioredis
-       36,954 op/s » node_redis
+                    simple set
+        81,026 op/s » ioredis
+        43,487 op/s » node_redis
 
-                   simple get
-       71,109 op/s » ioredis
-       36,825 op/s » node_redis
+                    simple get
+        79,565 op/s » ioredis
+        41,808 op/s » node_redis
 
-                   simple get with pipeline
-       11,123 op/s » ioredis
-        3,820 op/s » node_redis
+                    simple get with pipeline
+        12,711 op/s » ioredis
+         4,714 op/s » node_redis
 
-                   lrange 100
-       58,812 op/s » ioredis
-       46,703 op/s » node_redis
+                    lrange 100
+        61,149 op/s » ioredis
+        48,827 op/s » node_redis
 
 
-  Suites:  4
-  Benches: 8
-  Elapsed: 61,715.11 ms
+Suites:  4
+Benches: 8
+Elapsed: 57,882.94 ms
 ```
 
 You can find the code at `benchmark.js` and run it yourself using `npm run bench`.
