@@ -595,9 +595,9 @@ We are happy to receive bug reports, fixes, documentation enhancements, and any 
 
 # Roadmap
 
-- [] Transparent Key Prefixing
-- [] [Distributed Lock](http://redis.io/topics/distlock)
-- [] Connection Pooling & Read-Write Splitting
+* Transparent Key Prefixing
+* [Distributed Lock](http://redis.io/topics/distlock)
+* Connection Pooling & Read-Write Splitting
 
 # Acknowledge
 
