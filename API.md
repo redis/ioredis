@@ -73,7 +73,7 @@ This method will be invoked automatically when creating a new Redis instance.
 Disconnect from Redis.
 
 This method closes the connection immediately,
-and may lose some pending replies that haven't written to clien.
+and may lose some pending replies that haven't written to client.
 If you want to wait for the pending replies, use Redis#quit instead.
 
 **Kind**: instance method of <code>[Redis](#Redis)</code>  
