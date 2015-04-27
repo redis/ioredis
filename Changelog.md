@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.0.13 - April 27, 2015
+
 * Support SORT, ZUNIONSTORE and ZINTERSTORE in Cluster.
 
 ### v1.0.12 - April 27, 2015
