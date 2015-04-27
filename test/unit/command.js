@@ -5,8 +5,8 @@ var Command = require('../../lib/command');
 describe('Command', function () {
   describe('constructor()', function () {
     it('should flatten the args', function () {
-      var command = new Command('get', ['foo', ['bar', ['zoo']]]);
-      expect(command.args).to.eql(['foo', 'bar', ['zoo']]);
+      var command = new Command('get', ['foo', ['bar', ['zoo', 'zoo']]]);
+      expect(command.args).to.eql(['foo', 'bar', 'zoo,zoo']);
     });
   });
 
