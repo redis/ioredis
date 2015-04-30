@@ -11,7 +11,7 @@ describe('connection', function () {
 
   it('should emit "close" when disconnected', function (done) {
     var redis = new Redis();
-    redis.once('close', done);
+    redis.once('end', done);
     redis.once('connect', function () {
       redis.disconnect();
     });
@@ -83,7 +83,7 @@ describe('connection', function () {
         port: 1,
         retryStrategy: function () {
           process.nextTick(function () {
-            expect(redis.status).to.eql('closed');
+            expect(redis.status).to.eql('end');
             done();
           });
           return null;

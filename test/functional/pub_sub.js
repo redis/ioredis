@@ -132,7 +132,7 @@ describe('pub/sub', function () {
     });
   });
 
-  it('should able to send quit command in the subscriber mode', function (done) {
+  it('should be able to send quit command in the subscriber mode', function (done) {
     var redis = new Redis();
     var pending = 1;
     redis.subscribe('foo', function () {
@@ -140,7 +140,7 @@ describe('pub/sub', function () {
         pending -= 1;
       });
     });
-    redis.on('close', function () {
+    redis.on('end', function () {
       expect(pending).to.eql(0);
       redis.disconnect();
       done();

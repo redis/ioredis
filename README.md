@@ -414,6 +414,15 @@ ioredis **guarantees** that the node you connected with is always a master even 
 
 It's possible to connect to a slave instead of a master by specifying the option `role` with the value of `slave`, and ioredis will try to connect to a random slave of the specified master, with the guarantee that the connected node is always a slave. If the current node is promoted to master owing to a failover, ioredis will disconnect with it and ask sentinels for another slave node to connect to.
 
+Besides `retryStrategy` option, there's also a `sentinelRetryStrategy` in Sentinel mode which will be invoked when all the sentinel nodes are unreachable. If `sentinelRetryStrategy` returns a valid delay time, ioredis will try to reconnect from scratch. The default value of `sentinelRetryStrategy` is:
+
+```javascript
+function (times) {
+  var delay = Math.min(times * 10, 1000);
+  return delay;
+}
+```
+
 ## Cluster
 Support for Cluster is currently experimental and under active development. It's not recommended to use it in production.
 If you encounter any problems, welcome to submit an issue :-).

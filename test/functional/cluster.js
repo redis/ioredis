@@ -4,6 +4,17 @@ var utils = require('../../lib/utils');
 
 describe('cluster', function () {
   describe('connect', function () {
+    it('should flush the queue when all startup nodes are unreachable', function (done) {
+      var cluster = new Redis.Cluster([
+        { host: '127.0.0.1', port: '30001' }
+      ]);
+
+      cluster.get('foo', function (err) {
+        expect(err.message).to.match(/None of startup nodes is available/);
+        done();
+      });
+    });
+
     it('should connect to cluster successfully', function (done) {
       var node = new MockServer(30001);
 
