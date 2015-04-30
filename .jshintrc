@@ -30,19 +30,6 @@
   },
 
   "predef": [
-    "alert",
-    "describe",
-    "it",
-    "before",
-    "beforeEach",
-    "after",
-    "afterEach",
-    "suite",
-    "setup",
-    "test",
-    "Map",
-    "expect",
-    "stub",
-    "MockServer"
+    "Map"
   ]
 }

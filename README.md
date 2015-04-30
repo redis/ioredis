@@ -545,7 +545,7 @@ Benches: 8
 Elapsed: 57,882.94 ms
 ```
 
-You can find the code at `benchmark.js` and run it yourself using `npm run bench`.
+You can find the code at `benchmarks/*.js` and run it yourself using `npm run bench`.
 
 # Running tests
 

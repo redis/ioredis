@@ -1,0 +1,19 @@
+{
+  "extends": "../.jshintrc",
+  "predef": [
+    "Redis",
+    "describe",
+    "it",
+    "before",
+    "beforeEach",
+    "after",
+    "afterEach",
+    "suite",
+    "setup",
+    "test",
+    "Map",
+    "expect",
+    "stub",
+    "MockServer"
+  ]
+}

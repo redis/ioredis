@@ -1,5 +1,7 @@
+'use strict';
+
 var nodeRedis = require('redis');
-var ioRedis = require('./');
+var ioRedis = require('../');
 var ndredis, ioredis;
 
 var waitReady = function (next) {
