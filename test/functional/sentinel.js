@@ -34,41 +34,44 @@ describe('sentinel', function () {
       });
     });
 
-    it('should raise error when all sentinel are unreachable', function (done) {
+    it('should call sentinelRetryStrategy when all sentinels are unreachable', function (done) {
+      var t = 0;
       var redis = new Redis({
         sentinels: [
           { host: '127.0.0.1', port: '27379' },
           { host: '127.0.0.1', port: '27380' }
         ],
+        sentinelRetryStrategy: function (times) {
+          expect(times).to.eql(++t);
+          var sentinel = new MockServer(27380);
+          sentinel.once('connect', function () {
+            redis.disconnect();
+            sentinel.disconnect(done);
+          });
+          return 0;
+        },
+        name: 'master'
+      });
+    });
+
+    it('should raise error when all sentinel are unreachable and retry is disabled', function (done) {
+      var redis = new Redis({
+        sentinels: [
+          { host: '127.0.0.1', port: '27379' },
+          { host: '127.0.0.1', port: '27380' }
+        ],
+        sentinelRetryStrategy: null,
         name: 'master'
       });
 
-      redis.once('error', function (error) {
-        redis.disconnect();
+      redis.get('foo', function (error) {
         expect(error.message).to.match(/are unreachable/);
+        redis.disconnect();
         done();
       });
     });
 
-    it('should continue trying when all sentinels are unreachable', function (done) {
-      var redis = new Redis({
-        sentinels: [
-          { host: '127.0.0.1', port: '27379' },
-          { host: '127.0.0.1', port: '27380' }
-        ],
-        name: 'master'
-      });
-
-      redis.once('error', function (err) {
-        var sentinel = new MockServer(27380);
-        sentinel.once('connect', function () {
-          redis.disconnect();
-          sentinel.disconnect(done);
-        });
-      });
-    });
-
-    it('should also close the connect to the sentinel when disconnect', function (done) {
+    it('should close the connection to the sentinel when resolving successfully', function (done) {
       var sentinel = new MockServer(27379, function (argv) {
         if (argv[0] === 'sentinel' && argv[1] === 'get-master-addr-by-name') {
           return ['127.0.0.1', '17380'];
@@ -76,6 +79,7 @@ describe('sentinel', function () {
       });
       var master = new MockServer(17380);
       sentinel.once('disconnect', function () {
+        redis.disconnect();
         master.disconnect(function () {
           sentinel.disconnect(done);
         });
@@ -87,7 +91,6 @@ describe('sentinel', function () {
         ],
         name: 'master'
       });
-      redis.disconnect();
     });
   });
 
@@ -166,8 +169,7 @@ describe('sentinel', function () {
           { host: '127.0.0.1', port: '27379' },
           { host: '127.0.0.1', port: '27380' }
         ],
-        name: 'master',
-        roleRetryDelay: 0
+        name: 'master'
       });
     });
   });
@@ -250,8 +252,7 @@ describe('sentinel', function () {
           { host: '127.0.0.1', port: '27380' }
         ],
         name: 'master',
-        role: 'slave',
-        roleRetryDelay: 0
+        role: 'slave'
       });
     });
   });

@@ -2,6 +2,10 @@
 
 ### Master Branch
 
+* Remove `roleRetryDelay` option in favor of `sentinelRetryStrategy`.
+* Improve compatibility with node_redis.
+* More stable sentinel connection.
+
 ### v1.0.13 - April 27, 2015
 
 * Support SORT, ZUNIONSTORE and ZINTERSTORE in Cluster.

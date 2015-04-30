@@ -15,7 +15,7 @@ describe('select', function () {
     var redis = new Redis();
     redis.once('ready', function () {
       redis.set('foo', '2', function () {
-        redis.connection.destroy();
+        redis.stream.destroy();
         redis.select('3');
         redis.set('foo', '3');
         redis.select('0');
@@ -38,7 +38,7 @@ describe('select', function () {
       redis.set('foo', 'bar');
       redis.select(2);
       redis.set('foo', '2', function () {
-        redis.connection.destroy();
+        redis.stream.destroy();
         redis.get('foo', function (err, res) {
           expect(res).to.eql('2');
           done();

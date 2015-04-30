@@ -1,3 +1,5 @@
+'use strict';
+
 var net = require('net');
 var util = require('util');
 var EventEmitter = require('events').EventEmitter;
@@ -10,7 +12,9 @@ function MockServer (port, handler) {
   var _this = this;
   this.handler = handler;
   this.socket = net.createServer(function (c) {
-    _this.emit('connect', c);
+    process.nextTick(function () {
+      _this.emit('connect', c);
+    });
 
     var parser = new Parser({ returnBuffer: false });
     parser.on('reply', function (args) {

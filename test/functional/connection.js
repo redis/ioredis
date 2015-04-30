@@ -12,7 +12,9 @@ describe('connection', function () {
   it('should emit "close" when disconnected', function (done) {
     var redis = new Redis();
     redis.once('close', done);
-    redis.disconnect();
+    redis.once('connect', function () {
+      redis.disconnect();
+    });
   });
 
   it('should send AUTH command before any other commands', function (done) {
@@ -33,7 +35,7 @@ describe('connection', function () {
   it('should receive replies after connection is disconnected', function (done) {
     var redis = new Redis();
     redis.set('foo', 'bar', function () {
-      redis.connection.end();
+      redis.stream.end();
     });
     redis.get('foo', function (err, res) {
       expect(res).to.eql('bar');
@@ -51,10 +53,12 @@ describe('connection', function () {
 
   it('should clear the timeout when connected', function (done) {
     var redis = new Redis({ connectTimeout: 10000 });
-    stub(redis.connection, 'setTimeout', function (timeout) {
-      expect(timeout).to.eql(0);
-      redis.connection.setTimeout.restore();
-      done();
+    setImmediate(function () {
+      stub(redis.stream, 'setTimeout', function (timeout) {
+        expect(timeout).to.eql(0);
+        redis.stream.setTimeout.restore();
+        done();
+      });
     });
   });
 });

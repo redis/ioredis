@@ -123,4 +123,29 @@ describe('utils', function () {
       expect(res.stack.split('\n').pop()).to.eql('@');
     });
   });
+
+  describe('.parseURL', function () {
+    it('should return correctly', function () {
+      expect(utils.parseURL('/tmp.sock')).to.eql({ path: '/tmp.sock' });
+      expect(utils.parseURL('127.0.0.1')).to.eql({ host: '127.0.0.1' });
+      expect(utils.parseURL('6379')).to.eql({ port: '6379' });
+      expect(utils.parseURL('127.0.0.1:6379')).to.eql({
+        host: '127.0.0.1',
+        port: '6379'
+      });
+      expect(utils.parseURL('127.0.0.1:6379?db=2&key=value')).to.eql({
+        host: '127.0.0.1',
+        port: '6379',
+        db: '2',
+        key: 'value'
+      });
+      expect(utils.parseURL('redis://user:pass@127.0.0.1:6380/4?key=value')).to.eql({
+        host: '127.0.0.1',
+        port: '6380',
+        db: '4',
+        password: 'pass',
+        key: 'value'
+      });
+    });
+  });
 });
