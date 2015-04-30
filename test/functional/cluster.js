@@ -58,7 +58,7 @@ describe('cluster', function () {
       }
     });
 
-    it('should send command the the correct node', function (done) {
+    it('should send command to the correct node', function (done) {
       var node1 = new MockServer(30001, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
           return [
@@ -69,8 +69,10 @@ describe('cluster', function () {
       });
       var node2 = new MockServer(30002, function (argv) {
         if (argv[0] === 'get' && argv[1] === 'foo') {
-          cluster.disconnect();
-          disconnect([node1, node2], done);
+          process.nextTick(function () {
+            cluster.disconnect();
+            disconnect([node1, node2], done);
+          });
         }
       });
 
@@ -94,8 +96,10 @@ describe('cluster', function () {
         } else if (argv[0] === 'get' && argv[1] === 'foo') {
           if (times++ === 1) {
             expect(moved).to.eql(true);
-            cluster.disconnect();
-            disconnect([node1, node2], done);
+            process.nextTick(function () {
+              cluster.disconnect();
+              disconnect([node1, node2], done);
+            });
           }
         }
       });
@@ -135,8 +139,10 @@ describe('cluster', function () {
       var node2 = new MockServer(30002, function (argv) {
         if (argv[0] === 'get' && argv[1] === 'foo') {
           if (++times === 2) {
-            cluster.disconnect();
-            disconnect([node1, node2], done);
+            process.nextTick(function () {
+              cluster.disconnect();
+              disconnect([node1, node2], done);
+            });
           } else {
             return new Error('ASK ' + utils.calcSlot('foo') + ' 127.0.0.1:30001');
           }
