@@ -15,10 +15,9 @@
   },
   "keywords": [
     "redis",
-    "node",
-    "io",
     "cluster",
-    "sentinel"
+    "sentinel",
+    "pipelining"
   ],
   "author": "luin <i@zihua.li> (http://zihua.li)",
   "license": "MIT",
