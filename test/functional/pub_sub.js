@@ -147,7 +147,7 @@ describe('pub/sub', function () {
     });
   });
 
-  it('should restore subscription after reconnecting', function (done) {
+  it('should restore subscription after reconnecting(subscribe)', function (done) {
     var redis = new Redis();
     var pub = new Redis();
     redis.subscribe('foo', 'bar', function () {
@@ -162,6 +162,26 @@ describe('pub/sub', function () {
         });
         pub.publish('foo', 'hi1');
         pub.publish('bar', 'hi2');
+      });
+      redis.disconnect({ reconnect: true });
+    });
+  });
+
+  it('should restore subscription after reconnecting(psubscribe)', function (done) {
+    var redis = new Redis();
+    var pub = new Redis();
+    redis.psubscribe('fo?o', 'ba?r', function () {
+      redis.on('ready', function () {
+        var pending = 2;
+        redis.on('pmessage', function (pattern, channel, message) {
+          if (!--pending) {
+            redis.disconnect();
+            pub.disconnect();
+            done();
+          }
+        });
+        pub.publish('fo1o', 'hi1');
+        pub.publish('ba1r', 'hi2');
       });
       redis.disconnect({ reconnect: true });
     });

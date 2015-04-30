@@ -86,7 +86,8 @@ See [API Documentation](API.md#new_Redis) for all available options.
 ## Pub/Sub
 
 Here is a simple example of the API for publish / subscribe.
-This program opens two client connections. It subscribes to a channel with one connection,
+The following program opens two client connections.
+It subscribes to a channel with one connection,
 and publishes to that channel with the other:
 
 ```javascript
@@ -112,6 +113,14 @@ redis.on('message', function (channel, message) {
 redis.on('messageBuffer', function (channel, message) {
   // Both `channel` and `message` are buffers.
 });
+```
+
+`PSUBSCRIBE` is also supported in a similar way:
+
+```javascript
+redis.psubscribe('pat?ern', function (err, count) {});
+redis.on('pmessage', function (pattern, channel, message) {});
+redis.on('pmessageBuffer', function (pattern, channel, message) {});
 ```
 
 When a client issues a SUBSCRIBE or PSUBSCRIBE, that connection is put into a "subscriber" mode.

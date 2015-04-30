@@ -40,4 +40,34 @@ describe('auth', function () {
       redis.get('foo').catch(function () {});
     });
   });
+
+  it('should warn when the server doesn\'t need auth', function (done) {
+    stub(console, 'warn', function () {
+      console.warn.restore();
+      redis.disconnect();
+      server.disconnect();
+      done();
+    });
+    var server = new MockServer(17379, function (argv) {
+      if (argv[0] === 'auth' && argv[1] === 'pass') {
+        return new Error('ERR Client sent AUTH, but no password is set');
+      }
+    });
+    var redis = new Redis({ port: 17379, password: 'pass' });
+  });
+
+  it('should emit error when auth is failed', function (done) {
+    stub(console, 'warn', function () {
+      console.warn.restore();
+      redis.disconnect();
+      server.disconnect();
+      done();
+    });
+    var server = new MockServer(17379, function (argv) {
+      if (argv[0] === 'auth' && argv[1] === 'pass') {
+        return new Error('ERR Client sent AUTH, but no password is set');
+      }
+    });
+    var redis = new Redis({ port: 17379, password: 'pass' });
+  });
 });

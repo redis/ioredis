@@ -61,4 +61,34 @@ describe('connection', function () {
       });
     });
   });
+
+  describe('retryStrategy', function () {
+    it('should pass the correct retry times', function (done) {
+      var t = 0;
+      new Redis({
+        port: 1,
+        retryStrategy: function (times) {
+          expect(times).to.eql(++t);
+          if (times === 3) {
+            done();
+            return;
+          }
+          return 0;
+        }
+      });
+    });
+
+    it('should skip reconnecting when retryStrategy doesn\'t return a number', function (done) {
+      var redis = new Redis({
+        port: 1,
+        retryStrategy: function () {
+          process.nextTick(function () {
+            expect(redis.status).to.eql('closed');
+            done();
+          });
+          return null;
+        }
+      });
+    });
+  });
 });
