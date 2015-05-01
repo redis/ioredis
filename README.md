@@ -200,7 +200,16 @@ then none of the commands would be executed, and an error is returned:
 
 ```javascript
 redis.multi().set('foo').set('foo', 'new value').exec(function (err, results) {
-  // err === new Error('...Transaction discarded because of previous errors.');
+  // err:
+  //  { [ReplyError: EXECABORT Transaction discarded because of previous errors.]
+  //    name: 'ReplyError',
+  //    message: 'EXECABORT Transaction discarded because of previous errors.',
+  //    command: { name: 'exec', args: [] },
+  //    previousErrors:
+  //     [ { [ReplyError: ERR wrong number of arguments for 'set' command]
+  //         name: 'ReplyError',
+  //         message: 'ERR wrong number of arguments for \'set\' command',
+  //         command: [Object] } ] }
 });
 ```
 
