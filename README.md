@@ -642,7 +642,9 @@ I submitted some pull requests but sadly none of them has been merged, so here's
 
 # Join in!
 
-We are happy to receive bug reports, fixes, documentation enhancements, and any other improvements.
+I'm happy to receive bug reports, fixes, documentation enhancements, and any other improvements.
+
+And since I'm not an English native speaker so if you find any grammar mistake in the documentation, please also let me know. :)
 
 # Roadmap
 
