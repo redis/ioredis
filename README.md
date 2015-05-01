@@ -465,20 +465,21 @@ Just like Sentinel, the list does not need to enumerate all your cluster nodes,
 but a few so that if one is unreachable the client will try the next one, and the client will discover other nodes automatically when at least one node is connnected.
 0. The second argument is the option that will be passed to the `Redis` constructor when creating connections to Redis nodes internally. There are some additional options:
 
-  0. `clusterRetryStrategy`: When none of the startup nodes are reachable, `clusterRetryStrategy` will be invoked. When a number is returned,
+  * `clusterRetryStrategy`: When none of the startup nodes are reachable, `clusterRetryStrategy` will be invoked. When a number is returned,
   ioredis will try to reconnect the startup nodes from scratch after the specified delay(ms). Otherwise an error of "None of startup nodes is available" will returned.
   The default value of this option is:
+
   ```javascript
   function (times) {
     var delay = Math.min(100 + times * 2, 2000);
     return delay;
   }
   ```
-  0. `refreshAfterFails`: When `MOVED` errors are received more times than `refreshAfterFails`, client will call CLUSTER SLOTS
+  * `refreshAfterFails`: When `MOVED` errors are received more times than `refreshAfterFails`, client will call CLUSTER SLOTS
   command to refresh the slot cache. The default value is `4`.
-  0. `maxRedirections`: When a `MOVED` or `ASK` error is received, client will redirect the
+  * `maxRedirections`: When a `MOVED` or `ASK` error is received, client will redirect the
   command to another node. This option limits the max redirections allowed when sending a command. The default value is `16`.
-  0. `retryDelayOnFailover`: When the error of "Connection is closed." is received when sending a command,
+  * `retryDelayOnFailover`: When the error of "Connection is closed." is received when sending a command,
   ioredis will retry after the specified delay. The default value is `2000`. You should make sure to let `retryDelayOnFailover * maxRedirections > cluster-node-timeout`
   in order to insure that no command will fails during a failover.
 
