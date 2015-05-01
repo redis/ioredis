@@ -381,6 +381,19 @@ the return value represents how long(ms) to wait to reconnect. When the
 return value isn't a number, ioredis will stop trying reconnecting and the connection
 will be lost forever if user don't call `redis.connect()` manually.
 
+## Connection Events
+Redis instance will emit some events about the state of the connection to the Redis server.
+
+### "connect"
+client will emit `connect` when the socket to the Redis server emitting `connect`.
+
+### "ready"
+client will emit `ready` once a connection is established to the Redis server and the server reports that it is ready to receive commands. Commands issued before the ready event are queued if `enableOfflineQueue` is `true`, then replayed just before this event is emitted.
+If `enableOfflineQueue` is `false`, `ready` will be emitted immediately right after `connect` event.
+
+### "end"
+client will emit `end` when an established Redis server connection has closed.
+
 ## Offline Queue
 When a command can't be processed by Redis(e.g. the connection hasn't been established or
 Redis is loading data from disk), by default it's added to the offline queue and will be
@@ -447,17 +460,24 @@ cluster.get('foo', function (err, res) {
 
 `Cluster` constructor accepts two arguments, where:
 
-0. The first argument is a list of nodes of the cluster you want to connect.
+0. The first argument is a list of nodes of the cluster you want to connect to.
 Just like Sentinel, the list does not need to enumerate all your cluster nodes,
-but a few so that if one is down the client will try the next one, and the client will discover other nodes automatically when at least one node is connnected.
+but a few so that if one is unreachable the client will try the next one, and the client will discover other nodes automatically when at least one node is connnected.
 0. The second argument is the option that will be passed to the `Redis` constructor when creating connections to Redis nodes internally. There are some additional options:
 
   0. `clusterRetryStrategy`: When none of the startup nodes are reachable, `clusterRetryStrategy` will be invoked. When a number is returned,
-  ioredis will try to reconnect the startup nodes from scratch after the specified dalay(ms). Otherwise an error of "None of startup nodes is available" will returned.
-  0. `refreshAfterFails`: When `MOVED` error is received more times than `refreshAfterFails`, client will call CLUSTER SLOTS
-  command to refresh the slot cache.
-  0. `maxRedirections`: When a MOVED or ASK error is received, client will redirect the
-  command to another node. This option limits the max redirections allowed during sending a command.
+  ioredis will try to reconnect the startup nodes from scratch after the specified delay(ms). Otherwise an error of "None of startup nodes is available" will returned.
+  The default value of this option is:
+  ```javascript
+  function (times) {
+    var delay = Math.min(100 + times * 2, 2000);
+    return delay;
+  }
+  ```
+  0. `refreshAfterFails`: When `MOVED` errors are received more times than `refreshAfterFails`, client will call CLUSTER SLOTS
+  command to refresh the slot cache. The default value is `4`.
+  0. `maxRedirections`: When a `MOVED` or `ASK` error is received, client will redirect the
+  command to another node. This option limits the max redirections allowed when sending a command. The default value is `16`.
 
 Currently pipeline isn't supported in the Cluster mode.
 
