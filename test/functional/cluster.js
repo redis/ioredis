@@ -160,6 +160,7 @@ describe('cluster', function () {
 
   describe('maxRedirections', function () {
     it('should return error when reached max redirection', function (done) {
+      var redirectTimes = 0;
       var argvHandler = function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
           return [
@@ -167,6 +168,7 @@ describe('cluster', function () {
             [2, 16383, ['127.0.0.1', 30002]]
           ];
         } else if (argv[0] === 'get' && argv[1] === 'foo') {
+          redirectTimes += 1;
           return new Error('ASK ' + utils.calcSlot('foo') + ' 127.0.0.1:30001');
         }
       };
@@ -175,12 +177,68 @@ describe('cluster', function () {
 
       var cluster = new Redis.Cluster([
         { host: '127.0.0.1', port: '30001' }
-      ], { maxRedirections: 3 });
+      ], { maxRedirections: 5 });
       cluster.get('foo', function (err) {
+        expect(redirectTimes).to.eql(5);
         expect(err.message).to.match(/Too many Cluster redirections/);
         cluster.disconnect();
         disconnect([node1, node2], done);
       });
+    });
+  });
+
+  describe('refreshAfterFails', function () {
+    it('should re-fetch slots when reached refreshAfterFails', function (done) {
+      var redirectTimes = 0;
+      var argvHandler = function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          if (redirectTimes === 4) {
+            cluster.disconnect();
+            disconnect([node1, node2], done);
+          }
+          return [
+            [0, 1, ['127.0.0.1', 30001]],
+            [2, 16383, ['127.0.0.1', 30002]]
+          ];
+        } else if (argv[0] === 'get' && argv[1] === 'foo') {
+          if (redirectTimes < 4) {
+            redirectTimes += 1;
+            return new Error('MOVED ' + utils.calcSlot('foo') + ' 127.0.0.1:30001');
+          }
+        }
+      };
+      var node1 = new MockServer(30001, argvHandler);
+      var node2 = new MockServer(30002, argvHandler);
+
+      var cluster = new Redis.Cluster([
+        { host: '127.0.0.1', port: '30001' }
+      ], { refreshAfterFails: 4 });
+      cluster.get('foo');
+    });
+  });
+
+  it('should get value successfully', function (done) {
+    var node1 = new MockServer(30001, function (argv) {
+      if (argv[0] === 'cluster' && argv[1] === 'slots') {
+        return [
+          [0, 1, ['127.0.0.1', 30001]],
+          [2, 16383, ['127.0.0.1', 30002]]
+        ];
+      }
+    });
+    var node2 = new MockServer(30002, function (argv) {
+      if (argv[0] === 'get' && argv[1] === 'foo') {
+        return 'bar';
+      }
+    });
+
+    var cluster = new Redis.Cluster([
+      { host: '127.0.0.1', port: '30001' }
+    ]);
+    cluster.get('foo', function (err, result) {
+      expect(result).to.eql('bar');
+      cluster.disconnect();
+      disconnect([node1, node2], done);
     });
   });
 });
