@@ -385,11 +385,11 @@ will be lost forever if user don't call `redis.connect()` manually.
 Redis instance will emit some events about the state of the connection to the Redis server.
 
 ### "connect"
-client will emit `connect` when the socket to the Redis server emitting `connect`.
+client will emit `connect` once a connection is established to the Redis server.
 
 ### "ready"
-client will emit `ready` once a connection is established to the Redis server and the server reports that it is ready to receive commands. Commands issued before the ready event are queued if `enableOfflineQueue` is `true`, then replayed just before this event is emitted.
-If `enableOfflineQueue` is `false`, `ready` will be emitted immediately right after `connect` event.
+If `enableReadyCheck` is `true`, client will emit `ready` when the server reports that it is ready to receive commands.
+Otherwise `ready` will be emitted immediately right after the `connect` event.
 
 ### "end"
 client will emit `end` when an established Redis server connection has closed.
@@ -478,6 +478,9 @@ but a few so that if one is unreachable the client will try the next one, and th
   command to refresh the slot cache. The default value is `4`.
   0. `maxRedirections`: When a `MOVED` or `ASK` error is received, client will redirect the
   command to another node. This option limits the max redirections allowed when sending a command. The default value is `16`.
+  0. `retryDelayOnFailover`: When the error of "Connection is closed." is received when sending a command,
+  ioredis will retry after the specified delay. The default value is `2000`. You should make sure to let `retryDelayOnFailover * maxRedirections > cluster-node-timeout`
+  in order to insure that no command will fails during a failover.
 
 Currently pipeline isn't supported in the Cluster mode.
 

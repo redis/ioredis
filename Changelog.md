@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.1.0 - May 1, 2015
+
 * Support cluster auto reconnection.
 * Add `maxRedirections` option to Cluster.
 * Remove `roleRetryDelay` option in favor of `sentinelRetryStrategy`.

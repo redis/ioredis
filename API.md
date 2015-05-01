@@ -2,10 +2,14 @@
 <dl>
 <dt><a href="#Redis">Redis</a> ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code></dt>
 <dd></dd>
-<dt><a href="#RedisCluster">RedisCluster</a> ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code></dt>
-<dd></dd>
 <dt><a href="#Commander">Commander</a></dt>
 <dd></dd>
+</dl>
+## Members
+<dl>
+<dt><a href="#defaultOptions">defaultOptions</a></dt>
+<dd><p>Default options</p>
+</dd>
 </dl>
 <a name="Redis"></a>
 ## Redis ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
@@ -148,48 +152,6 @@ Define a custom command using lua script
 Create a Redis instance
 
 **Kind**: static method of <code>[Redis](#Redis)</code>  
-<a name="RedisCluster"></a>
-## RedisCluster ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
-**Kind**: global class  
-**Extends:** <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>, <code>[Commander](#Commander)</code>  
-
-* [RedisCluster](#RedisCluster) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
-  * [new RedisCluster(startupNodes, options)](#new_RedisCluster_new)
-  * [.disconnect()](#RedisCluster#disconnect)
-  * [.defineCommand(name, definition)](#Commander#defineCommand)
-
-<a name="new_RedisCluster_new"></a>
-### new RedisCluster(startupNodes, options)
-Creates a Redis instance
-
-
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| startupNodes | <code>Array.&lt;Object&gt;</code> |  | An array of nodes in the cluster, [{ port: number, host: string }] |
-| options | <code>Object</code> |  |  |
-| [options.enableOfflineQueue] | <code>boolean</code> | <code>true</code> | See Redis class |
-| [options.lazyConnect] | <code>boolean</code> | <code>true</code> | See Redis class |
-| [options.refreshAfterFails] | <code>number</code> | <code>10</code> | When a MOVED error is returned, it's considered a failure. When the times of failures reach `refreshAfterFails`, client will call CLUSTER SLOTS command to refresh the slots. |
-
-<a name="RedisCluster#disconnect"></a>
-### redisCluster.disconnect()
-Disconnect from every node in the cluster.
-
-**Kind**: instance method of <code>[RedisCluster](#RedisCluster)</code>  
-**Access:** public  
-<a name="Commander#defineCommand"></a>
-### redisCluster.defineCommand(name, definition)
-Define a custom command using lua script
-
-**Kind**: instance method of <code>[RedisCluster](#RedisCluster)</code>  
-
-| Param | Type | Default | Description |
-| --- | --- | --- | --- |
-| name | <code>string</code> |  | the command name |
-| definition | <code>object</code> |  |  |
-| definition.lua | <code>string</code> |  | the lua code |
-| [definition.numberOfKeys] | <code>number</code> | <code></code> | the number of keys. If omit, you have to pass the number of keys as the first argument every time you invoke the command |
-
 <a name="Commander"></a>
 ## Commander
 **Kind**: global class  
@@ -220,3 +182,9 @@ Define a custom command using lua script
 | definition.lua | <code>string</code> |  | the lua code |
 | [definition.numberOfKeys] | <code>number</code> | <code></code> | the number of keys. If omit, you have to pass the number of keys as the first argument every time you invoke the command |
 
+<a name="defaultOptions"></a>
+## defaultOptions
+Default options
+
+**Kind**: global variable  
+**Access:** protected  
