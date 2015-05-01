@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Support Transaction and pipelining in cluster mode.
+
 ### v1.1.0 - May 1, 2015
 
 * Support cluster auto reconnection.

@@ -463,27 +463,32 @@ cluster.get('foo', function (err, res) {
 0. The first argument is a list of nodes of the cluster you want to connect to.
 Just like Sentinel, the list does not need to enumerate all your cluster nodes,
 but a few so that if one is unreachable the client will try the next one, and the client will discover other nodes automatically when at least one node is connnected.
-0. The second argument is the option that will be passed to the `Redis` constructor when creating connections to Redis nodes internally. There are some additional options:
+0. The second argument is the option that will be passed to the `Redis` constructor when creating connections to Redis nodes internally. There are some additional options for the Cluster:
 
-  * `clusterRetryStrategy`: When none of the startup nodes are reachable, `clusterRetryStrategy` will be invoked. When a number is returned,
-  ioredis will try to reconnect the startup nodes from scratch after the specified delay(ms). Otherwise an error of "None of startup nodes is available" will returned.
-  The default value of this option is:
+    * `clusterRetryStrategy`: When none of the startup nodes are reachable, `clusterRetryStrategy` will be invoked. When a number is returned,
+    ioredis will try to reconnect the startup nodes from scratch after the specified delay(ms). Otherwise an error of "None of startup nodes is available" will returned.
+    The default value of this option is:
 
-  ```javascript
-  function (times) {
-    var delay = Math.min(100 + times * 2, 2000);
-    return delay;
-  }
-  ```
-  * `refreshAfterFails`: When `MOVED` errors are received more times than `refreshAfterFails`, client will call CLUSTER SLOTS
-  command to refresh the slot cache. The default value is `4`.
-  * `maxRedirections`: When a `MOVED` or `ASK` error is received, client will redirect the
-  command to another node. This option limits the max redirections allowed when sending a command. The default value is `16`.
-  * `retryDelayOnFailover`: When the error of "Connection is closed." is received when sending a command,
-  ioredis will retry after the specified delay. The default value is `2000`. You should make sure to let `retryDelayOnFailover * maxRedirections > cluster-node-timeout`
-  in order to insure that no command will fails during a failover.
+    ```javascript
+    function (times) {
+      var delay = Math.min(100 + times * 2, 2000);
+      return delay;
+    }
+    ```
+    * `refreshAfterFails`: When `MOVED` errors are received more times than `refreshAfterFails`, client will call CLUSTER SLOTS
+    command to refresh the slot cache. The default value is `4`.
+    * `maxRedirections`: When a `MOVED` or `ASK` error is received, client will redirect the
+    command to another node. This option limits the max redirections allowed when sending a command. The default value is `16`.
+    * `retryDelayOnFailover`: When the error of "Connection is closed." is received when sending a command,
+    ioredis will retry after the specified delay. The default value is `2000`. You should make sure to let `retryDelayOnFailover * maxRedirections > cluster-node-timeout`
+    in order to insure that no command will fails during a failover.
 
-Currently pipeline isn't supported in the Cluster mode.
+### transaction and pipeline in Cluster mode
+Almost all features that are supported by `Redis` also works in Cluster mode, e.g. custom commands, transaction and pipeline.
+However there are something differences when use transaction and pipeline in Cluster mode:
+
+0. You can't use `multi` without pipeline(aka `cluster.multi({ pipeline: false })`). This is because when you call `cluster.multi({ pipeline: false })`, ioredis doesn't know which node should the `multi` command to be sent to.
+0. With pipeline, cluster uses the first key in the pipeline queue as the sample key to calculate the slot, and all commands in the pipeline will be sent to the node that the slot belongs to.
 
 ## hiredis
 If [hiredis](https://github.com/redis/hiredis-node) is installed(by `npm install hiredis`),
