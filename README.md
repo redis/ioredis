@@ -415,7 +415,7 @@ ioredis **guarantees** that the node you connected with is always a master even 
 
 It's possible to connect to a slave instead of a master by specifying the option `role` with the value of `slave`, and ioredis will try to connect to a random slave of the specified master, with the guarantee that the connected node is always a slave. If the current node is promoted to master owing to a failover, ioredis will disconnect with it and ask sentinels for another slave node to connect to.
 
-Besides `retryStrategy` option, there's also a `sentinelRetryStrategy` in Sentinel mode which will be invoked when all the sentinel nodes are unreachable. If `sentinelRetryStrategy` returns a valid delay time, ioredis will try to reconnect from scratch. The default value of `sentinelRetryStrategy` is:
+Besides `retryStrategy` option, there's also a `sentinelRetryStrategy` in Sentinel mode which will be invoked when all the sentinel nodes are unreachable during connecting. If `sentinelRetryStrategy` returns a valid delay time, ioredis will try to reconnect from scratch. The default value of `sentinelRetryStrategy` is:
 
 ```javascript
 function (times) {
@@ -425,10 +425,8 @@ function (times) {
 ```
 
 ## Cluster
-Support for Cluster is currently experimental and under active development. It's not recommended to use it in production.
-If you encounter any problems, welcome to submit an issue :-).
-
-You can connect to a cluster like this:
+Redis Cluster provides a way to run a Redis installation where data is automatically sharded across multiple Redis nodes.
+You can connect to a Redis Cluster like this:
 
 ```javascript
 var Redis = require('ioredis');
@@ -446,12 +444,22 @@ cluster.get('foo', function (err, res) {
   // res === 'bar'
 });
 ```
-When using `Redis.Cluster` to connect to a cluster, there are some differences from using `Redis`:
 
-0. The argument is a list of nodes of the cluster you want to connect.
+`Cluster` constructor accepts two arguments, where:
+
+0. The first argument is a list of nodes of the cluster you want to connect.
 Just like Sentinel, the list does not need to enumerate all your cluster nodes,
 but a few so that if one is down the client will try the next one, and the client will discover other nodes automatically when at least one node is connnected.
-0. Pipelining is not available in the cluster currently.
+0. The second argument is the option that will be passed to the `Redis` constructor when creating connections to Redis nodes internally. There are some additional options:
+
+  0. `clusterRetryStrategy`: When none of the startup nodes are reachable, `clusterRetryStrategy` will be invoked. When a number is returned,
+  ioredis will try to reconnect the startup nodes from scratch after the specified dalay(ms). Otherwise an error of "None of startup nodes is available" will returned.
+  0. `refreshAfterFails`: When `MOVED` error is received more times than `refreshAfterFails`, client will call CLUSTER SLOTS
+  command to refresh the slot cache.
+  0. `maxRedirections`: When a MOVED or ASK error is received, client will redirect the
+  command to another node. This option limits the max redirections allowed during sending a command.
+
+Currently pipeline isn't supported in the Cluster mode.
 
 ## hiredis
 If [hiredis](https://github.com/redis/hiredis-node) is installed(by `npm install hiredis`),

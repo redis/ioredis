@@ -7,9 +7,32 @@ describe('cluster', function () {
     it('should flush the queue when all startup nodes are unreachable', function (done) {
       var cluster = new Redis.Cluster([
         { host: '127.0.0.1', port: '30001' }
-      ]);
+      ], { clusterRetryStrategy: null });
 
       cluster.get('foo', function (err) {
+        expect(err.message).to.match(/None of startup nodes is available/);
+        cluster.disconnect();
+        done();
+      });
+    });
+
+    it('should invoke clusterRetryStrategy when all startup nodes are unreachable', function (done) {
+      var t = 0;
+      var cluster = new Redis.Cluster([
+        { host: '127.0.0.1', port: '30001' },
+        { host: '127.0.0.1', port: '30002' }
+      ], {
+        clusterRetryStrategy: function (times) {
+          expect(times).to.eql(++t);
+          if (times === 3) {
+            return;
+          }
+          return 0;
+        }
+      });
+
+      cluster.get('foo', function (err) {
+        expect(t).to.eql(3);
         expect(err.message).to.match(/None of startup nodes is available/);
         done();
       });
