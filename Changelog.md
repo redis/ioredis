@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Support cluster auto reconnection.
+* Add `maxRedirections` option to Cluster.
 * Remove `roleRetryDelay` option in favor of `sentinelRetryStrategy`.
 * Improve compatibility with node_redis.
 * More stable sentinel connection.
