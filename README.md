@@ -469,12 +469,13 @@ but a few so that if one is unreachable the client will try the next one, and th
     ioredis will try to reconnect the startup nodes from scratch after the specified delay(ms). Otherwise an error of "None of startup nodes is available" will returned.
     The default value of this option is:
 
-    ```javascript
-    function (times) {
-      var delay = Math.min(100 + times * 2, 2000);
-      return delay;
-    }
-    ```
+        ```javascript
+        function (times) {
+          var delay = Math.min(100 + times * 2, 2000);
+          return delay;
+        }
+        ```
+
     * `refreshAfterFails`: When `MOVED` errors are received more times than `refreshAfterFails`, client will call CLUSTER SLOTS
     command to refresh the slot cache. The default value is `4`.
     * `maxRedirections`: When a `MOVED` or `ASK` error is received, client will redirect the
@@ -483,7 +484,7 @@ but a few so that if one is unreachable the client will try the next one, and th
     ioredis will retry after the specified delay. The default value is `2000`. You should make sure to let `retryDelayOnFailover * maxRedirections > cluster-node-timeout`
     in order to insure that no command will fails during a failover.
 
-### transaction and pipeline in Cluster mode
+### Transaction and pipeline in Cluster mode
 Almost all features that are supported by `Redis` also works in Cluster mode, e.g. custom commands, transaction and pipeline.
 However there are something differences when use transaction and pipeline in Cluster mode:
 

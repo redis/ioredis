@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.1.1 - May 2, 2015
+
 * Support Transaction and pipelining in cluster mode.
 
 ### v1.1.0 - May 1, 2015
