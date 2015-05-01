@@ -486,7 +486,7 @@ but a few so that if one is unreachable the client will try the next one, and th
 
 ### Transaction and pipeline in Cluster mode
 Almost all features that are supported by `Redis` also works in Cluster mode, e.g. custom commands, transaction and pipeline.
-However there are something differences when use transaction and pipeline in Cluster mode:
+However there are something different when use transaction and pipeline in Cluster mode:
 
 0. You can't use `multi` without pipeline(aka `cluster.multi({ pipeline: false })`). This is because when you call `cluster.multi({ pipeline: false })`, ioredis doesn't know which node should the `multi` command to be sent to.
 0. With pipeline, cluster uses the first key in the pipeline queue as the sample key to calculate the slot, and all commands in the pipeline will be sent to the node that the slot belongs to.
