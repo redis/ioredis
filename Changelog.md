@@ -2,6 +2,10 @@
 
 ### Master Branch
 
+### v1.1.4 - May 3, 2015
+
+* Support get built-in commands.
+
 ### v1.1.3 - May 2, 2015
 
 * Fix buffer supporting in pipeline. Thanks to [@AVVS](https://github.com/AVVS).

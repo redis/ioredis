@@ -24,6 +24,8 @@
     * ~~[.end()](#Redis#end)~~
     * [.duplicate()](#Redis#duplicate)
     * [.monitor([callback])](#Redis#monitor)
+    * [.getBuiltinCommands()](#Commander#getBuiltinCommands) ⇒ <code>Array.&lt;string&gt;</code>
+    * [.createBuiltinCommand(commandName)](#Commander#createBuiltinCommand) ⇒ <code>object</code>
     * [.defineCommand(name, definition)](#Commander#defineCommand)
   * _static_
     * ~~[.createClient()](#Redis.createClient)~~
@@ -132,6 +134,25 @@ redis.monitor().then(function (monitor) {
   });
 });
 ```
+<a name="Commander#getBuiltinCommands"></a>
+### redis.getBuiltinCommands() ⇒ <code>Array.&lt;string&gt;</code>
+Return supported builtin commands
+
+**Kind**: instance method of <code>[Redis](#Redis)</code>  
+**Returns**: <code>Array.&lt;string&gt;</code> - command list  
+**Access:** public  
+<a name="Commander#createBuiltinCommand"></a>
+### redis.createBuiltinCommand(commandName) ⇒ <code>object</code>
+Create a builtin command
+
+**Kind**: instance method of <code>[Redis](#Redis)</code>  
+**Returns**: <code>object</code> - functions  
+**Access:** public  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| commandName | <code>string</code> | command name |
+
 <a name="Commander#defineCommand"></a>
 ### redis.defineCommand(name, definition)
 Define a custom command using lua script
@@ -158,6 +179,8 @@ Create a Redis instance
 
 * [Commander](#Commander)
   * [new Commander()](#new_Commander_new)
+  * [.getBuiltinCommands()](#Commander#getBuiltinCommands) ⇒ <code>Array.&lt;string&gt;</code>
+  * [.createBuiltinCommand(commandName)](#Commander#createBuiltinCommand) ⇒ <code>object</code>
   * [.defineCommand(name, definition)](#Commander#defineCommand)
 
 <a name="new_Commander_new"></a>
@@ -168,6 +191,25 @@ Commander
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
 | [options.showFriendlyErrorStack] | <code>boolean</code> | <code>false</code> | Whether to show a friendly error stack. Will decrease the performance significantly. |
+
+<a name="Commander#getBuiltinCommands"></a>
+### commander.getBuiltinCommands() ⇒ <code>Array.&lt;string&gt;</code>
+Return supported builtin commands
+
+**Kind**: instance method of <code>[Commander](#Commander)</code>  
+**Returns**: <code>Array.&lt;string&gt;</code> - command list  
+**Access:** public  
+<a name="Commander#createBuiltinCommand"></a>
+### commander.createBuiltinCommand(commandName) ⇒ <code>object</code>
+Create a builtin command
+
+**Kind**: instance method of <code>[Commander](#Commander)</code>  
+**Returns**: <code>object</code> - functions  
+**Access:** public  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| commandName | <code>string</code> | command name |
 
 <a name="Commander#defineCommand"></a>
 ### commander.defineCommand(name, definition)
