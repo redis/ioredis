@@ -264,6 +264,38 @@ describe('cluster', function () {
       disconnect([node1, node2], done);
     });
   });
+
+  describe('pipeline', function () {
+    it('should use the first key to calculate the slot', function (done) {
+      var node1 = new MockServer(30001, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return [
+            [0, 12181, ['127.0.0.1', 30001]],
+            [12182, 12183, ['127.0.0.1', 30002]],
+            [12184, 16383, ['127.0.0.1', 30001]],
+          ];
+        }
+      });
+      var pending = 2;
+      var node2 = new MockServer(30002, function (argv) {
+        if (argv.toString() === 'set,foo,bar') {
+          pending -= 1;
+        } else if (argv.toString() === 'get,foo2') {
+          pending -= 1;
+          if (!pending) {
+            cluster.disconnect();
+            disconnect([node1, node2], done);
+          }
+        }
+      });
+
+      var cluster = new Redis.Cluster([
+        { host: '127.0.0.1', port: '30001' }
+      ]);
+      cluster.pipeline().set('foo', 'bar').get('foo2').exec(function (err, result) {
+      });
+    });
+  });
 });
 
 function disconnect (clients, callback) {

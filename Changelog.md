@@ -2,6 +2,10 @@
 
 ### Master Branch
 
+### v1.1.2 - May 2, 2015
+
+* Fix error of sending command to wrong node when slot is 0.
+
 ### v1.1.1 - May 2, 2015
 
 * Support Transaction and pipelining in cluster mode.
