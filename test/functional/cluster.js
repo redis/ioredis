@@ -240,6 +240,31 @@ describe('cluster', function () {
     });
   });
 
+  it('should return the error successfully', function (done) {
+    var called = false;
+    var node1 = new MockServer(30001, function (argv) {
+      if (argv[0] === 'cluster' && argv[1] === 'slots') {
+        return [
+          [0, 16383, ['127.0.0.1', 30001]]
+        ];
+      }
+      if (argv.toString() === 'get,foo,bar') {
+        called = true;
+        return new Error('Wrong arguments count');
+      }
+    });
+
+    var cluster = new Redis.Cluster([
+      { host: '127.0.0.1', port: '30001' }
+    ]);
+    cluster.get('foo', 'bar', function (err, result) {
+      expect(called).to.eql(true);
+      expect(err.message).to.match(/Wrong arguments count/);
+      cluster.disconnect();
+      disconnect([node1], done);
+    });
+  });
+
   it('should get value successfully', function (done) {
     var node1 = new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
