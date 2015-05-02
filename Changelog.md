@@ -4,7 +4,7 @@
 
 ### v1.1.3 - May 2, 2015
 
-* Fix buffer supporting in pipeline. Thanks to @AVVS.
+* Fix buffer supporting in pipeline. Thanks to [@AVVS](https://github.com/AVVS).
 
 ### v1.1.2 - May 2, 2015
 
