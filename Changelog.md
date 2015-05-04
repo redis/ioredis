@@ -2,6 +2,10 @@
 
 ### Master Branch
 
+### v1.2.0 - May 4, 2015
+
+* Add `autoResendUnfulfilledCommands` option.
+
 ### v1.1.4 - May 3, 2015
 
 * Support get built-in commands.

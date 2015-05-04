@@ -390,6 +390,12 @@ the return value represents how long(ms) to wait to reconnect. When the
 return value isn't a number, ioredis will stop trying reconnecting and the connection
 will be lost forever if user don't call `redis.connect()` manually.
 
+When reconnected, client will auto subscribe channels that the previous connection has subscribed.
+This behavious can be disabled by setting `autoResubscribe` option to `false`.
+
+And if the previous connection has some unfulfilled commands(most likely are block commands such as `brpop` and `blpop`),
+client will resend them when reconnected. This behavious can be disabled by setting `autoResendUnfulfilledCommands` option to `false`.
+
 ## Connection Events
 Redis instance will emit some events about the state of the connection to the Redis server.
 

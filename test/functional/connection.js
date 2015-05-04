@@ -91,4 +91,29 @@ describe('connection', function () {
       });
     });
   });
+
+  describe('autoResendUnfulfilledCommands', function () {
+    it('should resend unfulfilled when reconnected', function (done) {
+      var redis = new Redis();
+      var pub = new Redis();
+      redis.once('ready', function () {
+        var write = redis.stream.write;
+        redis.stream.write = function () {
+          write.apply(redis.stream, arguments);
+          redis.stream.write = write;
+          redis.stream.end();
+        };
+        redis.blpop('l', 0, function (err, res) {
+          expect(res[0]).to.eql('l');
+          expect(res[1]).to.eql('1');
+          done();
+        });
+      });
+      redis.once('end', function () {
+        pub.lpush('l', 1, function () {
+          redis.connect();
+        });
+      });
+    });
+  });
 });
