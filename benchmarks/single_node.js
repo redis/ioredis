@@ -4,6 +4,14 @@ var nodeRedis = require('redis');
 var ioRedis = require('../');
 var ndredis, ioredis;
 
+console.log('==========================');
+console.log('ioredis: ' + require('../package.json').version);
+console.log('node_redis: ' + require('redis/package.json').version);
+var os = require('os');
+console.log('CPU: ' + os.cpus().length);
+console.log('OS: ' + os.platform() + ' ' + os.arch());
+console.log('==========================');
+
 var waitReady = function (next) {
   var pending = 2;
   ndredis.on('ready', function () {
