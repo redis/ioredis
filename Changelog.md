@@ -2,6 +2,10 @@
 
 ### Master Branch
 
+### v1.2.1 - May 7, 2015
+
+* Fix `sendCommand` sometimes doesn't return a promise.
+
 ### v1.2.0 - May 4, 2015
 
 * Add `autoResendUnfulfilledCommands` option.
