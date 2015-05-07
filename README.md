@@ -591,32 +591,40 @@ redis.set('foo');
 
 # Benchmark
 
-Compares with [node_redis](https://github.com/mranney/node_redis):
+Compares with [node_redis](https://github.com/mranney/node_redis) on my laptop(MacBook Pro, Retina, 15-inch, Late 2013):
 
 ```shell
 > npm run bench
+==========================
+ioredis: 1.2.0
+node_redis: 0.12.1
+CPU: 8
+OS: darwin x64
+==========================
+
                     simple set
-        81,026 op/s » ioredis
-        43,487 op/s » node_redis
+        75,846 op/s » ioredis
+        43,185 op/s » node_redis
 
                     simple get
-        79,565 op/s » ioredis
-        41,808 op/s » node_redis
+        75,463 op/s » ioredis
+        41,240 op/s » node_redis
 
                     simple get with pipeline
-        12,711 op/s » ioredis
-         4,714 op/s » node_redis
+        12,329 op/s » ioredis
+         4,146 op/s » node_redis
 
                     lrange 100
-        61,149 op/s » ioredis
-        48,827 op/s » node_redis
+        58,273 op/s » ioredis
+        45,782 op/s » node_redis
 
 
 Suites:  4
 Benches: 8
-Elapsed: 57,882.94 ms
+Elapsed: 61,455.94 ms
 ```
 
+However since there are many factors that can impact the benchmark, results may be different in your server([#25](https://github.com/luin/ioredis/issues/25)).
 You can find the code at `benchmarks/*.js` and run it yourself using `npm run bench`.
 
 # Running tests
