@@ -1,6 +1,6 @@
 {
   "name": "ioredis",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "A delightful, performance-focused Redis client for Node and io.js",
   "main": "index.js",
   "scripts": {

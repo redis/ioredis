@@ -2,6 +2,11 @@
 
 ### Master Branch
 
+### v1.2.2 - May 8, 2015
+
+* Add `retryDelayOnClusterDown` option to handle CLUSTERDOWN error.
+* Fix `multi` commands sometimes doesn't return a promise.
+
 ### v1.2.1 - May 7, 2015
 
 * Fix `sendCommand` sometimes doesn't return a promise.
