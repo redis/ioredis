@@ -498,6 +498,8 @@ but a few so that if one is unreachable the client will try the next one, and th
     * `retryDelayOnFailover`: When the error of "Connection is closed." is received when sending a command,
     ioredis will retry after the specified delay. The default value is `2000`. You should make sure to let `retryDelayOnFailover * maxRedirections > cluster-node-timeout`
     in order to insure that no command will fails during a failover.
+    * `retryDelayOnClusterDown`: When a cluster is down, all commands will be rejected with the error of `CLUSTERDOWN`. If this option is a number(by default is 1000), client
+    will resend the commands after the specified time(ms).
 
 ### Transaction and pipeline in Cluster mode
 Almost all features that are supported by `Redis` also works in Cluster mode, e.g. custom commands, transaction and pipeline.
