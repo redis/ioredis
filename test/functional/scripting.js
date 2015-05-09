@@ -29,6 +29,20 @@ describe('scripting', function () {
       });
     });
 
+    it('should support numberOfKeys being 0', function (done) {
+      var redis = new Redis();
+
+      redis.defineCommand('test', {
+        numberOfKeys: 0,
+        lua: 'return {ARGV[1],ARGV[2]}'
+      });
+
+      redis.test('2', 'a2', function (err, result) {
+        expect(result).to.eql(['2', 'a2']);
+        done();
+      });
+    });
+
     it('should throw when numberOfKeys is omit', function (done) {
       var redis = new Redis();
 
