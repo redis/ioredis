@@ -2,6 +2,10 @@
 
 ### Master Branch
 
+### v1.2.3 - May 9, 2015
+
+* Fix errors when `numberOfKeys` is `0`.
+
 ### v1.2.2 - May 8, 2015
 
 * Add `retryDelayOnClusterDown` option to handle CLUSTERDOWN error.
