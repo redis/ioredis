@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.2.4 - May 9, 2015
+
 * Try a random node when the target slot isn't served by the cluster.
 * Remove `refreshAfterFails` option.
 * Try random node when refresh slots.
