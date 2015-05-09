@@ -2,11 +2,16 @@
 <dl>
 <dt><a href="#Redis">Redis</a> ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code></dt>
 <dd></dd>
+<dt><a href="#Cluster">Cluster</a> ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code></dt>
+<dd></dd>
 <dt><a href="#Commander">Commander</a></dt>
 <dd></dd>
 </dl>
 ## Members
 <dl>
+<dt><a href="#defaultOptions">defaultOptions</a></dt>
+<dd><p>Default options</p>
+</dd>
 <dt><a href="#defaultOptions">defaultOptions</a></dt>
 <dd><p>Default options</p>
 </dd>
@@ -174,6 +179,72 @@ Define a custom command using lua script
 Create a Redis instance
 
 **Kind**: static method of <code>[Redis](#Redis)</code>  
+<a name="Cluster"></a>
+## Cluster ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
+**Kind**: global class  
+**Extends:** <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>, <code>[Commander](#Commander)</code>  
+
+* [Cluster](#Cluster) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
+  * [new Cluster(startupNodes, options)](#new_Cluster_new)
+  * [.disconnect()](#Cluster#disconnect)
+  * [.getBuiltinCommands()](#Commander#getBuiltinCommands) ⇒ <code>Array.&lt;string&gt;</code>
+  * [.createBuiltinCommand(commandName)](#Commander#createBuiltinCommand) ⇒ <code>object</code>
+  * [.defineCommand(name, definition)](#Commander#defineCommand)
+
+<a name="new_Cluster_new"></a>
+### new Cluster(startupNodes, options)
+Creates a Redis Cluster instance
+
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| startupNodes | <code>Array.&lt;Object&gt;</code> |  | An array of nodes in the cluster, [{ port: number, host: string }] |
+| options | <code>Object</code> |  |  |
+| [options.enableOfflineQueue] | <code>boolean</code> | <code>true</code> | See Redis class |
+| [options.lazyConnect] | <code>boolean</code> | <code>false</code> | See Redis class |
+| [options.maxRedirections] | <code>number</code> | <code>16</code> | When a MOVED or ASK error is received, client will redirect the command to another node. This option limits the max redirections allowed to send a command. |
+| [options.clusterRetryStrategy] | <code>function</code> |  | See "Quick Start" section |
+| [options.retryDelayOnFailover] | <code>number</code> | <code>2000</code> | When an error is received when sending a command(e.g. "Connection is closed." when the target Redis node is down), |
+| [options.retryDelayOnClusterDown] | <code>number</code> | <code>1000</code> | When a CLUSTERDOWN error is received, client will retry if `retryDelayOnClusterDown` is valid delay time. |
+
+<a name="Cluster#disconnect"></a>
+### cluster.disconnect()
+Disconnect from every node in the cluster.
+
+**Kind**: instance method of <code>[Cluster](#Cluster)</code>  
+**Access:** public  
+<a name="Commander#getBuiltinCommands"></a>
+### cluster.getBuiltinCommands() ⇒ <code>Array.&lt;string&gt;</code>
+Return supported builtin commands
+
+**Kind**: instance method of <code>[Cluster](#Cluster)</code>  
+**Returns**: <code>Array.&lt;string&gt;</code> - command list  
+**Access:** public  
+<a name="Commander#createBuiltinCommand"></a>
+### cluster.createBuiltinCommand(commandName) ⇒ <code>object</code>
+Create a builtin command
+
+**Kind**: instance method of <code>[Cluster](#Cluster)</code>  
+**Returns**: <code>object</code> - functions  
+**Access:** public  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| commandName | <code>string</code> | command name |
+
+<a name="Commander#defineCommand"></a>
+### cluster.defineCommand(name, definition)
+Define a custom command using lua script
+
+**Kind**: instance method of <code>[Cluster](#Cluster)</code>  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| name | <code>string</code> |  | the command name |
+| definition | <code>object</code> |  |  |
+| definition.lua | <code>string</code> |  | the lua code |
+| [definition.numberOfKeys] | <code>number</code> | <code></code> | the number of keys. If omit, you have to pass the number of keys as the first argument every time you invoke the command |
+
 <a name="Commander"></a>
 ## Commander
 **Kind**: global class  
@@ -225,6 +296,12 @@ Define a custom command using lua script
 | definition.lua | <code>string</code> |  | the lua code |
 | [definition.numberOfKeys] | <code>number</code> | <code></code> | the number of keys. If omit, you have to pass the number of keys as the first argument every time you invoke the command |
 
+<a name="defaultOptions"></a>
+## defaultOptions
+Default options
+
+**Kind**: global variable  
+**Access:** protected  
 <a name="defaultOptions"></a>
 ## defaultOptions
 Default options

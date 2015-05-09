@@ -491,8 +491,6 @@ but a few so that if one is unreachable the client will try the next one, and th
         }
         ```
 
-    * `refreshAfterFails`: When `MOVED` errors are received more times than `refreshAfterFails`, client will call CLUSTER SLOTS
-    command to refresh the slot cache. The default value is `4`.
     * `maxRedirections`: When a `MOVED` or `ASK` error is received, client will redirect the
     command to another node. This option limits the max redirections allowed when sending a command. The default value is `16`.
     * `retryDelayOnFailover`: When the error of "Connection is closed." is received when sending a command,

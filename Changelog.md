@@ -3,6 +3,7 @@
 ### Master Branch
 
 * Try a random node when the target slot isn't served by the cluster.
+* Remove `refreshAfterFails` option.
 
 ### v1.2.3 - May 9, 2015
 
