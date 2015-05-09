@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Try a random node when the target slot isn't served by the cluster.
+
 ### v1.2.3 - May 9, 2015
 
 * Fix errors when `numberOfKeys` is `0`.
