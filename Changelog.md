@@ -2,6 +2,10 @@
 
 ### Master Branch
 
+### v1.2.5 - May 12, 2015
+
+* Fix errors when sending commands after connection being closed.
+
 ### v1.2.4 - May 9, 2015
 
 * Try a random node when the target slot isn't served by the cluster.
