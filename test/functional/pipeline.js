@@ -65,4 +65,10 @@ describe('pipeline', function () {
       done();
     });
   });
+
+  it('should have the same options as its container', function () {
+    var redis = new Redis({ showFriendlyErrorStack: true });
+    var pipeline = redis.pipeline();
+    expect(pipeline.options).to.have.property('showFriendlyErrorStack', true);
+  });
 });

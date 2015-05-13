@@ -2,6 +2,10 @@
 
 ### Master Branch
 
+### v1.2.6 - May 13, 2015
+
+* Fix showFriendlyErrorStack not working in pipeline.
+
 ### v1.2.5 - May 12, 2015
 
 * Fix errors when sending commands after connection being closed.
