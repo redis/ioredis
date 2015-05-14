@@ -9,8 +9,16 @@ var Parser = require('../../lib/parsers/javascript');
 function MockServer (port, handler) {
   EventEmitter.call(this);
 
-  var _this = this;
+  this.port = port;
   this.handler = handler;
+
+  this.connect();
+}
+
+util.inherits(MockServer, EventEmitter);
+
+MockServer.prototype.connect = function () {
+  var _this = this;
   this.socket = net.createServer(function (c) {
     process.nextTick(function () {
       _this.emit('connect', c);
@@ -33,11 +41,10 @@ function MockServer (port, handler) {
       parser.execute(data);
     });
   });
-  this.socket.listen(port);
-  enableDestroy(this.socket);
-}
 
-util.inherits(MockServer, EventEmitter);
+  this.socket.listen(this.port);
+  enableDestroy(this.socket);
+};
 
 MockServer.prototype.disconnect = function (callback) {
   this.socket.destroy(callback);

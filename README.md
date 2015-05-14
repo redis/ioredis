@@ -505,11 +505,17 @@ but a few so that if one is unreachable the client will try the next one, and th
     will resend the commands after the specified time(ms).
 
 ### Transaction and pipeline in Cluster mode
-Almost all features that are supported by `Redis` also works in Cluster mode, e.g. custom commands, transaction and pipeline.
-However there are something different when use transaction and pipeline in Cluster mode:
+Almost all features that are supported by `Redis` also supported by `Redis.Cluster`, e.g. custom commands, transaction and pipeline.
+However there are some differences when using transaction and pipeline in Cluster mode:
 
-0. You can't use `multi` without pipeline(aka `cluster.multi({ pipeline: false })`). This is because when you call `cluster.multi({ pipeline: false })`, ioredis doesn't know which node should the `multi` command to be sent to.
-0. With pipeline, cluster uses the first key in the pipeline queue as the sample key to calculate the slot, and all commands in the pipeline will be sent to the node that the slot belongs to.
+0. All keys in a pipeline should belong to the same slot since ioredis sends all commands in the pipeline to the same node. For example:
+0. You can't use `multi` without pipeline(aka `cluster.multi({ pipeline: false })`). This is because when you call `cluster.multi({ pipeline: false })`, ioredis doesn't know which node should the `multi` command be sent to.
+0. Chaining custom commands in the pipeline is not supported in Cluster mode.
+
+When any commands in a pipeline receives a `MOVED` or `ASK` error, ioredis will resend the whole pipeline to the specified node automatically if all of the following conditions are satisfied:
+
+0. All errors received in the pipeline are same. For example, we won't resend the pipeline if we got two `MOVED` error pointing to different nodes.
+0. All commands executed successfully are readonly commands. This makes sure that resending the pipeline won't have side effect.
 
 ## hiredis
 If [hiredis](https://github.com/redis/hiredis-node) is installed(by `npm install hiredis`),
