@@ -2,6 +2,10 @@
 
 ### Master Branch
 
+### v1.3.0 - May 15, 2015
+
+* Support pipeline redirection in Cluster mode.
+
 ### v1.2.7 - May 15, 2015
 
 * `Redis#connect` returns a promise.
