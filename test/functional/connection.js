@@ -62,6 +62,27 @@ describe('connection', function () {
     });
   });
 
+  describe('#connect', function () {
+    it('should return a promise', function (done) {
+      var pending = 2;
+      var redis = new Redis({ lazyConnect: true });
+      redis.connect().then(function () {
+        redis.disconnect();
+        if (!--pending) {
+          done();
+        }
+      });
+
+      var redis2 = new Redis(6390, { lazyConnect: true, retryStrategy: null });
+      redis2.connect().catch(function (err) {
+        if (!--pending) {
+          redis2.disconnect();
+          done();
+        }
+      });
+    });
+  });
+
   describe('retryStrategy', function () {
     it('should pass the correct retry times', function (done) {
       var t = 0;
@@ -109,10 +130,8 @@ describe('connection', function () {
           done();
         });
       });
-      redis.once('end', function () {
-        pub.lpush('l', 1, function () {
-          redis.connect();
-        });
+      redis.once('close', function () {
+        pub.lpush('l', 1);
       });
     });
   });

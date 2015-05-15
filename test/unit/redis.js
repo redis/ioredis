@@ -3,7 +3,7 @@
 describe('Redis', function () {
   describe('constructor', function () {
     it('should parse options correctly', function () {
-      stub(Redis.prototype, 'connect');
+      stub(Redis.prototype, 'connect').returns(Promise.resolve());
 
       var option;
       try {

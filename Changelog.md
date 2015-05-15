@@ -2,6 +2,10 @@
 
 ### Master Branch
 
+### v1.2.7 - May 15, 2015
+
+* `Redis#connect` returns a promise.
+
 ### v1.2.6 - May 13, 2015
 
 * Fix showFriendlyErrorStack not working in pipeline.

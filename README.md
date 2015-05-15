@@ -403,15 +403,20 @@ Redis instance will emit some events about the state of the connection to the Re
 client will emit `connect` once a connection is established to the Redis server.
 
 ### "ready"
-If `enableReadyCheck` is `true`, client will emit `ready` when the server reports that it is ready to receive commands.
+If `enableReadyCheck` is `true`, client will emit `ready` when the server reports that it is ready to receive commands(e.g. finish loading data from disk).
 Otherwise `ready` will be emitted immediately right after the `connect` event.
 
+### "close"
+client will emit `close` when an established Redis server connection has closed.
+
+### "reconnecting"
+client will emit `reconnecting` after `close` when a reconnection would be made. The argument of the event is the time(ms) before reconnecting.
+
 ### "end"
-client will emit `end` when an established Redis server connection has closed.
+client will emit `end` after `close` when no more reconnections would be made.
 
 ## Offline Queue
-When a command can't be processed by Redis(e.g. the connection hasn't been established or
-Redis is loading data from disk), by default it's added to the offline queue and will be
+When a command can't be processed by Redis(being sent before `ready` event), by default it's added to the offline queue and will be
 executed when it can be processed. You can disable this feature by set `enableOfflineQueue`
 option to `false`:
 
