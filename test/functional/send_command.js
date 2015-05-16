@@ -38,8 +38,22 @@ describe('send command', function () {
 
   it('should support get & set buffer', function (done) {
     var redis = new Redis();
-    redis.set(new Buffer('foo'), new Buffer('bar'));
+    redis.set(new Buffer('foo'), new Buffer('bar'), function (err, res) {
+      expect(res).to.eql('OK');
+    });
     redis.getBuffer(new Buffer('foo'), function (err, result) {
+      expect(result).to.be.instanceof(Buffer);
+      expect(result.toString()).to.eql('bar');
+      done();
+    });
+  });
+
+  it('should support get & set buffer via `call`', function (done) {
+    var redis = new Redis();
+    redis.call('set', new Buffer('foo'), new Buffer('bar'), function (err, res) {
+      expect(res).to.eql('OK');
+    });
+    redis.callBuffer('get', new Buffer('foo'), function (err, result) {
       expect(result).to.be.instanceof(Buffer);
       expect(result.toString()).to.eql('bar');
       done();

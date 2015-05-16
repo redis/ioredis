@@ -24,7 +24,7 @@
 * [Redis](#Redis) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
   * [new Redis([port], [host], [options])](#new_Redis_new)
   * _instance_
-    * [.connect()](#Redis#connect)
+    * [.connect(callback)](#Redis#connect) ⇒ <code>Promise</code>
     * [.disconnect()](#Redis#disconnect)
     * ~~[.end()](#Redis#end)~~
     * [.duplicate()](#Redis#duplicate)
@@ -74,12 +74,17 @@ var urlRedis2 = new Redis('//localhost:6379');
 var authedRedis = new Redis(6380, '192.168.100.1', { auth: 'password' });
 ```
 <a name="Redis#connect"></a>
-### redis.connect()
+### redis.connect(callback) ⇒ <code>Promise</code>
 Create a connection to Redis.
 This method will be invoked automatically when creating a new Redis instance.
 
 **Kind**: instance method of <code>[Redis](#Redis)</code>  
 **Access:** public  
+
+| Param | Type |
+| --- | --- |
+| callback | <code>function</code> | 
+
 <a name="Redis#disconnect"></a>
 ### redis.disconnect()
 Disconnect from Redis.
@@ -190,6 +195,7 @@ Create a Redis instance
   * [.getBuiltinCommands()](#Commander#getBuiltinCommands) ⇒ <code>Array.&lt;string&gt;</code>
   * [.createBuiltinCommand(commandName)](#Commander#createBuiltinCommand) ⇒ <code>object</code>
   * [.defineCommand(name, definition)](#Commander#defineCommand)
+  * *[.sendCommand()](#Commander#sendCommand)*
 
 <a name="new_Cluster_new"></a>
 ### new Cluster(startupNodes, options)
@@ -245,6 +251,13 @@ Define a custom command using lua script
 | definition.lua | <code>string</code> |  | the lua code |
 | [definition.numberOfKeys] | <code>number</code> | <code></code> | the number of keys. If omit, you have to pass the number of keys as the first argument every time you invoke the command |
 
+<a name="Commander#sendCommand"></a>
+### *cluster.sendCommand()*
+Send a command
+
+**Kind**: instance abstract method of <code>[Cluster](#Cluster)</code>  
+**Overrides:** <code>[sendCommand](#Commander#sendCommand)</code>  
+**Access:** public  
 <a name="Commander"></a>
 ## Commander
 **Kind**: global class  
@@ -254,6 +267,7 @@ Define a custom command using lua script
   * [.getBuiltinCommands()](#Commander#getBuiltinCommands) ⇒ <code>Array.&lt;string&gt;</code>
   * [.createBuiltinCommand(commandName)](#Commander#createBuiltinCommand) ⇒ <code>object</code>
   * [.defineCommand(name, definition)](#Commander#defineCommand)
+  * *[.sendCommand()](#Commander#sendCommand)*
 
 <a name="new_Commander_new"></a>
 ### new Commander()
@@ -296,6 +310,12 @@ Define a custom command using lua script
 | definition.lua | <code>string</code> |  | the lua code |
 | [definition.numberOfKeys] | <code>number</code> | <code></code> | the number of keys. If omit, you have to pass the number of keys as the first argument every time you invoke the command |
 
+<a name="Commander#sendCommand"></a>
+### *commander.sendCommand()*
+Send a command
+
+**Kind**: instance abstract method of <code>[Commander](#Commander)</code>  
+**Access:** public  
 <a name="defaultOptions"></a>
 ## defaultOptions
 Default options
