@@ -508,7 +508,7 @@ but a few so that if one is unreachable the client will try the next one, and th
 Almost all features that are supported by `Redis` also supported by `Redis.Cluster`, e.g. custom commands, transaction and pipeline.
 However there are some differences when using transaction and pipeline in Cluster mode:
 
-0. All keys in a pipeline should belong to the same slot since ioredis sends all commands in the pipeline to the same node. For example:
+0. All keys in a pipeline should belong to the same slot since ioredis sends all commands in a pipeline to the same node.
 0. You can't use `multi` without pipeline(aka `cluster.multi({ pipeline: false })`). This is because when you call `cluster.multi({ pipeline: false })`, ioredis doesn't know which node should the `multi` command be sent to.
 0. Chaining custom commands in the pipeline is not supported in Cluster mode.
 
