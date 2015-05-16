@@ -4,7 +4,7 @@
 
 ### v1.3.1 - May 16, 2015
 
-* Improve the performance of sending commands[#35](https://github.com/luin/ioredis/issues/35). Thanks to [@AVVS](https://github.com/AVVS).
+* Improve the performance of sending commands([#35](https://github.com/luin/ioredis/issues/35)). Thanks to [@AVVS](https://github.com/AVVS).
 
 ### v1.3.0 - May 15, 2015
 

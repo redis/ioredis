@@ -607,7 +607,7 @@ Compares with [node_redis](https://github.com/mranney/node_redis) on my laptop(M
 ```shell
 > npm run bench
 ==========================
-ioredis: 1.3.0
+ioredis: 1.3.1
 node_redis: 0.12.1
 CPU: 8
 OS: darwin x64
