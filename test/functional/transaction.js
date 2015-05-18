@@ -38,10 +38,9 @@ describe('transaction', function () {
       pending -= 1;
       expect(value).to.eql('QUEUED');
     }).exec(function (err, result) {
+      expect(pending).to.eql(0);
       expect(result).to.eql([[null, 'OK'], [null, 'bar']]);
-      if (!pending) {
-        done();
-      }
+      done();
     });
   });
 
@@ -67,6 +66,24 @@ describe('transaction', function () {
     redis.exec(function (err, results) {
       expect(results).to.eql([[null, 'OK'], [null, 'bar']]);
       done();
+    });
+  });
+
+  describe('#addBatch', function () {
+    it('should accept commands in constructor', function (done) {
+      var redis = new Redis();
+      var pending = 1;
+      redis.multi([
+        ['set', 'foo', 'bar'],
+        ['get', 'foo', function (err, result) {
+          expect(result).to.eql('QUEUED');
+          pending -= 1;
+        }]
+      ]).exec(function (err, results) {
+        expect(pending).to.eql(0);
+        expect(results[1][1]).to.eql('bar');
+        done();
+      });
     });
   });
 });

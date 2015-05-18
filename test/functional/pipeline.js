@@ -71,4 +71,22 @@ describe('pipeline', function () {
     var pipeline = redis.pipeline();
     expect(pipeline.options).to.have.property('showFriendlyErrorStack', true);
   });
+
+  describe('#addBatch', function () {
+    it('should accept commands in constructor', function (done) {
+      var redis = new Redis();
+      var pending = 1;
+      redis.pipeline([
+        ['set', 'foo', 'bar'],
+        ['get', 'foo', function (err, result) {
+          expect(result).to.eql('bar');
+          pending -= 1;
+        }]
+      ]).exec(function (err, results) {
+        expect(pending).to.eql(0);
+        expect(results[1][1]).to.eql('bar');
+        done();
+      });
+    });
+  });
 });

@@ -185,6 +185,16 @@ redis.pipeline().set('foo', 'bar').get('foo', function (err, result) {
 });
 ```
 
+In addition to adding commands to the `pipeline` queue individually, you can also pass an array of commands and arguments to the constructor:
+
+```javascript
+redis.pipeline([
+  ['set', 'foo', 'bar'],
+  ['get', 'foo']
+]).exec(function () { /* ... */ });
+```
+
+
 ## Transaction
 Most of the time the transaction commands `multi` & `exec` are used together with pipeline.
 Therefore by default when `multi` is called, a `Pipeline` instance is created automatically,
@@ -232,6 +242,15 @@ redis.get('foo');
 redis.exec(function (err, result) {
   // result === [[null, 'OK'], [null, 'bar']]
 });
+```
+
+The constructor of `multi` also accepts a batch of commands:
+
+```javascript
+redis.multi([
+  ['set', 'foo', 'bar'],
+  ['get', 'foo']
+]).exec(function () { /* ... */ });
 ```
 
 Inline transaction is supported by pipeline, that means you can group a subset commands
@@ -532,7 +551,7 @@ var Redis = require('ioredis');
 var redis = new Redis();
 // This command causes an reply error since SET command requires two arguments.
 redis.set('foo', function (err) {
-  // err instanceof Redis.ReplyError
+  err instanceof Redis.ReplyError
 });
 ```
 

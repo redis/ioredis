@@ -2,6 +2,10 @@
 
 ### Master Branch
 
+### v1.3.2 - May 18, 2015
+
+* The constructor of `pipeline`/`multi` accepts a batch of commands.
+
 ### v1.3.1 - May 16, 2015
 
 * Improve the performance of sending commands([#35](https://github.com/luin/ioredis/issues/35)). Thanks to [@AVVS](https://github.com/AVVS).
