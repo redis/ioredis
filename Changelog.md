@@ -2,6 +2,10 @@
 
 ### Master Branch
 
+### v1.3.3 - May 19, 2015
+
+* Fix possible memory leak warning.
+
 ### v1.3.2 - May 18, 2015
 
 * The constructor of `pipeline`/`multi` accepts a batch of commands.

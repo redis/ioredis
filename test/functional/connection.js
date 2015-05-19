@@ -44,7 +44,10 @@ describe('connection', function () {
   });
 
   it('should close the connection when timeout', function (done) {
-    var redis = new Redis(6379, '192.0.0.0', { connectTimeout: 1 });
+    var redis = new Redis(6379, '192.0.0.0', {
+      connectTimeout: 1,
+      retryStrategy: null
+    });
     redis.get('foo', function (err) {
       expect(err.message).to.match(/Connection is closed/);
       done();
