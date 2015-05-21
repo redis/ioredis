@@ -25,6 +25,15 @@
       parser.execute(new Buffer('+OK\r\n'));
     });
 
+    it('should return bulk strings', function (done) {
+      var parser = new Parser({ returnBuffers: true });
+      parser.on('reply', function (res) {
+        expect(res.toString()).to.eql('OK');
+        done();
+      });
+      parser.execute(new Buffer('$2\r\nOK\r\n'));
+    });
+
     it('should support return string directly', function (done) {
       var parser = new Parser({ returnBuffers: false });
       parser.on('reply', function (res) {
@@ -71,8 +80,11 @@
       });
       parser.execute(new Buffer('*2\r\n$3\r\nfoo\r'));
       setTimeout(function () {
-        parser.execute(new Buffer('\n*2\r\n:3\r\n$3\r\nbar\r\n'));
-      }, 0);
+        parser.execute(new Buffer(''));
+        setTimeout(function () {
+          parser.execute(new Buffer('\n*2\r\n:3\r\n$3\r\nbar\r\n'));
+        });
+      }, 1);
     });
   });
 });
