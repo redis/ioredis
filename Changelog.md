@@ -2,7 +2,10 @@
 
 ### Master Branch
 
+### v1.3.5 - May 21, 2015
+
 * Fix possible memory leak warning of Cluster.
+* Stop reconnecting when disconnected manually.
 
 ### v1.3.4 - May 21, 2015
 

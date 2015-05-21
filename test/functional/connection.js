@@ -84,6 +84,21 @@ describe('connection', function () {
         }
       });
     });
+
+    it('should stop reconnecting when disconnected', function (done) {
+      var redis = new Redis(8999, {
+        retryStrategy: function () { return 0; }
+      });
+
+      redis.on('close', function () {
+        redis.disconnect();
+        stub(Redis.prototype, 'connect').throws(new Error('`connect` should not be called'));
+        setTimeout(function () {
+          Redis.prototype.connect.restore();
+          done();
+        }, 1);
+      });
+    });
   });
 
   describe('retryStrategy', function () {

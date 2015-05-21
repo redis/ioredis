@@ -95,6 +95,21 @@ describe('cluster', function () {
       });
     });
 
+    it('should stop reconnecting when disconnected', function (done) {
+      var cluster = new Redis.Cluster([
+        { host: '127.0.0.1', port: '30001' }
+      ], { clusterRetryStrategy: function () { return 0; } });
+
+      cluster.on('close', function () {
+        cluster.disconnect();
+        stub(Redis.Cluster.prototype, 'connect').throws(new Error('`connect` should not be called'));
+        setTimeout(function () {
+          Redis.Cluster.prototype.connect.restore();
+          done();
+        }, 1);
+      });
+    });
+
     it('should discover other nodes automatically', function (done) {
       var slotTable = [
         [0, 5460, ['127.0.0.1', 30001]],
