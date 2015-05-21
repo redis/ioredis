@@ -2,6 +2,10 @@
 
 ### Master Branch
 
+### v1.3.4 - May 21, 2015
+
+* Add missing Promise definition in node 0.10.x.
+
 ### v1.3.3 - May 19, 2015
 
 * Fix possible memory leak warning.
