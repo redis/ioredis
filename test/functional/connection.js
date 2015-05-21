@@ -140,21 +140,28 @@ describe('connection', function () {
   });
 
   describe('autoResendUnfulfilledCommands', function () {
-    it('should resend unfulfilled when reconnected', function (done) {
-      var redis = new Redis();
-      var pub = new Redis();
+    it('should resend unfulfilled commands to the correct db when reconnected', function (done) {
+      var redis = new Redis({ db: 3 });
+      var pub = new Redis({ db: 3 });
       redis.once('ready', function () {
-        var write = redis.stream.write;
-        redis.stream.write = function () {
-          write.apply(redis.stream, arguments);
-          redis.stream.write = write;
-          redis.stream.end();
-        };
+        var pending = 2;
         redis.blpop('l', 0, function (err, res) {
           expect(res[0]).to.eql('l');
           expect(res[1]).to.eql('1');
-          done();
+          if (!--pending) {
+            done();
+          }
         });
+        redis.set('foo', '1');
+        redis.pipeline().incr('foo').exec(function (err, res) {
+          expect(res[0][1]).to.eql(2);
+          if (!--pending) {
+            done();
+          }
+        });
+        setTimeout(function () {
+          redis.stream.end();
+        }, 0);
       });
       redis.once('close', function () {
         pub.lpush('l', 1);
