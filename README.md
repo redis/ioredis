@@ -8,7 +8,7 @@
 
 A delightful, performance-focused Redis client for Node and io.js
 
-Support Redis >= 2.6.12 and (Node.js >= 0.11.16 or io.js).
+Support Redis >= 2.6.12 and (Node.js >= 0.10.16 or io.js).
 
 # Feature
 ioredis is a robust, full-featured Redis client

@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Support Node.js 0.10.16
+
 ### v1.3.5 - May 21, 2015
 
 * Fix possible memory leak warning of Cluster.

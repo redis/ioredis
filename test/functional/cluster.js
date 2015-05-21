@@ -1,6 +1,7 @@
 'use strict';
 
 var utils = require('../../lib/utils');
+var Promise = require('bluebird');
 
 describe('cluster', function () {
   describe('connect', function () {
