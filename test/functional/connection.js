@@ -99,6 +99,14 @@ describe('connection', function () {
         }, 1);
       });
     });
+
+    it('should reject when connected', function (done) {
+      var redis = new Redis();
+      redis.connect().catch(function (err) {
+        expect(err.message).to.match(/Redis is already connecting/);
+        done();
+      });
+    });
   });
 
   describe('retryStrategy', function () {

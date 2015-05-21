@@ -86,5 +86,30 @@ describe('Redis', function () {
         return redis.options;
       }
     });
+
+    it('should throw when arguments is invalid', function () {
+      expect(function () {
+        new Redis(function () {});
+      }).to.throw(Error);
+    });
+  });
+
+  describe('.createClient', function () {
+    it('should redirect to constructor', function () {
+      var redis = Redis.createClient({ name: 'pass', lazyConnect: true });
+      expect(redis.options).to.have.property('name', 'pass');
+      expect(redis.options).to.have.property('lazyConnect', true);
+    });
+  });
+
+  describe('#end', function () {
+    it('should redirect to #disconnect', function (done) {
+      var redis = new Redis({ lazyConnect: true });
+      stub(redis, 'disconnect', function () {
+        redis.disconnect.restore();
+        done();
+      });
+      redis.end();
+    });
   });
 });

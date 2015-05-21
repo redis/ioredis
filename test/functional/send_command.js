@@ -99,4 +99,21 @@ describe('send command', function () {
       done();
     });
   });
+
+  it('should reject when disconnected', function (done) {
+    var redis = new Redis();
+    redis.disconnect();
+    redis.get('foo', function (err) {
+      expect(err.message).to.match(/Connection is closed./);
+      done();
+    });
+  });
+
+  it('should reject when enableOfflineQueue is disabled', function (done) {
+    var redis = new Redis({ enableOfflineQueue: false });
+    redis.get('foo', function (err) {
+      expect(err.message).to.match(/enableOfflineQueue options is false/);
+      done();
+    });
+  });
 });
