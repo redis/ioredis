@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Fix possible memory leak warning of Cluster.
+
 ### v1.3.4 - May 21, 2015
 
 * Add missing Promise definition in node 0.10.x.

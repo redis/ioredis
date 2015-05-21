@@ -51,18 +51,64 @@ describe('cluster', function () {
       });
     });
 
-    it('should discover other nodes automatically', function (done) {
-      var node1 = new MockServer(30001, function (argv) {
+    it('should return a promise to be resolved when connected', function (done) {
+      var slotTable = [
+        [0, 5460, ['127.0.0.1', 30001]],
+        [5461, 10922, ['127.0.0.1', 30002]],
+        [10923, 16383, ['127.0.0.1', 30003]]
+      ];
+      var argvHandler = function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
-          return [
-            [0, 5460, ['127.0.0.1', 30001]],
-            [5461, 10922, ['127.0.0.1', 30002]],
-            [10923, 16383, ['127.0.0.1', 30003]]
-          ];
+          return slotTable;
         }
+      };
+      var node1 = new MockServer(30001, argvHandler);
+      var node2 = new MockServer(30002, argvHandler);
+      var node3 = new MockServer(30003, argvHandler);
+
+      stub(Redis.Cluster.prototype, 'connect', function () {
+        return Promise.resolve();
       });
-      var node2 = new MockServer(30002);
-      var node3 = new MockServer(30003);
+      var cluster = new Redis.Cluster([
+        { host: '127.0.0.1', port: '30001' }
+      ], { lazyConnect: false });
+      Redis.Cluster.prototype.connect.restore();
+
+      cluster.connect().then(function () {
+        cluster.disconnect();
+        disconnect([node1, node2, node3], done);
+      });
+    });
+
+    it('should return a promise to be rejected when closed', function (done) {
+      stub(Redis.Cluster.prototype, 'connect', function () {
+        return Promise.resolve();
+      });
+      var cluster = new Redis.Cluster([
+        { host: '127.0.0.1', port: '30001' }
+      ], { lazyConnect: false });
+      Redis.Cluster.prototype.connect.restore();
+
+      cluster.connect().catch(function () {
+        cluster.disconnect();
+        done();
+      });
+    });
+
+    it('should discover other nodes automatically', function (done) {
+      var slotTable = [
+        [0, 5460, ['127.0.0.1', 30001]],
+        [5461, 10922, ['127.0.0.1', 30002]],
+        [10923, 16383, ['127.0.0.1', 30003]]
+      ];
+      var argvHandler = function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+      };
+      var node1 = new MockServer(30001, argvHandler);
+      var node2 = new MockServer(30002, argvHandler);
+      var node3 = new MockServer(30003, argvHandler);
 
       var pending = 3;
       node1.once('connect', check);
