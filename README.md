@@ -16,7 +16,7 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 
 0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](redis.io/topics/sentinel), [Pipelining](http://redis.io/topics/pipelining) and of course [Lua scripting](http://redis.io/commands/eval) & [Pub/Sub](http://redis.io/topics/pubsub)(with the support of binary messages).
 0. High performance.
-0. Delightful API. Supports both Node-style callbacks and promises.
+0. Delightful API. Supports both Node-style callbacks and [promises](https://github.com/petkaantonov/bluebird).
 0. Supports command arguments and replies transform.
 0. Abstraction for Lua scripting, allowing you to define custom commands.
 0. Support for binary data.
