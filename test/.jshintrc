@@ -3,6 +3,7 @@
   "predef": [
     "Redis",
     "describe",
+    "context",
     "it",
     "before",
     "beforeEach",
