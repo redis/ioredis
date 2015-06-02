@@ -685,6 +685,40 @@ describe('cluster', function () {
       });
     });
   });
+
+  describe('pub/sub', function () {
+    it('should receive messages', function (done) {
+      var slotTable = [
+        [0, 1, ['127.0.0.1', 30001]],
+        [2, 16383, ['127.0.0.1', 30002]]
+      ];
+      var node1 = new MockServer(30001, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+      });
+      var node2 = new MockServer(30002, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+      });
+
+      var options = [ { host: '127.0.0.1', port: '30001' } ];
+      var sub = new Redis.Cluster(options);
+      var pub = new Redis.Cluster(options);
+
+      sub.subscribe('test cluster', function () {
+        node1.write(node1.clients[0], ['message', 'test channel', 'hi']);
+      });
+      sub.on('message', function (channel, message) {
+        expect(channel).to.eql('test channel');
+        expect(message).to.eql('hi');
+        sub.disconnect();
+        pub.disconnect();
+        disconnect([node1, node2], done);
+      });
+    });
+  });
 });
 
 function disconnect (clients, callback) {

@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Support pub/sub in Cluster mode.
+
 ### v1.3.6 - May 22, 2015
 
 * Support Node.js 0.10.16

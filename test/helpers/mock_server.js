@@ -12,6 +12,8 @@ function MockServer (port, handler) {
   this.port = port;
   this.handler = handler;
 
+  this.clients = [];
+
   this.connect();
 }
 
@@ -20,6 +22,7 @@ util.inherits(MockServer, EventEmitter);
 MockServer.prototype.connect = function () {
   var _this = this;
   this.socket = net.createServer(function (c) {
+    var clientIndex = _this.clients.push(c) - 1;
     process.nextTick(function () {
       _this.emit('connect', c);
     });
@@ -34,6 +37,7 @@ MockServer.prototype.connect = function () {
     });
 
     c.on('end', function () {
+      _this.clients[clientIndex] = null;
       _this.emit('disconnect', c);
     });
 
@@ -48,6 +52,14 @@ MockServer.prototype.connect = function () {
 
 MockServer.prototype.disconnect = function (callback) {
   this.socket.destroy(callback);
+};
+
+MockServer.prototype.broadcast = function (data) {
+  for (var i = 0; i < this.clients.length; ++i) {
+    if (this.clients[i]) {
+      this.write(this.clients[i], data);
+    }
+  }
 };
 
 MockServer.prototype.write = function (c, data) {
