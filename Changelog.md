@@ -2,7 +2,8 @@
 
 ### Master Branch
 
-* Support pub/sub in Cluster mode.
+* Continue monitoring after reconnection([#52](https://github.com/luin/ioredis/issues/52)).
+* Support pub/sub in Cluster mode([#54](https://github.com/luin/ioredis/issues/54)).
 * Auto-reconnect when none of startup nodes is ready([#56](https://github.com/luin/ioredis/issues/56)).
 
 ### v1.3.6 - May 22, 2015

@@ -26,4 +26,21 @@ describe('monitor', function () {
       });
     });
   });
+
+  it('should continue monitoring after reconnection', function (done) {
+    var redis = new Redis();
+    redis.monitor(function (err, monitor) {
+      monitor.on('monitor', function (time, args) {
+        if (args[0] === 'set') {
+          redis.disconnect();
+          monitor.disconnect();
+          done();
+        }
+      });
+      monitor.disconnect(true);
+      monitor.on('ready', function () {
+        redis.set('foo', 'bar');
+      });
+    });
+  });
 });
