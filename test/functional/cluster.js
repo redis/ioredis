@@ -39,6 +39,32 @@ describe('cluster', function () {
       });
     });
 
+    it('should invoke clusterRetryStrategy when none nodes are ready', function (done) {
+      var argvHandler = function (argv) {
+        if (argv[0] === 'cluster') {
+          return new Error('CLUSTERDOWN');
+        }
+      };
+      var node1 = new MockServer(30001, argvHandler);
+      var node2 = new MockServer(30002, argvHandler);
+
+      var t = 0;
+      var cluster = new Redis.Cluster([
+        { host: '127.0.0.1', port: '30001' },
+        { host: '127.0.0.1', port: '30002' }
+      ], {
+        clusterRetryStrategy: function (times) {
+          expect(times).to.eql(++t);
+          if (times === 3) {
+            cluster.disconnect();
+            disconnect([node1, node2], done);
+            return;
+          }
+          return 0;
+        }
+      });
+    });
+
     it('should connect to cluster successfully', function (done) {
       var node = new MockServer(30001);
 

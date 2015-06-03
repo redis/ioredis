@@ -3,11 +3,12 @@
 ### Master Branch
 
 * Support pub/sub in Cluster mode.
+* Auto-reconnect when none of startup nodes is ready([#56](https://github.com/luin/ioredis/issues/56)).
 
 ### v1.3.6 - May 22, 2015
 
 * Support Node.js 0.10.16
-* Fix unfulfilled commands being sent to the wrong db.([#42](https://github.com/luin/ioredis/issues/42)).
+* Fix unfulfilled commands being sent to the wrong db([#42](https://github.com/luin/ioredis/issues/42)).
 
 ### v1.3.5 - May 21, 2015
 
