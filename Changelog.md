@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Resolves a bug with cluster where a subscribe is sent to a disconnected node. Thanks to [@Ari Aosved](https://github.com/devaos)
+
 ### v1.4.0 - June 3, 2015
 
 * Continue monitoring after reconnection([#52](https://github.com/luin/ioredis/issues/52)).
