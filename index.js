@@ -5,9 +5,9 @@ exports.Promise = require('bluebird');
 exports.Cluster = require('./lib/cluster');
 
 exports.print = function (err, reply) {
-    if (err) {
-        console.log("Error: " + err);
-    } else {
-        console.log("Reply: " + reply);
-    }
+  if (err) {
+    console.log("Error: " + err);
+  } else {
+    console.log("Reply: " + reply);
+  }
 };
