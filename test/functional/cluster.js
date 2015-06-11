@@ -745,6 +745,61 @@ describe('cluster', function () {
       });
     });
   });
+
+  describe('readonly',  function() {
+    it('should connect all nodes and issue a readonly', function (done) {
+      var setReadOnlyNode1 = false;
+      var setReadOnlyNode2 = false;
+      var setReadOnlyNode3 = false;
+      var slotTable = [
+        [0, 5460, ['127.0.0.1', 30001]],
+        [5461, 10922, ['127.0.0.1', 30002]],
+        [10923, 16383, ['127.0.0.1', 30003]]
+      ];
+      var node1 = new MockServer(30001, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+        if (argv[0] === 'readonly') {
+          setReadOnlyNode1 = true;
+          expect(setReadOnlyNode1).to.eql(true);
+          return 'OK';
+        }
+      });
+      var node2 = new MockServer(30002, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+        if (argv[0] === 'readonly') {
+          setReadOnlyNode2 = true;
+          expect(setReadOnlyNode2).to.eql(true);
+          return 'OK'
+        } 
+      });
+
+      var node3 = new MockServer(30003, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+        if (argv[0] === 'readonly') {
+          setReadOnlyNode3 = true;
+          expect(setReadOnlyNode3).to.eql(true);
+          return 'OK'
+        } 
+      });
+
+      var cluster = new Redis.Cluster([
+        { host: '127.0.0.1', port: '30001'}],
+        { readOnly: true }
+      );
+      cluster.on('ready', function() {
+        expect(setReadOnlyNode1 || setReadOnlyNode2 || setReadOnlyNode3).to.eql(true);
+        done();
+      });
+
+    });
+  });
+
 });
 
 function disconnect (clients, callback) {
