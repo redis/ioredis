@@ -752,9 +752,8 @@ describe('cluster', function () {
       var setReadOnlyNode2 = false;
       var setReadOnlyNode3 = false;
       var slotTable = [
-        [0, 5460, ['127.0.0.1', 30001]],
-        [5461, 10922, ['127.0.0.1', 30002]],
-        [10923, 16383, ['127.0.0.1', 30003]]
+        [0, 5460, ['127.0.0.1', 30001], ['127.0.0.1', 30003]],
+        [5461, 10922, ['127.0.0.1', 30002]]
       ];
       var node1 = new MockServer(30001, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
@@ -762,7 +761,6 @@ describe('cluster', function () {
         }
         if (argv[0] === 'readonly') {
           setReadOnlyNode1 = true;
-          expect(setReadOnlyNode1).to.eql(true);
           return 'OK';
         }
       });
@@ -772,9 +770,8 @@ describe('cluster', function () {
         }
         if (argv[0] === 'readonly') {
           setReadOnlyNode2 = true;
-          expect(setReadOnlyNode2).to.eql(true);
-          return 'OK'
-        } 
+          return 'OK';
+        }
       });
 
       var node3 = new MockServer(30003, function (argv) {
@@ -783,9 +780,8 @@ describe('cluster', function () {
         }
         if (argv[0] === 'readonly') {
           setReadOnlyNode3 = true;
-          expect(setReadOnlyNode3).to.eql(true);
-          return 'OK'
-        } 
+          return 'OK';
+        }
       });
 
       var cluster = new Redis.Cluster([
@@ -794,7 +790,7 @@ describe('cluster', function () {
       );
       cluster.on('ready', function() {
         expect(setReadOnlyNode1 || setReadOnlyNode2 || setReadOnlyNode3).to.eql(true);
-        done();
+        disconnect([node1, node2, node3], done);
       });
 
     });
