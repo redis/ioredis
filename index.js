@@ -1,3 +1,5 @@
+'use strict';
+
 exports = module.exports = require('./lib/redis');
 
 exports.ReplyError = require('./lib/reply_error');
@@ -6,8 +8,8 @@ exports.Cluster = require('./lib/cluster');
 
 exports.print = function (err, reply) {
   if (err) {
-    console.log("Error: " + err);
+    console.log('Error: ' + err);
   } else {
-    console.log("Reply: " + reply);
+    console.log('Reply: ' + reply);
   }
 };
