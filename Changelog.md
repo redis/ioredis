@@ -2,7 +2,10 @@
 
 ### Master Branch
 
-* Resolves a bug with cluster where a subscribe is sent to a disconnected node. Thanks to [@Ari Aosved](https://github.com/devaos)
+* Uses double ended queue instead of Array for better performance.
+* Resolves a bug with cluster where a subscribe is sent to a disconnected node([#63](https://github.com/luin/ioredis/pull/63)). Thanks to [Ari Aosved](https://github.com/devaos).
+* Adds ReadOnly mode for Cluster mode([#69](https://github.com/luin/ioredis/pull/69)). Thanks to [Nakul Ganesh](https://github.com/luin/ioredis/pull/69).
+* Adds `Redis.print`((#71)[https://github.com/luin/ioredis/pull/71]). Thanks to [Frank Murphy](https://github.com/frankvm04).
 
 ### v1.4.0 - June 3, 2015
 
