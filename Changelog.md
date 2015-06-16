@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.5.1 - June 16, 2015
+
 * Fix getting NaN db index([#74](https://github.com/luin/ioredis/issues/74)).
 
 ### v1.5.0 - June 13, 2015
