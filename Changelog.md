@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Fix getting NaN db index([#74](https://github.com/luin/ioredis/issues/74)).
+
 ### v1.5.0 - June 13, 2015
 
 * Uses double ended queue instead of Array for better performance.

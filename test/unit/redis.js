@@ -40,6 +40,9 @@ describe('Redis', function () {
         expect(option).to.have.property('password', 'authpassword');
         expect(option).to.have.property('db', 4);
 
+        option = getOption('redis://127.0.0.1/');
+        expect(option).to.have.property('db', 0);
+
         option = getOption('/tmp/redis.sock');
         expect(option).to.have.property('path', '/tmp/redis.sock');
 

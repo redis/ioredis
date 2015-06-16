@@ -146,6 +146,9 @@ describe('utils', function () {
         password: 'pass',
         key: 'value'
       });
+      expect(utils.parseURL('redis://127.0.0.1/')).to.eql({
+        host: '127.0.0.1'
+      });
     });
   });
 });
