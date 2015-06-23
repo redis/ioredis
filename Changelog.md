@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Fix `enableReadyCheck` is always `false` in monitor mode([#77](https://github.com/luin/ioredis/issues/77)).
+
 ### v1.5.1 - June 16, 2015
 
 * Fix getting NaN db index([#74](https://github.com/luin/ioredis/issues/74)).
