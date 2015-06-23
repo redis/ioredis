@@ -790,6 +790,7 @@ describe('cluster', function () {
       );
       cluster.on('ready', function() {
         expect(setReadOnlyNode1 || setReadOnlyNode2 || setReadOnlyNode3).to.eql(true);
+        cluster.disconnect();
         disconnect([node1, node2, node3], done);
       });
 
