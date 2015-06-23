@@ -2,6 +2,10 @@
 
 ### Master Branch
 
+### v1.5.3 - June 24, 2015
+
+* Fix sometimes monitor leads command queue error.
+
 ### v1.5.2 - June 24, 2015
 
 * Fix `enableReadyCheck` is always `false` in monitor mode([#77](https://github.com/luin/ioredis/issues/77)).
