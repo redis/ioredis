@@ -825,7 +825,7 @@ describe('cluster', function () {
         cluster.nodes['127.0.0.1:30001'].on('end', function () {
           expect(Object.keys(cluster.masterNodes).length).to.eql(1);
           cluster.disconnect();
-          disconnect([node1, node2, node3], done);
+          disconnect([node2, node3], done);
         });
         disconnect([node1]);
       });
