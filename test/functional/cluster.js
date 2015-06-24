@@ -784,8 +784,8 @@ describe('cluster', function () {
         }
       });
 
-      var cluster = new Redis.Cluster([
-        { host: '127.0.0.1', port: '30001'}],
+      var cluster = new Redis.Cluster(
+        [{ host: '127.0.0.1', port: '30001'}],
         { readOnly: true }
       );
       cluster.on('ready', function() {
@@ -797,6 +797,82 @@ describe('cluster', function () {
     });
   });
 
+  describe('#masterNodes', function () {
+    it('should contains master nodes', function (done) {
+      var slotTable = [
+        [0, 5460, ['127.0.0.1', 30001], ['127.0.0.1', 30003]],
+        [5461, 10922, ['127.0.0.1', 30002]]
+      ];
+      var node1 = new MockServer(30001, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+      });
+      var node2 = new MockServer(30002, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+      });
+
+      var node3 = new MockServer(30003, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+      });
+
+      var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001'}]);
+      cluster.on('ready', function() {
+        cluster.nodes['127.0.0.1:30001'].on('end', function () {
+          expect(Object.keys(cluster.masterNodes).length).to.eql(1);
+          cluster.disconnect();
+          disconnect([node1, node2, node3], done);
+        });
+        disconnect([node1]);
+      });
+
+    });
+  });
+
+  describe('#getInfoFromNode', function () {
+    it('should refresh master nodes', function (done) {
+      var slotTable = [
+        [0, 5460, ['127.0.0.1', 30001], ['127.0.0.1', 30003]],
+        [5461, 10922, ['127.0.0.1', 30002]]
+      ];
+      var node1 = new MockServer(30001, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+      });
+      var node2 = new MockServer(30002, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+      });
+
+      var node3 = new MockServer(30003, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+      });
+
+      var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001'}]);
+      cluster.on('ready', function() {
+        expect(Object.keys(cluster.masterNodes).length).to.eql(2);
+        slotTable = [
+          [0, 5460, ['127.0.0.1', 30003]],
+          [5461, 10922, ['127.0.0.1', 30002]]
+        ];
+        cluster.refreshSlotsCache(function () {
+          expect(Object.keys(cluster.masterNodes).length).to.eql(2);
+          expect(cluster.masterNodes).to.have.property('127.0.0.1:30003');
+          expect(cluster.masterNodes).to.have.property('127.0.0.1:30002');
+          disconnect([node1, node2, node3], done);
+        });
+      });
+
+    });
+  });
 });
 
 function disconnect (clients, callback) {
@@ -808,7 +884,7 @@ function disconnect (clients, callback) {
   }
 
   function check () {
-    if (!--pending) {
+    if (!--pending && callback) {
       callback();
     }
   }
