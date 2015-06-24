@@ -2,6 +2,10 @@
 
 ### Master Branch
 
+### v1.5.4 - June 25, 2015
+
+* Fix masterNodes not being removed correctly.
+
 ### v1.5.3 - June 24, 2015
 
 * Fix sometimes monitor leads command queue error.
