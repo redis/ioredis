@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Fix storing wrong redis host internally.
+
 ### v1.5.4 - June 25, 2015
 
 * Fix masterNodes not being removed correctly.
