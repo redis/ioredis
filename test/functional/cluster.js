@@ -192,6 +192,45 @@ describe('cluster', function () {
       ], { lazyConnect: false });
       cluster.get('foo');
     });
+
+    it('should emit errors when cluster cannot be connected', function (done) {
+      var errorMessage = 'ERR This instance has cluster support disabled';
+      var argvHandler = function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return new Error(errorMessage);
+        }
+      };
+      var node1 = new MockServer(30001, argvHandler);
+      var node2 = new MockServer(30002, argvHandler);
+
+      var pending = 2;
+      var retry = 0;
+      var cluster = new Redis.Cluster([
+        { host: '127.0.0.1', port: '30001' },
+        { host: '127.0.0.1', port: '30002' }
+      ], {
+        clusterRetryStrategy: function () {
+          cluster.once('error', function (err) {
+            retry = false;
+            expect(err.message).to.eql('Failed to refresh slots cache.');
+            expect(err.lastNodeError.message).to.eql(errorMessage);
+            checkDone();
+          });
+          return retry;
+        }
+      });
+
+      cluster.once('node error', function (err) {
+        expect(err.message).to.eql(errorMessage);
+        checkDone();
+      });
+      function checkDone () {
+        if (!--pending) {
+          cluster.disconnect();
+          disconnect([node1, node2], done);
+        }
+      }
+    });
   });
 
   describe('MOVE', function () {

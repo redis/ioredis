@@ -425,6 +425,11 @@ client will emit `connect` once a connection is established to the Redis server.
 If `enableReadyCheck` is `true`, client will emit `ready` when the server reports that it is ready to receive commands(e.g. finish loading data from disk).
 Otherwise `ready` will be emitted immediately right after the `connect` event.
 
+### "error"
+client will emit `error` when there's an error occurs during connecting.
+However ioredis emits all `error` events silently(only emits when there's at least one listener), so that your application won't
+crash if you're not listening to the `error` event.
+
 ### "close"
 client will emit `close` when an established Redis server connection has closed.
 
@@ -536,7 +541,12 @@ When any commands in a pipeline receives a `MOVED` or `ASK` error, ioredis will 
 0. All errors received in the pipeline are same. For example, we won't resend the pipeline if we got two `MOVED` error pointing to different nodes.
 0. All commands executed successfully are readonly commands. This makes sure that resending the pipeline won't have side effect.
 
-## hiredis
+### Events
+If getting an error when connecting to the node, `node error` event would be emitted. Further if all node aren't reachable,
+`error` event would be emitted silently(only emitting if there's at least one listener) with a property of `lastNodeError` representing
+the last node error received.
+
+## Native Parser
 If [hiredis](https://github.com/redis/hiredis-node) is installed(by `npm install hiredis`),
 ioredis will use it by default. Otherwise, a pure JavaScript parser will be used.
 Typically there's not much differences between them in terms of performance.

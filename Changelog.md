@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Silent error when redis server has cluster support disabled([#82](https://github.com/luin/ioredis/issues/82)).
+
 ### v1.5.5 - June 25, 2015
 
 * Fix storing wrong redis host internally.
