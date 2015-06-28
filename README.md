@@ -724,10 +724,24 @@ I'm happy to receive bug reports, fixes, documentation enhancements, and any oth
 
 And since I'm not an English native speaker so if you find any grammar mistake in the documentation, please also let me know. :)
 
+# Contributors
+Ordered by date of first contribution. [Auto-generated](https://github.com/dtrejo/node-authors) on Sun, 28 Jun 2015 10:37:00 GMT.
+
+- [luin](https://github.com/luin)
+- [Howard Yeh](https://github.com/hayeah) aka `hayeah`
+- [Luigi Pinca](https://github.com/lpinca) aka `lpinca`
+- [HanHor Wu](https://github.com/undefined) aka `undefined`
+- [Yaroslav Admin](https://github.com/devoto13) aka `devoto13`
+- [Vitaly Aminev](https://github.com/AVVS) aka `AVVS`
+- [alfred sang](https://github.com/ionicbook) aka `ionicbook`
+- [Joel Edwards](https://github.com/joeledwards) aka `joeledwards`
+- [Ari Aosved](https://github.com/devaos) aka `devaos`
+- [Nakul G](https://github.com/nakulgan) aka `nakulgan`
+- [Frank Murphy](https://github.com/FMurphyHernandez) aka `FMurphyHernandez`
+
 # Roadmap
 
 * Transparent Key Prefixing
-* [Distributed Lock](http://redis.io/topics/distlock)
 * Connection Pooling & Read-Write Splitting
 
 # Acknowledge
