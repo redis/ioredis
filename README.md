@@ -546,6 +546,15 @@ If getting an error when connecting to the node, `node error` event would be emi
 `error` event would be emitted silently(only emitting if there's at least one listener) with a property of `lastNodeError` representing
 the last node error received.
 
+### Scaling reads using slave nodes
+Normally commands are only sent to the masters since slaves can't process write queries.
+However you can use `readOnly` option to use slaves in order to scale reads:
+
+```javascript
+var Redis = require('ioredis');
+var cluster = new Redis.Cluster(nodes, { readOnly: true });
+```
+
 ## Native Parser
 If [hiredis](https://github.com/redis/hiredis-node) is installed(by `npm install hiredis`),
 ioredis will use it by default. Otherwise, a pure JavaScript parser will be used.
