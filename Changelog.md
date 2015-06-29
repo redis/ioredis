@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Fix connection error emitting before listening to `error` event([#80](https://github.com/luin/ioredis/issues/80)).
+
 ### v1.5.6 - June 28, 2015
 
 * Silent error when redis server has cluster support disabled([#82](https://github.com/luin/ioredis/issues/82)).
