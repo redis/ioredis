@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Fix subscriptions lost after reconnection([#85](https://github.com/luin/ioredis/issues/85)).
+
 ### v1.5.6 - June 28, 2015
 
 * Silent error when redis server has cluster support disabled([#82](https://github.com/luin/ioredis/issues/82)).
