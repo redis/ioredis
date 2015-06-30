@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.5.7 - July 1, 2015
+
 * Fix subscriptions lost after reconnection([#85](https://github.com/luin/ioredis/issues/85)).
 
 ### v1.5.6 - June 28, 2015
