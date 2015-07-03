@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.5.9 - July 4, 2015
+
 * Fix connection error emitting before listening to `error` event([#80](https://github.com/luin/ioredis/issues/80)).
 
 ### v1.5.8 - July 3, 2015
