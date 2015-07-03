@@ -2,6 +2,10 @@
 
 ### Master Branch
 
+### v1.5.8 - July 3, 2015
+
+* Fix `pmessage` gets `undefined` in cluster mode([#88](https://github.com/luin/ioredis/issues/88)). Thanks to [Kris Linquist](https://github.com/klinquist)
+
 ### v1.5.7 - July 1, 2015
 
 * Fix subscriptions lost after reconnection([#85](https://github.com/luin/ioredis/issues/85)).
