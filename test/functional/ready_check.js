@@ -8,10 +8,11 @@ describe('ready_check', function () {
       callback(null, 'loading:1\r\nloading_eta_seconds:7');
     });
     stub(global, 'setTimeout', function (body, ms) {
-      expect(ms).to.eql(7000);
-      redis.info.restore();
-      global.setTimeout.restore();
-      done();
+      if (ms === 7000) {
+        redis.info.restore();
+        global.setTimeout.restore();
+        done();
+      }
     });
     redis.connect();
   });

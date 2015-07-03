@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Fix connection error emitting before listening to `error` event([#80](https://github.com/luin/ioredis/issues/80)).
+
 ### v1.5.8 - July 3, 2015
 
 * Fix `pmessage` gets `undefined` in cluster mode([#88](https://github.com/luin/ioredis/issues/88)). Thanks to [Kris Linquist](https://github.com/klinquist)
