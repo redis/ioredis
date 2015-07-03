@@ -4,6 +4,14 @@
 
 * Fix connection error emitting before listening to `error` event([#80](https://github.com/luin/ioredis/issues/80)).
 
+### v1.5.8 - July 3, 2015
+
+* Fix `pmessage` gets `undefined` in cluster mode([#88](https://github.com/luin/ioredis/issues/88)). Thanks to [Kris Linquist](https://github.com/klinquist)
+
+### v1.5.7 - July 1, 2015
+
+* Fix subscriptions lost after reconnection([#85](https://github.com/luin/ioredis/issues/85)).
+
 ### v1.5.6 - June 28, 2015
 
 * Silent error when redis server has cluster support disabled([#82](https://github.com/luin/ioredis/issues/82)).
