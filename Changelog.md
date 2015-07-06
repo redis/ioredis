@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.5.11 - July 7, 2015
+
 * Allow omitting callback in `exec`.
 
 ### v1.5.10 - July 6, 2015
