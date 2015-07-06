@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.5.10 - July 6, 2015
+
 * Add `send_command` method for compatibility([#90](https://github.com/luin/ioredis/issues/90)).
 
 ### v1.5.9 - July 4, 2015
