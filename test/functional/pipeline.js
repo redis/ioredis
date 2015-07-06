@@ -89,4 +89,24 @@ describe('pipeline', function () {
       });
     });
   });
+
+  describe('exec', function () {
+    it('should group results', function (done) {
+      var redis = new Redis();
+      redis.multi({ pipeline: false });
+      redis.set('foo', 'bar');
+      redis.get('foo');
+      redis.exec().then(function (res) {
+        done();
+      });
+    });
+
+    it('should allow omitting callback', function (done) {
+      var redis = new Redis();
+      redis.exec().catch(function (err) {
+        expect(err.message).to.eql('ERR EXEC without MULTI');
+        done();
+      });
+    });
+  });
 });
