@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Add `send_command` method for compatibility([#90](https://github.com/luin/ioredis/issues/90)).
+
 ### v1.5.9 - July 4, 2015
 
 * Fix connection error emitting before listening to `error` event([#80](https://github.com/luin/ioredis/issues/80)).
