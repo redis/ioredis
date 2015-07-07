@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.5.12 - July 7, 2015
+
 * Fix the order of received commands([#91](https://github.com/luin/ioredis/issues/91)).
 
 ### v1.5.11 - July 7, 2015
