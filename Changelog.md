@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.6.0 - July 11, 2015
+
 * Add a streaming interface to `SCAN` commands.
 * Support GEO commands.
 
