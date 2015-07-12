@@ -281,6 +281,7 @@ var Redis = require('ioredis');
 Redis.Command.setArgumentTransformer('hmset', function (args) {
   if (args.length === 2) {
     if (typeof Map !== 'undefined' && args[1] instanceof Map) {
+      // utils is a internal module of ioredis
       return [args[0]].concat(utils.convertMapToArray(args[1]));
     }
     if ( typeof args[1] === 'object' && args[1] !== null) {

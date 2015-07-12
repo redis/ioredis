@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.6.1 - July 12, 2015
+
 * Fix `Redis.Command` not being exported correctly([#100](https://github.com/luin/ioredis/issues/100)).
 
 ### v1.6.0 - July 11, 2015
