@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Fix `Redis.Command` not being exported correctly([#100](https://github.com/luin/ioredis/issues/100)).
+
 ### v1.6.0 - July 11, 2015
 
 * Add a streaming interface to `SCAN` commands.
