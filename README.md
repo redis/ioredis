@@ -390,7 +390,7 @@ redis.monitor(function (err, monitor) {
 ## Streamify Scaning
 Redis 2.8 added `SCAN` command to incrementally iterate the keys in database. It's different with `KEYS` that
 `SCAN` only returns a small number of elements each call, so it can be used in production without the downside
-of blocking the server for a long time. It's required developers to record the cursor on the client side each time
+of blocking the server for a long time. However it requires recording the cursor on the client side each time
 calling `SCAN` command in order to iterate all the keys correctly. Since it's a relatively common usage, ioredis
 provides a streaming interface for `SCAN` command to make things much easier. A readable stream can be created by calling `scanStream`:
 
