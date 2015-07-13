@@ -387,6 +387,52 @@ redis.monitor(function (err, monitor) {
 });
 ```
 
+## Streamify Scaning
+Redis 2.8 added `SCAN` command to incrementally iterate the keys in database. It's different with `KEYS` that
+`SCAN` only returns a small number of elements each call, so it can be used in production without the downside
+of blocking the server for a long time. It's required developers to record the cursor on the client side each time
+calling `SCAN` command in order to iterate all the keys correctly. Since it's a relatively common usage, ioredis
+provides a streaming interface for `SCAN` command. A readable stream can be created by:
+
+```javascript
+var redis = new Redis();
+var stream = redis.scanStream();
+var keys = [];
+stream.on('data', function (resultKeys) {
+  for (var i = 0; i < resultKeys.length; i++) {
+    keys.push(resultKeys[i]);
+  }
+});
+stream.on('end', function () {
+  console.log('done with the keys: ', keys);
+});
+```
+
+`scanStream` accepts an option, with which you can specified the `MATCH` pattern and the `COUNT` argument:
+
+```javascript
+var stream = redis.scanStream({
+  // only returns keys following the pattern of `user:*`
+  match: 'user:*',
+  // approximately returns 100 elements each call
+  count: 100
+});
+```
+
+Just like other commands, `scanStream` has a binary version `scanBufferStream`, which returns an array of buffers. It's useful when
+the key names are not utf8 strings.
+
+There're also `hscanStream`, `zscanStream` and `sscanStream` to iterate elements in a hash, zset and set. The interface of them is
+similar to `scanStream` except the first argument is the key name:
+
+```javascript
+var stream = redis.hscanStream('myhash', {
+  match: 'age:??'
+});
+```
+
+You can learn more from the [Redis documentation](http://redis.io/commands/scan).
+
 ## Auto-reconnect
 By default, ioredis will try to reconnect when the connection to Redis is lost
 except when the connection is closed manually by `redis.disconnect()` or `redis.quit()`.
