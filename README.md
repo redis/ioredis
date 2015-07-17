@@ -793,7 +793,6 @@ Ordered by date of first contribution. [Auto-generated](https://github.com/dtrej
 # Roadmap
 
 * Transparent Key Prefixing
-* Connection Pooling & Read-Write Splitting
 
 # Acknowledge
 
