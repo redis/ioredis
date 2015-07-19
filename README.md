@@ -590,6 +590,22 @@ When any commands in a pipeline receives a `MOVED` or `ASK` error, ioredis will 
 0. All errors received in the pipeline are same. For example, we won't resend the pipeline if we got two `MOVED` error pointing to different nodes.
 0. All commands executed successfully are readonly commands. This makes sure that resending the pipeline won't have side effect.
 
+### Pub/Sub
+Pub/Sub in cluster mode works exactly as same as in standalone mode. Internally when a node of the cluster receives a message, it will broadcast the message to the other nodes. ioredis makes sure that each message would only received once by strictly subscribe one node at the same time.
+
+```javascript
+var nodes = [/* nodes */];
+var pub = new Redis.Cluster(nodes);
+var sub = new Redis.Cluster(nodes);
+sub.on('message', function (channel, message) {
+  console.log(channel, message);
+});
+
+sub.subscribe('news', function () {
+  pub.publish('news', 'highlights');
+});
+```
+
 ### Events
 If getting an error when connecting to the node, `node error` event would be emitted. Further if all node aren't reachable,
 `error` event would be emitted silently(only emitting if there's at least one listener) with a property of `lastNodeError` representing
