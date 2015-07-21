@@ -10,7 +10,7 @@ A delightful, performance-focused Redis client for Node and io.js
 
 Support Redis >= 2.6.12 and (Node.js >= 0.10.16 or io.js).
 
-# Feature
+# Features
 ioredis is a robust, full-featured Redis client
 used in the world's biggest online commerce company [Alibaba](http://www.alibaba.com/).
 
@@ -24,6 +24,7 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 0. Supports offline queue and ready checking.
 0. Supports ES6 types such as `Map` and `Set`.
 0. Sophisticated error handling strategy.
+0. Transparent key prefixing.
 
 <hr>
 
@@ -625,6 +626,16 @@ If [hiredis](https://github.com/redis/hiredis-node) is installed(by `npm install
 ioredis will use it by default. Otherwise, a pure JavaScript parser will be used.
 Typically there's not much differences between them in terms of performance.
 
+## Transparent Key Prefixing
+This feature allows you to specify a string that will automatically be prepended
+to all the keys in a command, which makes it easier to manage your key
+namespaces.
+
+```javascript
+var fooRedis = new Redis({ keyPrefix: 'foo:' });
+fooRedis.set('bar', 'baz');  // Actually sends SET foo:bar baz
+```
+
 <hr>
 
 # Error Handling
@@ -807,8 +818,6 @@ Ordered by date of first contribution. [Auto-generated](https://github.com/dtrej
 - [Kris Linquist](https://github.com/klinquist) aka `klinquist`
 
 # Roadmap
-
-* Transparent Key Prefixing
 
 # Acknowledge
 

@@ -72,6 +72,21 @@ describe('pipeline', function () {
     expect(pipeline.options).to.have.property('showFriendlyErrorStack', true);
   });
 
+  it('should support key prefixing', function (done) {
+    var redis = new Redis({ keyPrefix: 'foo:' });
+    redis.pipeline().set('bar', 'baz').get('bar').lpush('app1', 'test1').lpop('app1').keys('*').exec(function (err, results) {
+      expect(err).to.eql(null);
+      expect(results).to.eql([
+        [null, 'OK'],
+        [null, 'baz'],
+        [null, 1],
+        [null, 'test1'],
+        [null, ['foo:bar']]
+      ]);
+      done();
+    });
+  });
+
   describe('#addBatch', function () {
     it('should accept commands in constructor', function (done) {
       var redis = new Redis();
