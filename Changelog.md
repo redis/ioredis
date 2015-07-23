@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Support transparent key prefixing([#105](https://github.com/luin/ioredis/pull/105)). Thanks to [Danny Guo](https://github.com/dguo)
+
 ### v1.6.1 - July 12, 2015
 
 * Fix `Redis.Command` not being exported correctly([#100](https://github.com/luin/ioredis/issues/100)).

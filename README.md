@@ -261,57 +261,6 @@ in the pipeline into a transaction:
 redis.pipeline().get('foo').multi().set('foo', 'bar').get('foo').exec().get('foo').exec();
 ```
 
-## Arguments & Replies Transform
-Most Redis commands take one or more Strings as arguments,
-and replies are sent back as a single String or an Array of Strings. However sometimes
-you may want something different: For instance it would be more convenient if HGETALL
-command returns a hash (e.g. `{key: val1, key2: v2}`) rather than an array of key values (e.g. `[key1,val1,key2,val2]`).
-
-ioredis has a flexible system for transforming arguments and replies. There are two types
-of transformers, argument transform and reply transformer:
-
-```javascript
-var Redis = require('ioredis');
-
-// define a argument transformer that convert
-// hmset('key', { k1: 'v1', k2: 'v2' })
-// or
-// hmset('key', new Map([['k1', 'v1'], ['k2', 'v2']]))
-// into
-// hmset('key', 'k1', 'v1', 'k2', 'v2')
-Redis.Command.setArgumentTransformer('hmset', function (args) {
-  if (args.length === 2) {
-    if (typeof Map !== 'undefined' && args[1] instanceof Map) {
-      // utils is a internal module of ioredis
-      return [args[0]].concat(utils.convertMapToArray(args[1]));
-    }
-    if ( typeof args[1] === 'object' && args[1] !== null) {
-      return [args[0]].concat(utils.convertObjectToArray(args[1]));
-    }
-  }
-  return args;
-});
-
-// define a reply transformer that convert the reply
-// ['k1', 'v1', 'k2', 'v2']
-// into
-// { k1: 'v1', 'k2': 'v2' }
-Redis.Command.setReplyTransformer('hgetall', function (result) {
-  if (Array.isArray(result)) {
-    var obj = {};
-    for (var i = 0; i < result.length; i += 2) {
-      obj[result[i]] = result[i + 1];
-    }
-    return obj;
-  }
-  return result;
-});
-```
-
-There are three built-in transformers, two argument transformers for `hmset` & `mset` and
-a reply transformer for `hgetall`. Transformers for `hmset` and `hgetall` has been mentioned
-above, and the transformer for `mset` is similar to the one for `hmset`:
-
 ```javascript
 redis.mset({ k1: 'v1', k2: 'v2' });
 redis.get('k1', function (err, result) {
@@ -369,6 +318,81 @@ redis.echoDynamicKeyNumber(2, 'k1', 'k2', 'a1', 'a2', function (err, result) {
   // result === ['k1', 'k2', 'a1', 'a2']
 });
 ```
+
+## Transparent Key Prefixing
+This feature allows you to specify a string that will automatically be prepended
+to all the keys in a command, which makes it easier to manage your key
+namespaces.
+
+```javascript
+var fooRedis = new Redis({ keyPrefix: 'foo:' });
+fooRedis.set('bar', 'baz');  // Actually sends SET foo:bar baz
+
+fooRedis.defineCommand('echo', {
+  numberOfKeys: 2,
+  lua: 'return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}'
+});
+
+// Works well with pipelining/transaction
+fooRedis.pipeline()
+  // Sends SORT foo:list BY foo:weight_*->fieldname
+  .sort('list', 'BY', 'weight_*->fieldname')
+  // Supports custom commands
+  // Sends EVALSHA xxx foo:k1 foo:k2 a1 a2
+  .echo('k1', 'k2', 'a1', 'a2')
+  .exec()
+```
+
+## Arguments & Replies Transform
+Most Redis commands take one or more Strings as arguments,
+and replies are sent back as a single String or an Array of Strings. However sometimes
+you may want something different: For instance it would be more convenient if HGETALL
+command returns a hash (e.g. `{key: val1, key2: v2}`) rather than an array of key values (e.g. `[key1,val1,key2,val2]`).
+
+ioredis has a flexible system for transforming arguments and replies. There are two types
+of transformers, argument transform and reply transformer:
+
+```javascript
+var Redis = require('ioredis');
+
+// define a argument transformer that convert
+// hmset('key', { k1: 'v1', k2: 'v2' })
+// or
+// hmset('key', new Map([['k1', 'v1'], ['k2', 'v2']]))
+// into
+// hmset('key', 'k1', 'v1', 'k2', 'v2')
+Redis.Command.setArgumentTransformer('hmset', function (args) {
+  if (args.length === 2) {
+    if (typeof Map !== 'undefined' && args[1] instanceof Map) {
+      // utils is a internal module of ioredis
+      return [args[0]].concat(utils.convertMapToArray(args[1]));
+    }
+    if ( typeof args[1] === 'object' && args[1] !== null) {
+      return [args[0]].concat(utils.convertObjectToArray(args[1]));
+    }
+  }
+  return args;
+});
+
+// define a reply transformer that convert the reply
+// ['k1', 'v1', 'k2', 'v2']
+// into
+// { k1: 'v1', 'k2': 'v2' }
+Redis.Command.setReplyTransformer('hgetall', function (result) {
+  if (Array.isArray(result)) {
+    var obj = {};
+    for (var i = 0; i < result.length; i += 2) {
+      obj[result[i]] = result[i + 1];
+    }
+    return obj;
+  }
+  return result;
+});
+```
+
+There are three built-in transformers, two argument transformers for `hmset` & `mset` and
+a reply transformer for `hgetall`. Transformers for `hmset` and `hgetall` has been mentioned
+above, and the transformer for `mset` is similar to the one for `hmset`:
 
 ## Monitor
 Redis supports the MONITOR command,
@@ -498,6 +522,8 @@ option to `false`:
 var redis = new Redis({ enableOfflineQueue: false });
 ```
 
+<hr>
+
 ## Sentinel
 ioredis supports Sentinel out of the box. It works transparently as all features that work when
 you connect to a single node also work when you connect to a sentinel group. Make sure to run Redis 2.8+ if you want to use this feature.
@@ -625,16 +651,6 @@ var cluster = new Redis.Cluster(nodes, { readOnly: true });
 If [hiredis](https://github.com/redis/hiredis-node) is installed(by `npm install hiredis`),
 ioredis will use it by default. Otherwise, a pure JavaScript parser will be used.
 Typically there's not much differences between them in terms of performance.
-
-## Transparent Key Prefixing
-This feature allows you to specify a string that will automatically be prepended
-to all the keys in a command, which makes it easier to manage your key
-namespaces.
-
-```javascript
-var fooRedis = new Redis({ keyPrefix: 'foo:' });
-fooRedis.set('bar', 'baz');  // Actually sends SET foo:bar baz
-```
 
 <hr>
 
@@ -801,7 +817,7 @@ I'm happy to receive bug reports, fixes, documentation enhancements, and any oth
 And since I'm not an English native speaker so if you find any grammar mistake in the documentation, please also let me know. :)
 
 ## Contributors
-Ordered by date of first contribution. [Auto-generated](https://github.com/dtrejo/node-authors) on Fri, 03 Jul 2015 16:54:30 GMT.
+Ordered by date of first contribution. [Auto-generated](https://github.com/dtrejo/node-authors) on Thu, 23 Jul 2015 11:27:03 GMT.
 
 - [luin](https://github.com/luin)
 - [Howard Yeh](https://github.com/hayeah) aka `hayeah`
@@ -816,8 +832,12 @@ Ordered by date of first contribution. [Auto-generated](https://github.com/dtrej
 - [Frank Murphy](https://github.com/FMurphyHernandez) aka `FMurphyHernandez`
 - [Vikram](https://github.com/VikramTiwari) aka `VikramTiwari`
 - [Kris Linquist](https://github.com/klinquist) aka `klinquist`
+- [igrcic](https://github.com/igrcic)
+- [Danny Guo](https://github.com/dguo) aka `dguo`
 
 # Roadmap
+
+- [ ] Connection Pool & Read Write Splitting
 
 # Acknowledge
 
