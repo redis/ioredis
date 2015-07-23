@@ -12,21 +12,20 @@ Support Redis >= 2.6.12 and (Node.js >= 0.10.16 or io.js).
 
 # Features
 ioredis is a robust, full-featured Redis client
-used in the world's biggest online commerce company [Alibaba](http://www.alibaba.com/).
+used in the world's biggest online commerce company [Alibaba](http://www.alibaba.com/) and many other awesome companies.
 
 0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](http://redis.io/topics/sentinel), [Pipelining](http://redis.io/topics/pipelining) and of course [Lua scripting](http://redis.io/commands/eval) & [Pub/Sub](http://redis.io/topics/pubsub)(with the support of binary messages).
 0. High performance.
-0. Delightful API. Supports both Node-style callbacks and [promises](https://github.com/petkaantonov/bluebird).
-0. Supports command arguments and replies transform.
+0. Delightful API. It works with Node callbacks and [promises](https://github.com/petkaantonov/bluebird).
+0. Command arguments and replies transforming.
+0. Transparent key prefixing.
 0. Abstraction for Lua scripting, allowing you to define custom commands.
 0. Support for binary data.
 0. Support for both TCP/IP and UNIX domain sockets.
-0. Supports offline queue and ready checking.
-0. Supports ES6 types such as `Map` and `Set`.
+0. Support for offline queue and ready checking.
+0. Support for ES6 types such as `Map` and `Set`.
+0. Support for GEO commands(Redis 3.2 Unstable).
 0. Sophisticated error handling strategy.
-0. Transparent key prefixing.
-
-<hr>
 
 # Links
 * [API Documentation](API.md)
@@ -34,6 +33,8 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 * [Migrating from node_redis](https://github.com/luin/ioredis/wiki/Migrating-from-node_redis)
 * [Error Handling](#error-handling)
 * [Benchmark](#benchmark)
+
+<hr>
 
 # Quick Start
 
@@ -492,26 +493,14 @@ client will resend them when reconnected. This behavious can be disabled by sett
 ## Connection Events
 Redis instance will emit some events about the state of the connection to the Redis server.
 
-### "connect"
-client will emit `connect` once a connection is established to the Redis server.
-
-### "ready"
-If `enableReadyCheck` is `true`, client will emit `ready` when the server reports that it is ready to receive commands(e.g. finish loading data from disk).
-Otherwise `ready` will be emitted immediately right after the `connect` event.
-
-### "error"
-client will emit `error` when there's an error occurs during connecting.
-However ioredis emits all `error` events silently(only emits when there's at least one listener), so that your application won't
-crash if you're not listening to the `error` event.
-
-### "close"
-client will emit `close` when an established Redis server connection has closed.
-
-### "reconnecting"
-client will emit `reconnecting` after `close` when a reconnection would be made. The argument of the event is the time(ms) before reconnecting.
-
-### "end"
-client will emit `end` after `close` when no more reconnections would be made.
+Event    | Description
+:------------- | :-------------
+connect  | client will emit `connect` once a connection is established to the Redis server.
+ready    | If `enableReadyCheck` is `true`, client will emit `ready` when the server reports that it is ready to receive commands(e.g. finish loading data from disk).<br>Otherwise `ready` will be emitted immediately right after the `connect` event.
+error    | client will emit `error` when there's an error occurs during connecting.<br>However ioredis emits all `error` events silently(only emits when there's at least one listener), so that your application won't crash if you're not listening to the `error` event.
+close    | client will emit `close` when an established Redis server connection has closed.
+reconnecting | client will emit `reconnecting` after `close` when a reconnection would be made. The argument of the event is the time(ms) before reconnecting.
+end     | client will emit `end` after `close` when no more reconnections would be made.
 
 ## Offline Queue
 When a command can't be processed by Redis(being sent before `ready` event), by default it's added to the offline queue and will be
