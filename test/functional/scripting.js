@@ -182,4 +182,18 @@ describe('scripting', function () {
       });
     });
   });
+
+  it('should support key prefixing', function (done) {
+    var redis = new Redis({ keyPrefix: 'foo:' });
+
+    redis.defineCommand('echo', {
+      numberOfKeys: 2,
+      lua: 'return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}'
+    });
+
+    redis.echo('k1', 'k2', 'a1', 'a2', function (err, result) {
+      expect(result).to.eql(['foo:k1', 'foo:k2', 'a1', 'a2']);
+      done();
+    });
+  });
 });
