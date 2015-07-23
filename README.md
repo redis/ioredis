@@ -1,4 +1,4 @@
-# ioredis
+![ioredis](https://cdn.rawgit.com/luin/ioredis/c725a1b863a92cbe43def872fc2acd3bea37086d/logo.svg)
 
 [![Build Status](https://travis-ci.org/luin/ioredis.svg?branch=master)](https://travis-ci.org/luin/ioredis)
 [![Test Coverage](https://codeclimate.com/github/luin/ioredis/badges/coverage.svg)](https://codeclimate.com/github/luin/ioredis)
