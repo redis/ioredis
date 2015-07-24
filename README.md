@@ -347,16 +347,16 @@ fooRedis.pipeline()
 ## Arguments & Replies Transform
 Most Redis commands take one or more Strings as arguments,
 and replies are sent back as a single String or an Array of Strings. However sometimes
-you may want something different: For instance it would be more convenient if HGETALL
-command returns a hash (e.g. `{key: val1, key2: v2}`) rather than an array of key values (e.g. `[key1,val1,key2,val2]`).
+you may want something different: For instance it would be more convenient if `HGETALL`
+command returns a hash (e.g. `{ key: val1, key2: v2 }`) rather than an array of key values (e.g. `[key1, val1, key2, val2]`).
 
 ioredis has a flexible system for transforming arguments and replies. There are two types
-of transformers, argument transform and reply transformer:
+of transformers, argument transformer and reply transformer:
 
 ```javascript
 var Redis = require('ioredis');
 
-// define a argument transformer that convert
+// Here's the built-in argument transformer converting
 // hmset('key', { k1: 'v1', k2: 'v2' })
 // or
 // hmset('key', new Map([['k1', 'v1'], ['k2', 'v2']]))
@@ -375,7 +375,7 @@ Redis.Command.setArgumentTransformer('hmset', function (args) {
   return args;
 });
 
-// define a reply transformer that convert the reply
+// Here's the built-in reply transformer converting the HGETALL reply
 // ['k1', 'v1', 'k2', 'v2']
 // into
 // { k1: 'v1', 'k2': 'v2' }
@@ -393,7 +393,7 @@ Redis.Command.setReplyTransformer('hgetall', function (result) {
 
 There are three built-in transformers, two argument transformers for `hmset` & `mset` and
 a reply transformer for `hgetall`. Transformers for `hmset` and `hgetall` has been mentioned
-above, and the transformer for `mset` is similar to the one for `hmset`:
+above, and the transformer for `mset` is similar to the one for `hmset`.
 
 ## Monitor
 Redis supports the MONITOR command,
