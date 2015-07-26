@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.7.1 - July 26, 2015
+
 * Re-subscribe previous channels after reconnection([#110](https://github.com/luin/ioredis/pull/110)).
 
 ### v1.7.0 - July 23, 2015
