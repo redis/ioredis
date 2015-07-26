@@ -6,7 +6,7 @@
 [![Dependency Status](https://david-dm.org/luin/ioredis.svg)](https://david-dm.org/luin/ioredis)
 [![Join the chat at https://gitter.im/luin/ioredis](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/luin/ioredis?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-A delightful, performance-focused Redis client for Node and io.js
+A robust, performance-focused and full-featured Redis client for Node and io.js.
 
 Support Redis >= 2.6.12 and (Node.js >= 0.10.16 or io.js).
 
@@ -502,6 +502,8 @@ close    | client will emit `close` when an established Redis server connection 
 reconnecting | client will emit `reconnecting` after `close` when a reconnection would be made. The argument of the event is the time(ms) before reconnecting.
 end     | client will emit `end` after `close` when no more reconnections would be made.
 
+You can also check out the `Redis#status` property to get the current connection status.
+
 ## Offline Queue
 When a command can't be processed by Redis(being sent before `ready` event), by default it's added to the offline queue and will be
 executed when it can be processed. You can disable this feature by set `enableOfflineQueue`
@@ -515,7 +517,7 @@ var redis = new Redis({ enableOfflineQueue: false });
 
 ## Sentinel
 ioredis supports Sentinel out of the box. It works transparently as all features that work when
-you connect to a single node also work when you connect to a sentinel group. Make sure to run Redis 2.8+ if you want to use this feature.
+you connect to a single node also work when you connect to a sentinel group. Make sure to run Redis >= 2.8.12 if you want to use this feature.
 
 To connect using Sentinel, use:
 
