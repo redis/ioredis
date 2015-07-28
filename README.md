@@ -59,7 +59,7 @@ redis.get('foo').then(function (result) {
   console.log(result);
 });
 
-// Arguments to commands are flatten, so the following are same:
+// Arguments to commands are flattened, so the following are same:
 redis.sadd('set', 1, 3, 5, 7);
 redis.sadd('set', [1, 3, 5, 7]);
 ```
