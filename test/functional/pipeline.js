@@ -87,6 +87,61 @@ describe('pipeline', function () {
     });
   });
 
+  describe('custom commands', function() {
+    var redis;
+
+    before(function() {
+      redis = new Redis();
+      redis.defineCommand('echo', {
+        numberOfKeys: 2,
+        lua: 'return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}'
+      });
+    });
+
+    it('should work', function(done) {
+      redis.pipeline().echo('foo', 'bar', '123', 'abc').exec(function(err, results) {
+        expect(err).to.eql(null);
+        expect(results).to.eql([
+          [null, ['foo', 'bar', '123', 'abc']]
+        ]);
+        done();
+      });
+    });
+
+    it('should support callbacks', function(done) {
+      var pending = 1;
+      redis.pipeline()
+        .echo('foo', 'bar', '123', 'abc', function(err, result) {
+          pending -= 1;
+          expect(err).to.eql(null);
+          expect(result).to.eql(['foo', 'bar', '123', 'abc']);
+        })
+        .exec(function(err, results) {
+          expect(err).to.eql(null);
+          expect(results).to.eql([
+            [null, ['foo', 'bar', '123', 'abc']]
+          ]);
+          expect(pending).to.eql(0);
+          done();
+        });
+    });
+
+    it('should be supported in transaction blocks', function(done) {
+      redis.pipeline()
+        .multi()
+        .set('foo', 'asdf')
+        .echo('bar', 'baz', '123', 'abc')
+        .get('foo')
+        .exec()
+        .exec(function(err, results) {
+          expect(err).to.eql(null);
+          expect(results[4][1][1]).to.eql(['bar', 'baz', '123', 'abc']);
+          expect(results[4][1][2]).to.eql('asdf');
+          done();
+        });
+    });
+  });
+
   describe('#addBatch', function () {
     it('should accept commands in constructor', function (done) {
       var redis = new Redis();
