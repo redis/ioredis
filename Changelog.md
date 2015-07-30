@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.7.2 - July 30, 2015
+
 * Fix not running callback in pipeline custom command([#117](https://github.com/luin/ioredis/pull/117)). Thanks to [Philip Kannegaard Hayes](https://github.com/phlip9)
 * Fixes status debug message in case of Unix socket path([#114](https://github.com/luin/ioredis/pull/114)). Thanks to [Thalis Kalfigkopoulos](https://github.com/tkalfigo)
 
