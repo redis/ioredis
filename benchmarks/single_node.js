@@ -142,3 +142,77 @@ suite('lrange 100', function() {
     ioredis.quit();
   });
 });
+
+suite('publish', function() {
+  set('mintime', 5000);
+  set('concurrency', 300);
+
+  before(function (start) {
+    ndredis = nodeRedis.createClient();
+    ioredis = new ioRedis();
+    waitReady(function () {
+      start();
+    });
+  });
+
+  bench('ioredis', function(next) {
+    ioredis.publish('foo', 'bar', next);
+  });
+
+  bench('node_redis', function(next) {
+    ndredis.publish('foo', 'bar', next);
+  });
+
+  after(function () {
+    ndredis.quit();
+    ioredis.quit();
+  });
+});
+
+suite('subscribe', function() {
+  set('mintime', 5000);
+  set('concurrency', 300);
+
+  var ndpublisher = null;
+  var iopublisher = null;
+  var ndsubscriber = null;
+  var iosubscriber = null;
+
+  before(function (start) {
+    ndredis = nodeRedis.createClient();
+    ioredis = new ioRedis();
+    waitReady(function () {
+      ndsubscriber = ndredis;
+      ndsubscriber.subscribe('foo');
+      iosubscriber = ioredis;
+      iosubscriber.subscribe('foo');
+
+      ndredis = nodeRedis.createClient();
+      ioredis = new ioRedis();
+      waitReady(function () {
+        ndpublisher = ndredis;
+        iopublisher = ioredis;
+        start();
+      });
+    });
+  });
+
+  bench('ioredis', function(next) {
+    iosubscriber.removeAllListeners('message');
+    ndsubscriber.removeAllListeners('message');
+    iosubscriber.on('message', next);
+    iopublisher.publish('foo', 'bar');
+  });
+
+  bench('node_redis', function(next) {
+    iosubscriber.removeAllListeners('message');
+    ndsubscriber.removeAllListeners('message');
+    ndsubscriber.on('message', next);
+    ndpublisher.publish('foo', 'bar');
+  });
+
+  after(function () {
+    ndredis.quit();
+    ioredis.quit();
+  });
+});
