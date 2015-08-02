@@ -723,37 +723,45 @@ redis.set('foo');
 
 # Benchmark
 
-Comparisons with [node_redis](https://github.com/mranney/node_redis) on my laptop (MacBook Pro, Retina, 15-inch, Late 2013):
+Comparisons with [node_redis](https://github.com/mranney/node_redis) on my iMac (Retina 5K, 27-inch, Late 2014):
 
 ```shell
 > npm run bench
 ==========================
-ioredis: 1.3.1
+ioredis: 1.7.2
 node_redis: 0.12.1
-CPU: 8
+CPU: 4
 OS: darwin x64
 ==========================
 
-                    simple set
-        89,288 op/s » ioredis
-        42,899 op/s » node_redis
+                simple set
+   157,343 op/s » ioredis
+    92,132 op/s » node_redis
 
-                    simple get
-        90,002 op/s » ioredis
-        42,505 op/s » node_redis
+                simple get
+   156,274 op/s » ioredis
+    92,040 op/s » node_redis
 
-                    simple get with pipeline
-        12,899 op/s » ioredis
-         4,332 op/s » node_redis
+                simple get with pipeline
+    13,501 op/s » ioredis
+    10,016 op/s » node_redis
 
-                    lrange 100
-        65,452 op/s » ioredis
-        48,121 op/s » node_redis
+                lrange 100
+   113,696 op/s » ioredis
+    83,960 op/s » node_redis
+
+                publish
+   156,110 op/s » ioredis
+    86,303 op/s » node_redis
+
+                subscribe
+    85,030 op/s » ioredis
+    75,651 op/s » node_redis
 
 
-  Suites:  4
-  Benches: 8
-  Elapsed: 61,807.57 ms
+  Suites:  6
+  Benches: 12
+  Elapsed: 90,547.08 ms
 ```
 
 However, since there are many factors that can impact the benchmark, results may be different on your server ([#25](https://github.com/luin/ioredis/issues/25)).
@@ -808,7 +816,7 @@ I'm happy to receive bug reports, fixes, documentation enhancements, and any oth
 And since I'm not a native English speaker, if you find any grammar mistakes in the documentation, please also let me know. :)
 
 ## Contributors
-Ordered by date of first contribution. [Auto-generated](https://github.com/dtrejo/node-authors) on Thu, 30 Jul 2015 02:08:46 GMT.
+Ordered by date of first contribution. [Auto-generated](https://github.com/dtrejo/node-authors) on Sun, 02 Aug 2015 16:19:38 GMT.
 
 - [luin](https://github.com/luin)
 - [Howard Yeh](https://github.com/hayeah) aka `hayeah`
@@ -828,6 +836,7 @@ Ordered by date of first contribution. [Auto-generated](https://github.com/dtrej
 - [Thalis Kalfigkopoulos](https://github.com/tkalfigo) aka `tkalfigo`
 - [Joseph Dykstra](https://github.com/ArtskydJ) aka `ArtskydJ`
 - [Philip Hayes](https://github.com/phlip9) aka `phlip9`
+- [albin3](https://github.com/albin3)
 
 # Roadmap
 

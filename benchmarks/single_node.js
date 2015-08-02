@@ -29,7 +29,7 @@ var waitReady = function (next) {
 
 suite('simple set', function() {
   set('mintime', 5000);
-  set('concurrency', 50);
+  set('concurrency', 300);
   before(function (start) {
     ndredis = nodeRedis.createClient();
     ioredis = new ioRedis();
@@ -52,7 +52,7 @@ suite('simple set', function() {
 
 suite('simple get', function() {
   set('mintime', 5000);
-  set('concurrency', 50);
+  set('concurrency', 300);
   before(function (start) {
     ndredis = nodeRedis.createClient();
     ioredis = new ioRedis();
@@ -77,7 +77,7 @@ suite('simple get', function() {
 
 suite('simple get with pipeline', function() {
   set('mintime', 5000);
-  set('concurrency', 50);
+  set('concurrency', 300);
   before(function (start) {
     ndredis = nodeRedis.createClient();
     ioredis = new ioRedis();
@@ -115,7 +115,7 @@ suite('simple get with pipeline', function() {
 
 suite('lrange 100', function() {
   set('mintime', 5000);
-  set('concurrency', 50);
+  set('concurrency', 300);
   before(function (start) {
     ndredis = nodeRedis.createClient();
     ioredis = new ioRedis();
