@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.7.3 - August 3, 2015
+
 * Handle watch-exec rollback correctly([#199](https://github.com/luin/ioredis/pull/119)). Thanks to [Andrew Newdigate](https://github.com/suprememoocow)
 
 ### v1.7.2 - July 30, 2015
