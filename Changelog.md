@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Handle watch-exec rollback correctly([#199](https://github.com/luin/ioredis/pull/119)). Thanks to [Andrew Newdigate](https://github.com/suprememoocow)
+
 ### v1.7.2 - July 30, 2015
 
 * Fix not running callback in pipeline custom command([#117](https://github.com/luin/ioredis/pull/117)). Thanks to [Philip Kannegaard Hayes](https://github.com/phlip9)
