@@ -816,7 +816,8 @@ I'm happy to receive bug reports, fixes, documentation enhancements, and any oth
 And since I'm not a native English speaker, if you find any grammar mistakes in the documentation, please also let me know. :)
 
 ## Contributors
-Ordered by date of first contribution. [Auto-generated](https://github.com/dtrejo/node-authors) on Mon, 03 Aug 2015 12:14:05 GMT.
+
+Ordered by date of first contribution. [Auto-generated](https://github.com/dtrejo/node-authors) on Tue, 04 Aug 2015 02:55:24 GMT.
 
 - [luin](https://github.com/luin)
 - [Howard Yeh](https://github.com/hayeah) aka `hayeah`
@@ -838,6 +839,7 @@ Ordered by date of first contribution. [Auto-generated](https://github.com/dtrej
 - [Philip Hayes](https://github.com/phlip9) aka `phlip9`
 - [albin3](https://github.com/albin3)
 - [Andrew Newdigate](https://github.com/suprememoocow) aka `suprememoocow`
+- [nswbmw](https://github.com/nswbmw)
 
 # Roadmap
 
