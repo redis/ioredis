@@ -72,7 +72,7 @@ var unixSocketRedis = new Redis({ path: '/tmp/echo.sock' });
 var unixSocketRedis2 = new Redis('/tmp/echo.sock');
 var urlRedis = new Redis('redis://user:password@redis-service.com:6379/');
 var urlRedis2 = new Redis('//localhost:6379');
-var authedRedis = new Redis(6380, '192.168.100.1', { auth: 'password' });
+var authedRedis = new Redis(6380, '192.168.100.1', { password: 'password' });
 ```
 <a name="Redis+connect"></a>
 ### redis.connect(callback) ⇒ <code>Promise</code>
