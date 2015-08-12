@@ -16,6 +16,15 @@ describe('pipeline', function () {
     });
   });
 
+  it('should return an empty array on empty pipeline', function(done) {
+    var redis = new Redis();
+    redis.pipeline().exec(function(err, results) {
+      expect(err).to.eql(null);
+      expect(results).to.eql([]);
+      done();
+    });
+  });
+
   it('should support mix string command and buffer command', function (done) {
     var redis = new Redis();
     redis.pipeline().set('foo', 'bar').set('foo', new Buffer('bar')).getBuffer('foo').get(new Buffer('foo')).exec(function (err, results) {
