@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.7.4 - August 13, 2015
+
 * Restore the previous state before resending the unfulfilled commands. Thanks to [Jay Merrifield](https://github.com/fracmak)
 * Fix empty pipeline not resolving as empty array. Thanks to [Philip Kannegaard Hayes](https://github.com/phlip9)
 
