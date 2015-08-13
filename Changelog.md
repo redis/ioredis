@@ -2,6 +2,9 @@
 
 ### Master Branch
 
+* Restore the previous state before resending the unfulfilled commands. Thanks to [Jay Merrifield](https://github.com/fracmak)
+* Fix empty pipeline not resolving as empty array. Thanks to [Philip Kannegaard Hayes](https://github.com/phlip9)
+
 ### v1.7.3 - August 3, 2015
 
 * Handle watch-exec rollback correctly([#199](https://github.com/luin/ioredis/pull/119)). Thanks to [Andrew Newdigate](https://github.com/suprememoocow)

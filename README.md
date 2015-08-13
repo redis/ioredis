@@ -816,30 +816,7 @@ I'm happy to receive bug reports, fixes, documentation enhancements, and any oth
 And since I'm not a native English speaker, if you find any grammar mistakes in the documentation, please also let me know. :)
 
 ## Contributors
-
-Ordered by date of first contribution. [Auto-generated](https://github.com/dtrejo/node-authors) on Tue, 04 Aug 2015 02:55:24 GMT.
-
-- [luin](https://github.com/luin)
-- [Howard Yeh](https://github.com/hayeah) aka `hayeah`
-- [Luigi Pinca](https://github.com/lpinca) aka `lpinca`
-- [HanHor Wu](https://github.com/undefined) aka `undefined`
-- [Yaroslav Admin](https://github.com/devoto13) aka `devoto13`
-- [Vitaly Aminev](https://github.com/AVVS) aka `AVVS`
-- [alfred sang](https://github.com/ionicbook) aka `ionicbook`
-- [Joel Edwards](https://github.com/joeledwards) aka `joeledwards`
-- [Ari Aosved](https://github.com/devaos) aka `devaos`
-- [Nakul G](https://github.com/nakulgan) aka `nakulgan`
-- [Frank Murphy](https://github.com/FMurphyHernandez) aka `FMurphyHernandez`
-- [Vikram](https://github.com/VikramTiwari) aka `VikramTiwari`
-- [Kris Linquist](https://github.com/klinquist) aka `klinquist`
-- [igrcic](https://github.com/igrcic)
-- [Danny Guo](https://github.com/dguo) aka `dguo`
-- [Thalis Kalfigkopoulos](https://github.com/tkalfigo) aka `tkalfigo`
-- [Joseph Dykstra](https://github.com/ArtskydJ) aka `ArtskydJ`
-- [Philip Hayes](https://github.com/phlip9) aka `phlip9`
-- [albin3](https://github.com/albin3)
-- [Andrew Newdigate](https://github.com/suprememoocow) aka `suprememoocow`
-- [nswbmw](https://github.com/nswbmw)
+<table><tr><td width="20%"><img src="https://avatars.githubusercontent.com/u/635902?v=3" /><p align="center">luin</p></td><td width="20%"><img src="https://avatars.githubusercontent.com/u/2763135?v=3" /><p align="center">dguo</p></td><td width="20%"><img src="https://avatars.githubusercontent.com/u/189836?v=3" /><p align="center">nakulgan</p></td><td width="20%"><img src="https://avatars.githubusercontent.com/u/50120?v=3" /><p align="center">hayeah</p></td><td width="20%"><img src="https://avatars.githubusercontent.com/u/6190670?v=3" /><p align="center">albin3</p></td></tr><tr><td width="20%"><img src="https://avatars.githubusercontent.com/u/918989?v=3" /><p align="center">phlip9</p></td><td width="20%"><img src="https://avatars.githubusercontent.com/u/378178?v=3" /><p align="center">fracmak</p></td><td width="20%"><img src="https://avatars.githubusercontent.com/u/594566?v=3" /><p align="center">suprememoocow</p></td><td width="20%"><img src="https://avatars.githubusercontent.com/u/1443911?v=3" /><p align="center">lpinca</p></td><td width="20%"><img src="https://avatars.githubusercontent.com/u/5412167?v=3" /><p align="center">devaos</p></td></tr><tr><td width="20%"><img src="https://avatars.githubusercontent.com/u/1332618?v=3" /><p align="center">horx</p></td><td width="20%"><img src="https://avatars.githubusercontent.com/u/1343376?v=3" /><p align="center">klinquist</p></td><td width="20%"><img src="https://avatars.githubusercontent.com/u/1330677?v=3" /><p align="center">VikramTiwari</p></td><td width="20%"><img src="https://avatars.githubusercontent.com/u/4279697?v=3" /><p align="center">nswbmw</p></td><td width="20%"><img src="https://avatars.githubusercontent.com/u/823594?v=3" /><p align="center">devoto13</p></td></tr><tr><td width="20%"><img src="https://avatars.githubusercontent.com/u/412853?v=3" /><p align="center">joeledwards</p></td><td width="20%"><img src="https://avatars.githubusercontent.com/u/1833684?v=3" /><p align="center">ArtskydJ</p></td><td width="20%"><img src="https://avatars.githubusercontent.com/u/3481553?v=3" /><p align="center">tkalfigo</p></td><td width="20%"><img src="https://avatars.githubusercontent.com/u/394398?v=3" /><p align="center">igrcic</p></td><td width="20%"><img src="https://avatars.githubusercontent.com/u/3118295?v=3" /><p align="center">i5ting</p></td></tr><tr><td width="20%"><img src="https://avatars.githubusercontent.com/u/1713617?v=3" /><p align="center">AVVS</p></td></table>
 
 # Roadmap
 
