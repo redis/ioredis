@@ -679,7 +679,7 @@ Unhandled rejection ReplyError: ERR wrong number of arguments for 'set' command
     at TCP.onread (net.js:509:20)
 ```
 
-But the error stack doesn't make any sense because the whole stack happens in the ioreids
+But the error stack doesn't make any sense because the whole stack happens in the ioredis
 module itself, not in your code. So it's not easy to find out where the error happens in your code.
 ioredis provides an option `showFriendlyErrorStack` to solve the problem. When you enable
 `showFriendlyErrorStack`, ioredis will optimize the error stack for you:
