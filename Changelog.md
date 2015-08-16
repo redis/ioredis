@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.7.5 - August 16, 2015
+
 * Fix for allNodes array containing nodes not serving the specified slot. Thanks to [henstock](https://github.com/henstock)
 
 ### v1.7.4 - August 13, 2015
