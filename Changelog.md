@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Fix for allNodes array containing nodes not serving the specified slot. Thanks to [henstock](https://github.com/henstock)
+
 ### v1.7.4 - August 13, 2015
 
 * Restore the previous state before resending the unfulfilled commands. Thanks to [Jay Merrifield](https://github.com/fracmak)
