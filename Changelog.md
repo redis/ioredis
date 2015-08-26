@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Fix errors when sending command to a failed cluster([#56](https://github.com/luin/ioredis/issues/56)).
+
 ### v1.7.5 - August 16, 2015
 
 * Fix for allNodes array containing nodes not serving the specified slot. Thanks to [henstock](https://github.com/henstock)
