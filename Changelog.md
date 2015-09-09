@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Fix compatible issues of Buffer with Node.js 4.0.
+
 ### v1.7.6 - September 1, 2015
 
 * Fix errors when sending command to a failed cluster([#56](https://github.com/luin/ioredis/issues/56)).
