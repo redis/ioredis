@@ -2,6 +2,7 @@
 
 ### Master Branch
 
+* Add keepAlive option(defaults to `true`).
 * Fix compatible issues of Buffer with Node.js 4.0.
 
 ### v1.7.6 - September 1, 2015
