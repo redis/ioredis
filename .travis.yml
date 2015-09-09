@@ -7,6 +7,7 @@ node_js:
 - 'iojs-v1'
 - 'iojs-v2'
 - 'iojs-v2'
+- '3.0'
 - '4.0'
 
 services:
@@ -16,13 +17,18 @@ script:
 - npm run test:cov
 
 env:
-- INSTALL_HIREDIS="yes"
+- CXX=g++-4.8 INSTALL_HIREDIS="yes"
 - INSTALL_HIREDIS="no"
 
 before_script:
 - if [ "$INSTALL_HIREDIS" = "yes" ]; then npm install hiredis; fi
 
 addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - g++-4.8
   code_climate:
     repo_token: 4cee2f60edbf31acac6ddff823f0b93e2e9882c3e5c55130049e0fd878549f84
 
