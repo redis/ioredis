@@ -723,7 +723,7 @@ redis.set('foo');
 
 # Benchmark
 
-Comparisons with [node_redis](https://github.com/mranney/node_redis) on my iMac (Retina 5K, 27-inch, Late 2014):
+Comparisons with [node_redis](https://github.com/mranney/node_redis) on my iMac (Retina 5K, 27-inch, Late 2014). Both of them are using pure JavaScript parser(without hiredis module):
 
 ```shell
 > npm run bench
