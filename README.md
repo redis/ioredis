@@ -234,7 +234,7 @@ redis.multi().set('foo', 'bar', function (err, result) {
 }).exec(/* ... */);
 ```
 
-If you want to use transaction without pipeline, pass { pipeline: false } to `multi`,
+If you want to use transaction without pipeline, pass `{ pipeline: false }` to `multi`,
 and every command will be sent to Redis immediately without waiting for an `exec` invocation:
 
 ```javascript
@@ -260,18 +260,6 @@ in the pipeline into a transaction:
 
 ```javascript
 redis.pipeline().get('foo').multi().set('foo', 'bar').get('foo').exec().get('foo').exec();
-```
-
-```javascript
-redis.mset({ k1: 'v1', k2: 'v2' });
-redis.get('k1', function (err, result) {
-  // result === 'v1';
-});
-
-redis.mset(new Map([['k3', 'v3'], ['k4', 'v4']]));
-redis.get('k3', function (err, result) {
-  // result === 'v3';
-});
 ```
 
 ## Lua Scripting
@@ -393,7 +381,19 @@ Redis.Command.setReplyTransformer('hgetall', function (result) {
 
 There are three built-in transformers, two argument transformers for `hmset` & `mset` and
 a reply transformer for `hgetall`. Transformers for `hmset` and `hgetall` were mentioned
-above, and the transformer for `mset` is similar to the one for `hmset`.
+above, and the transformer for `mset` is similar to the one for `hmset`:
+
+```javascript
+redis.mset({ k1: 'v1', k2: 'v2' });
+redis.get('k1', function (err, result) {
+  // result === 'v1';
+});
+
+redis.mset(new Map([['k3', 'v3'], ['k4', 'v4']]));
+redis.get('k3', function (err, result) {
+  // result === 'v3';
+});
+```
 
 ## Monitor
 Redis supports the MONITOR command,
