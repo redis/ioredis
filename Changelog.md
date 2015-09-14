@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+* Support reconnecting on the specified error.
+
 ### v1.8.0 - September 9, 2015
 
 * Add keepAlive option(defaults to `true`).
