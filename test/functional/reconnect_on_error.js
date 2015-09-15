@@ -34,7 +34,6 @@ describe('reconnectOnError', function () {
     };
 
     redis.set('foo', function (err) {
-      console.log(err);
       done();
     });
   });
@@ -63,7 +62,6 @@ describe('reconnectOnError', function () {
 
     redis.set('foo', 'bar');
     redis.sadd('foo', 'a', function (err, res) {
-      console.log(err, res);
       expect(res).to.eql(1);
       done();
     });

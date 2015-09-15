@@ -506,7 +506,7 @@ var redis = new Redis({
 });
 ```
 
-This feature is useful when using Amazon ElastiCache. Once failover happens, Amazon ElastiCache will switch the master we currently connected with to a slave, leading to the following writes fails with the error `READONLY`. Using `reconnectOnError`, we can force the connection to reconnect on this error.
+This feature is useful when using Amazon ElastiCache. Once failover happens, Amazon ElastiCache will switch the master we currently connected with to a slave, leading to the following writes fails with the error `READONLY`. Using `reconnectOnError`, we can force the connection to reconnect on this error in order to connect to the new master.
 
 Furthermore, if the `reconnectOnError` returns `2`, ioredis will resend the failed command after reconnecting.
 
