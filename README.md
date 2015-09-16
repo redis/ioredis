@@ -21,7 +21,7 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 0. Transparent key prefixing.
 0. Abstraction for Lua scripting, allowing you to define custom commands.
 0. Support for binary data.
-0. Support for both TCP/IP and UNIX domain sockets.
+0. Support for TLS.
 0. Support for offline queue and ready checking.
 0. Support for ES6 types, such as `Map` and `Set`.
 0. Support for GEO commands (Redis 3.2 Unstable).
@@ -566,6 +566,21 @@ function (times) {
   var delay = Math.min(times * 10, 1000);
   return delay;
 }
+```
+
+## TLS Options
+Redis doesn't support TLS natively, however if the redis server you want to connect to is hosted behind a TLS proxy (e.g. [stunnel](https://www.stunnel.org/)) or is offered by a PaaS service that supports TLS connection (e.g. [Redis Labs](https://redislabs.com/)), you can set the `tls` option:
+
+```javascript
+var redis = new Redis({
+  host: 'localhost',
+  tls: {
+    // Refer to `tls.connect()` section in
+    // https://nodejs.org/api/tls.html
+    // for all supported options
+    ca: fs.readFileSync('cert.pem')
+  }
+});
 ```
 
 ## Cluster
