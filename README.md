@@ -490,6 +490,26 @@ This behavior can be disabled by setting the `autoResubscribe` option to `false`
 And if the previous connection has some unfulfilled commands (most likely blocking commands such as `brpop` and `blpop`),
 the client will resend them when reconnected. This behavior can be disabled by setting the `autoResendUnfulfilledCommands` option to `false`.
 
+### Reconnect on error
+
+Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on the specified errors by the `reconnectOnError` option. Here's an example that will reconnect when receiving `READONLY` error:
+
+```javascript
+var redis = new Redis({
+  reconnectOnError: function (err) {
+    var targetError = 'READONLY';
+    if (err.message.slice(0, targetError.length) === targetError) {
+      // Only reconnect when the error starts with "READONLY"
+      return true; // or `return 1;`
+    }
+  }
+});
+```
+
+This feature is useful when using Amazon ElastiCache. Once failover happens, Amazon ElastiCache will switch the master we currently connected with to a slave, leading to the following writes fails with the error `READONLY`. Using `reconnectOnError`, we can force the connection to reconnect on this error in order to connect to the new master.
+
+Furthermore, if the `reconnectOnError` returns `2`, ioredis will resend the failed command after reconnecting.
+
 ## Connection Events
 The Redis instance will emit some events about the state of the connection to the Redis server.
 
