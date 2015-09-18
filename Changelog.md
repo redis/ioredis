@@ -2,6 +2,8 @@
 
 ### Master Branch
 
+### v1.9.0 - September 18, 2015
+
 * Support TLS.
 * Support reconnecting on the specified error.
 
