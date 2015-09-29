@@ -962,6 +962,140 @@ describe('cluster', function () {
 
     });
   });
+
+  describe("#mastersExec", function () {
+    it('should issue command on every master node', function (done) {
+      var slotTable = [
+        [0, 5460, ['127.0.0.1', 30001], ['127.0.0.1', 30003]],
+        [5461, 10922, ['127.0.0.1', 30002]]
+      ];
+      var node1 = new MockServer(30001, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+
+        if (argv[0] === 'flushdb') {
+          return '30001';
+        }
+      });
+      var node2 = new MockServer(30002, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+
+        if (argv[0] === 'flushdb') {
+          return '30002';
+        }
+      });
+
+      var node3 = new MockServer(30003, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+
+        if (argv[0] === 'flushdb') {
+          return '30003';
+        }
+      });
+
+      var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001'}]);
+      cluster.on('ready', function() {
+        cluster.mastersExec('flushdb', function (err, response) {
+          expect(err).to.eql(null);
+          expect(response).to.eql(['30001', '30002']);
+          disconnect([node1, node2, node3], done);
+        });
+      });
+
+    });
+  });
+
+  describe("#flushCluster", function () {
+    it('should issue flushall command on every master node', function (done) {
+      var slotTable = [
+        [0, 12181, ['127.0.0.1', 30001]],
+        [12182, 12183, ['127.0.0.1', 30002]],
+        [12184, 16383, ['127.0.0.1', 30003]],
+      ];
+      var node1 = new MockServer(30001, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+        if (argv[0] === 'flushall') {
+          return '30001';
+        }
+      });
+      var node2 = new MockServer(30002, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+        if (argv[0] === 'flushall') {
+          return '30002';
+        }
+      });
+      var node3 = new MockServer(30003, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+        if (argv[0] === 'flushall') {
+          return '30003';
+        }
+      });
+
+      var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001'}]);
+      cluster.on('ready', function() {
+        cluster.flushCluster(function (err, response) {
+          expect(err).to.eql(null);
+          expect(response).to.eql(['30001', '30002', '30003']);
+          disconnect([node1, node2, node3], done);
+        });
+      });
+    });
+  });
+
+  describe("#flushClusterDb", function () {
+    it('should issue flushdb command on every master node', function (done) {
+      var slotTable = [
+        [0, 12181, ['127.0.0.1', 30001]],
+        [12182, 12183, ['127.0.0.1', 30002]],
+        [12184, 16383, ['127.0.0.1', 30003]],
+      ];
+      var node1 = new MockServer(30001, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+        if (argv[0] === 'flushdb') {
+          return '30001';
+        }
+      });
+      var node2 = new MockServer(30002, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+        if (argv[0] === 'flushdb') {
+          return '30002';
+        }
+      });
+      var node3 = new MockServer(30003, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+        if (argv[0] === 'flushdb') {
+          return '30003';
+        }
+      });
+
+      var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001'}]);
+      cluster.on('ready', function() {
+        cluster.flushClusterDb(function (err, response) {
+          expect(err).to.eql(null);
+          expect(response).to.eql(['30001', '30002', '30003']);
+          disconnect([node1, node2, node3], done);
+        });
+      });
+    });
+  });
+
 });
 
 function disconnect (clients, callback) {
