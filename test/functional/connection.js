@@ -167,16 +167,19 @@ describe('connection', function () {
         pub.lpush('l', 1);
       });
     });
+
     it('should resend previous subscribes before sending unfulfilled commands', function (done) {
       var redis = new Redis({ db: 4 });
       var pub = new Redis({ db: 4 });
       redis.once('ready', function () {
-        redis.subscribe('l', function() {
-          redis.disconnect(true);
-          redis.unsubscribe('l', function() {
-            pub.pubsub('channels', function(err, channels){
-              expect(channels.length).to.eql(0);
-              done();
+        pub.pubsub('channels', function(err, channelsBefore){
+          redis.subscribe('l', function() {
+            redis.disconnect(true);
+            redis.unsubscribe('l', function() {
+              pub.pubsub('channels', function(err, channels){
+                expect(channels.length).to.eql(channelsBefore.length);
+                done();
+              });
             });
           });
         });
