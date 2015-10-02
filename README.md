@@ -524,6 +524,7 @@ error    | client will emit `error` when an error occurs while connecting.<br>Ho
 close    | client will emit `close` when an established Redis server connection has closed.
 reconnecting | client will emit `reconnecting` after `close` when a reconnection will be made. The argument of the event is the time (in ms) before reconnecting.
 end     | client will emit `end` after `close` when no more reconnections will be made.
+authError | client will emit `authError` when the password specified in the options is wrong or the server doesn't require a password.
 
 You can also check out the `Redis#status` property to get the current connection status.
 
