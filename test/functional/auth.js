@@ -41,18 +41,33 @@ describe('auth', function () {
     });
   });
 
-  it('should warn when the server doesn\'t need auth', function (done) {
-    stub(console, 'warn', function () {
-      console.warn.restore();
-      redis.disconnect();
-      server.disconnect();
-      done();
-    });
+  it('should emit "authError" when the server doesn\'t need auth', function (done) {
     var server = new MockServer(17379, function (argv) {
       if (argv[0] === 'auth' && argv[1] === 'pass') {
         return new Error('ERR Client sent AUTH, but no password is set');
       }
     });
     var redis = new Redis({ port: 17379, password: 'pass' });
+    redis.on('authError', function (error) {
+      expect(error).to.have.property('message', 'ERR Client sent AUTH, but no password is set');
+      redis.disconnect();
+      server.disconnect();
+      done();
+    });
+  });
+
+  it('should emit "authError" when the password is wrong', function (done) {
+    var server = new MockServer(17379, function (argv) {
+      if (argv[0] === 'auth' && argv[1] === 'pass') {
+        return new Error('ERR invalid password');
+      }
+    });
+    var redis = new Redis({ port: 17379, password: 'pass' });
+    redis.on('authError', function (error) {
+      expect(error).to.have.property('message', 'ERR invalid password');
+      redis.disconnect();
+      server.disconnect();
+      done();
+    });
   });
 });
