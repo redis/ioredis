@@ -2,6 +2,10 @@
 
 ### Master Branch
 
+* Emits "authError" event when the password is wrong([164](https://github.com/luin/ioredis/issues/56)).
+* Fixed wrong debug output when using sentinels. Thanks to [Colm Hally](https://github.com/ColmHally)
+* Discard slave if flagged with s_down or o_down. Thanks to [mtlima](https://github.com/mtlima)
+
 ### v1.9.0 - September 18, 2015
 
 * Support TLS.
