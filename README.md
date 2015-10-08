@@ -86,7 +86,7 @@ new Redis({
 })
 ```
 
-You can also specify connection options as a [`redis://` URL](http://www.iana.org/assignments/uri-schemes/prov/redis).
+You can also specify connection options as a [`redis://` URL](http://www.iana.org/assignments/uri-schemes/prov/redis):
 
 ```javascript
 new Redis('redis://:authpassword@127.0.0.1:6380/4') // 127.0.0.1:6380, db 4
