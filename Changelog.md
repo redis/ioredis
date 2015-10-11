@@ -5,6 +5,7 @@ This file is a manually maintained list of changes for each release. Feel free t
 ## Master Branch (Unreleased)
 
 * Switch to the previous db before re-subscribing channels.
+* Listen to the "secureConnect" event when connect via TLS. [Jeffrey Jen](https://github.com/jeffjen).
 
 ## v1.9.1 - October 2, 2015
 
