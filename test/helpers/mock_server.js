@@ -2,6 +2,7 @@
 
 var net = require('net');
 var util = require('util');
+var utils = require('../../lib/utils');
 var EventEmitter = require('events').EventEmitter;
 var enableDestroy = require('server-destroy');
 var Parser = require('../../lib/parsers/javascript');
@@ -27,14 +28,15 @@ MockServer.prototype.connect = function () {
       _this.emit('connect', c);
     });
 
-    var parser = new Parser({ returnBuffer: false });
-    parser.on('reply', function (args) {
+    var parser = new Parser();
+    parser.sendReply = function (reply) {
+      reply = utils.convertBufferToString(reply);
       if (_this.handler) {
-        _this.write(c, _this.handler(args));
+        _this.write(c, _this.handler(reply));
       } else {
         _this.write(c, MockServer.REDIS_OK);
       }
-    });
+    };
 
     c.on('end', function () {
       _this.clients[clientIndex] = null;
