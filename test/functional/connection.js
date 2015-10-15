@@ -139,6 +139,35 @@ describe('connection', function () {
     });
   });
 
+  describe('connectionName', function () {
+    it('shoud name the connection if options.connectionName is not null', function (done) {
+      var redis = new Redis({ connectionName: 'niceName' });
+      redis.once('ready', function() {
+        redis.client('getname', function(err, res) {
+          expect(res).to.eql('niceName');
+          done();
+        });
+      });
+      redis.set('foo', 1);
+    });
+
+    it('should set the name before any subscribe command if reconnected', function(done) {
+      var redis = new Redis({ connectionName: 'niceName' });
+      var pub = new Redis();
+      redis.once('ready', function () {
+        redis.subscribe('l', function() {
+          redis.disconnect(true);
+          redis.unsubscribe('l', function() {
+            redis.client('getname', function(err, res) {
+             expect(res).to.eql('niceName');
+             done();
+           });              
+          });
+        });
+      });
+    });
+  });
+
   describe('autoResendUnfulfilledCommands', function () {
     it('should resend unfulfilled commands to the correct db when reconnected', function (done) {
       var redis = new Redis({ db: 3 });
