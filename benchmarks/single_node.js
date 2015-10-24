@@ -1,7 +1,7 @@
 'use strict';
 
 var nodeRedis = require('redis');
-var ioRedis = require('../');
+var IORedis = require('../');
 var ndredis, ioredis;
 
 console.log('==========================');
@@ -27,20 +27,20 @@ var waitReady = function (next) {
   });
 };
 
-suite('simple set', function() {
+suite('simple set', function () {
   set('mintime', 5000);
   set('concurrency', 300);
   before(function (start) {
     ndredis = nodeRedis.createClient();
-    ioredis = new ioRedis();
+    ioredis = new IORedis();
     waitReady(start);
   });
 
-  bench('ioredis', function(next) {
+  bench('ioredis', function (next) {
     ioredis.set('foo', 'bar', next);
   });
 
-  bench('node_redis', function(next) {
+  bench('node_redis', function (next) {
     ndredis.set('foo', 'bar', next);
   });
 
@@ -50,22 +50,22 @@ suite('simple set', function() {
   });
 });
 
-suite('simple get', function() {
+suite('simple get', function () {
   set('mintime', 5000);
   set('concurrency', 300);
   before(function (start) {
     ndredis = nodeRedis.createClient();
-    ioredis = new ioRedis();
+    ioredis = new IORedis();
     waitReady(function () {
       ndredis.set('foo', 'bar', start);
     });
   });
 
-  bench('ioredis', function(next) {
+  bench('ioredis', function (next) {
     ioredis.get('foo', next);
   });
 
-  bench('node_redis', function(next) {
+  bench('node_redis', function (next) {
     ndredis.get('foo', next);
   });
 
@@ -75,18 +75,18 @@ suite('simple get', function() {
   });
 });
 
-suite('simple get with pipeline', function() {
+suite('simple get with pipeline', function () {
   set('mintime', 5000);
   set('concurrency', 300);
   before(function (start) {
     ndredis = nodeRedis.createClient();
-    ioredis = new ioRedis();
+    ioredis = new IORedis();
     waitReady(function () {
       ndredis.set('foo', 'bar', start);
     });
   });
 
-  bench('ioredis', function(next) {
+  bench('ioredis', function (next) {
     var pipeline = ioredis.pipeline();
     for (var i = 0; i < 10; ++i) {
       pipeline.get('foo');
@@ -94,7 +94,7 @@ suite('simple get with pipeline', function() {
     pipeline.exec(next);
   });
 
-  bench('node_redis', function(next) {
+  bench('node_redis', function (next) {
     var pending = 0;
     for (var i = 0; i < 10; ++i) {
       pending += 1;
@@ -113,12 +113,12 @@ suite('simple get with pipeline', function() {
   });
 });
 
-suite('lrange 100', function() {
+suite('lrange 100', function () {
   set('mintime', 5000);
   set('concurrency', 300);
   before(function (start) {
     ndredis = nodeRedis.createClient();
-    ioredis = new ioRedis();
+    ioredis = new IORedis();
     waitReady(function () {
       var item = [];
       for (var i = 0; i < 100; ++i) {
@@ -129,11 +129,11 @@ suite('lrange 100', function() {
     });
   });
 
-  bench('ioredis', function(next) {
+  bench('ioredis', function (next) {
     ioredis.lrange('foo', 0, 99, next);
   });
 
-  bench('node_redis', function(next) {
+  bench('node_redis', function (next) {
     ndredis.lrange('foo', 0, 99, next);
   });
 
@@ -143,23 +143,23 @@ suite('lrange 100', function() {
   });
 });
 
-suite('publish', function() {
+suite('publish', function () {
   set('mintime', 5000);
   set('concurrency', 300);
 
   before(function (start) {
     ndredis = nodeRedis.createClient();
-    ioredis = new ioRedis();
+    ioredis = new IORedis();
     waitReady(function () {
       start();
     });
   });
 
-  bench('ioredis', function(next) {
+  bench('ioredis', function (next) {
     ioredis.publish('foo', 'bar', next);
   });
 
-  bench('node_redis', function(next) {
+  bench('node_redis', function (next) {
     ndredis.publish('foo', 'bar', next);
   });
 
@@ -169,7 +169,7 @@ suite('publish', function() {
   });
 });
 
-suite('subscribe', function() {
+suite('subscribe', function () {
   set('mintime', 5000);
   set('concurrency', 300);
 
@@ -180,7 +180,7 @@ suite('subscribe', function() {
 
   before(function (start) {
     ndredis = nodeRedis.createClient();
-    ioredis = new ioRedis();
+    ioredis = new IORedis();
     waitReady(function () {
       ndsubscriber = ndredis;
       ndsubscriber.subscribe('foo');
@@ -188,7 +188,7 @@ suite('subscribe', function() {
       iosubscriber.subscribe('foo');
 
       ndredis = nodeRedis.createClient();
-      ioredis = new ioRedis();
+      ioredis = new IORedis();
       waitReady(function () {
         ndpublisher = ndredis;
         iopublisher = ioredis;
@@ -197,14 +197,14 @@ suite('subscribe', function() {
     });
   });
 
-  bench('ioredis', function(next) {
+  bench('ioredis', function (next) {
     iosubscriber.removeAllListeners('message');
     ndsubscriber.removeAllListeners('message');
     iosubscriber.on('message', next);
     iopublisher.publish('foo', 'bar');
   });
 
-  bench('node_redis', function(next) {
+  bench('node_redis', function (next) {
     iosubscriber.removeAllListeners('message');
     ndsubscriber.removeAllListeners('message');
     ndsubscriber.on('message', next);
