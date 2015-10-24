@@ -1,0 +1,16 @@
+{
+  "extends": "../.eslintrc",
+  "globals": {
+    "set": true,
+    "before": true,
+    "beforeEach": true,
+    "after": true,
+    "afterEach": true,
+    "suite": true,
+    "setup": true,
+    "bench": true
+  },
+  "rules": {
+    "no-new": 0,
+  }
+}
