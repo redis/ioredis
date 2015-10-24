@@ -78,6 +78,30 @@ describe('cluster', function () {
       });
     });
 
+    it('should support url schema', function (done) {
+      var node = new MockServer(30001);
+
+      var cluster = new Redis.Cluster([
+        'redis://127.0.0.1:30001'
+      ]);
+
+      node.once('connect', function () {
+        cluster.disconnect();
+        disconnect([node], done);
+      });
+    });
+
+    it('should support a single port', function (done) {
+      var node = new MockServer(30001);
+
+      var cluster = new Redis.Cluster([30001]);
+
+      node.once('connect', function () {
+        cluster.disconnect();
+        disconnect([node], done);
+      });
+    });
+
     it('should return a promise to be resolved when connected', function (done) {
       var slotTable = [
         [0, 5460, ['127.0.0.1', 30001]],
@@ -224,12 +248,45 @@ describe('cluster', function () {
         expect(err.message).to.eql(errorMessage);
         checkDone();
       });
-      function checkDone () {
+      function checkDone() {
         if (!--pending) {
           cluster.disconnect();
           disconnect([node1, node2], done);
         }
       }
+    });
+
+    it('should using the specified password', function (done) {
+      var node1, node2, node3;
+      var slotTable = [
+        [0, 5460, ['127.0.0.1', 30001]],
+        [5461, 10922, ['127.0.0.1', 30002]],
+        [10923, 16383, ['127.0.0.1', 30003]]
+      ];
+      var argvHandler = function (port, argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+        if (argv[0] === 'auth') {
+          var password = argv[1];
+          if (port === 30001) {
+            expect(password).to.eql('other password');
+          } else if (port === 30002) {
+            throw new Error('30002 got password');
+          } else if (port === 30003) {
+            expect(password).to.eql('default password');
+            disconnect([node1, node2, node3], done);
+          }
+        }
+      };
+      node1 = new MockServer(30001, argvHandler.bind(null, 30001));
+      node2 = new MockServer(30002, argvHandler.bind(null, 30002));
+      node3 = new MockServer(30003, argvHandler.bind(null, 30003));
+
+      new Redis.Cluster([
+        { host: '127.0.0.1', port: '30001', password: 'other password' },
+        { host: '127.0.0.1', port: '30002' }
+      ], { lazyConnect: false, password: 'default password' });
     });
   });
 

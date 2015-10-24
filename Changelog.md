@@ -4,6 +4,7 @@ This file is a manually maintained list of changes for each release. Feel free t
 
 ## Master Branch (Unreleased)
 
+* [Cluster] Support redis schema url.
 * [Cluster] Support specifying password for each node.
 * Add an option for setting connection name. [cgiovanacci](https://github.com/cgiovanacci).
 * Switch to the previous db before re-subscribing channels.
