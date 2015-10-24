@@ -4,6 +4,8 @@ This file is a manually maintained list of changes for each release. Feel free t
 
 ## Master Branch (Unreleased)
 
+## v1.10.0 - October 24, 2015
+
 * [Cluster] Support redis schema url.
 * [Cluster] Support specifying password for each node.
 * Add an option for setting connection name. [cgiovanacci](https://github.com/cgiovanacci).
