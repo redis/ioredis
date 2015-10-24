@@ -683,6 +683,27 @@ var Redis = require('ioredis');
 var cluster = new Redis.Cluster(nodes, { readOnly: true });
 ```
 
+### Password
+Setting the `password` option to access password-proctected clusters:
+
+```javascript
+var Redis = require('ioredis');
+var cluster = new Redis.Cluster(nodes, { password: 'your-cluster-password' });
+```
+
+If some of nodes in the cluster using a different password, you should specify them in the first parameter:
+
+```javascript
+var Redis = require('ioredis');
+var cluster = new Redis.Cluster([
+  // Use password "password-for-30001" for 30001
+  { port: 30001, password: 'password-for-30001'},
+  // Don't use password when accessing 30002
+  { port: 30002 }
+  // Other nodes will use "fallback-password"
+], { password: 'fallback-password' });
+```
+
 ## Native Parser
 If [hiredis](https://github.com/redis/hiredis-node) is installed (by `npm install hiredis`),
 ioredis will use it by default. Otherwise, a pure JavaScript parser will be used.
