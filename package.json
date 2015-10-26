@@ -37,6 +37,7 @@
     "jsdoc-to-markdown": "^1.0.3",
     "matcha": "^0.6.0",
     "mocha": "^2.2.1",
+    "redis": "^2.2.5",
     "server-destroy": "^1.0.0",
     "sinon": "^1.14.1"
   },
