@@ -1,5 +1,6 @@
 'use strict';
 
+var childProcess = require('child_process');
 var nodeRedis = require('redis');
 var IORedis = require('../');
 var ndredis, ioredis;
@@ -10,6 +11,8 @@ console.log('node_redis: ' + require('redis/package.json').version);
 var os = require('os');
 console.log('CPU: ' + os.cpus().length);
 console.log('OS: ' + os.platform() + ' ' + os.arch());
+console.log('node version: ' + process.version);
+console.log('current commit: ' + childProcess.execSync('git rev-parse --short HEAD'));
 console.log('==========================');
 
 var waitReady = function (next) {
