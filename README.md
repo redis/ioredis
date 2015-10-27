@@ -804,7 +804,7 @@ You can set the `DEBUG` env to `ioredis:*` to print debug info:
 $ DEBUG=ioredis:* node app.js
 ```
 
-# Consolidation: It's time for ceberation
+# Consolidation: It's time for celebration
 
 Right now there are two great redis clients around and both have some advantages above each other. We speak about [node_redis](https://github.com/NodeRedis/node_redis) and ioredis. So after talking to each other about how we could improve in working together we (that is [@BridgeAR](https://github.com/BridgeAR) and [@luin](https://github.com/luin)) decided to work towards a single library on the long run. But step by step.
 
