@@ -32,7 +32,6 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 * [Changelog](Changelog.md)
 * [Migrating from node_redis](https://github.com/luin/ioredis/wiki/Migrating-from-node_redis)
 * [Error Handling](#error-handling)
-* [Benchmark](#benchmark)
 
 <hr>
 
@@ -786,52 +785,6 @@ Redis.Promise.onPossiblyUnhandledRejection(function (error) {
 var redis = new Redis();
 redis.set('foo');
 ```
-
-# Benchmark
-
-Comparisons with [node_redis](https://github.com/mranney/node_redis) on my iMac (Retina 5K, 27-inch, Late 2014). Both of them are using pure JavaScript parser(without hiredis module):
-
-```shell
-> npm run bench
-==========================
-ioredis: 1.7.2
-node_redis: 0.12.1
-CPU: 4
-OS: darwin x64
-==========================
-
-                simple set
-   157,343 op/s » ioredis
-    92,132 op/s » node_redis
-
-                simple get
-   156,274 op/s » ioredis
-    92,040 op/s » node_redis
-
-                simple get with pipeline
-    13,501 op/s » ioredis
-    10,016 op/s » node_redis
-
-                lrange 100
-   113,696 op/s » ioredis
-    83,960 op/s » node_redis
-
-                publish
-   156,110 op/s » ioredis
-    86,303 op/s » node_redis
-
-                subscribe
-    85,030 op/s » ioredis
-    75,651 op/s » node_redis
-
-
-  Suites:  6
-  Benches: 12
-  Elapsed: 90,547.08 ms
-```
-
-However, since there are many factors that can impact the benchmark, results may be different on your server ([#25](https://github.com/luin/ioredis/issues/25)).
-You can find the code at `benchmarks/*.js` and run it yourself using `npm run bench`.
 
 # Running tests
 
