@@ -4,6 +4,8 @@ This file is a manually maintained list of changes for each release. Feel free t
 
 ## Master Branch (Unreleased)
 
+## v1.11.0 - November 19, 2015
+
 * Emits "select" event when the database changed.
 * [Cluster] Supports scanStream ([#175](https://github.com/luin/ioredis/issues/175)).
 * Update debug module to 2.2.0
