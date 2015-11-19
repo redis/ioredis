@@ -1,3 +1,5 @@
+'use strict';
+
 var Readable = require('stream').Readable;
 
 describe('*scanStream', function () {
@@ -46,7 +48,7 @@ describe('*scanStream', function () {
       stub(Redis.prototype, 'scan', function (args) {
         var count;
         for (var i = 0; i < args.length; ++i) {
-          if (typeof args[i] === 'string', args[i].toUpperCase() === 'COUNT') {
+          if (typeof args[i] === 'string' && args[i].toUpperCase() === 'COUNT') {
             count = args[i + 1];
             break;
           }
@@ -80,7 +82,8 @@ describe('*scanStream', function () {
           keys = keys.concat(data);
         });
         stream.on('end', function () {
-          expect(keys.sort()).to.eql([new Buffer('foo1'), new Buffer('foo10'), new Buffer('foo2'), new Buffer('foo3'), new Buffer('foo4')]);
+          expect(keys.sort()).to.eql([new Buffer('foo1'), new Buffer('foo10'),
+            new Buffer('foo2'), new Buffer('foo3'), new Buffer('foo4')]);
           done();
         });
       });
@@ -103,4 +106,63 @@ describe('*scanStream', function () {
       });
     });
   });
+
+  describe('Cluster', function () {
+    it('should work in cluster mode', function (done) {
+      var slotTable = [
+        [0, 5460, ['127.0.0.1', 30001]],
+        [5461, 10922, ['127.0.0.1', 30002]],
+        [10923, 16383, ['127.0.0.1', 30003]]
+      ];
+      var serverKeys = ['foo1', 'foo2', 'foo3', 'foo4', 'foo10'];
+      var argvHandler = function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+        if (argv[0] === 'sscan' && argv[1] === 'set') {
+          var cursor = Number(argv[2]);
+          if (cursor >= serverKeys.length) {
+            return ['0', []];
+          }
+          return [String(cursor + 1), [serverKeys[cursor]]];
+        }
+      };
+      var node1 = new MockServer(30001, argvHandler);
+      var node2 = new MockServer(30002, argvHandler);
+      var node3 = new MockServer(30003, argvHandler);
+
+      var cluster = new Redis.Cluster([
+        { host: '127.0.0.1', port: '30001' }
+      ]);
+
+      var keys = [];
+      cluster.sadd('set', serverKeys, function () {
+        var stream = cluster.sscanStream('set');
+        stream.on('data', function (data) {
+          keys = keys.concat(data);
+        });
+        stream.on('end', function () {
+          expect(keys).to.eql(serverKeys);
+          cluster.disconnect();
+          disconnect([node1, node2, node3], done);
+        });
+      });
+
+    });
+  });
 });
+
+function disconnect(clients, callback) {
+  var pending = 0;
+
+  for (var i = 0; i < clients.length; ++i) {
+    pending += 1;
+    clients[i].disconnect(check);
+  }
+
+  function check() {
+    if (!--pending && callback) {
+      callback();
+    }
+  }
+}

@@ -46,4 +46,24 @@ describe('select', function () {
       });
     });
   });
+
+  it('should emit "select" event when db changes', function (done) {
+    var changes = [];
+    var redis = new Redis();
+    redis.select('2', function () {
+      expect(changes).to.eql([2]);
+      redis.select('4', function () {
+        expect(changes).to.eql([2, 4]);
+        redis.select('4', function () {
+          expect(changes).to.eql([2, 4]);
+          done();
+        });
+      });
+    });
+
+    redis.on('select', function (db) {
+      console.log('select', db);
+      changes.push(db);
+    });
+  });
 });

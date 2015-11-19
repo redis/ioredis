@@ -4,6 +4,11 @@ This file is a manually maintained list of changes for each release. Feel free t
 
 ## Master Branch (Unreleased)
 
+* Emits "select" event when the database changed.
+* [Cluster] Supports scanStream ([#175](https://github.com/luin/ioredis/issues/175)).
+* Update debug module to 2.2.0
+* Update bluebird module to 2.9.34
+
 ## v1.10.0 - October 24, 2015
 
 * [Cluster] Support redis schema url.

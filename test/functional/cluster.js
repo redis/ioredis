@@ -149,7 +149,11 @@ describe('cluster', function () {
     it('should stop reconnecting when disconnected', function (done) {
       var cluster = new Redis.Cluster([
         { host: '127.0.0.1', port: '30001' }
-      ], { clusterRetryStrategy: function () { return 0; } });
+      ], {
+        clusterRetryStrategy: function () {
+          return 0;
+        }
+      });
 
       cluster.on('close', function () {
         cluster.disconnect();
@@ -491,7 +495,7 @@ describe('cluster', function () {
     var cluster = new Redis.Cluster([
       { host: '127.0.0.1', port: '30001' }
     ]);
-    cluster.get('foo', 'bar', function (err, result) {
+    cluster.get('foo', 'bar', function (err) {
       expect(called).to.eql(true);
       expect(err.message).to.match(/Wrong arguments count/);
       cluster.disconnect();
@@ -529,7 +533,7 @@ describe('cluster', function () {
       var slotTable = [
         [0, 12181, ['127.0.0.1', 30001]],
         [12182, 12183, ['127.0.0.1', 30002]],
-        [12184, 16383, ['127.0.0.1', 30001]],
+        [12184, 16383, ['127.0.0.1', 30001]]
       ];
       var node1 = new MockServer(30001, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
@@ -557,7 +561,7 @@ describe('cluster', function () {
       var slotTable = [
         [0, 12181, ['127.0.0.1', 30001]],
         [12182, 12183, ['127.0.0.1', 30002]],
-        [12184, 16383, ['127.0.0.1', 30001]],
+        [12184, 16383, ['127.0.0.1', 30001]]
       ];
       var node1 = new MockServer(30001, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
@@ -597,7 +601,7 @@ describe('cluster', function () {
       var slotTable = [
         [0, 12181, ['127.0.0.1', 30001]],
         [12182, 12183, ['127.0.0.1', 30002]],
-        [12184, 16383, ['127.0.0.1', 30001]],
+        [12184, 16383, ['127.0.0.1', 30001]]
       ];
       var node1 = new MockServer(30001, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
@@ -639,7 +643,7 @@ describe('cluster', function () {
       var slotTable = [
         [0, 12181, ['127.0.0.1', 30001]],
         [12182, 12183, ['127.0.0.1', 30002]],
-        [12184, 16383, ['127.0.0.1', 30001]],
+        [12184, 16383, ['127.0.0.1', 30001]]
       ];
       var node1 = new MockServer(30001, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
@@ -674,7 +678,7 @@ describe('cluster', function () {
       var slotTable = [
         [0, 12181, ['127.0.0.1', 30001]],
         [12182, 12183, ['127.0.0.1', 30002]],
-        [12184, 16383, ['127.0.0.1', 30001]],
+        [12184, 16383, ['127.0.0.1', 30001]]
       ];
       var node1 = new MockServer(30001, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
@@ -715,7 +719,7 @@ describe('cluster', function () {
       var slotTable = [
         [0, 12181, ['127.0.0.1', 30001]],
         [12182, 12183, ['127.0.0.1', 30002]],
-        [12184, 16383, ['127.0.0.1', 30001]],
+        [12184, 16383, ['127.0.0.1', 30001]]
       ];
       var node1 = new MockServer(30001, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
@@ -759,7 +763,7 @@ describe('cluster', function () {
       var slotTable = [
         [0, 12181, ['127.0.0.1', 30001]],
         [12182, 12183, ['127.0.0.1', 30002]],
-        [12184, 16383, ['127.0.0.1', 30001]],
+        [12184, 16383, ['127.0.0.1', 30001]]
       ];
       var node1 = new MockServer(30001, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
@@ -813,15 +817,15 @@ describe('cluster', function () {
       var handler = function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
           return [
-          [0, 1, ['127.0.0.1', 30001]],
-          [2, 16383, ['127.0.0.1', 30002]]
-        ];
+            [0, 1, ['127.0.0.1', 30001]],
+            [2, 16383, ['127.0.0.1', 30002]]
+          ];
         }
       };
       var node1 = new MockServer(30001, handler);
       var node2 = new MockServer(30002, handler);
 
-      var options = [ { host: '127.0.0.1', port: '30001' } ];
+      var options = [{ host: '127.0.0.1', port: '30001' }];
       var sub = new Redis.Cluster(options);
 
       sub.subscribe('test cluster', function () {
@@ -848,7 +852,6 @@ describe('cluster', function () {
       var client = new Redis.Cluster([{ host: '127.0.0.1', port: '30001' }]);
 
       client.subscribe('test cluster', function () {
-        var subscribe = Redis.prototype.subscribe;
         stub(Redis.prototype, 'subscribe', function (channels) {
           expect(channels).to.eql(['test cluster']);
           Redis.prototype.subscribe.restore();
@@ -876,7 +879,6 @@ describe('cluster', function () {
       var client = new Redis.Cluster([{ host: '127.0.0.1', port: '30001' }]);
 
       client.psubscribe('test?', function () {
-        var psubscribe = Redis.prototype.psubscribe;
         stub(Redis.prototype, 'psubscribe', function (channels) {
           expect(channels).to.eql(['test?']);
           Redis.prototype.psubscribe.restore();
@@ -892,7 +894,7 @@ describe('cluster', function () {
     });
   });
 
-  describe('readonly',  function() {
+  describe('readonly', function () {
     it('should connect all nodes and issue a readonly', function (done) {
       var setReadOnlyNode1 = false;
       var setReadOnlyNode2 = false;
@@ -931,10 +933,10 @@ describe('cluster', function () {
       });
 
       var cluster = new Redis.Cluster(
-        [{ host: '127.0.0.1', port: '30001'}],
+        [{ host: '127.0.0.1', port: '30001' }],
         { readOnly: true }
       );
-      cluster.on('ready', function() {
+      cluster.on('ready', function () {
         expect(setReadOnlyNode1 || setReadOnlyNode2 || setReadOnlyNode3).to.eql(true);
         cluster.disconnect();
         disconnect([node1, node2, node3], done);
@@ -966,8 +968,8 @@ describe('cluster', function () {
         }
       });
 
-      var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001'}]);
-      cluster.on('ready', function() {
+      var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001' }]);
+      cluster.on('ready', function () {
         cluster.nodes['127.0.0.1:30001'].on('end', function () {
           expect(Object.keys(cluster.masterNodes).length).to.eql(1);
           cluster.disconnect();
@@ -1002,8 +1004,8 @@ describe('cluster', function () {
         }
       });
 
-      var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001'}]);
-      cluster.on('ready', function() {
+      var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001' }]);
+      cluster.on('ready', function () {
         expect(Object.keys(cluster.masterNodes).length).to.eql(2);
         slotTable = [
           [0, 5460, ['127.0.0.1', 30003]],
@@ -1021,7 +1023,7 @@ describe('cluster', function () {
   });
 });
 
-function disconnect (clients, callback) {
+function disconnect(clients, callback) {
   var pending = 0;
 
   for (var i = 0; i < clients.length; ++i) {
@@ -1029,7 +1031,7 @@ function disconnect (clients, callback) {
     clients[i].disconnect(check);
   }
 
-  function check () {
+  function check() {
     if (!--pending && callback) {
       callback();
     }
