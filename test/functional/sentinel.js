@@ -65,10 +65,22 @@ describe('sentinel', function () {
       });
 
       redis.get('foo', function (error) {
+        finish();
         expect(error.message).to.match(/are unreachable/);
-        redis.disconnect();
-        done();
       });
+
+      redis.on('error', function (error) {
+        expect(error.message).to.match(/are unreachable/);
+        finish();
+      });
+
+      var pending = 2;
+      function finish() {
+        if (!--pending) {
+          redis.disconnect();
+          done();
+        }
+      }
     });
 
     it('should close the connection to the sentinel when resolving successfully', function (done) {
