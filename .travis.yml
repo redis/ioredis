@@ -13,7 +13,7 @@ services:
 - redis-server
 
 script:
-- npm run test:cov
+- npm run test:cov || npm run test:cov
 
 env:
 - CXX=g++-4.8 INSTALL_HIREDIS="yes"
