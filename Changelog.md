@@ -4,6 +4,9 @@ This file is a manually maintained list of changes for each release. Feel free t
 
 ## Master Branch (Unreleased)
 
+* [Cluster] Add queue support for failover and CLUSTERDOWN handling. [Shahar Mor](https://github.com/shaharmor).
+* Emits "error" when connection is down for `scanStream` ([#199](https://github.com/luin/ioredis/issues/199)).
+
 ## v1.11.1 - November 26, 2015
 
 * [Sentinel] Emits "error" when all sentinels are unreachable ([#200](https://github.com/luin/ioredis/issues/200)).

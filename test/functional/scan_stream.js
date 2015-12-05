@@ -70,6 +70,22 @@ describe('*scanStream', function () {
         });
       });
     });
+
+    it('should emit an error when connection is down', function (done) {
+      var keys = [];
+      var redis = new Redis();
+      redis.mset('foo1', 1, 'foo2', 1, 'foo3', 1, 'foo4', 1, 'foo10', 1, function () {
+        redis.disconnect();
+        var stream = redis.scanStream({ count: 1 });
+        stream.on('data', function (data) {
+          keys = keys.concat(data);
+        });
+        stream.on('error', function (err) {
+          expect(err.message).to.eql('Connection is closed.');
+          done();
+        });
+      });
+    });
   });
 
   describe('scanBufferStream', function () {
