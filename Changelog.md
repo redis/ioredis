@@ -4,6 +4,8 @@ This file is a manually maintained list of changes for each release. Feel free t
 
 ## Master Branch (Unreleased)
 
+## v.1.12.1 - December 5, 2015
+
 * [Cluster] Add queue support for failover and CLUSTERDOWN handling. [Shahar Mor](https://github.com/shaharmor).
 * Emits "error" when connection is down for `scanStream` ([#199](https://github.com/luin/ioredis/issues/199)).
 
