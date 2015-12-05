@@ -5,8 +5,8 @@ node_js:
 - '0.11'
 - '0.12'
 - 'iojs'
-- '4.0.x'
-- '4.1.x'
+- '4.0'
+- '4.1'
 
 services:
 - redis-server
