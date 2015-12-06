@@ -4,6 +4,8 @@ This file is a manually maintained list of changes for each release. Feel free t
 
 ## Master Branch (Unreleased)
 
+* [Cluster] Fix failover queue not being processed. [Shahar Mor](https://github.com/shaharmor).
+
 ## v.1.12.1 - December 5, 2015
 
 * [Cluster] Add queue support for failover and CLUSTERDOWN handling. [Shahar Mor](https://github.com/shaharmor).
