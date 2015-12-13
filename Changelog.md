@@ -4,6 +4,8 @@ This file is a manually maintained list of changes for each release. Feel free t
 
 ## Master Branch (Unreleased)
 
+* [Cluster] Select a random node when the target node is closed.
+
 ## v.1.12.2 - December 6, 2015
 
 * [Cluster] Fix failover queue not being processed. [Shahar Mor](https://github.com/shaharmor).

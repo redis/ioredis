@@ -637,7 +637,7 @@ but a few so that if one is unreachable the client will try the next one, and th
         }
         ```
 
-    * `maxRedirections`: When a `MOVED` or `ASK` error is received, the client will redirect the
+    * `maxRedirections`: When a cluster related error (e.g. `MOVED`, `ASK` and `CLUSTERDOWN` etc.) is received, the client will redirect the
     command to another node. This option limits the max redirections allowed when sending a command. The default value is `16`.
     * `retryDelayOnFailover`: If the error of "Connection is closed." is received when sending a command,
     ioredis will retry after the specified delay. The default value is `2000`. You should make sure `retryDelayOnFailover * maxRedirections > cluster-node-timeout`
