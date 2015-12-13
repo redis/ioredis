@@ -4,7 +4,10 @@ This file is a manually maintained list of changes for each release. Feel free t
 
 ## Master Branch (Unreleased)
 
+## v.1.13.0 - December 13, 2015
+
 * [Cluster] Select a random node when the target node is closed.
+* [Cluster] `maxRedirections` also works for `CLUSTERDOWN`.
 
 ## v.1.12.2 - December 6, 2015
 
