@@ -294,7 +294,7 @@ describe('cluster', function () {
     });
   });
 
-  describe('MOVE', function () {
+  describe('MOVED', function () {
     it('should auto redirect the command to the correct nodes', function (done) {
       var moved = false;
       var times = 0;
@@ -419,6 +419,43 @@ describe('cluster', function () {
     });
   });
 
+  describe('CLUSTERDOWN', function () {
+    it('should redirect the command to a random node', function (done) {
+      var slotTable = [
+        [0, 1, ['127.0.0.1', 30001]],
+        [2, 16383, ['127.0.0.1', 30002]]
+      ];
+      var node1 = new MockServer(30001, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+        if (argv[0] === 'get' && argv[1] === 'foo') {
+          return 'bar';
+        }
+      });
+      var node2 = new MockServer(30002, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+        if (argv[0] === 'get' && argv[1] === 'foo') {
+          return new Error('CLUSTERDOWN');
+        }
+      });
+
+      var cluster = new Redis.Cluster([
+        { host: '127.0.0.1', port: '30001' }
+      ], {
+        lazyConnect: false,
+        retryDelayOnClusterDown: 1
+      });
+      cluster.get('foo', function (_, res) {
+        expect(res).to.eql('bar');
+        cluster.disconnect();
+        disconnect([node1, node2], done);
+      });
+    });
+  });
+
   describe('maxRedirections', function () {
     it('should return error when reached max redirection', function (done) {
       var redirectTimes = 0;
@@ -440,7 +477,7 @@ describe('cluster', function () {
         { host: '127.0.0.1', port: '30001' }
       ], { maxRedirections: 5 });
       cluster.get('foo', function (err) {
-        expect(redirectTimes).to.eql(5);
+        expect(redirectTimes).to.eql(6);
         expect(err.message).to.match(/Too many Cluster redirections/);
         cluster.disconnect();
         disconnect([node1, node2], done);
