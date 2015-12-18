@@ -34,7 +34,7 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 * [Error Handling](#error-handling)
 
 <hr>
-<a href="https://itunes.apple.com/app/medis-gui-for-redis/id1063631769"><img align="right" src="screen.png" alt="Download on the App Store"></a>
+<a href="https://itunes.apple.com/app/medis-gui-for-redis/id1063631769"><img align="right" src="medis.png" alt="Download on the App Store"></a>
 
 ### Advertisement
 
