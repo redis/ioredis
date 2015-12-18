@@ -34,6 +34,25 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 * [Error Handling](#error-handling)
 
 <hr>
+<a href="https://itunes.apple.com/app/medis-gui-for-redis/id1063631769"><img align="right" src="screen.png" alt="Download on the App Store"></a>
+
+### Advertisement
+
+Looking for a Redis GUI manager for OS X? Here's [Medis](https://itunes.apple.com/app/medis-gui-for-redis/id1063631769)!
+
+Medis is a beautiful, easy-to-use Redis GUI management application for Redis >= 2.8.
+
+Medis starts with all the basic features you need:
+
+* Keys viewing/editing
+* SSH Tunnel for connecting with remote servers
+* Terminal for executing custom commands
+* JSON/MessagePack format viewing/editing and built-in highlighting/validator
+* And other awesome features...
+
+[Download on the App Store Now!](https://itunes.apple.com/app/medis-gui-for-redis/id1063631769)
+
+<hr>
 
 # Quick Start
 
