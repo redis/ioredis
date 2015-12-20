@@ -4,6 +4,8 @@ This file is a manually maintained list of changes for each release. Feel free t
 
 ## Master Branch (Unreleased)
 
+## v.1.13.1 - December 20, 2015
+
 * Fix `mset` transformer not supporting keyPrefix ([#217](https://github.com/luin/ioredis/issues/217)).
 
 ## v.1.13.0 - December 13, 2015
