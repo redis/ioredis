@@ -4,6 +4,8 @@ This file is a manually maintained list of changes for each release. Feel free t
 
 ## Master Branch (Unreleased)
 
+* Fix `mset` transformer not supporting keyPrefix ([#217](https://github.com/luin/ioredis/issues/217)).
+
 ## v.1.13.0 - December 13, 2015
 
 * [Cluster] Select a random node when the target node is closed.

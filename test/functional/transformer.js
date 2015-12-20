@@ -78,6 +78,17 @@ describe('transformer', function () {
           });
         });
       });
+      it('should work with keyPrefix option', function (done) {
+        var redis = new Redis({ keyPrefix: 'foo:' });
+        redis.mset({ a: 1, b: '2' }, function (err, result) {
+          expect(result).to.eql('OK');
+          var otherRedis = new Redis();
+          otherRedis.mget('foo:a', 'foo:b', function (err, result) {
+            expect(result).to.eql(['1', '2']);
+            done();
+          });
+        });
+      });
     });
 
     describe('hgetall', function () {
