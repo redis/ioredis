@@ -91,6 +91,56 @@ describe('transformer', function () {
       });
     });
 
+    describe('msetnx', function () {
+      it('should support object', function (done) {
+        var redis = new Redis();
+        redis.msetnx({ a: 1, b: '2' }, function (err, result) {
+          expect(result).to.eql(1);
+          redis.mget('a', 'b', function (err, result) {
+            expect(result).to.eql(['1', '2']);
+            done();
+          });
+        });
+      });
+      it('should support Map', function (done) {
+        if (typeof Map === 'undefined') {
+          return done();
+        }
+        var redis = new Redis();
+        var map = new Map();
+        map.set('a', 1);
+        map.set('b', '2');
+        redis.msetnx(map, function (err, result) {
+          expect(result).to.eql(1);
+          redis.mget('a', 'b', function (err, result) {
+            expect(result).to.eql(['1', '2']);
+            done();
+          });
+        });
+      });
+      it('should not affect the old way', function (done) {
+        var redis = new Redis();
+        redis.msetnx('a', 1, 'b', '2', function (err, result) {
+          expect(result).to.eql(1);
+          redis.mget('a', 'b', function (err, result) {
+            expect(result).to.eql(['1', '2']);
+            done();
+          });
+        });
+      });
+      it('should work with keyPrefix option', function (done) {
+        var redis = new Redis({ keyPrefix: 'foo:' });
+        redis.msetnx({ a: 1, b: '2' }, function (err, result) {
+          expect(result).to.eql(1);
+          var otherRedis = new Redis();
+          otherRedis.mget('foo:a', 'foo:b', function (err, result) {
+            expect(result).to.eql(['1', '2']);
+            done();
+          });
+        });
+      });
+    });
+
     describe('hgetall', function () {
       it('should return an object', function (done) {
         var redis = new Redis();

@@ -15,5 +15,6 @@
   },
   "rules": {
     "no-new": 0,
+    "handle-callback-err": 0
   }
 }
