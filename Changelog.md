@@ -4,6 +4,8 @@ This file is a manually maintained list of changes for each release. Feel free t
 
 ## Master Branch (Unreleased)
 
+## v.1.13.2 - December 30, 2015
+
 * Add argument transformer for msetnx to support Map ([#218](https://github.com/luin/ioredis/issues/218)).
 
 ## v.1.13.1 - December 20, 2015
