@@ -4,6 +4,8 @@ This file is a manually maintained list of changes for each release. Feel free t
 
 ## Master Branch (Unreleased)
 
+* Add argument transformer for msetnx to support Map ([#218](https://github.com/luin/ioredis/issues/218)).
+
 ## v.1.13.1 - December 20, 2015
 
 * Fix `mset` transformer not supporting keyPrefix ([#217](https://github.com/luin/ioredis/issues/217)).
