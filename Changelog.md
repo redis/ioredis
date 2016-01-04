@@ -4,26 +4,28 @@ This file is a manually maintained list of changes for each release. Feel free t
 
 ## Master Branch (Unreleased)
 
+## v1.14.0 - January 4, 2016
+
 * Support returning buffers for transactions ([#223](https://github.com/luin/ioredis/issues/223)).
 
-## v.1.13.2 - December 30, 2015
+## v1.13.2 - December 30, 2015
 
 * Add argument transformer for msetnx to support Map ([#218](https://github.com/luin/ioredis/issues/218)).
 
-## v.1.13.1 - December 20, 2015
+## v1.13.1 - December 20, 2015
 
 * Fix `mset` transformer not supporting keyPrefix ([#217](https://github.com/luin/ioredis/issues/217)).
 
-## v.1.13.0 - December 13, 2015
+## v1.13.0 - December 13, 2015
 
 * [Cluster] Select a random node when the target node is closed.
 * [Cluster] `maxRedirections` also works for `CLUSTERDOWN`.
 
-## v.1.12.2 - December 6, 2015
+## v1.12.2 - December 6, 2015
 
 * [Cluster] Fix failover queue not being processed. [Shahar Mor](https://github.com/shaharmor).
 
-## v.1.12.1 - December 5, 2015
+## v1.12.1 - December 5, 2015
 
 * [Cluster] Add queue support for failover and CLUSTERDOWN handling. [Shahar Mor](https://github.com/shaharmor).
 * Emits "error" when connection is down for `scanStream` ([#199](https://github.com/luin/ioredis/issues/199)).
