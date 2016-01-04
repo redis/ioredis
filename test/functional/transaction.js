@@ -69,6 +69,17 @@ describe('transaction', function () {
     });
   });
 
+  it('should support execBuffer', function (done) {
+    var redis = new Redis();
+    redis.multi().set('foo', 'bar').get('foo').execBuffer(function (err, res) {
+      expect(res[0][1]).to.be.instanceof(Buffer);
+      expect(res[0][1].toString()).to.eql('OK');
+      expect(res[1][1]).to.be.instanceof(Buffer);
+      expect(res[1][1].toString()).to.eql('bar');
+      done();
+    });
+  });
+
   describe('#addBatch', function () {
     it('should accept commands in constructor', function (done) {
       var redis = new Redis();
