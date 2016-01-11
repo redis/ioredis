@@ -38,9 +38,9 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 
 ### Advertisement
 
-Looking for a Redis GUI manager for OS X? Here's [Medis](https://itunes.apple.com/app/medis-gui-for-redis/id1063631769)!
+Looking for a Redis GUI manager for OS X, Windows and Linux? Here's [Medis](https://github.com/luin/medis)!
 
-Medis is a beautiful, easy-to-use Redis GUI management application for Redis >= 2.8.
+Medis is an open-sourced, beautiful, easy-to-use Redis GUI management application.
 
 Medis starts with all the basic features you need:
 
@@ -50,7 +50,7 @@ Medis starts with all the basic features you need:
 * JSON/MessagePack format viewing/editing and built-in highlighting/validator
 * And other awesome features...
 
-[Download on the App Store Now!](https://itunes.apple.com/app/medis-gui-for-redis/id1063631769)
+[Medis is open sourced on GitHub](https://github.com/luin/medis)
 
 <hr>
 
