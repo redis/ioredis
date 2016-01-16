@@ -1,8 +1,6 @@
 # Changelog
 
-This file is a manually maintained list of changes for each release. Feel free to add your changes here when sending pull requests. Also send corrections if you spot any mistakes.
-
-## Master Branch (Unreleased)
+Refer to the [GitHub Release Page](https://github.com/luin/ioredis/releases) for the changelogs after version 1.14.0.
 
 ## v1.14.0 - January 4, 2016
 
