@@ -664,6 +664,43 @@ but a few so that if one is unreachable the client will try the next one, and th
     * `retryDelayOnClusterDown`: When a cluster is down, all commands will be rejected with the error of `CLUSTERDOWN`. If this option is a number (by default, it is 1000), the client
     will resend the commands after the specified time (in ms).
 
+### Running same operation on multiple nodes
+
+Some operations, such as `flushdb` and `flushall`, can only be performed on a single node.
+There is a helper function for this case:
+
+```javascript
+var redis = new redis.Cluster();
+
+// groups are: all, masters and slaves
+// returns object or throws an error on invalid group
+// {
+//   nodes: Array,
+//   call: Function,
+//   callBuffer: function,
+// }
+redis.to('group')
+
+// will be performed on all master nodes
+Promise.map(redis.to('masters').nodes, function(node) {
+  return node.flushdb();
+});
+
+// exactly the same as above
+redis.to('masters').call('flushdb').then(function (results) {
+  //
+})
+
+redis.to('slaves').call('flushdb', function (err, results) {
+
+});
+
+// in case of buffer
+redis.to('slaves').callBuffer('get', 'key').catch(function (err) {
+  // likely rejected, because operations would only succeed partially due to slot | moved error
+});
+```
+
 ### Transaction and pipeline in Cluster mode
 Almost all features that are supported by `Redis` are also supported by `Redis.Cluster`, e.g. custom commands, transaction and pipeline.
 However there are some differences when using transaction and pipeline in Cluster mode:
