@@ -1,3 +1,18 @@
+<a name="1.15.0"></a>
+# [1.15.0](https://github.com/luin/ioredis/compare/v1.14.0...v1.15.0) (2016-01-31)
+
+
+### Bug Fixes
+
+* "MOVED" err not crashing process when slot was not assigned ([6974d4d](https://github.com/luin/ioredis/commit/6974d4d))
+* remove extra typeof in .to cluster helper ([a7b0bfe](https://github.com/luin/ioredis/commit/a7b0bfe))
+
+### Features
+
+* revisit of .to(nodeGroup) command ([ba12e47](https://github.com/luin/ioredis/commit/ba12e47))
+
+
+
 # v1.14.0 - January 4, 2016
 
 * Support returning buffers for transactions ([#223](https://github.com/luin/ioredis/issues/223)).
