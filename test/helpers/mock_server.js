@@ -7,7 +7,7 @@ var EventEmitter = require('events').EventEmitter;
 var enableDestroy = require('server-destroy');
 var Parser = require('../../lib/parsers/javascript');
 
-function MockServer (port, handler) {
+function MockServer(port, handler) {
   EventEmitter.call(this);
 
   this.port = port;
