@@ -667,40 +667,29 @@ but a few so that if one is unreachable the client will try the next one, and th
 
 ### Running same operation on multiple nodes
 
-Some operations, such as `flushdb` and `flushall`, can only be performed on a single node.
-There is a helper function for this case:
+Sometimes you may want to send a command to all the nodes (masters or slaves) of the cluster. Here's a helper function
+for this case:
 
 ```javascript
-var redis = new redis.Cluster();
-
-// groups are: all, masters and slaves
-// returns object or throws an error on invalid group
-// {
-//   nodes: Array,
-//   call: Function,
-//   callBuffer: function,
-// }
-redis.to('group')
-
-// will be performed on all master nodes
-Promise.map(redis.to('masters').nodes, function(node) {
-  return node.flushdb();
+// Send `flushdb` command to every master,
+// other available groups are 'slaves' and 'all'.
+cluster.to('masters').call('flushdb').then(function (results) {
 });
 
-// exactly the same as above
-redis.to('masters').call('flushdb').then(function (results) {
-  //
-})
-
-redis.to('slaves').call('flushdb', function (err, results) {
-
+// Get all keys of the cluster:
+cluster.to('masters').call('keys').then(function (keys) {
+  return [].concat.apply([], keys);
 });
 
 // in case of buffer
-redis.to('slaves').callBuffer('get', 'key').catch(function (err) {
+cluster.to('slaves').callBuffer('get', 'key').catch(function (err) {
   // likely rejected, because operations would only succeed partially due to slot | moved error
 });
 ```
+
+**Note 1** At the time of calling `to` method, ioredis may have not connected all nodes of the Cluster, so that it's possible that only a part of the nodes will receive the command.
+
+**Note 2** If the `readOnly` option is `false`, ioredis won't try to connect to the slave nodes, so `cluster.to('slaves').call()` won't send the command to any nodes. In this case, `cluster.to('all')` are same to the `cluster.to('masters')`.
 
 ### Transaction and pipeline in Cluster mode
 Almost all features that are supported by `Redis` are also supported by `Redis.Cluster`, e.g. custom commands, transaction and pipeline.
