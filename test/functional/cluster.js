@@ -35,6 +35,7 @@ describe('cluster', function () {
       cluster.get('foo', function (err) {
         expect(t).to.eql(3);
         expect(err.message).to.match(/None of startup nodes is available/);
+        cluster.disconnect();
         done();
       });
     });
@@ -279,6 +280,7 @@ describe('cluster', function () {
             throw new Error('30002 got password');
           } else if (port === 30003) {
             expect(password).to.eql('default password');
+            cluster.disconnect();
             disconnect([node1, node2, node3], done);
           }
         }
@@ -287,7 +289,7 @@ describe('cluster', function () {
       node2 = new MockServer(30002, argvHandler.bind(null, 30002));
       node3 = new MockServer(30003, argvHandler.bind(null, 30003));
 
-      new Redis.Cluster([
+      var cluster = new Redis.Cluster([
         { host: '127.0.0.1', port: '30001', password: 'other password' },
         { host: '127.0.0.1', port: '30002' }
       ], { lazyConnect: false, password: 'default password' });
@@ -1052,6 +1054,7 @@ describe('cluster', function () {
           expect(Object.keys(cluster.masterNodes).length).to.eql(2);
           expect(cluster.masterNodes).to.have.property('127.0.0.1:30003');
           expect(cluster.masterNodes).to.have.property('127.0.0.1:30002');
+          cluster.disconnect();
           disconnect([node1, node2, node3], done);
         });
       });
