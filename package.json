@@ -23,7 +23,7 @@
   "author": "luin <i@zihua.li> (http://zihua.li)",
   "license": "MIT",
   "dependencies": {
-    "bluebird": "^2.9.34",
+    "bluebird": "^3.2.1",
     "debug": "^2.2.0",
     "double-ended-queue": "^2.1.0-0",
     "flexbuffer": "0.0.6",
