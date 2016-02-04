@@ -5,7 +5,7 @@ var util = require('util');
 var utils = require('../../lib/utils');
 var EventEmitter = require('events').EventEmitter;
 var enableDestroy = require('server-destroy');
-var Parser = require('../../lib/parsers/javascript');
+var Parser = require('redis-parser');
 
 function MockServer(port, handler) {
   EventEmitter.call(this);
@@ -28,15 +28,15 @@ MockServer.prototype.connect = function () {
       _this.emit('connect', c);
     });
 
-    var parser = new Parser();
-    parser.sendReply = function (reply) {
-      reply = utils.convertBufferToString(reply);
-      if (_this.handler) {
-        _this.write(c, _this.handler(reply));
-      } else {
-        _this.write(c, MockServer.REDIS_OK);
-      }
-    };
+    var parser = new Parser({
+      name: 'javascript',
+      returnBuffers: true,
+      returnReply: function (reply) {
+        reply = utils.convertBufferToString(reply);
+        _this.write(c, _this.handler && _this.handler(reply));
+      },
+      returnError: function () { }
+    });
 
     c.on('end', function () {
       _this.clients[clientIndex] = null;
