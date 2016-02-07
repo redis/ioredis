@@ -19,7 +19,7 @@ describe('cluster', function () {
     var cluster = new Cluster([{ port: 7777 }], options);
     expect(cluster.options).to.have.property('showFriendlyErrorStack', false);
     expect(cluster.options).to.have.property('showFriendlyErrorStack', false);
-    expect(cluster.options).to.have.property('readOnly', false);
+    expect(cluster.options).to.have.property('scaleReads', 'masters');
   });
 
   it('should throw when startupNodes is not an array or is empty', function () {
