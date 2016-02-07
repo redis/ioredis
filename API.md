@@ -49,8 +49,8 @@ Creates a Redis instance
 | [options.host] | <code>string</code> | <code>&quot;localhost&quot;</code> | Host of the Redis server. |
 | [options.family] | <code>string</code> | <code>4</code> | Version of IP stack. Defaults to 4. |
 | [options.path] | <code>string</code> | <code>null</code> | Local domain socket path. If set the `port`, `host` and `family` will be ignored. |
-| [options.keepAlive] | <code>number</code> | <code>0</code> | TCP KeepAlive on the socket with a X ms delay before start. |
-| [options.connectionName] | <code>string</code> | <code>null</code> | Connection name. Set to a non-number value to disable keepAlive. |
+| [options.keepAlive] | <code>number</code> | <code>0</code> | TCP KeepAlive on the socket with a X ms delay before start. Set to a non-number value to disable keepAlive. |
+| [options.connectionName] | <code>string</code> | <code>null</code> | Connection name. |
 | [options.db] | <code>number</code> | <code>0</code> | Database index to use. |
 | [options.password] | <code>string</code> | <code>null</code> | If set, client will send AUTH command with the value of this option when connected. |
 | [options.enableReadyCheck] | <code>boolean</code> | <code>true</code> | When a connection is established to the Redis server, the server might still be loading the database from disk. While loading, the server not respond to any commands. To work around this, when this option is `true`, ioredis will check the status of the Redis server, and when the Redis server is able to process commands, a `ready` event will be emitted. |
