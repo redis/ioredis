@@ -197,7 +197,9 @@ Create a Redis instance
 
 * [Cluster](#Cluster) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
   * [new Cluster(startupNodes, options)](#new_Cluster_new)
+  * [.connect()](#Cluster+connect) ⇒ <code>Promise</code>
   * [.disconnect()](#Cluster+disconnect)
+  * [.nodes([role])](#Cluster+nodes) ⇒ <code>[Array.&lt;Redis&gt;](#Redis)</code>
   * [.getBuiltinCommands()](#Commander+getBuiltinCommands) ⇒ <code>Array.&lt;string&gt;</code>
   * [.createBuiltinCommand(commandName)](#Commander+createBuiltinCommand) ⇒ <code>object</code>
   * [.defineCommand(name, definition)](#Commander+defineCommand)
@@ -220,12 +222,30 @@ Creates a Redis Cluster instance
 | [options.retryDelayOnFailover] | <code>number</code> | <code>2000</code> | When an error is received when sending a command(e.g. "Connection is closed." when the target Redis node is down), |
 | [options.retryDelayOnClusterDown] | <code>number</code> | <code>1000</code> | When a CLUSTERDOWN error is received, client will retry if `retryDelayOnClusterDown` is valid delay time. |
 
+<a name="Cluster+connect"></a>
+### cluster.connect() ⇒ <code>Promise</code>
+Connect to a cluster
+
+**Kind**: instance method of <code>[Cluster](#Cluster)</code>  
+**Access:** public  
 <a name="Cluster+disconnect"></a>
 ### cluster.disconnect()
 Disconnect from every node in the cluster.
 
 **Kind**: instance method of <code>[Cluster](#Cluster)</code>  
 **Access:** public  
+<a name="Cluster+nodes"></a>
+### cluster.nodes([role]) ⇒ <code>[Array.&lt;Redis&gt;](#Redis)</code>
+Get nodes with the specified role
+
+**Kind**: instance method of <code>[Cluster](#Cluster)</code>  
+**Returns**: <code>[Array.&lt;Redis&gt;](#Redis)</code> - array of nodes  
+**Access:** public  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| [role] | <code>string</code> | <code>&quot;\&quot;all\&quot;&quot;</code> | role, "masters", "slaves" or "all" |
+
 <a name="Commander+getBuiltinCommands"></a>
 ### cluster.getBuiltinCommands() ⇒ <code>Array.&lt;string&gt;</code>
 Return supported builtin commands
