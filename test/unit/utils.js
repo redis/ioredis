@@ -26,7 +26,8 @@ describe('utils', function () {
       expect(utils.convertBufferToString(new Buffer('123'))).to.eql('123');
       expect(utils.convertBufferToString([new Buffer('abc'), new Buffer('abc')])).to.eql(['abc', 'abc']);
       expect(utils.convertBufferToString([new Buffer('abc'), [[new Buffer('abc')]]])).to.eql(['abc', [['abc']]]);
-      expect(utils.convertBufferToString([new Buffer('abc'), 5, 'b', [[new Buffer('abc'), 4]]])).to.eql(['abc', 5, 'b', [['abc', 4]]]);
+      expect(utils.convertBufferToString([new Buffer('abc'), 5, 'b', [[new Buffer('abc'), 4]]]))
+        .to.eql(['abc', 5, 'b', [['abc', 4]]]);
     });
   });
 
