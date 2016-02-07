@@ -62,6 +62,7 @@ Creates a Redis instance
 | [options.keyPrefix] | <code>string</code> | <code>&quot;&#x27;&#x27;&quot;</code> | The prefix to prepend to all keys in a command. ```javascript var redis = new Redis({ lazyConnect: true }); // No attempting to connect to the Redis server here. // Now let's connect to the Redis server redis.get('foo', function () { }); ``` |
 | [options.retryStrategy] | <code>function</code> |  | See "Quick Start" section |
 | [options.reconnectOnError] | <code>function</code> |  | See "Quick Start" section |
+| [options.readOnly] | <code>boolean</code> | <code>false</code> | Enable READONLY mode for the connection. Only available for cluster mode. |
 
 **Example**  
 ```js
