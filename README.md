@@ -644,7 +644,7 @@ cluster.get('foo', function (err, res) {
 0. The first argument is a list of nodes of the cluster you want to connect to.
 Just like Sentinel, the list does not need to enumerate all your cluster nodes,
 but a few so that if one is unreachable the client will try the next one, and the client will discover other nodes automatically when at least one node is connnected.
-0. The second argument is the option that will be passed to the `Redis` constructor when creating connections to Redis nodes internally. There are some additional options for the Cluster:
+0. The second argument is the options, where:
 
     * `clusterRetryStrategy`: When none of the startup nodes are reachable, `clusterRetryStrategy` will be invoked. When a number is returned,
     ioredis will try to reconnect to the startup nodes from scratch after the specified delay (in ms). Otherwise, an error of "None of startup nodes is available" will be returned.
@@ -660,36 +660,58 @@ but a few so that if one is unreachable the client will try the next one, and th
     * `maxRedirections`: When a cluster related error (e.g. `MOVED`, `ASK` and `CLUSTERDOWN` etc.) is received, the client will redirect the
     command to another node. This option limits the max redirections allowed when sending a command. The default value is `16`.
     * `retryDelayOnFailover`: If the error of "Connection is closed." is received when sending a command,
-    ioredis will retry after the specified delay. The default value is `2000`. You should make sure `retryDelayOnFailover * maxRedirections > cluster-node-timeout`
+    ioredis will retry after the specified delay. The default value is `100`. You should make sure `retryDelayOnFailover * maxRedirections > cluster-node-timeout`
     to insure that no command will fail during a failover.
-    * `retryDelayOnClusterDown`: When a cluster is down, all commands will be rejected with the error of `CLUSTERDOWN`. If this option is a number (by default, it is 1000), the client
+    * `retryDelayOnClusterDown`: When a cluster is down, all commands will be rejected with the error of `CLUSTERDOWN`. If this option is a number (by default, it is `100`), the client
     will resend the commands after the specified time (in ms).
+    * `scaleReads`: Config where to send the read queries. See below for more details.
 
-### Running same operation on multiple nodes
+### Read-write splitting
 
-Sometimes you may want to send a command to all the nodes (masters or slaves) of the cluster. Here's a helper function
-for this case:
+A typical redis cluster contains three or more masters and several slaves for each master. It's possible to scale out redis cluster by sending read queries to slaves and write queries to masters by setting the `scaleReads` option.
+
+`scaleReads` is "masters" by default, which means ioredis will never send any queries to slaves. There are other two available options:
+
+1. "all": Send write queries to masters and read queries to masters or slaves randomly.
+2. "slaves": Send write queries to masters and read queries to slaves.
+
+For example:
 
 ```javascript
-// Send `flushdb` command to every master,
-// other available groups are 'slaves' and 'all'.
-cluster.to('masters').call('flushdb').then(function (results) {
+var cluster = new Redis.Cluster([/* nodes */], {
+  scaleReads: 'slaves'
 });
-
-// Get all keys of the cluster:
-cluster.to('masters').call('keys').then(function (keys) {
-  return [].concat.apply([], keys);
-});
-
-// in case of buffer
-cluster.to('slaves').callBuffer('get', 'key').catch(function (err) {
-  // likely rejected, because operations would only succeed partially due to slot | moved error
+cluster.set('foo', 'bar'); // This query will be sent to one of the masters.
+cluster.get('foo', function (err, res) {
+  // This query will be sent to one of the slaves.
 });
 ```
 
-**Note 1** At the time of calling `to` method, ioredis may have not connected all nodes of the Cluster, so that it's possible that only a part of the nodes will receive the command.
+**NB** In the code snippet above, the `res` may not be equal to "bar" because of the lag of replication between the master and slaves.
 
-**Note 2** If the `readOnly` option is `false`, ioredis won't try to connect to the slave nodes, so `cluster.to('slaves').call()` won't send the command to any nodes. In this case, `cluster.to('all')` are same to the `cluster.to('masters')`.
+### Running commands to multiple nodes
+
+Every command will be sent to exactly one node. For commands containing keys, (e.g. `GET`, `SET` and `HGETALL`), ioredis sends them to the node that serving the keys, and for other commands not containing keys, (e.g. `INFO`, `KEYS` and `FLUSHDB`), ioredis sends them to a random node.
+
+Sometimes you may want to send a command to multiple nodes (masters or slaves) of the cluster, you can get the nodes via `Cluster#nodes()` method.
+
+`Cluster#nodes()` accepts a parameter role, which can be "masters", "slaves" and "all" (default), and returns an array of `Redis` instance. For example:
+
+```javascript
+// Send `FLUSHDB` command to all slaves:
+var slaves = cluster.nodes('slaves');
+Promise.all(slaves.map(function (node) {
+  return node.flushdb();
+}));
+
+// Get keys of all the masters:
+var masters = cluster.nodes('masters');
+Promise.all(masters.map(function (node) {
+  return node.keys();
+})).then(function (keys) {
+  // keys: [['key1', 'key2'], ['key3', 'key4']]
+});
+```
 
 ### Transaction and pipeline in Cluster mode
 Almost all features that are supported by `Redis` are also supported by `Redis.Cluster`, e.g. custom commands, transaction and pipeline.
@@ -721,9 +743,18 @@ sub.subscribe('news', function () {
 ```
 
 ### Events
-If an error occurs when connecting to the node, the `node error` event will be emitted. Furthermore, if all nodes aren't reachable,
-the `error` event will be emitted silently (only emitting if there's at least one listener) with a property of `lastNodeError` representing
-the last node error received.
+
+Event    | Description
+:------------- | :-------------
+connect  | emits when a connection is established to the Redis server.
+ready    | If `enableReadyCheck` is `true`, client will emit `ready` when the server reports that it is ready to receive commands (e.g. finish loading data from disk).<br>Otherwise, `ready` will be emitted immediately right after the `connect` event.
+error    | emits when an error occurs while connecting with a property of `lastNodeError` representing the last node error received. This event is emitted silently (only emitting if there's at least one listener).
+close    | emits when an established Redis server connection has closed.
+reconnecting | emits after `close` when a reconnection will be made. The argument of the event is the time (in ms) before reconnecting.
+end     | emits after `close` when no more reconnections will be made.
++node   | emits when a new node is connected.
+-node   | emits when a node is disconnected.
+node error | emits when an error occurs when connecting to a node
 
 ### Scaling reads using slave nodes
 Normally, commands are only sent to the masters since slaves can't process write queries.
