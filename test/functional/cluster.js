@@ -339,12 +339,11 @@ describe('cluster', function () {
     });
 
     it('should be able to redirect a command to a unknown node', function (done) {
-      var slotTable = [
-        [0, 16383, ['127.0.0.1', 30001]]
-      ];
       var node1 = new MockServer(30001, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
-          return slotTable;
+          return [
+            [0, 16383, ['127.0.0.1', 30001]]
+          ];
         }
         if (argv[0] === 'get' && argv[1] === 'foo') {
           return new Error('MOVED ' + utils.calcSlot('foo') + ' 127.0.0.1:30002');
@@ -352,7 +351,10 @@ describe('cluster', function () {
       });
       var node2 = new MockServer(30002, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
-          return slotTable;
+          return [
+            [0, 16381, ['127.0.0.1', 30001]],
+            [16382, 16383, ['127.0.0.1', 30002]]
+          ];
         }
         if (argv[0] === 'get' && argv[1] === 'foo') {
           return 'bar';
