@@ -215,7 +215,6 @@ Creates a Redis Cluster instance
 | startupNodes | <code>Array.&lt;Object&gt;</code> |  | An array of nodes in the cluster, [{ port: number, host: string }] |
 | options | <code>Object</code> |  |  |
 | [options.enableOfflineQueue] | <code>boolean</code> | <code>true</code> | See Redis class |
-| [options.lazyConnect] | <code>boolean</code> | <code>false</code> | See Redis class |
 | [options.scaleReads] | <code>string</code> | <code>&quot;masters&quot;</code> | Scale reads to the node with the specified role. Available values are "masters", "slaves" and "all". |
 | [options.maxRedirections] | <code>number</code> | <code>16</code> | When a MOVED or ASK error is received, client will redirect the command to another node. This option limits the max redirections allowed to send a command. |
 | [options.clusterRetryStrategy] | <code>function</code> |  | See "Quick Start" section |
