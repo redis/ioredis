@@ -62,7 +62,6 @@ describe('select', function () {
     });
 
     redis.on('select', function (db) {
-      console.log('select', db);
       changes.push(db);
     });
   });
