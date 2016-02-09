@@ -6,7 +6,7 @@
   "scripts": {
     "test": "NODE_ENV=test DEBUG=ioredis:* mocha",
     "test:cov": "NODE_ENV=test DEBUG=ioredis:* node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -R spec",
-    "generate-docs": "jsdoc2md lib/redis.js lib/cluster.js lib/commander.js > API.md",
+    "generate-docs": "jsdoc2md lib/redis.js lib/cluster/index.js lib/commander.js > API.md",
     "build": "node tools/build > commands.js",
     "bench": "matcha benchmarks/*.js"
   },

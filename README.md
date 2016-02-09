@@ -644,7 +644,7 @@ cluster.get('foo', function (err, res) {
 0. The first argument is a list of nodes of the cluster you want to connect to.
 Just like Sentinel, the list does not need to enumerate all your cluster nodes,
 but a few so that if one is unreachable the client will try the next one, and the client will discover other nodes automatically when at least one node is connnected.
-0. The second argument is the option that will be passed to the `Redis` constructor when creating connections to Redis nodes internally. There are some additional options for the Cluster:
+0. The second argument is the options, where:
 
     * `clusterRetryStrategy`: When none of the startup nodes are reachable, `clusterRetryStrategy` will be invoked. When a number is returned,
     ioredis will try to reconnect to the startup nodes from scratch after the specified delay (in ms). Otherwise, an error of "None of startup nodes is available" will be returned.
@@ -660,36 +660,59 @@ but a few so that if one is unreachable the client will try the next one, and th
     * `maxRedirections`: When a cluster related error (e.g. `MOVED`, `ASK` and `CLUSTERDOWN` etc.) is received, the client will redirect the
     command to another node. This option limits the max redirections allowed when sending a command. The default value is `16`.
     * `retryDelayOnFailover`: If the error of "Connection is closed." is received when sending a command,
-    ioredis will retry after the specified delay. The default value is `2000`. You should make sure `retryDelayOnFailover * maxRedirections > cluster-node-timeout`
+    ioredis will retry after the specified delay. The default value is `100`. You should make sure `retryDelayOnFailover * maxRedirections > cluster-node-timeout`
     to insure that no command will fail during a failover.
-    * `retryDelayOnClusterDown`: When a cluster is down, all commands will be rejected with the error of `CLUSTERDOWN`. If this option is a number (by default, it is 1000), the client
+    * `retryDelayOnClusterDown`: When a cluster is down, all commands will be rejected with the error of `CLUSTERDOWN`. If this option is a number (by default, it is `100`), the client
     will resend the commands after the specified time (in ms).
+    * `scaleReads`: Config where to send the read queries. See below for more details.
+    * `redisOptions`: Default options passed to the constructor of `Redis` when connecting to a node.
 
-### Running same operation on multiple nodes
+### Read-write splitting
 
-Sometimes you may want to send a command to all the nodes (masters or slaves) of the cluster. Here's a helper function
-for this case:
+A typical redis cluster contains three or more masters and several slaves for each master. It's possible to scale out redis cluster by sending read queries to slaves and write queries to masters by setting the `scaleReads` option.
+
+`scaleReads` is "master" by default, which means ioredis will never send any queries to slaves. There are other two available options:
+
+1. "all": Send write queries to masters and read queries to masters or slaves randomly.
+2. "slave": Send write queries to masters and read queries to slaves.
+
+For example:
 
 ```javascript
-// Send `flushdb` command to every master,
-// other available groups are 'slaves' and 'all'.
-cluster.to('masters').call('flushdb').then(function (results) {
+var cluster = new Redis.Cluster([/* nodes */], {
+  scaleReads: 'slave'
 });
-
-// Get all keys of the cluster:
-cluster.to('masters').call('keys').then(function (keys) {
-  return [].concat.apply([], keys);
-});
-
-// in case of buffer
-cluster.to('slaves').callBuffer('get', 'key').catch(function (err) {
-  // likely rejected, because operations would only succeed partially due to slot | moved error
+cluster.set('foo', 'bar'); // This query will be sent to one of the masters.
+cluster.get('foo', function (err, res) {
+  // This query will be sent to one of the slaves.
 });
 ```
 
-**Note 1** At the time of calling `to` method, ioredis may have not connected all nodes of the Cluster, so that it's possible that only a part of the nodes will receive the command.
+**NB** In the code snippet above, the `res` may not be equal to "bar" because of the lag of replication between the master and slaves.
 
-**Note 2** If the `readOnly` option is `false`, ioredis won't try to connect to the slave nodes, so `cluster.to('slaves').call()` won't send the command to any nodes. In this case, `cluster.to('all')` are same to the `cluster.to('masters')`.
+### Running commands to multiple nodes
+
+Every command will be sent to exactly one node. For commands containing keys, (e.g. `GET`, `SET` and `HGETALL`), ioredis sends them to the node that serving the keys, and for other commands not containing keys, (e.g. `INFO`, `KEYS` and `FLUSHDB`), ioredis sends them to a random node.
+
+Sometimes you may want to send a command to multiple nodes (masters or slaves) of the cluster, you can get the nodes via `Cluster#nodes()` method.
+
+`Cluster#nodes()` accepts a parameter role, which can be "master", "slave" and "all" (default), and returns an array of `Redis` instance. For example:
+
+```javascript
+// Send `FLUSHDB` command to all slaves:
+var slaves = cluster.nodes('slave');
+Promise.all(slaves.map(function (node) {
+  return node.flushdb();
+}));
+
+// Get keys of all the masters:
+var masters = cluster.nodes('master');
+Promise.all(masters.map(function (node) {
+  return node.keys();
+})).then(function (keys) {
+  // keys: [['key1', 'key2'], ['key3', 'key4']]
+});
+```
 
 ### Transaction and pipeline in Cluster mode
 Almost all features that are supported by `Redis` are also supported by `Redis.Cluster`, e.g. custom commands, transaction and pipeline.
@@ -721,25 +744,29 @@ sub.subscribe('news', function () {
 ```
 
 ### Events
-If an error occurs when connecting to the node, the `node error` event will be emitted. Furthermore, if all nodes aren't reachable,
-the `error` event will be emitted silently (only emitting if there's at least one listener) with a property of `lastNodeError` representing
-the last node error received.
 
-### Scaling reads using slave nodes
-Normally, commands are only sent to the masters since slaves can't process write queries.
-However, you can use the `readOnly` option to use slaves in order to scale reads:
-
-```javascript
-var Redis = require('ioredis');
-var cluster = new Redis.Cluster(nodes, { readOnly: true });
-```
+Event    | Description
+:------------- | :-------------
+connect  | emits when a connection is established to the Redis server.
+ready    | emits immediately after `connect` event.
+error    | emits when an error occurs while connecting with a property of `lastNodeError` representing the last node error received. This event is emitted silently (only emitting if there's at least one listener).
+close    | emits when an established Redis server connection has closed.
+reconnecting | emits after `close` when a reconnection will be made. The argument of the event is the time (in ms) before reconnecting.
+end     | emits after `close` when no more reconnections will be made.
++node   | emits when a new node is connected.
+-node   | emits when a node is disconnected.
+node error | emits when an error occurs when connecting to a node
 
 ### Password
 Setting the `password` option to access password-proctected clusters:
 
 ```javascript
 var Redis = require('ioredis');
-var cluster = new Redis.Cluster(nodes, { password: 'your-cluster-password' });
+var cluster = new Redis.Cluster(nodes, {
+  redisOptions: {
+    password: 'your-cluster-password'
+  }
+});
 ```
 
 If some of nodes in the cluster using a different password, you should specify them in the first parameter:
@@ -750,9 +777,13 @@ var cluster = new Redis.Cluster([
   // Use password "password-for-30001" for 30001
   { port: 30001, password: 'password-for-30001'},
   // Don't use password when accessing 30002
-  { port: 30002 }
+  { port: 30002, password: null }
   // Other nodes will use "fallback-password"
-], { password: 'fallback-password' });
+], {
+  redisOptions: {
+    password: 'fallback-password'
+  }
+});
 ```
 
 ## Native Parser
@@ -874,14 +905,6 @@ And since I'm not a native English speaker, if you find any grammar mistakes in 
 
 # Contributors
 <table><tr><td width="20%"><a href="https://github.com/luin"><img src="https://avatars.githubusercontent.com/u/635902?v=3" /></a><p align="center">luin</p></td><td width="20%"><a href="https://github.com/dguo"><img src="https://avatars.githubusercontent.com/u/2763135?v=3" /></a><p align="center">dguo</p></td><td width="20%"><a href="https://github.com/nakulgan"><img src="https://avatars.githubusercontent.com/u/189836?v=3" /></a><p align="center">nakulgan</p></td><td width="20%"><a href="https://github.com/AVVS"><img src="https://avatars.githubusercontent.com/u/1713617?v=3" /></a><p align="center">AVVS</p></td><td width="20%"><a href="https://github.com/shaharmor"><img src="https://avatars.githubusercontent.com/u/10861920?v=3" /></a><p align="center">shaharmor</p></td></tr><tr><td width="20%"><a href="https://github.com/hayeah"><img src="https://avatars.githubusercontent.com/u/50120?v=3" /></a><p align="center">hayeah</p></td><td width="20%"><a href="https://github.com/albin3"><img src="https://avatars.githubusercontent.com/u/6190670?v=3" /></a><p align="center">albin3</p></td><td width="20%"><a href="https://github.com/phlip9"><img src="https://avatars.githubusercontent.com/u/918989?v=3" /></a><p align="center">phlip9</p></td><td width="20%"><a href="https://github.com/fracmak"><img src="https://avatars.githubusercontent.com/u/378178?v=3" /></a><p align="center">fracmak</p></td><td width="20%"><a href="https://github.com/suprememoocow"><img src="https://avatars.githubusercontent.com/u/594566?v=3" /></a><p align="center">suprememoocow</p></td></tr><tr><td width="20%"><a href="https://github.com/lpinca"><img src="https://avatars.githubusercontent.com/u/1443911?v=3" /></a><p align="center">lpinca</p></td><td width="20%"><a href="https://github.com/jeffjen"><img src="https://avatars.githubusercontent.com/u/5814507?v=3" /></a><p align="center">jeffjen</p></td><td width="20%"><a href="https://github.com/devaos"><img src="https://avatars.githubusercontent.com/u/5412167?v=3" /></a><p align="center">devaos</p></td><td width="20%"><a href="https://github.com/horx"><img src="https://avatars.githubusercontent.com/u/1332618?v=3" /></a><p align="center">horx</p></td><td width="20%"><a href="https://github.com/ColmHally"><img src="https://avatars.githubusercontent.com/u/20333?v=3" /></a><p align="center">ColmHally</p></td></tr><tr><td width="20%"><a href="https://github.com/klinquist"><img src="https://avatars.githubusercontent.com/u/1343376?v=3" /></a><p align="center">klinquist</p></td><td width="20%"><a href="https://github.com/alsotang"><img src="https://avatars.githubusercontent.com/u/1147375?v=3" /></a><p align="center">alsotang</p></td><td width="20%"><a href="https://github.com/zhuangya"><img src="https://avatars.githubusercontent.com/u/499038?v=3" /></a><p align="center">zhuangya</p></td><td width="20%"><a href="https://github.com/pensierinmusica"><img src="https://avatars.githubusercontent.com/u/3594037?v=3" /></a><p align="center">pensierinmusica</p></td><td width="20%"><a href="https://github.com/ArtskydJ"><img src="https://avatars.githubusercontent.com/u/1833684?v=3" /></a><p align="center">ArtskydJ</p></td></tr><tr><td width="20%"><a href="https://github.com/tkalfigo"><img src="https://avatars.githubusercontent.com/u/3481553?v=3" /></a><p align="center">tkalfigo</p></td><td width="20%"><a href="https://github.com/pra85"><img src="https://avatars.githubusercontent.com/u/829526?v=3" /></a><p align="center">pra85</p></td><td width="20%"><a href="https://github.com/devoto13"><img src="https://avatars.githubusercontent.com/u/823594?v=3" /></a><p align="center">devoto13</p></td><td width="20%"><a href="https://github.com/henstock"><img src="https://avatars.githubusercontent.com/u/13809467?v=3" /></a><p align="center">henstock</p></td><td width="20%"><a href="https://github.com/pyros2097"><img src="https://avatars.githubusercontent.com/u/1687946?v=3" /></a><p align="center">pyros2097</p></td></tr><tr><td width="20%"><a href="https://github.com/VikramTiwari"><img src="https://avatars.githubusercontent.com/u/1330677?v=3" /></a><p align="center">VikramTiwari</p></td><td width="20%"><a href="https://github.com/i5ting"><img src="https://avatars.githubusercontent.com/u/3118295?v=3" /></a><p align="center">i5ting</p></td><td width="20%"><a href="https://github.com/nswbmw"><img src="https://avatars.githubusercontent.com/u/4279697?v=3" /></a><p align="center">nswbmw</p></td><td width="20%"><a href="https://github.com/joeledwards"><img src="https://avatars.githubusercontent.com/u/412853?v=3" /></a><p align="center">joeledwards</p></td><td width="20%"><a href="https://github.com/mtlima"><img src="https://avatars.githubusercontent.com/u/9111440?v=3" /></a><p align="center">mtlima</p></td></tr><tr><td width="20%"><a href="https://github.com/igrcic"><img src="https://avatars.githubusercontent.com/u/394398?v=3" /></a><p align="center">igrcic</p></td></table>
-
-# Roadmap
-
-- [ ] Connection Pool & Read Write Splitting
-
-# Acknowledgements
-
-The JavaScript and hiredis parsers are modified from [node_redis](https://github.com/mranney/node_redis) (MIT License, Copyright (c) 2010 Matthew Ranney, http://ranney.com/).
 
 # License
 
