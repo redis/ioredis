@@ -1105,13 +1105,19 @@ describe('cluster', function () {
           [5461, 10922, ['127.0.0.1', 30002]]
         ];
         cluster.refreshSlotsCache(function () {
-          expect(cluster.nodes('masters')).to.have.lengthOf(2);
-          expect([
-            cluster.nodes('masters')[0].options.port,
-            cluster.nodes('masters')[1].options.port
-          ].sort()).to.eql([30002, 30003]);
-          cluster.disconnect();
-          disconnect([node1, node2, node3], done);
+          cluster.once('-node', function (removed) {
+            expect(removed.options.port).to.eql(30001);
+            expect(cluster.nodes('masters')).to.have.lengthOf(2);
+            expect([
+              cluster.nodes('masters')[0].options.port,
+              cluster.nodes('masters')[1].options.port
+            ].sort()).to.eql([30002, 30003]);
+            cluster.nodes('masters').forEach(function (node) {
+              expect(node.options).to.have.property('readOnly', false);
+            });
+            cluster.disconnect();
+            disconnect([node1, node2, node3], done);
+          });
         });
       });
     });
