@@ -955,8 +955,8 @@ describe('cluster', function () {
       disconnect([this.node1, this.node2, this.node3], done);
     });
 
-    context('masters', function () {
-      it('should only send reads to masters', function (done) {
+    context('master', function () {
+      it('should only send reads to master', function (done) {
         var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001' }]);
         cluster.on('ready', function () {
           stub(utils, 'sample').throws('sample is called');
@@ -970,10 +970,10 @@ describe('cluster', function () {
       });
     });
 
-    context('slaves', function () {
-      it('should only send reads to slaves', function (done) {
+    context('slave', function () {
+      it('should only send reads to slave', function (done) {
         var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001' }], {
-          scaleReads: 'slaves'
+          scaleReads: 'slave'
         });
         cluster.on('ready', function () {
           stub(utils, 'sample', function (array, from) {
@@ -992,7 +992,7 @@ describe('cluster', function () {
 
       it('should send writes to masters', function (done) {
         var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001' }], {
-          scaleReads: 'slaves'
+          scaleReads: 'slave'
         });
         cluster.on('ready', function () {
           stub(utils, 'sample').throws('sample is called');
@@ -1055,14 +1055,14 @@ describe('cluster', function () {
       cluster.on('ready', function () {
         expect(cluster.nodes()).to.have.lengthOf(3);
         expect(cluster.nodes('all')).to.have.lengthOf(3);
-        expect(cluster.nodes('masters')).to.have.lengthOf(2);
-        expect(cluster.nodes('slaves')).to.have.lengthOf(1);
+        expect(cluster.nodes('master')).to.have.lengthOf(2);
+        expect(cluster.nodes('slave')).to.have.lengthOf(1);
 
         cluster.on('-node', function () {
           expect(cluster.nodes()).to.have.lengthOf(2);
           expect(cluster.nodes('all')).to.have.lengthOf(2);
-          expect(cluster.nodes('masters')).to.have.lengthOf(1);
-          expect(cluster.nodes('slaves')).to.have.lengthOf(1);
+          expect(cluster.nodes('master')).to.have.lengthOf(1);
+          expect(cluster.nodes('slave')).to.have.lengthOf(1);
           cluster.disconnect();
           disconnect([node2, node3], done);
         });
@@ -1099,7 +1099,7 @@ describe('cluster', function () {
         redisOptions: { showFriendlyErrorStack: true }
       });
       cluster.on('ready', function () {
-        expect(cluster.nodes('masters')).to.have.lengthOf(2);
+        expect(cluster.nodes('master')).to.have.lengthOf(2);
         slotTable = [
           [0, 5460, ['127.0.0.1', 30003]],
           [5461, 10922, ['127.0.0.1', 30002]]
@@ -1107,12 +1107,12 @@ describe('cluster', function () {
         cluster.refreshSlotsCache(function () {
           cluster.once('-node', function (removed) {
             expect(removed.options.port).to.eql(30001);
-            expect(cluster.nodes('masters')).to.have.lengthOf(2);
+            expect(cluster.nodes('master')).to.have.lengthOf(2);
             expect([
-              cluster.nodes('masters')[0].options.port,
-              cluster.nodes('masters')[1].options.port
+              cluster.nodes('master')[0].options.port,
+              cluster.nodes('master')[1].options.port
             ].sort()).to.eql([30002, 30003]);
-            cluster.nodes('masters').forEach(function (node) {
+            cluster.nodes('master').forEach(function (node) {
               expect(node.options).to.have.property('readOnly', false);
             });
             cluster.disconnect();

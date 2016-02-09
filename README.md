@@ -671,16 +671,16 @@ but a few so that if one is unreachable the client will try the next one, and th
 
 A typical redis cluster contains three or more masters and several slaves for each master. It's possible to scale out redis cluster by sending read queries to slaves and write queries to masters by setting the `scaleReads` option.
 
-`scaleReads` is "masters" by default, which means ioredis will never send any queries to slaves. There are other two available options:
+`scaleReads` is "master" by default, which means ioredis will never send any queries to slaves. There are other two available options:
 
 1. "all": Send write queries to masters and read queries to masters or slaves randomly.
-2. "slaves": Send write queries to masters and read queries to slaves.
+2. "slave": Send write queries to masters and read queries to slaves.
 
 For example:
 
 ```javascript
 var cluster = new Redis.Cluster([/* nodes */], {
-  scaleReads: 'slaves'
+  scaleReads: 'slave'
 });
 cluster.set('foo', 'bar'); // This query will be sent to one of the masters.
 cluster.get('foo', function (err, res) {
@@ -696,17 +696,17 @@ Every command will be sent to exactly one node. For commands containing keys, (e
 
 Sometimes you may want to send a command to multiple nodes (masters or slaves) of the cluster, you can get the nodes via `Cluster#nodes()` method.
 
-`Cluster#nodes()` accepts a parameter role, which can be "masters", "slaves" and "all" (default), and returns an array of `Redis` instance. For example:
+`Cluster#nodes()` accepts a parameter role, which can be "master", "slave" and "all" (default), and returns an array of `Redis` instance. For example:
 
 ```javascript
 // Send `FLUSHDB` command to all slaves:
-var slaves = cluster.nodes('slaves');
+var slaves = cluster.nodes('slave');
 Promise.all(slaves.map(function (node) {
   return node.flushdb();
 }));
 
 // Get keys of all the masters:
-var masters = cluster.nodes('masters');
+var masters = cluster.nodes('master');
 Promise.all(masters.map(function (node) {
   return node.keys();
 })).then(function (keys) {
