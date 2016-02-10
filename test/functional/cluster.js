@@ -940,7 +940,7 @@ describe('cluster', function () {
       function handler(port, argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
           return [
-            [0, 16381, ['127.0.0.1', 30001], ['127.0.0.1', 30003]],
+            [0, 16381, ['127.0.0.1', 30001], ['127.0.0.1', 30003], ['127.0.0.1', 30004]],
             [16382, 16383, ['127.0.0.1', 30002]]
           ];
         }
@@ -949,10 +949,11 @@ describe('cluster', function () {
       this.node1 = new MockServer(30001, handler.bind(null, 30001));
       this.node2 = new MockServer(30002, handler.bind(null, 30002));
       this.node3 = new MockServer(30003, handler.bind(null, 30003));
+      this.node4 = new MockServer(30004, handler.bind(null, 30004));
     });
 
     afterEach(function (done) {
-      disconnect([this.node1, this.node2, this.node3], done);
+      disconnect([this.node1, this.node2, this.node3, this.node4], done);
     });
 
     context('master', function () {
@@ -977,7 +978,7 @@ describe('cluster', function () {
         });
         cluster.on('ready', function () {
           stub(utils, 'sample', function (array, from) {
-            expect(array).to.eql(['127.0.0.1:30001', '127.0.0.1:30003']);
+            expect(array).to.eql(['127.0.0.1:30001', '127.0.0.1:30003', '127.0.0.1:30004']);
             expect(from).to.eql(1);
             return '127.0.0.1:30003';
           });
@@ -1006,6 +1007,54 @@ describe('cluster', function () {
       });
     });
 
+    context('custom', function () {
+      it('should send to selected slave', function (done) {
+        var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001' }], {
+          scaleReads: function(node, command) {
+            if (command.name === 'get') {
+              return node[1];
+            } else {
+              return node[2];
+            }
+          }
+        });
+        cluster.on('ready', function () {
+          stub(utils, 'sample', function (array, from) {
+            expect(array).to.eql(['127.0.0.1:30001', '127.0.0.1:30003', '127.0.0.1:30004']);
+            expect(from).to.eql(1);
+            return '127.0.0.1:30003';
+          });
+          cluster.hgetall('foo', function (err, res) {
+            utils.sample.restore();
+            expect(res).to.eql(30004);
+            cluster.disconnect();
+            done();
+          });
+        });
+      });
+
+      it('should send writes to masters', function (done) {
+        var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001' }], {
+          scaleReads: function(node, command) {
+            if (command.name === 'get') {
+              return node[1];
+            } else {
+              return node[2];
+            }
+          }
+        });
+        cluster.on('ready', function () {
+          stub(utils, 'sample').throws('sample is called');
+          cluster.set('foo', 'bar', function (err, res) {
+            utils.sample.restore();
+            expect(res).to.eql(30001);
+            cluster.disconnect();
+            done();
+          });
+        });
+      });
+    });
+
     context('all', function () {
       it('should send reads to all nodes randomly', function (done) {
         var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001' }], {
@@ -1013,7 +1062,7 @@ describe('cluster', function () {
         });
         cluster.on('ready', function () {
           stub(utils, 'sample', function (array, from) {
-            expect(array).to.eql(['127.0.0.1:30001', '127.0.0.1:30003']);
+            expect(array).to.eql(['127.0.0.1:30001', '127.0.0.1:30003', '127.0.0.1:30004']);
             expect(from).to.eql(undefined);
             return '127.0.0.1:30003';
           });

@@ -671,10 +671,11 @@ but a few so that if one is unreachable the client will try the next one, and th
 
 A typical redis cluster contains three or more masters and several slaves for each master. It's possible to scale out redis cluster by sending read queries to slaves and write queries to masters by setting the `scaleReads` option.
 
-`scaleReads` is "master" by default, which means ioredis will never send any queries to slaves. There are other two available options:
+`scaleReads` is "master" by default, which means ioredis will never send any queries to slaves. There are other three available options:
 
 1. "all": Send write queries to masters and read queries to masters or slaves randomly.
 2. "slave": Send write queries to masters and read queries to slaves.
+3. a custom `function(nodes, command): node`: Will choose the custom function to select to which node to send read queries (write queries keep being sent to master). The first node in `nodes` is always the master serving the relevant slots. If the function returns an array of nodes, a random node of that list will be selected.
 
 For example:
 
