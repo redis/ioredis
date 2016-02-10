@@ -35,7 +35,8 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 * [Error Handling](#error-handling)
 
 # v2.0
-2.0 is under active development. Checkout the [2.x branch](https://github.com/luin/ioredis/pull/246) to see whether it contains the feature you need.
+v2.0 is under active development. Checkout the [2.x branch](https://github.com/luin/ioredis/pull/246) to see whether it contains the feature you need.
+Use `npm install ioredis@next` to install v2.0 unstable branch.
 
 <hr>
 <a href="https://itunes.apple.com/app/medis-gui-for-redis/id1063631769"><img align="right" src="medis.png" alt="Download on the App Store"></a>
