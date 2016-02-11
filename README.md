@@ -86,6 +86,8 @@ redis.sadd('set', [1, 3, 5, 7]);
 redis.set('key', 100, 'EX', 10);
 ```
 
+See the `examples/` folder for more examples.
+
 ## Connect to Redis
 When a new `Redis` instance is created,
 a connection to Redis will be created at the same time.
