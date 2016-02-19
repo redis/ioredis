@@ -1,3 +1,13 @@
+<a name="1.15.1"></a>
+## [1.15.1](https://github.com/luin/ioredis/compare/v1.15.0...v1.15.1) (2016-02-19)
+
+
+### Bug Fixes
+
+* select db on connect event to prevent subscribe errors ([829bf26](https://github.com/luin/ioredis/commit/829bf26)), closes [#255](https://github.com/luin/ioredis/issues/255)
+
+
+
 <a name="1.15.0"></a>
 # [1.15.0](https://github.com/luin/ioredis/compare/v1.14.0...v1.15.0) (2016-01-31)
 
