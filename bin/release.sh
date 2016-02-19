@@ -8,7 +8,7 @@ git add Changelog.md &&
 version=`cat package.json | json version` &&
 git commit -m"docs(CHANGELOG): $version" &&
 mv -f _package.json package.json &&
-npm version ${1:-$bump} -m "chore(release): %s"
+npm version ${1:-$bump} -m "chore(release): %s" &&
 git push --follow-tags &&
 conventional-github-releaser -p angular &&
 npm publish
