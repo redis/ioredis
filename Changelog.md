@@ -1,3 +1,17 @@
+<a name="2.0.0-alpha2"></a>
+# [2.0.0-alpha2](https://github.com/luin/ioredis/compare/v2.0.0-alpha1...v2.0.0-alpha2) (2016-02-29)
+
+
+### Bug Fixes
+
+* **cluster:** fix memory leaking in sendCommand method ([410af51](https://github.com/luin/ioredis/commit/410af51))
+
+### Features
+
+* **cluster:** add the option for a custom node selector in scaleReads ([6795b1e](https://github.com/luin/ioredis/commit/6795b1e))
+
+
+
 <a name="2.0.0-alpha1"></a>
 # [2.0.0-alpha1](https://github.com/luin/ioredis/compare/v1.15.0...v2.0.0-alpha1) (2016-02-10)
 
