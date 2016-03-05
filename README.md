@@ -658,6 +658,14 @@ but a few so that if one is unreachable the client will try the next one, and th
           return delay;
         }
         ```
+    It' possible to modify the `startupNodes` property in order to switch to another set of nodes here:
+
+        ```javascript
+        function (times) {
+          this.startupNodes = [{ port: 6790, host: '127.0.0.1' }];
+          return Math.min(100 + times * 2, 2000);
+        }
+        ```
 
     * `enableOfflineQueue`: Similar to the `enableOfflineQueue` option of `Redis` class.
     * `enableReadyCheck`: When enabled, "ready" event will only be emitted when `CLUSTER INFO` command

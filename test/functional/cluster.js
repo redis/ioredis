@@ -966,6 +966,33 @@ describe('cluster', function () {
     });
   });
 
+  describe('startupNodes', function () {
+    it('should allow updating startupNodes', function (done) {
+      var node1 = new MockServer(30001, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return [
+            [0, 16383, ['127.0.0.1', 30001]]
+          ];
+        }
+        if (argv[0] === 'cluster' && argv[1] === 'info') {
+          return 'cluster_state:fail';
+        }
+      });
+      var client = new Redis.Cluster([{
+        host: '127.0.0.1', port: '30001'
+      }], {
+        clusterRetryStrategy: function () {
+          this.startupNodes = [{ port: 30002 }];
+          return 0;
+        }
+      });
+      var node2 = new MockServer(30002, function () {
+        client.disconnect();
+        disconnect([node1, node2], done);
+      });
+    });
+  });
+
   describe('scaleReads', function () {
     beforeEach(function () {
       function handler(port, argv) {
