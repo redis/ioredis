@@ -659,14 +659,17 @@ but a few so that if one is unreachable the client will try the next one, and th
         }
         ```
 
+    * `enableOfflineQueue`: Similar to the `enableOfflineQueue` option of `Redis` class.
+    * `enableReadyCheck`: When enabled, "ready" event will only be emitted when `CLUSTER INFO` command
+    reporting the cluster is ready for handling commands. Otherwise, it will be emitted immediately after "connect" is emitted.
+    * `scaleReads`: Config where to send the read queries. See below for more details.
     * `maxRedirections`: When a cluster related error (e.g. `MOVED`, `ASK` and `CLUSTERDOWN` etc.) is received, the client will redirect the
     command to another node. This option limits the max redirections allowed when sending a command. The default value is `16`.
-    * `retryDelayOnFailover`: If the error of "Connection is closed." is received when sending a command,
+    * `retryDelayOnFailover`: If the target node is disconnected when sending a command,
     ioredis will retry after the specified delay. The default value is `100`. You should make sure `retryDelayOnFailover * maxRedirections > cluster-node-timeout`
     to insure that no command will fail during a failover.
     * `retryDelayOnClusterDown`: When a cluster is down, all commands will be rejected with the error of `CLUSTERDOWN`. If this option is a number (by default, it is `100`), the client
     will resend the commands after the specified time (in ms).
-    * `scaleReads`: Config where to send the read queries. See below for more details.
     * `redisOptions`: Default options passed to the constructor of `Redis` when connecting to a node.
 
 ### Read-write splitting
