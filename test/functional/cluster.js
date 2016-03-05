@@ -935,6 +935,37 @@ describe('cluster', function () {
     });
   });
 
+  describe('enableReadyCheck', function () {
+    it('should reconnect when cluster state is not ok', function (done) {
+      var state = 'fail';
+      var server = new MockServer(30001, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return [
+            [0, 16383, ['127.0.0.1', 30001]]
+          ];
+        } else if (argv[0] === 'cluster' && argv[1] === 'info') {
+          return 'cluster_state:' + state;
+        }
+      });
+      var count = 0;
+      var client = new Redis.Cluster([{
+        host: '127.0.0.1', port: '30001'
+      }], {
+        clusterRetryStrategy: function (times) {
+          expect(++count).to.eql(times);
+          if (count === 3) {
+            state = 'ok';
+          }
+          return 0;
+        }
+      });
+      client.on('ready', function () {
+        client.disconnect();
+        disconnect([server], done);
+      });
+    });
+  });
+
   describe('scaleReads', function () {
     beforeEach(function () {
       function handler(port, argv) {
@@ -1010,12 +1041,11 @@ describe('cluster', function () {
     context('custom', function () {
       it('should send to selected slave', function (done) {
         var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001' }], {
-          scaleReads: function(node, command) {
+          scaleReads: function (node, command) {
             if (command.name === 'get') {
               return node[1];
-            } else {
-              return node[2];
             }
+            return node[2];
           }
         });
         cluster.on('ready', function () {
@@ -1035,12 +1065,11 @@ describe('cluster', function () {
 
       it('should send writes to masters', function (done) {
         var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001' }], {
-          scaleReads: function(node, command) {
+          scaleReads: function (node, command) {
             if (command.name === 'get') {
               return node[1];
-            } else {
-              return node[2];
             }
+            return node[2];
           }
         });
         cluster.on('ready', function () {
