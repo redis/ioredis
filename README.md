@@ -751,7 +751,7 @@ sub.subscribe('news', function () {
 Event    | Description
 :------------- | :-------------
 connect  | emits when a connection is established to the Redis server.
-ready    | emits immediately after `connect` event.
+ready    | emits when `CLUSTER INFO` reporting the cluster is able to receive commands (if `enableReadyCheck` is `true`) or immediately after `connect` event (if `enableReadyCheck` is false).
 error    | emits when an error occurs while connecting with a property of `lastNodeError` representing the last node error received. This event is emitted silently (only emitting if there's at least one listener).
 close    | emits when an established Redis server connection has closed.
 reconnecting | emits after `close` when a reconnection will be made. The argument of the event is the time (in ms) before reconnecting.

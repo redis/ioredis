@@ -215,11 +215,13 @@ Creates a Redis Cluster instance
 | startupNodes | <code>Array.&lt;Object&gt;</code> |  | An array of nodes in the cluster, [{ port: number, host: string }] |
 | options | <code>Object</code> |  |  |
 | [options.enableOfflineQueue] | <code>boolean</code> | <code>true</code> | See Redis class |
+| [options.enableReadyCheck] | <code>boolean</code> | <code>true</code> | When enabled, ioredis only emits "ready" event when `CLUSTER INFO` command reporting the cluster is ready for handling commands. |
 | [options.scaleReads] | <code>string</code> | <code>&quot;master&quot;</code> | Scale reads to the node with the specified role. Available values are "master", "slave" and "all". |
 | [options.maxRedirections] | <code>number</code> | <code>16</code> | When a MOVED or ASK error is received, client will redirect the command to another node. This option limits the max redirections allowed to send a command. |
 | [options.clusterRetryStrategy] | <code>function</code> |  | See "Quick Start" section |
 | [options.retryDelayOnFailover] | <code>number</code> | <code>100</code> | When an error is received when sending a command(e.g. "Connection is closed." when the target Redis node is down), |
 | [options.retryDelayOnClusterDown] | <code>number</code> | <code>100</code> | When a CLUSTERDOWN error is received, client will retry if `retryDelayOnClusterDown` is valid delay time. |
+| [options.redisOptions] | <code>Object</code> |  | Passed to the constructor of `Redis`. |
 
 <a name="Cluster+connect"></a>
 ### cluster.connect() ⇒ <code>Promise</code>
