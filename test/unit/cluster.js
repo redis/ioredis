@@ -22,20 +22,6 @@ describe('cluster', function () {
     expect(cluster.options).to.have.property('scaleReads', 'master');
   });
 
-  it('should throw when startupNodes is not an array or is empty', function () {
-    expect(function () {
-      new Cluster();
-    }).to.throw(/startupNodes/);
-
-    expect(function () {
-      new Cluster([]);
-    }).to.throw(/startupNodes/);
-
-    expect(function () {
-      new Cluster([{}]);
-    }).to.not.throw(/startupNodes/);
-  });
-
   describe('#executeFailoverCommands', function () {
     it('should execute the commands', function (done) {
       var cluster = {
