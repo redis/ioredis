@@ -70,4 +70,19 @@ describe('auth', function () {
       done();
     });
   });
+
+  it('should emit "authError" when password is not provided', function (done) {
+    var server = new MockServer(17379, function (argv) {
+      if (argv[0] === 'info') {
+        return new Error('NOAUTH Authentication required.');
+      }
+    });
+    var redis = new Redis({ port: 17379 });
+    redis.on('authError', function (error) {
+      expect(error).to.have.property('message', 'NOAUTH Authentication required.');
+      redis.disconnect();
+      server.disconnect();
+      done();
+    });
+  });
 });
