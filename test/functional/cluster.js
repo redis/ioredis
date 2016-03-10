@@ -478,9 +478,7 @@ describe('cluster', function () {
       var cluster = new Redis.Cluster([
         { host: '127.0.0.1', port: '30001' }
       ], { retryDelayOnTryAgain: 1 });
-      cluster.get('foo', function () {
-        cluster.get('foo');
-      });
+      cluster.get('foo');
     });
   });
 
