@@ -1,3 +1,24 @@
+<a name="2.0.0-alpha3"></a>
+# [2.0.0-alpha3](https://github.com/luin/ioredis/compare/v2.0.0-alpha2...v2.0.0-alpha3) (2016-03-13)
+
+
+### Bug Fixes
+
+* **auth:** emit authError when the server requiring a password ([c5ca754](https://github.com/luin/ioredis/commit/c5ca754))
+
+### Features
+
+* **cluster:** add enableReadyCheck option for cluster ([b63cdc7](https://github.com/luin/ioredis/commit/b63cdc7))
+* **cluster:** redirect on TRYAGAIN error ([b1a4b62](https://github.com/luin/ioredis/commit/b1a4b62))
+* **cluster:** support update startupNodes in clusterRetryStrategy ([4a46766](https://github.com/luin/ioredis/commit/4a46766))
+* **transaction:** transform replies of transactions ([e0b1883](https://github.com/luin/ioredis/commit/e0b1883)), closes [#158](https://github.com/luin/ioredis/issues/158)
+
+
+### BREAKING CHANGES
+
+  1. Reply transformers is supported inside transactions.
+  2. `Pipeline#execBuffer()` is deprecated. Use `Pipeline#exec()` instead.
+
 <a name="2.0.0-alpha2"></a>
 # [2.0.0-alpha2](https://github.com/luin/ioredis/compare/v2.0.0-alpha1...v2.0.0-alpha2) (2016-02-29)
 
