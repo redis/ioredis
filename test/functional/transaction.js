@@ -24,7 +24,7 @@ describe('transaction', function () {
 
   it('should handle compile-time errors correctly', function (done) {
     var redis = new Redis();
-    redis.multi().set('foo').get('foo').exec(function (err, result) {
+    redis.multi().set('foo').get('foo').exec(function (err) {
       expect(err).to.be.instanceof(Error);
       expect(err.toString()).to.match(/Transaction discarded because of previous errors/);
       done();
@@ -69,14 +69,42 @@ describe('transaction', function () {
     });
   });
 
-  it('should support execBuffer', function (done) {
-    var redis = new Redis();
-    redis.multi().set('foo', 'bar').get('foo').execBuffer(function (err, res) {
-      expect(res[0][1]).to.be.instanceof(Buffer);
-      expect(res[0][1].toString()).to.eql('OK');
-      expect(res[1][1]).to.be.instanceof(Buffer);
-      expect(res[1][1].toString()).to.eql('bar');
-      done();
+  describe('transformer', function () {
+    it('should trigger transformer', function (done) {
+      var redis = new Redis();
+      var pending = 2;
+      var data = { name: 'Bob', age: '17' };
+      redis.multi().hmset('foo', data).hgetall('foo', function (err, res) {
+        expect(res).to.eql('QUEUED');
+        if (!--pending) {
+          done();
+        }
+      }).hgetallBuffer('foo').exec(function (err, res) {
+        expect(res[0][1]).to.eql('OK');
+        expect(res[1][1]).to.eql(data);
+        expect(res[2][1]).to.eql({
+          name: new Buffer('Bob'),
+          age: new Buffer('17')
+        });
+        if (!--pending) {
+          done();
+        }
+      });
+    });
+
+    it('should trigger transformer inside pipeline', function (done) {
+      var redis = new Redis();
+      var data = { name: 'Bob', age: '17' };
+      redis.pipeline().hmset('foo', data).multi().typeBuffer('foo')
+      .hgetall('foo').exec().hgetall('foo').exec(function (err, res) {
+        expect(res[0][1]).to.eql('OK');
+        expect(res[1][1]).to.eql('OK');
+        expect(res[2][1]).to.eql(new Buffer('QUEUED'));
+        expect(res[3][1]).to.eql('QUEUED');
+        expect(res[4][1]).to.eql([new Buffer('hash'), data]);
+        expect(res[5][1]).to.eql(data);
+        done();
+      });
     });
   });
 
