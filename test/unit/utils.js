@@ -26,7 +26,8 @@ describe('utils', function () {
       expect(utils.convertBufferToString(new Buffer('123'))).to.eql('123');
       expect(utils.convertBufferToString([new Buffer('abc'), new Buffer('abc')])).to.eql(['abc', 'abc']);
       expect(utils.convertBufferToString([new Buffer('abc'), [[new Buffer('abc')]]])).to.eql(['abc', [['abc']]]);
-      expect(utils.convertBufferToString([new Buffer('abc'), 5, 'b', [[new Buffer('abc'), 4]]])).to.eql(['abc', 5, 'b', [['abc', 4]]]);
+      expect(utils.convertBufferToString([new Buffer('abc'), 5, 'b', [[new Buffer('abc'), 4]]]))
+        .to.eql(['abc', 5, 'b', [['abc', 4]]]);
     });
   });
 
@@ -150,6 +151,26 @@ describe('utils', function () {
       expect(utils.parseURL('redis://127.0.0.1/')).to.eql({
         host: '127.0.0.1'
       });
+    });
+  });
+
+  describe('.sample', function () {
+    it('should return a random value', function () {
+      stub(Math, 'random', function () {
+        return 0;
+      });
+      expect(utils.sample([1, 2, 3])).to.eql(1);
+      expect(utils.sample([1, 2, 3], 1)).to.eql(2);
+      expect(utils.sample([1, 2, 3], 2)).to.eql(3);
+      Math.random.restore();
+
+      stub(Math, 'random', function () {
+        return 0.999999;
+      });
+      expect(utils.sample([1, 2, 3])).to.eql(3);
+      expect(utils.sample([1, 2, 3], 1)).to.eql(3);
+      expect(utils.sample([1, 2, 3], 2)).to.eql(3);
+      Math.random.restore();
     });
   });
 });

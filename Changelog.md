@@ -1,15 +1,65 @@
-<a name="1.15.1"></a>
-## [1.15.1](https://github.com/luin/ioredis/compare/v1.15.0...v1.15.1) (2016-02-19)
+<a name="2.0.0-alpha3"></a>
+# [2.0.0-alpha3](https://github.com/luin/ioredis/compare/v2.0.0-alpha2...v2.0.0-alpha3) (2016-03-13)
+
+### Bug Fixes
+
+* **auth:** emit authError when the server requiring a password ([c5ca754](https://github.com/luin/ioredis/commit/c5ca754))
+
+### Features
+
+* **cluster:** add enableReadyCheck option for cluster ([b63cdc7](https://github.com/luin/ioredis/commit/b63cdc7))
+* **cluster:** redirect on TRYAGAIN error ([b1a4b62](https://github.com/luin/ioredis/commit/b1a4b62))
+* **cluster:** support update startupNodes in clusterRetryStrategy ([4a46766](https://github.com/luin/ioredis/commit/4a46766))
+* **transaction:** transform replies of transactions ([e0b1883](https://github.com/luin/ioredis/commit/e0b1883)), closes [#158](https://github.com/luin/ioredis/issues/158)
+
+
+### BREAKING CHANGES
+
+  1. Reply transformers is supported inside transactions.
+  2. `Pipeline#execBuffer()` is deprecated. Use `Pipeline#exec()` instead.
+
+<a name="2.0.0-alpha2"></a>
+# [2.0.0-alpha2](https://github.com/luin/ioredis/compare/v2.0.0-alpha1...v2.0.0-alpha2) (2016-02-29)
 
 
 ### Bug Fixes
 
+* **cluster:** fix memory leaking in sendCommand method ([410af51](https://github.com/luin/ioredis/commit/410af51))
+
+### Features
+
+* **cluster:** add the option for a custom node selector in scaleReads ([6795b1e](https://github.com/luin/ioredis/commit/6795b1e))
+
+
+
+<a name="2.0.0-alpha1"></a>
+# [2.0.0-alpha1](https://github.com/luin/ioredis/compare/v1.15.0...v2.0.0-alpha1) (2016-02-10)
+
+
+### Bug Fixes
+
+* **cluster:** avoid command.reject being overwritten twice ([d0a0017](https://github.com/luin/ioredis/commit/d0a0017))
+* **cluster:** fix not connecting to the unknown nodes ([0dcb768](https://github.com/luin/ioredis/commit/0dcb768))
+* **cluster:** set retryDelayOnFailover from 2000ms to 200ms ([72fd804](https://github.com/luin/ioredis/commit/72fd804))
+
+### Features
+
+* **cluster:** support scaling reads to slaves ([98bdec2](https://github.com/luin/ioredis/commit/98bdec2)), closes [#170](https://github.com/luin/ioredis/issues/170)
+* **redis:** support readonly mode for cluster ([0a4186e](https://github.com/luin/ioredis/commit/0a4186e))
+
+
+### BREAKING CHANGES
+
+* **cluster:** `Cluster#masterNodes` and `Cluster#nodes` is removed. Use `Cluster#nodes('masters')` and `Cluster#nodes('all')` instead.
+* **cluster:** `Cluster#to()` is removed. Use `Promise.all(Cluster#nodes().map(function (node) {}))` instead.
+* **cluster:** Option `readOnly` is removed. Check out `scaleReads` option.
+
+<a name="1.15.1"></a>
+# [1.15.1](https://github.com/luin/ioredis/compare/v1.15.0...v1.15.1) (2016-02-19)
 * select db on connect event to prevent subscribe errors ([829bf26](https://github.com/luin/ioredis/commit/829bf26)), closes [#255](https://github.com/luin/ioredis/issues/255)
 
-
-
 <a name="1.15.0"></a>
-## [1.15.0](https://github.com/luin/ioredis/compare/v1.14.0...v1.15.0) (2016-01-31)
+# [1.15.0](https://github.com/luin/ioredis/compare/v1.14.0...v1.15.0) (2016-01-31)
 
 
 ### Bug Fixes

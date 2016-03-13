@@ -58,10 +58,11 @@ Creates a Redis instance
 | [options.connectTimeout] | <code>number</code> | <code>10000</code> | The milliseconds before a timeout occurs during the initial connection to the Redis server. |
 | [options.autoResubscribe] | <code>boolean</code> | <code>true</code> | After reconnected, if the previous connection was in the subscriber mode, client will auto re-subscribe these channels. |
 | [options.autoResendUnfulfilledCommands] | <code>boolean</code> | <code>true</code> | If true, client will resend unfulfilled commands(e.g. block commands) in the previous connection when reconnected. |
-| [options.lazyConnect] | <code>boolean</code> | <code>false</code> | By default, When a new `Redis` instance is created, it will connect to Redis server automatically. If you want to keep disconnected util a command is called, you can pass the `lazyConnect` option to the constructor: |
-| [options.keyPrefix] | <code>string</code> | <code>&quot;&#x27;&#x27;&quot;</code> | The prefix to prepend to all keys in a command. ```javascript var redis = new Redis({ lazyConnect: true }); // No attempting to connect to the Redis server here. // Now let's connect to the Redis server redis.get('foo', function () { }); ``` |
+| [options.lazyConnect] | <code>boolean</code> | <code>false</code> | By default, When a new `Redis` instance is created, it will connect to Redis server automatically. If you want to keep disconnected util a command is called, you can pass the `lazyConnect` option to the constructor: ```javascript var redis = new Redis({ lazyConnect: true }); // No attempting to connect to the Redis server here. // Now let's connect to the Redis server redis.get('foo', function () { }); ``` |
+| [options.keyPrefix] | <code>string</code> | <code>&quot;&#x27;&#x27;&quot;</code> | The prefix to prepend to all keys in a command. |
 | [options.retryStrategy] | <code>function</code> |  | See "Quick Start" section |
 | [options.reconnectOnError] | <code>function</code> |  | See "Quick Start" section |
+| [options.readOnly] | <code>boolean</code> | <code>false</code> | Enable READONLY mode for the connection. Only available for cluster mode. |
 
 **Example**  
 ```js
@@ -196,7 +197,9 @@ Create a Redis instance
 
 * [Cluster](#Cluster) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
   * [new Cluster(startupNodes, options)](#new_Cluster_new)
+  * [.connect()](#Cluster+connect) ⇒ <code>Promise</code>
   * [.disconnect()](#Cluster+disconnect)
+  * [.nodes([role])](#Cluster+nodes) ⇒ <code>[Array.&lt;Redis&gt;](#Redis)</code>
   * [.getBuiltinCommands()](#Commander+getBuiltinCommands) ⇒ <code>Array.&lt;string&gt;</code>
   * [.createBuiltinCommand(commandName)](#Commander+createBuiltinCommand) ⇒ <code>object</code>
   * [.defineCommand(name, definition)](#Commander+defineCommand)
@@ -211,20 +214,40 @@ Creates a Redis Cluster instance
 | --- | --- | --- | --- |
 | startupNodes | <code>Array.&lt;Object&gt;</code> |  | An array of nodes in the cluster, [{ port: number, host: string }] |
 | options | <code>Object</code> |  |  |
-| [options.enableOfflineQueue] | <code>boolean</code> | <code>true</code> | See Redis class |
-| [options.lazyConnect] | <code>boolean</code> | <code>false</code> | See Redis class |
-| [options.readOnly] | <code>boolean</code> | <code>false</code> | Connect in READONLY mode |
-| [options.maxRedirections] | <code>number</code> | <code>16</code> | When a MOVED or ASK error is received, client will redirect the command to another node. This option limits the max redirections allowed to send a command. |
 | [options.clusterRetryStrategy] | <code>function</code> |  | See "Quick Start" section |
-| [options.retryDelayOnFailover] | <code>number</code> | <code>2000</code> | When an error is received when sending a command(e.g. "Connection is closed." when the target Redis node is down), |
-| [options.retryDelayOnClusterDown] | <code>number</code> | <code>1000</code> | When a CLUSTERDOWN error is received, client will retry if `retryDelayOnClusterDown` is valid delay time. |
+| [options.enableOfflineQueue] | <code>boolean</code> | <code>true</code> | See Redis class |
+| [options.enableReadyCheck] | <code>boolean</code> | <code>true</code> | When enabled, ioredis only emits "ready" event when `CLUSTER INFO` command reporting the cluster is ready for handling commands. |
+| [options.scaleReads] | <code>string</code> | <code>&quot;master&quot;</code> | Scale reads to the node with the specified role. Available values are "master", "slave" and "all". |
+| [options.maxRedirections] | <code>number</code> | <code>16</code> | When a MOVED or ASK error is received, client will redirect the command to another node. This option limits the max redirections allowed to send a command. |
+| [options.retryDelayOnFailover] | <code>number</code> | <code>100</code> | When an error is received when sending a command(e.g. "Connection is closed." when the target Redis node is down), |
+| [options.retryDelayOnClusterDown] | <code>number</code> | <code>100</code> | When a CLUSTERDOWN error is received, client will retry if `retryDelayOnClusterDown` is valid delay time. |
+| [options.retryDelayOnTryAgain] | <code>number</code> | <code>100</code> | When a TRYAGAIN error is received, client will retry if `retryDelayOnTryAgain` is valid delay time. |
+| [options.redisOptions] | <code>Object</code> |  | Passed to the constructor of `Redis`. |
 
+<a name="Cluster+connect"></a>
+### cluster.connect() ⇒ <code>Promise</code>
+Connect to a cluster
+
+**Kind**: instance method of <code>[Cluster](#Cluster)</code>  
+**Access:** public  
 <a name="Cluster+disconnect"></a>
 ### cluster.disconnect()
 Disconnect from every node in the cluster.
 
 **Kind**: instance method of <code>[Cluster](#Cluster)</code>  
 **Access:** public  
+<a name="Cluster+nodes"></a>
+### cluster.nodes([role]) ⇒ <code>[Array.&lt;Redis&gt;](#Redis)</code>
+Get nodes with the specified role
+
+**Kind**: instance method of <code>[Cluster](#Cluster)</code>  
+**Returns**: <code>[Array.&lt;Redis&gt;](#Redis)</code> - array of nodes  
+**Access:** public  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| [role] | <code>string</code> | <code>&quot;all&quot;</code> | role, "master", "slave" or "all" |
+
 <a name="Commander+getBuiltinCommands"></a>
 ### cluster.getBuiltinCommands() ⇒ <code>Array.&lt;string&gt;</code>
 Return supported builtin commands

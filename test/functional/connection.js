@@ -142,8 +142,8 @@ describe('connection', function () {
   describe('connectionName', function () {
     it('shoud name the connection if options.connectionName is not null', function (done) {
       var redis = new Redis({ connectionName: 'niceName' });
-      redis.once('ready', function() {
-        redis.client('getname', function(err, res) {
+      redis.once('ready', function () {
+        redis.client('getname', function (err, res) {
           expect(res).to.eql('niceName');
           done();
         });
@@ -151,20 +151,38 @@ describe('connection', function () {
       redis.set('foo', 1);
     });
 
-    it('should set the name before any subscribe command if reconnected', function(done) {
+    it('should set the name before any subscribe command if reconnected', function (done) {
       var redis = new Redis({ connectionName: 'niceName' });
-      var pub = new Redis();
       redis.once('ready', function () {
-        redis.subscribe('l', function() {
+        redis.subscribe('l', function () {
           redis.disconnect(true);
-          redis.unsubscribe('l', function() {
-            redis.client('getname', function(err, res) {
-             expect(res).to.eql('niceName');
-             done();
-           });              
+          redis.unsubscribe('l', function () {
+            redis.client('getname', function (err, res) {
+              expect(res).to.eql('niceName');
+              done();
+            });
           });
         });
       });
+    });
+  });
+
+  describe('readOnly', function () {
+    it('shoud send readonly command before other commands', function (done) {
+      var called = false;
+      var redis = new Redis({ port: 30001, readOnly: true, showFriendlyErrorStack: true });
+      var node = new MockServer(30001, function (argv) {
+        if (argv[0] === 'readonly') {
+          called = true;
+        } else if (argv[0] === 'get' && argv[1] === 'foo') {
+          expect(called).to.eql(true);
+          redis.disconnect();
+          node.disconnect(function () {
+            done();
+          });
+        }
+      });
+      redis.get('foo').catch(function () {});
     });
   });
 
