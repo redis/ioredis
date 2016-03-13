@@ -79,13 +79,18 @@ describe('transaction', function () {
         if (!--pending) {
           done();
         }
-      }).hgetallBuffer('foo').exec(function (err, res) {
+      }).hgetallBuffer('foo').get('foo').getBuffer('foo').exec(function (err, res) {
         expect(res[0][1]).to.eql('OK');
         expect(res[1][1]).to.eql(data);
         expect(res[2][1]).to.eql({
           name: new Buffer('Bob'),
           age: new Buffer('17')
         });
+        expect(res[3][0]).to.have.property('message',
+          'WRONGTYPE Operation against a key holding the wrong kind of value');
+        expect(res[4][0]).to.have.property('message',
+          'WRONGTYPE Operation against a key holding the wrong kind of value');
+
         if (!--pending) {
           done();
         }
@@ -103,6 +108,20 @@ describe('transaction', function () {
         expect(res[3][1]).to.eql('QUEUED');
         expect(res[4][1]).to.eql([new Buffer('hash'), data]);
         expect(res[5][1]).to.eql(data);
+        done();
+      });
+    });
+
+    it('should handle custom transformer exception', function (done) {
+      var transformError = 'transformer error';
+      Redis.Command._transformer.reply.get = function () {
+        throw new Error(transformError);
+      };
+
+      var redis = new Redis();
+      redis.multi().get('foo').exec(function (err, res) {
+        expect(res[0][0]).to.have.property('message', transformError);
+        delete Redis.Command._transformer.reply.get;
         done();
       });
     });
