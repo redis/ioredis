@@ -50,6 +50,9 @@ describe('select', function () {
   it('should emit "select" event when db changes', function (done) {
     var changes = [];
     var redis = new Redis();
+    redis.on('select', function (db) {
+      changes.push(db);
+    });
     redis.select('2', function () {
       expect(changes).to.eql([2]);
       redis.select('4', function () {
@@ -60,9 +63,20 @@ describe('select', function () {
         });
       });
     });
+  });
 
-    redis.on('select', function (db) {
-      changes.push(db);
+  it('should be sent on the connect event', function (done) {
+    var redis = new Redis({ db: 2 });
+    var selectBuffer = redis.selectBuffer;
+    redis.selectBuffer = function () {
+      return selectBuffer.apply(redis, arguments).then(function () {
+        redis.selectBuffer = selectBuffer;
+        redis.disconnect();
+        done();
+      });
+    };
+    redis.on('connect', function () {
+      redis.subscribe('anychannel');
     });
   });
 });
