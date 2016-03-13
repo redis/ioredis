@@ -678,6 +678,8 @@ but a few so that if one is unreachable the client will try the next one, and th
     to insure that no command will fail during a failover.
     * `retryDelayOnClusterDown`: When a cluster is down, all commands will be rejected with the error of `CLUSTERDOWN`. If this option is a number (by default, it is `100`), the client
     will resend the commands after the specified time (in ms).
+    * `retryDelayOnTryAgain`: If this option is a number (by default, it is `100`), the client
+    will resend the commands rejected with `TRYAGAIN` error after the specified time (in ms).
     * `redisOptions`: Default options passed to the constructor of `Redis` when connecting to a node.
 
 ### Read-write splitting

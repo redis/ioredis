@@ -331,7 +331,7 @@ describe('cluster', function () {
 
       var cluster = new Redis.Cluster([
         { host: '127.0.0.1', port: '30001' }
-      ], { lazyConnect: false });
+      ]);
       cluster.get('foo', function () {
         cluster.get('foo');
       });
@@ -361,7 +361,7 @@ describe('cluster', function () {
       });
       var cluster = new Redis.Cluster([
         { host: '127.0.0.1', port: '30001' }
-      ], { lazyConnect: false });
+      ], { retryDelayOnFailover: 1 });
       cluster.get('foo', function (err, res) {
         expect(res).to.eql('bar');
         cluster.disconnect();
@@ -450,6 +450,35 @@ describe('cluster', function () {
       cluster.get('foo', function () {
         cluster.get('foo');
       });
+    });
+  });
+
+  describe('TRYAGAIN', function () {
+    it('should retry the command', function (done) {
+      var times = 0;
+      var slotTable = [
+        [0, 16383, ['127.0.0.1', 30001]]
+      ];
+      var server = new MockServer(30001, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+        if (argv[0] === 'get' && argv[1] === 'foo') {
+          if (times++ === 1) {
+            process.nextTick(function () {
+              cluster.disconnect();
+              disconnect([server], done);
+            });
+          } else {
+            return new Error('TRYAGAIN Multiple keys request during rehashing of slot');
+          }
+        }
+      });
+
+      var cluster = new Redis.Cluster([
+        { host: '127.0.0.1', port: '30001' }
+      ], { retryDelayOnTryAgain: 1 });
+      cluster.get('foo');
     });
   });
 
@@ -677,6 +706,33 @@ describe('cluster', function () {
         expect(result[1]).to.eql([null, 'OK']);
         cluster.disconnect();
         disconnect([node1, node2], done);
+      });
+    });
+
+    it('should retry the command on TRYAGAIN', function (done) {
+      var times = 0;
+      var slotTable = [
+        [0, 16383, ['127.0.0.1', 30001]]
+      ];
+      var server = new MockServer(30001, function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+        if (argv[1] === 'foo') {
+          if (times++ < 2) {
+            return new Error('TRYAGAIN Multiple keys request during rehashing of slot');
+          }
+        }
+      });
+
+      var cluster = new Redis.Cluster([
+        { host: '127.0.0.1', port: '30001' }
+      ], { retryDelayOnTryAgain: 1 });
+      cluster.pipeline().get('foo').set('foo', 'bar').exec(function (err, result) {
+        expect(result[0][1]).to.eql('OK');
+        expect(result[1][1]).to.eql('OK');
+        cluster.disconnect();
+        disconnect([server], done);
       });
     });
 
