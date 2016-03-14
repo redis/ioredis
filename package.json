@@ -23,26 +23,26 @@
   "author": "luin <i@zihua.li> (http://zihua.li)",
   "license": "MIT",
   "dependencies": {
-    "bluebird": "^3.2.1",
+    "bluebird": "^3.3.4",
     "debug": "^2.2.0",
     "double-ended-queue": "^2.1.0-0",
     "flexbuffer": "0.0.6",
-    "lodash": "^4.2.1",
+    "lodash": "^4.6.1",
     "redis-commands": "^1.1.0",
     "redis-parser": "^1.1.0"
   },
   "devDependencies": {
-    "chai": "^2.2.0",
-    "codeclimate-test-reporter": "0.0.4",
+    "chai": "^3.5.0",
+    "codeclimate-test-reporter": "0.3.1",
     "cz-conventional-changelog": "^1.1.5",
-    "istanbul": "^0.3.13",
-    "jsdoc": "^3.3.0-beta3",
-    "jsdoc-to-markdown": "^1.0.3",
-    "matcha": "^0.6.0",
-    "mocha": "^2.2.1",
-    "redis": "^2.2.5",
-    "server-destroy": "^1.0.0",
-    "sinon": "^1.14.1"
+    "istanbul": "^0.4.2",
+    "jsdoc": "^3.4.0",
+    "jsdoc-to-markdown": "^1.3.3",
+    "matcha": "^0.7.0",
+    "mocha": "^2.4.5",
+    "redis": "^2.4.2",
+    "server-destroy": "^1.0.1",
+    "sinon": "^1.17.3"
   },
   "engines": {
     "node": ">= 0.10.16",
