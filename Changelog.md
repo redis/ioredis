@@ -1,3 +1,11 @@
+<a name="2.0.0-rc1"></a>
+# [2.0.0-rc1](https://github.com/luin/ioredis/compare/v2.0.0-alpha3...v2.0.0-rc1) (2016-03-18)
+
+### Features
+
+* **dependencies**: upgrade all dependencies to the newest version ([3fdafc8](https://github.com/luin/ioredis/commit/3fdafc8)).
+
+
 <a name="2.0.0-alpha3"></a>
 # [2.0.0-alpha3](https://github.com/luin/ioredis/compare/v2.0.0-alpha2...v2.0.0-alpha3) (2016-03-13)
 
