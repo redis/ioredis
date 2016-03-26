@@ -21,4 +21,19 @@ describe('cluster', function () {
     expect(cluster.options).to.have.property('showFriendlyErrorStack', false);
     expect(cluster.options).to.have.property('scaleReads', 'master');
   });
+
+  it('throws when scaleReads is invalid', function () {
+    expect(function () {
+      new Cluster([{}], { scaleReads: 'invalid' });
+    }).to.throw(/Invalid option scaleReads/);
+  });
+
+  describe('#nodes()', function () {
+    it('throws when role is invalid', function () {
+      var cluster = new Cluster([{}]);
+      expect(function () {
+        cluster.nodes('invalid');
+      }).to.throw(/Invalid role/);
+    });
+  });
 });

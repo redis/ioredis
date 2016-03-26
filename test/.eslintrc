@@ -11,6 +11,8 @@
     "Map": true,
     "expect": true,
     "stub": true,
+    "mock": true,
+    "spy": true,
     "MockServer": true
   },
   "rules": {
