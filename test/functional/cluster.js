@@ -1219,7 +1219,7 @@ describe('cluster', function () {
         expect(cluster.nodes('master')).to.have.lengthOf(2);
         expect(cluster.nodes('slave')).to.have.lengthOf(1);
 
-        cluster.on('-node', function () {
+        cluster.once('-node', function () {
           expect(cluster.nodes()).to.have.lengthOf(2);
           expect(cluster.nodes('all')).to.have.lengthOf(2);
           expect(cluster.nodes('master')).to.have.lengthOf(1);
