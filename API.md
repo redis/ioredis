@@ -1,4 +1,5 @@
 ## Classes
+
 <dl>
 <dt><a href="#Redis">Redis</a> ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code></dt>
 <dd></dd>
@@ -7,7 +8,9 @@
 <dt><a href="#Commander">Commander</a></dt>
 <dd></dd>
 </dl>
+
 ## Members
+
 <dl>
 <dt><a href="#defaultOptions">defaultOptions</a></dt>
 <dd><p>Default options</p>
@@ -16,26 +19,29 @@
 <dd><p>Default options</p>
 </dd>
 </dl>
+
 <a name="Redis"></a>
+
 ## Redis ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
 **Kind**: global class  
 **Extends:** <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>, <code>[Commander](#Commander)</code>  
 
 * [Redis](#Redis) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
-  * [new Redis([port], [host], [options])](#new_Redis_new)
-  * _instance_
-    * [.connect(callback)](#Redis+connect) ⇒ <code>Promise</code>
-    * [.disconnect()](#Redis+disconnect)
-    * ~~[.end()](#Redis+end)~~
-    * [.duplicate()](#Redis+duplicate)
-    * [.monitor([callback])](#Redis+monitor)
-    * [.getBuiltinCommands()](#Commander+getBuiltinCommands) ⇒ <code>Array.&lt;string&gt;</code>
-    * [.createBuiltinCommand(commandName)](#Commander+createBuiltinCommand) ⇒ <code>object</code>
-    * [.defineCommand(name, definition)](#Commander+defineCommand)
-  * _static_
-    * ~~[.createClient()](#Redis.createClient)~~
+    * [new Redis([port], [host], [options])](#new_Redis_new)
+    * _instance_
+        * [.connect(callback)](#Redis+connect) ⇒ <code>Promise</code>
+        * [.disconnect()](#Redis+disconnect)
+        * ~~[.end()](#Redis+end)~~
+        * [.duplicate()](#Redis+duplicate)
+        * [.monitor([callback])](#Redis+monitor)
+        * [.getBuiltinCommands()](#Commander+getBuiltinCommands) ⇒ <code>Array.&lt;string&gt;</code>
+        * [.createBuiltinCommand(commandName)](#Commander+createBuiltinCommand) ⇒ <code>object</code>
+        * [.defineCommand(name, definition)](#Commander+defineCommand)
+    * _static_
+        * ~~[.createClient()](#Redis.createClient)~~
 
 <a name="new_Redis_new"></a>
+
 ### new Redis([port], [host], [options])
 Creates a Redis instance
 
@@ -63,6 +69,7 @@ Creates a Redis instance
 | [options.retryStrategy] | <code>function</code> |  | See "Quick Start" section |
 | [options.reconnectOnError] | <code>function</code> |  | See "Quick Start" section |
 | [options.readOnly] | <code>boolean</code> | <code>false</code> | Enable READONLY mode for the connection. Only available for cluster mode. |
+| [options.stringNumbers] | <code>boolean</code> | <code>false</code> | Force numbers to be always returned as JavaScript strings. This option is necessary when dealing with big numbers (exceed the [-2^53, +2^53] range). Notice that when this option is enabled, the JavaScript parser will be used even "hiredis" is specified because only JavaScript parser supports this feature for the time being. |
 
 **Example**  
 ```js
@@ -80,6 +87,7 @@ var urlRedis2 = new Redis('//localhost:6379');
 var authedRedis = new Redis(6380, '192.168.100.1', { password: 'password' });
 ```
 <a name="Redis+connect"></a>
+
 ### redis.connect(callback) ⇒ <code>Promise</code>
 Create a connection to Redis.
 This method will be invoked automatically when creating a new Redis instance.
@@ -92,6 +100,7 @@ This method will be invoked automatically when creating a new Redis instance.
 | callback | <code>function</code> | 
 
 <a name="Redis+disconnect"></a>
+
 ### redis.disconnect()
 Disconnect from Redis.
 
@@ -102,6 +111,7 @@ If you want to wait for the pending replies, use Redis#quit instead.
 **Kind**: instance method of <code>[Redis](#Redis)</code>  
 **Access:** public  
 <a name="Redis+end"></a>
+
 ### ~~redis.end()~~
 ***Deprecated***
 
@@ -109,6 +119,7 @@ Disconnect from Redis.
 
 **Kind**: instance method of <code>[Redis](#Redis)</code>  
 <a name="Redis+duplicate"></a>
+
 ### redis.duplicate()
 Create a new instance with the same options as the current one.
 
@@ -120,6 +131,7 @@ var redis = new Redis(6380);
 var anotherRedis = redis.duplicate();
 ```
 <a name="Redis+monitor"></a>
+
 ### redis.monitor([callback])
 Listen for all requests received by the server in real time.
 
@@ -152,6 +164,7 @@ redis.monitor().then(function (monitor) {
 });
 ```
 <a name="Commander+getBuiltinCommands"></a>
+
 ### redis.getBuiltinCommands() ⇒ <code>Array.&lt;string&gt;</code>
 Return supported builtin commands
 
@@ -159,6 +172,7 @@ Return supported builtin commands
 **Returns**: <code>Array.&lt;string&gt;</code> - command list  
 **Access:** public  
 <a name="Commander+createBuiltinCommand"></a>
+
 ### redis.createBuiltinCommand(commandName) ⇒ <code>object</code>
 Create a builtin command
 
@@ -171,6 +185,7 @@ Create a builtin command
 | commandName | <code>string</code> | command name |
 
 <a name="Commander+defineCommand"></a>
+
 ### redis.defineCommand(name, definition)
 Define a custom command using lua script
 
@@ -184,6 +199,7 @@ Define a custom command using lua script
 | [definition.numberOfKeys] | <code>number</code> | <code></code> | the number of keys. If omit, you have to pass the number of keys as the first argument every time you invoke the command |
 
 <a name="Redis.createClient"></a>
+
 ### ~~Redis.createClient()~~
 ***Deprecated***
 
@@ -191,21 +207,23 @@ Create a Redis instance
 
 **Kind**: static method of <code>[Redis](#Redis)</code>  
 <a name="Cluster"></a>
+
 ## Cluster ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
 **Kind**: global class  
 **Extends:** <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>, <code>[Commander](#Commander)</code>  
 
 * [Cluster](#Cluster) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
-  * [new Cluster(startupNodes, options)](#new_Cluster_new)
-  * [.connect()](#Cluster+connect) ⇒ <code>Promise</code>
-  * [.disconnect()](#Cluster+disconnect)
-  * [.nodes([role])](#Cluster+nodes) ⇒ <code>[Array.&lt;Redis&gt;](#Redis)</code>
-  * [.getBuiltinCommands()](#Commander+getBuiltinCommands) ⇒ <code>Array.&lt;string&gt;</code>
-  * [.createBuiltinCommand(commandName)](#Commander+createBuiltinCommand) ⇒ <code>object</code>
-  * [.defineCommand(name, definition)](#Commander+defineCommand)
-  * *[.sendCommand()](#Commander+sendCommand)*
+    * [new Cluster(startupNodes, options)](#new_Cluster_new)
+    * [.connect()](#Cluster+connect) ⇒ <code>Promise</code>
+    * [.disconnect()](#Cluster+disconnect)
+    * [.nodes([role])](#Cluster+nodes) ⇒ <code>[Array.&lt;Redis&gt;](#Redis)</code>
+    * [.getBuiltinCommands()](#Commander+getBuiltinCommands) ⇒ <code>Array.&lt;string&gt;</code>
+    * [.createBuiltinCommand(commandName)](#Commander+createBuiltinCommand) ⇒ <code>object</code>
+    * [.defineCommand(name, definition)](#Commander+defineCommand)
+    * *[.sendCommand()](#Commander+sendCommand)*
 
 <a name="new_Cluster_new"></a>
+
 ### new Cluster(startupNodes, options)
 Creates a Redis Cluster instance
 
@@ -225,18 +243,21 @@ Creates a Redis Cluster instance
 | [options.redisOptions] | <code>Object</code> |  | Passed to the constructor of `Redis`. |
 
 <a name="Cluster+connect"></a>
+
 ### cluster.connect() ⇒ <code>Promise</code>
 Connect to a cluster
 
 **Kind**: instance method of <code>[Cluster](#Cluster)</code>  
 **Access:** public  
 <a name="Cluster+disconnect"></a>
+
 ### cluster.disconnect()
 Disconnect from every node in the cluster.
 
 **Kind**: instance method of <code>[Cluster](#Cluster)</code>  
 **Access:** public  
 <a name="Cluster+nodes"></a>
+
 ### cluster.nodes([role]) ⇒ <code>[Array.&lt;Redis&gt;](#Redis)</code>
 Get nodes with the specified role
 
@@ -249,6 +270,7 @@ Get nodes with the specified role
 | [role] | <code>string</code> | <code>&quot;all&quot;</code> | role, "master", "slave" or "all" |
 
 <a name="Commander+getBuiltinCommands"></a>
+
 ### cluster.getBuiltinCommands() ⇒ <code>Array.&lt;string&gt;</code>
 Return supported builtin commands
 
@@ -256,6 +278,7 @@ Return supported builtin commands
 **Returns**: <code>Array.&lt;string&gt;</code> - command list  
 **Access:** public  
 <a name="Commander+createBuiltinCommand"></a>
+
 ### cluster.createBuiltinCommand(commandName) ⇒ <code>object</code>
 Create a builtin command
 
@@ -268,6 +291,7 @@ Create a builtin command
 | commandName | <code>string</code> | command name |
 
 <a name="Commander+defineCommand"></a>
+
 ### cluster.defineCommand(name, definition)
 Define a custom command using lua script
 
@@ -281,6 +305,7 @@ Define a custom command using lua script
 | [definition.numberOfKeys] | <code>number</code> | <code></code> | the number of keys. If omit, you have to pass the number of keys as the first argument every time you invoke the command |
 
 <a name="Commander+sendCommand"></a>
+
 ### *cluster.sendCommand()*
 Send a command
 
@@ -288,17 +313,19 @@ Send a command
 **Overrides:** <code>[sendCommand](#Commander+sendCommand)</code>  
 **Access:** public  
 <a name="Commander"></a>
+
 ## Commander
 **Kind**: global class  
 
 * [Commander](#Commander)
-  * [new Commander()](#new_Commander_new)
-  * [.getBuiltinCommands()](#Commander+getBuiltinCommands) ⇒ <code>Array.&lt;string&gt;</code>
-  * [.createBuiltinCommand(commandName)](#Commander+createBuiltinCommand) ⇒ <code>object</code>
-  * [.defineCommand(name, definition)](#Commander+defineCommand)
-  * *[.sendCommand()](#Commander+sendCommand)*
+    * [new Commander()](#new_Commander_new)
+    * [.getBuiltinCommands()](#Commander+getBuiltinCommands) ⇒ <code>Array.&lt;string&gt;</code>
+    * [.createBuiltinCommand(commandName)](#Commander+createBuiltinCommand) ⇒ <code>object</code>
+    * [.defineCommand(name, definition)](#Commander+defineCommand)
+    * *[.sendCommand()](#Commander+sendCommand)*
 
 <a name="new_Commander_new"></a>
+
 ### new Commander()
 Commander
 
@@ -310,6 +337,7 @@ This is the base class of Redis, Redis.Cluster and Pipeline
 | [options.showFriendlyErrorStack] | <code>boolean</code> | <code>false</code> | Whether to show a friendly error stack. Will decrease the performance significantly. |
 
 <a name="Commander+getBuiltinCommands"></a>
+
 ### commander.getBuiltinCommands() ⇒ <code>Array.&lt;string&gt;</code>
 Return supported builtin commands
 
@@ -317,6 +345,7 @@ Return supported builtin commands
 **Returns**: <code>Array.&lt;string&gt;</code> - command list  
 **Access:** public  
 <a name="Commander+createBuiltinCommand"></a>
+
 ### commander.createBuiltinCommand(commandName) ⇒ <code>object</code>
 Create a builtin command
 
@@ -329,6 +358,7 @@ Create a builtin command
 | commandName | <code>string</code> | command name |
 
 <a name="Commander+defineCommand"></a>
+
 ### commander.defineCommand(name, definition)
 Define a custom command using lua script
 
@@ -342,18 +372,21 @@ Define a custom command using lua script
 | [definition.numberOfKeys] | <code>number</code> | <code></code> | the number of keys. If omit, you have to pass the number of keys as the first argument every time you invoke the command |
 
 <a name="Commander+sendCommand"></a>
+
 ### *commander.sendCommand()*
 Send a command
 
 **Kind**: instance abstract method of <code>[Commander](#Commander)</code>  
 **Access:** public  
 <a name="defaultOptions"></a>
+
 ## defaultOptions
 Default options
 
 **Kind**: global variable  
 **Access:** protected  
 <a name="defaultOptions"></a>
+
 ## defaultOptions
 Default options
 
