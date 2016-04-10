@@ -1,3 +1,16 @@
+<a name="2.0.0-rc2"></a>
+# [2.0.0-rc2](https://github.com/luin/ioredis/compare/v2.0.0-rc1...v2.0.0-rc2) (2016-04-10)
+
+
+### Bug Fixes
+
+* **CLUSTER:** fix cluster not disconnected when called disconnect method (#281) ([91998e3](https://github.com/luin/ioredis/commit/91998e3)), closes [(#281](https://github.com/(/issues/281)
+* **sentinel:** improve the error message when connection to sentinel is rejected ([3ca30d8](https://github.com/luin/ioredis/commit/3ca30d8)), closes [#280](https://github.com/luin/ioredis/issues/280)
+
+### Features
+
+* add stringNumbers option to return numbers as JavaScript strings (#282) ([2a33fc7](https://github.com/luin/ioredis/commit/2a33fc7)), closes [#273](https://github.com/luin/ioredis/issues/273)
+
 <a name="2.0.0-rc1"></a>
 # [2.0.0-rc1](https://github.com/luin/ioredis/compare/v2.0.0-alpha3...v2.0.0-rc1) (2016-03-18)
 
