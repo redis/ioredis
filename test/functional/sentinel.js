@@ -129,6 +129,31 @@ describe('sentinel', function () {
       });
     });
 
+    it('should reject when sentinel is rejected', function (done) {
+      var sentinel = new MockServer(27379, function (argv) {
+        if (argv[0] === 'sentinel' && argv[1] === 'get-master-addr-by-name') {
+          return new Error('just rejected');
+        }
+      });
+
+      var redis = new Redis({
+        sentinels: [
+          { host: '127.0.0.1', port: '27379' }
+        ],
+        name: 'master',
+        sentinelRetryStrategy: null,
+        lazyConnect: true
+      });
+
+      redis.connect().then(function () {
+        throw new Error('Expect `connect` to be thrown');
+      }).catch(function (err) {
+        expect(err.message).to.eql('All sentinels are unreachable. Last error: just rejected');
+        redis.disconnect();
+        sentinel.disconnect(done);
+      });
+    });
+
     it('should connect to the next sentinel if getting master failed', function (done) {
       var sentinel = new MockServer(27379, function (argv) {
         if (argv[0] === 'sentinel' && argv[1] === 'get-master-addr-by-name') {
