@@ -26,4 +26,12 @@ describe('lazy connect', function () {
       });
     });
   });
+
+  it('should be able to disconnect', function (done) {
+    var redis = new Redis({ lazyConnect: true });
+    redis.on('end', function () {
+      done();
+    });
+    redis.disconnect();
+  });
 });
