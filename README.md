@@ -65,6 +65,8 @@ Medis starts with all the basic features you need:
 $ npm install ioredis
 ```
 
+Run `npm install --next ioredis` if you want to use 2.0 unstable version.
+
 ## Basic Usage
 
 ```javascript
