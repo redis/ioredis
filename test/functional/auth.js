@@ -41,14 +41,14 @@ describe('auth', function () {
     });
   });
 
-  it('should emit "authError" when the server doesn\'t need auth', function (done) {
+  it('should emit "error" when the server doesn\'t need auth', function (done) {
     var server = new MockServer(17379, function (argv) {
       if (argv[0] === 'auth' && argv[1] === 'pass') {
         return new Error('ERR Client sent AUTH, but no password is set');
       }
     });
     var redis = new Redis({ port: 17379, password: 'pass' });
-    redis.on('authError', function (error) {
+    redis.on('error', function (error) {
       expect(error).to.have.property('message', 'ERR Client sent AUTH, but no password is set');
       redis.disconnect();
       server.disconnect();
@@ -56,14 +56,14 @@ describe('auth', function () {
     });
   });
 
-  it('should emit "authError" when the password is wrong', function (done) {
+  it('should emit "error" when the password is wrong', function (done) {
     var server = new MockServer(17379, function (argv) {
       if (argv[0] === 'auth' && argv[1] === 'pass') {
         return new Error('ERR invalid password');
       }
     });
     var redis = new Redis({ port: 17379, password: 'pass' });
-    redis.on('authError', function (error) {
+    redis.on('error', function (error) {
       expect(error).to.have.property('message', 'ERR invalid password');
       redis.disconnect();
       server.disconnect();
@@ -71,14 +71,14 @@ describe('auth', function () {
     });
   });
 
-  it('should emit "authError" when password is not provided', function (done) {
+  it('should emit "error" when password is not provided', function (done) {
     var server = new MockServer(17379, function (argv) {
       if (argv[0] === 'info') {
         return new Error('NOAUTH Authentication required.');
       }
     });
     var redis = new Redis({ port: 17379 });
-    redis.on('authError', function (error) {
+    redis.on('error', function (error) {
       expect(error).to.have.property('message', 'NOAUTH Authentication required.');
       redis.disconnect();
       server.disconnect();

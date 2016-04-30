@@ -563,7 +563,6 @@ Besides the above connection events, there are several other custom events:
 
 Event    | Description
 :------------- | :-------------
-authError | emits when the password specified in the options is wrong or the server doesn't require a password.
 select   | emits when the database changed. The argument is the new db number.
 
 ## Offline Queue
