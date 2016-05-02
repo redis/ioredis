@@ -7,7 +7,6 @@
     "test": "NODE_ENV=test mocha",
     "test:cov": "NODE_ENV=test node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -R spec",
     "generate-docs": "jsdoc2md lib/redis.js lib/cluster/index.js lib/commander.js > API.md",
-    "build": "node tools/build > commands.js",
     "bench": "matcha benchmarks/*.js"
   },
   "repository": {
@@ -28,7 +27,7 @@
     "double-ended-queue": "^2.1.0-0",
     "flexbuffer": "0.0.6",
     "lodash": "^4.8.2",
-    "redis-commands": "^1.1.0",
+    "redis-commands": "^1.2.0",
     "redis-parser": "^1.3.0"
   },
   "devDependencies": {
