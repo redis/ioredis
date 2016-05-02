@@ -1,3 +1,18 @@
+<a name="2.0.0-rc3"></a>
+# [2.0.0-rc3](https://github.com/luin/ioredis/compare/v2.0.0-rc2...v2.0.0-rc3) (2016-05-02)
+
+
+### Bug Fixes
+
+* fix wrong host not causing error ([25c300e](https://github.com/luin/ioredis/commit/25c300e)), closes [#287](https://github.com/luin/ioredis/issues/287)
+* reconnect when getting fatal error (#292) ([1cf2ac1](https://github.com/luin/ioredis/commit/1cf2ac1))
+
+### Features
+
+* **deps:** upgrade redis-commands package ([df08250](https://github.com/luin/ioredis/commit/df08250))
+
+
+
 <a name="2.0.0-rc2"></a>
 # [2.0.0-rc2](https://github.com/luin/ioredis/compare/v2.0.0-rc1...v2.0.0-rc2) (2016-04-10)
 
