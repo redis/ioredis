@@ -74,5 +74,18 @@ describe('dropBufferSupport', function () {
         done();
       });
     });
+
+    it('should work with pipeline', function (done) {
+      var redis = new Redis({ dropBufferSupport: true });
+      var pipeline = redis.pipeline();
+      pipeline.set('foo', 'bar');
+      pipeline.get(new Buffer('foo'));
+      pipeline.exec(function (err, res) {
+        expect(err).to.eql(null);
+        expect(res[0][1]).to.eql('OK');
+        expect(res[1][1]).to.eql('bar');
+        done();
+      });
+    });
   });
 });
