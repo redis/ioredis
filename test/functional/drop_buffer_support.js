@@ -1,6 +1,6 @@
 'use strict';
 
-describe.only('dropBufferSupport', function () {
+describe('dropBufferSupport', function () {
   it('should be disabled by default', function () {
     var redis = new Redis({ lazyConnect: true });
     expect(redis.options).to.have.property('dropBufferSupport', false);
@@ -27,15 +27,6 @@ describe.only('dropBufferSupport', function () {
     });
     redis.getevalBuffer(function (err) {
       expect(err.message).to.match(/Buffer methods are not available/);
-      redis.disconnect();
-      done();
-    });
-  });
-
-  it('should set the returnBuffers option to false', function (done) {
-    var redis = new Redis({ dropBufferSupport: true });
-    redis.once('ready', function () {
-      expect(redis.replyParser.options.return_buffers).to.eql(false);
       redis.disconnect();
       done();
     });
