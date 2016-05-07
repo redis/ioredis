@@ -41,18 +41,26 @@ describe('auth', function () {
     });
   });
 
-  it('should emit "error" when the server doesn\'t need auth', function (done) {
+  it('should not emit "error" when the server doesn\'t need auth', function (done) {
     var server = new MockServer(17379, function (argv) {
       if (argv[0] === 'auth' && argv[1] === 'pass') {
         return new Error('ERR Client sent AUTH, but no password is set');
       }
     });
+    var errorEmited = false;
     var redis = new Redis({ port: 17379, password: 'pass' });
-    redis.on('error', function (error) {
-      expect(error).to.have.property('message', 'ERR Client sent AUTH, but no password is set');
-      redis.disconnect();
-      server.disconnect();
-      done();
+    redis.on('error', function () {
+      errorEmited = true;
+    });
+    stub(console, 'warn', function (warn) {
+      expect(warn).to.match(/but a password was supplied/);
+      console.warn.restore();
+      setTimeout(function () {
+        expect(errorEmited).to.eql(false);
+        redis.disconnect();
+        server.disconnect();
+        done();
+      }, 0);
     });
   });
 
