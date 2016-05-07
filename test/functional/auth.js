@@ -71,11 +71,21 @@ describe('auth', function () {
       }
     });
     var redis = new Redis({ port: 17379, password: 'pass' });
+    var pending = 2;
+    function check() {
+      if (!--pending) {
+        redis.disconnect();
+        server.disconnect();
+        done();
+      }
+    }
     redis.on('error', function (error) {
       expect(error).to.have.property('message', 'ERR invalid password');
-      redis.disconnect();
-      server.disconnect();
-      done();
+      check();
+    });
+    redis.get('foo', function (err, res) {
+      expect(err.message).to.eql('ERR invalid password');
+      check();
     });
   });
 
