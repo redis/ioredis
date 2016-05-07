@@ -16,4 +16,20 @@ describe('ready_check', function () {
     });
     redis.connect();
   });
+
+  it('should reconnect when info return a error', function (done) {
+    var redis = new Redis({
+      lazyConnect: true,
+      retryStrategy: function () {
+        done();
+        return;
+      }
+    });
+
+    stub(redis, 'info', function (callback) {
+      callback(new Error('info error'));
+    });
+
+    redis.connect();
+  });
 });
