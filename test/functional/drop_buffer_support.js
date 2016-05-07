@@ -87,5 +87,16 @@ describe('dropBufferSupport', function () {
         done();
       });
     });
+
+    it('should work with internal select command', function (done) {
+      var redis = new Redis({ dropBufferSupport: true, db: 1 });
+      var check = new Redis({ db: 1 });
+      redis.set('foo', 'bar', function () {
+        check.get('foo', function (err, res) {
+          expect(res).to.eql('bar');
+          done();
+        });
+      });
+    });
   });
 });
