@@ -67,10 +67,10 @@ describe('select', function () {
 
   it('should be sent on the connect event', function (done) {
     var redis = new Redis({ db: 2 });
-    var selectBuffer = redis.selectBuffer;
-    redis.selectBuffer = function () {
-      return selectBuffer.apply(redis, arguments).then(function () {
-        redis.selectBuffer = selectBuffer;
+    var select = redis.select;
+    redis.select = function () {
+      return select.apply(redis, arguments).then(function () {
+        redis.select = select;
         redis.disconnect();
         done();
       });
