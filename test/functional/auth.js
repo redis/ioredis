@@ -41,44 +41,62 @@ describe('auth', function () {
     });
   });
 
-  it('should emit "authError" when the server doesn\'t need auth', function (done) {
+  it('should not emit "error" when the server doesn\'t need auth', function (done) {
     var server = new MockServer(17379, function (argv) {
       if (argv[0] === 'auth' && argv[1] === 'pass') {
         return new Error('ERR Client sent AUTH, but no password is set');
       }
     });
+    var errorEmited = false;
     var redis = new Redis({ port: 17379, password: 'pass' });
-    redis.on('authError', function (error) {
-      expect(error).to.have.property('message', 'ERR Client sent AUTH, but no password is set');
-      redis.disconnect();
-      server.disconnect();
-      done();
+    redis.on('error', function () {
+      errorEmited = true;
+    });
+    stub(console, 'warn', function (warn) {
+      expect(warn).to.match(/but a password was supplied/);
+      console.warn.restore();
+      setTimeout(function () {
+        expect(errorEmited).to.eql(false);
+        redis.disconnect();
+        server.disconnect();
+        done();
+      }, 0);
     });
   });
 
-  it('should emit "authError" when the password is wrong', function (done) {
+  it('should emit "error" when the password is wrong', function (done) {
     var server = new MockServer(17379, function (argv) {
       if (argv[0] === 'auth' && argv[1] === 'pass') {
         return new Error('ERR invalid password');
       }
     });
     var redis = new Redis({ port: 17379, password: 'pass' });
-    redis.on('authError', function (error) {
+    var pending = 2;
+    function check() {
+      if (!--pending) {
+        redis.disconnect();
+        server.disconnect();
+        done();
+      }
+    }
+    redis.on('error', function (error) {
       expect(error).to.have.property('message', 'ERR invalid password');
-      redis.disconnect();
-      server.disconnect();
-      done();
+      check();
+    });
+    redis.get('foo', function (err, res) {
+      expect(err.message).to.eql('ERR invalid password');
+      check();
     });
   });
 
-  it('should emit "authError" when password is not provided', function (done) {
+  it('should emit "error" when password is not provided', function (done) {
     var server = new MockServer(17379, function (argv) {
       if (argv[0] === 'info') {
         return new Error('NOAUTH Authentication required.');
       }
     });
     var redis = new Redis({ port: 17379 });
-    redis.on('authError', function (error) {
+    redis.on('error', function (error) {
       expect(error).to.have.property('message', 'NOAUTH Authentication required.');
       redis.disconnect();
       server.disconnect();
