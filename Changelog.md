@@ -1,3 +1,29 @@
+<a name="2.0.0-rc4"></a>
+# [2.0.0-rc4](https://github.com/luin/ioredis/compare/v2.0.0-rc3...v2.0.0-rc4) (2016-05-08)
+
+
+### Bug Fixes
+
+* reconnect when ready check failed([3561fab](https://github.com/luin/ioredis/commit/3561fab))
+* remove data handler when flushing command queue([b1c761c](https://github.com/luin/ioredis/commit/b1c761c))
+* won't emit error again when password is wrong([dfdebfe](https://github.com/luin/ioredis/commit/dfdebfe))
+
+
+### Features
+
+* add dropBufferSupport option to improve the performance ([#293](https://github.com/luin/ioredis/issues/293))([1a8700c](https://github.com/luin/ioredis/commit/1a8700c))
+* add support for Node.js v6 ([#295](https://github.com/luin/ioredis/issues/295))([a87f405](https://github.com/luin/ioredis/commit/a87f405))
+* emit authentication related errors with "error" event([9dc25b4](https://github.com/luin/ioredis/commit/9dc25b4))
+* print logs for unhandled error event([097fdbc](https://github.com/luin/ioredis/commit/097fdbc))
+
+
+### BREAKING CHANGES
+
+* Authentication related errors are emited with "error" event,
+instead of "authError" event
+
+
+
 <a name="2.0.0-rc3"></a>
 # [2.0.0-rc3](https://github.com/luin/ioredis/compare/v2.0.0-rc2...v2.0.0-rc3) (2016-05-02)
 
