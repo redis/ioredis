@@ -53,14 +53,15 @@ describe('auth', function () {
       errorEmited = true;
     });
     stub(console, 'warn', function (warn) {
-      expect(warn).to.match(/but a password was supplied/);
-      console.warn.restore();
-      setTimeout(function () {
-        expect(errorEmited).to.eql(false);
-        redis.disconnect();
-        server.disconnect();
-        done();
-      }, 0);
+      if (warn.indexOf('but a password was supplied') !== -1) {
+        console.warn.restore();
+        setTimeout(function () {
+          expect(errorEmited).to.eql(false);
+          redis.disconnect();
+          server.disconnect();
+          done();
+        }, 0);
+      }
     });
   });
 
