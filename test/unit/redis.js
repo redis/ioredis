@@ -84,7 +84,7 @@ describe('Redis', function () {
       }
       Redis.prototype.connect.restore();
 
-      function getOption () {
+      function getOption() {
         var redis = Redis.apply(null, arguments);
         return redis.options;
       }
@@ -113,6 +113,38 @@ describe('Redis', function () {
         done();
       });
       redis.end();
+    });
+  });
+
+  describe('#flushQueue', function () {
+    it('should flush all queues by default', function () {
+      var flushQueue = Redis.prototype.flushQueue;
+      var redis = {
+        offlineQueue: [{ command: { reject: function () {} } }],
+        commandQueue: [{ command: { reject: function () {} } }]
+      };
+      var offline = mock(redis.offlineQueue[0].command);
+      var command = mock(redis.commandQueue[0].command);
+      offline.expects('reject').once();
+      command.expects('reject').once();
+      flushQueue.call(redis);
+      offline.verify();
+      command.verify();
+    });
+
+    it('should be able to ignore a queue', function () {
+      var flushQueue = Redis.prototype.flushQueue;
+      var redis = {
+        offlineQueue: [{ command: { reject: function () {} } }],
+        commandQueue: [{ command: { reject: function () {} } }]
+      };
+      var offline = mock(redis.offlineQueue[0].command);
+      var command = mock(redis.commandQueue[0].command);
+      offline.expects('reject').once();
+      command.expects('reject').never();
+      flushQueue.call(redis, new Error(), { commandQueue: false });
+      offline.verify();
+      command.verify();
     });
   });
 });

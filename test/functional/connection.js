@@ -48,9 +48,18 @@ describe('connection', function () {
       connectTimeout: 1,
       retryStrategy: null
     });
+    var pending = 2;
+    redis.on('error', function (err) {
+      expect(err.message).to.eql('connect ETIMEDOUT');
+      if (!--pending) {
+        done();
+      }
+    });
     redis.get('foo', function (err) {
       expect(err.message).to.match(/Connection is closed/);
-      done();
+      if (!--pending) {
+        done();
+      }
     });
   });
 

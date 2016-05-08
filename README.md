@@ -806,10 +806,9 @@ var cluster = new Redis.Cluster([
 });
 ```
 
-## Native Parser
-If [hiredis](https://github.com/redis/hiredis-node) is installed (by `npm install hiredis`),
-ioredis will use it by default. Otherwise, a pure JavaScript parser will be used.
-Typically, there's not much difference between them in terms of performance.
+## Improve Performance
+ioredis supports two parsers, "hiredis" and "javascript". Refer to https://github.com/luin/ioredis/wiki/Improve-Performance
+for details about the differences between them in terms of performance.
 
 <hr>
 
