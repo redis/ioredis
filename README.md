@@ -348,6 +348,8 @@ This feature allows you to specify a string that will automatically be prepended
 to all the keys in a command, which makes it easier to manage your key
 namespaces.
 
+Warning: this feature won't apply to commands like [KEYS](http://redis.io/commands/KEYS) and [SCAN](http://redis.io/commands/scan) that take patterns rather than actual keys. See [#239](https://github.com/luin/ioredis/issues/239) for details.
+
 ```javascript
 var fooRedis = new Redis({ keyPrefix: 'foo:' });
 fooRedis.set('bar', 'baz');  // Actually sends SET foo:bar baz
