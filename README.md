@@ -445,7 +445,7 @@ Here is a simple example:
 
 ```javascript
 redis.monitor(function (err, monitor) {
-  monitor.on('monitor', function (time, args) {
+  monitor.on('monitor', function (time, args, source, database) {
   });
 });
 ```
