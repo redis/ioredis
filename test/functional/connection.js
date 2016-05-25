@@ -149,7 +149,7 @@ describe('connection', function () {
   });
 
   describe('connectionName', function () {
-    it('shoud name the connection if options.connectionName is not null', function (done) {
+    it('should name the connection if options.connectionName is not null', function (done) {
       var redis = new Redis({ connectionName: 'niceName' });
       redis.once('ready', function () {
         redis.client('getname', function (err, res) {
@@ -177,7 +177,7 @@ describe('connection', function () {
   });
 
   describe('readOnly', function () {
-    it('shoud send readonly command before other commands', function (done) {
+    it('should send readonly command before other commands', function (done) {
       var called = false;
       var redis = new Redis({ port: 30001, readOnly: true, showFriendlyErrorStack: true });
       var node = new MockServer(30001, function (argv) {
