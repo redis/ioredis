@@ -187,4 +187,24 @@ describe('send command', function () {
       });
     });
   });
+
+  it('should allow sending the loading valid commands in connect event', function (done) {
+    var redis = new Redis({ enableOfflineQueue: false });
+    redis.on('connect', function () {
+      redis.select(2, function (err, res) {
+        expect(res).to.eql('OK');
+        done();
+      });
+    });
+  });
+
+  it('should reject loading invalid commands in connect event', function (done) {
+    var redis = new Redis({ enableOfflineQueue: false });
+    redis.on('connect', function () {
+      redis.get('foo', function (err) {
+        expect(err.message).to.eql('Stream isn\'t writeable and enableOfflineQueue options is false');
+        done();
+      });
+    });
+  });
 });
