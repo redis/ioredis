@@ -73,4 +73,12 @@ describe('Command', function () {
       }
     });
   });
+
+  describe('.checkFlag()', function () {
+    it('should return correct result', function () {
+      expect(Command.checkFlag('VALID_IN_SUBSCRIBER_MODE', 'ping')).to.eql(true);
+      expect(Command.checkFlag('VALID_IN_SUBSCRIBER_MODE', 'get')).to.eql(false);
+      expect(Command.checkFlag('WILL_DISCONNECT', 'quit')).to.eql(true);
+    });
+  });
 });
