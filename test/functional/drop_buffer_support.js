@@ -103,6 +103,17 @@ describe('dropBufferSupport', function () {
         });
     });
 
+    it('should fail early with Buffer transaction', function (done) {
+      var redis = new Redis({ dropBufferSupport: true });
+      redis.multi()
+        .set('foo', 'bar')
+        .getBuffer(new Buffer('foo'), function(err) {
+          expect(err.message).to.match(/Buffer methods are not available/);
+          redis.disconnect();
+          done();
+        });
+    });
+
     it('should work with internal select command', function (done) {
       var redis = new Redis({ dropBufferSupport: true, db: 1 });
       var check = new Redis({ db: 1 });
