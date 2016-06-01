@@ -84,8 +84,34 @@ describe('dropBufferSupport', function () {
         expect(err).to.eql(null);
         expect(res[0][1]).to.eql('OK');
         expect(res[1][1]).to.eql('bar');
+        redis.disconnect();
         done();
       });
+    });
+
+    it('should work with transaction', function (done) {
+      var redis = new Redis({ dropBufferSupport: true });
+      redis.multi()
+        .set('foo', 'bar')
+        .get('foo')
+        .exec(function(err, res) {
+          expect(err).to.eql(null);
+          expect(res[0][1]).to.eql('OK');
+          expect(res[1][1]).to.eql('bar');
+          redis.disconnect();
+          done();
+        });
+    });
+
+    it('should fail early with Buffer transaction', function (done) {
+      var redis = new Redis({ dropBufferSupport: true });
+      redis.multi()
+        .set('foo', 'bar')
+        .getBuffer(new Buffer('foo'), function(err) {
+          expect(err.message).to.match(/Buffer methods are not available/);
+          redis.disconnect();
+          done();
+        });
     });
 
     it('should work with internal select command', function (done) {
@@ -94,6 +120,8 @@ describe('dropBufferSupport', function () {
       redis.set('foo', 'bar', function () {
         check.get('foo', function (err, res) {
           expect(res).to.eql('bar');
+          redis.disconnect();
+          check.disconnect();
           done();
         });
       });
