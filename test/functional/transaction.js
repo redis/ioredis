@@ -79,7 +79,7 @@ describe('transaction', function () {
         if (!--pending) {
           done();
         }
-      }).hgetallBuffer('foo').get('foo').getBuffer('foo').execBuffer(function (err, res) {
+      }).hgetallBuffer('foo').get('foo').getBuffer('foo').exec(function (err, res) {
         expect(res[0][1]).to.eql('OK');
         expect(res[1][1]).to.eql(data);
         expect(res[2][1]).to.eql({
@@ -101,7 +101,7 @@ describe('transaction', function () {
       var redis = new Redis();
       var data = { name: 'Bob', age: '17' };
       redis.pipeline().hmset('foo', data).multi().typeBuffer('foo')
-      .hgetall('foo').execBuffer().hgetall('foo').exec(function (err, res) {
+      .hgetall('foo').exec().hgetall('foo').exec(function (err, res) {
         expect(res[0][1]).to.eql('OK');
         expect(res[1][1]).to.eql('OK');
         expect(res[2][1]).to.eql(new Buffer('QUEUED'));
