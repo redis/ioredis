@@ -1,6 +1,7 @@
 'use strict';
 
 var utils = require('../../lib/utils');
+
 describe('utils', function () {
   describe('.bufferEqual', function () {
     it('should return correctly', function () {
@@ -94,18 +95,6 @@ describe('utils', function () {
         expect(utils.convertMapToArray(new Map([[1, 2]]))).to.eql([1, 2]);
         expect(utils.convertMapToArray(new Map([[1, '2'], ['abc', 'def']]))).to.eql([1, '2', 'abc', 'def']);
       }
-    });
-  });
-
-  describe('.calcSlot', function () {
-    it('should return correctly', function () {
-      expect(utils.calcSlot('123')).to.eql(5970);
-      expect(utils.calcSlot('ab{c')).to.eql(4619);
-      expect(utils.calcSlot('ab{c}2')).to.eql(7365);
-      expect(utils.calcSlot('ab{{c}2')).to.eql(2150);
-      expect(utils.calcSlot('ab{qq}{c}2')).to.eql(5598);
-      expect(utils.calcSlot('ab}')).to.eql(11817);
-      expect(utils.calcSlot('encoding')).to.eql(3060);
     });
   });
 
