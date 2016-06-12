@@ -74,6 +74,22 @@ describe('Command', function () {
     });
   });
 
+  describe('#getSlot()', function () {
+    it('should return correctly', function () {
+      expectSlot('123', 5970);
+      expectSlot('ab{c', 4619);
+      expectSlot('ab{c}2', 7365);
+      expectSlot('ab{{c}2', 2150);
+      expectSlot('ab{qq}{c}2', 5598);
+      expectSlot('ab}', 11817);
+      expectSlot('encoding', 3060);
+
+      function expectSlot(key, slot) {
+        expect(new Command('get', [key]).getSlot()).to.eql(slot);
+      }
+    });
+  });
+
   describe('.checkFlag()', function () {
     it('should return correct result', function () {
       expect(Command.checkFlag('VALID_IN_SUBSCRIBER_MODE', 'ping')).to.eql(true);

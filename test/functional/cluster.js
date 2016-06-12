@@ -1,6 +1,7 @@
 'use strict';
 
 var utils = require('../../lib/utils');
+var calculateSlot = require('cluster-key-slot');
 var Promise = require('bluebird');
 
 describe('cluster', function () {
@@ -325,7 +326,7 @@ describe('cluster', function () {
         if (argv[0] === 'get' && argv[1] === 'foo') {
           expect(moved).to.eql(false);
           moved = true;
-          return new Error('MOVED ' + utils.calcSlot('foo') + ' 127.0.0.1:30001');
+          return new Error('MOVED ' + calculateSlot('foo') + ' 127.0.0.1:30001');
         }
       });
 
@@ -345,7 +346,7 @@ describe('cluster', function () {
           ];
         }
         if (argv[0] === 'get' && argv[1] === 'foo') {
-          return new Error('MOVED ' + utils.calcSlot('foo') + ' 127.0.0.1:30002');
+          return new Error('MOVED ' + calculateSlot('foo') + ' 127.0.0.1:30002');
         }
       });
       var node2 = new MockServer(30002, function (argv) {
@@ -397,7 +398,7 @@ describe('cluster', function () {
         if (argv[0] === 'get' && argv[1] === 'foo') {
           expect(moved).to.eql(false);
           moved = true;
-          return new Error('MOVED ' + utils.calcSlot('foo') + ' 127.0.0.1:30001');
+          return new Error('MOVED ' + calculateSlot('foo') + ' 127.0.0.1:30001');
         }
       });
 
@@ -439,7 +440,7 @@ describe('cluster', function () {
               disconnect([node1, node2], done);
             });
           } else {
-            return new Error('ASK ' + utils.calcSlot('foo') + ' 127.0.0.1:30001');
+            return new Error('ASK ' + calculateSlot('foo') + ' 127.0.0.1:30001');
           }
         }
       });
@@ -530,7 +531,7 @@ describe('cluster', function () {
           ];
         } else if (argv[0] === 'get' && argv[1] === 'foo') {
           redirectTimes += 1;
-          return new Error('ASK ' + utils.calcSlot('foo') + ' 127.0.0.1:30001');
+          return new Error('ASK ' + calculateSlot('foo') + ' 127.0.0.1:30001');
         }
       };
       var node1 = new MockServer(30001, argvHandler);
@@ -650,7 +651,7 @@ describe('cluster', function () {
             expect(moved).to.eql(false);
             moved = true;
           }
-          return new Error('MOVED ' + utils.calcSlot('foo') + ' 127.0.0.1:30001');
+          return new Error('MOVED ' + calculateSlot('foo') + ' 127.0.0.1:30001');
         }
       });
 
@@ -693,7 +694,7 @@ describe('cluster', function () {
           return slotTable;
         }
         if (argv[1] === 'foo') {
-          return new Error('ASK ' + utils.calcSlot('foo') + ' 127.0.0.1:30001');
+          return new Error('ASK ' + calculateSlot('foo') + ' 127.0.0.1:30001');
         }
       });
 
@@ -755,7 +756,7 @@ describe('cluster', function () {
           return slotTable;
         }
         if (argv[0] === 'get' && argv[1] === 'foo') {
-          return new Error('MOVED ' + utils.calcSlot('foo') + ' 127.0.0.1:30001');
+          return new Error('MOVED ' + calculateSlot('foo') + ' 127.0.0.1:30001');
         }
       });
 
@@ -836,7 +837,7 @@ describe('cluster', function () {
         }
         if (argv[0] === 'get' && argv[1] === 'foo') {
           moved = true;
-          return new Error('MOVED ' + utils.calcSlot('foo') + ' 127.0.0.1:30001');
+          return new Error('MOVED ' + calculateSlot('foo') + ' 127.0.0.1:30001');
         }
         if (argv[0] === 'exec') {
           return new Error('EXECABORT Transaction discarded because of previous errors.');
@@ -889,7 +890,7 @@ describe('cluster', function () {
           return slotTable;
         }
         if (argv[0] === 'get' && argv[1] === 'foo') {
-          return new Error('ASK ' + utils.calcSlot('foo') + ' 127.0.0.1:30001');
+          return new Error('ASK ' + calculateSlot('foo') + ' 127.0.0.1:30001');
         }
         if (argv[0] === 'exec') {
           return new Error('EXECABORT Transaction discarded because of previous errors.');
