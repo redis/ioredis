@@ -896,6 +896,8 @@ $ npm test
 
 `FLUSH ALL` will be invoked after each test, so make sure there's no valuable data in it before running tests.
 
+If your testing environment does not let you spin up a Redis server [ioredis-mock](https://github.com/stipsan/ioredis-mock) is a drop-in replacement you can use in your tests. It aims to behave identically to ioredis connected to a Redis server so that your integration tests is easier to write and of better quality.
+
 # Debug
 
 You can set the `DEBUG` env to `ioredis:*` to print debug info:
