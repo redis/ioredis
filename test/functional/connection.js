@@ -86,7 +86,7 @@ describe('connection', function () {
       });
 
       var redis2 = new Redis(6390, { lazyConnect: true, retryStrategy: null });
-      redis2.connect().catch(function (err) {
+      redis2.connect().catch(function () {
         if (!--pending) {
           redis2.disconnect();
           done();
