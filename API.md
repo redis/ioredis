@@ -153,14 +153,14 @@ the current connection.
 var redis = new Redis();
 redis.monitor(function (err, monitor) {
   // Entering monitoring mode.
-  monitor.on('monitor', function (time, args) {
+  monitor.on('monitor', function (time, args, source, database) {
     console.log(time + ": " + util.inspect(args));
   });
 });
 
 // supports promise as well as other commands
 redis.monitor().then(function (monitor) {
-  monitor.on('monitor', function (time, args) {
+  monitor.on('monitor', function (time, args, source, database) {
     console.log(time + ": " + util.inspect(args));
   });
 });
@@ -218,6 +218,7 @@ Create a Redis instance
     * [new Cluster(startupNodes, options)](#new_Cluster_new)
     * [.connect()](#Cluster+connect) ⇒ <code>Promise</code>
     * [.disconnect()](#Cluster+disconnect)
+    * [.quit(callback)](#Cluster+quit) ⇒ <code>Promise</code>
     * [.nodes([role])](#Cluster+nodes) ⇒ <code>[Array.&lt;Redis&gt;](#Redis)</code>
     * [.getBuiltinCommands()](#Commander+getBuiltinCommands) ⇒ <code>Array.&lt;string&gt;</code>
     * [.createBuiltinCommand(commandName)](#Commander+createBuiltinCommand) ⇒ <code>object</code>
@@ -258,6 +259,19 @@ Disconnect from every node in the cluster.
 
 **Kind**: instance method of <code>[Cluster](#Cluster)</code>  
 **Access:** public  
+<a name="Cluster+quit"></a>
+
+### cluster.quit(callback) ⇒ <code>Promise</code>
+Quit the cluster gracefully.
+
+**Kind**: instance method of <code>[Cluster](#Cluster)</code>  
+**Returns**: <code>Promise</code> - the count of nodes that have been disconnected  
+**Access:** public  
+
+| Param | Type |
+| --- | --- |
+| callback | <code>function</code> | 
+
 <a name="Cluster+nodes"></a>
 
 ### cluster.nodes([role]) ⇒ <code>[Array.&lt;Redis&gt;](#Redis)</code>

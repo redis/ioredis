@@ -1284,6 +1284,40 @@ describe('cluster', function () {
       });
     });
   });
+
+  describe('#quit()', function () {
+    it('should quit the connection gracefully', function (done) {
+      var slotTable = [
+        [0, 1, ['127.0.0.1', 30001]],
+        [2, 16383, ['127.0.0.1', 30002], ['127.0.0.1', 30003]]
+      ];
+      var argvHandler = function (argv) {
+        if (argv[0] === 'cluster' && argv[1] === 'slots') {
+          return slotTable;
+        }
+      };
+      var node1 = new MockServer(30001, argvHandler);
+      var node2 = new MockServer(30002, argvHandler);
+      var node3 = new MockServer(30003, argvHandler);
+
+      var cluster = new Redis.Cluster([
+        { host: '127.0.0.1', port: '30001' }
+      ]);
+
+      var setCommandHandled = false;
+      cluster.on('ready', function () {
+        cluster.set('foo', 'bar', function () {
+          setCommandHandled = true;
+        });
+        cluster.quit(function (err, nodeCount) {
+          expect(setCommandHandled).to.eql(true);
+          expect(nodeCount).to.eql(3);
+          cluster.disconnect();
+          disconnect([node1, node2, node3], done);
+        });
+      });
+    });
+  });
 });
 
 function disconnect(clients, callback) {
