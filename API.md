@@ -265,7 +265,7 @@ Disconnect from every node in the cluster.
 Quit the cluster gracefully.
 
 **Kind**: instance method of <code>[Cluster](#Cluster)</code>  
-**Returns**: <code>Promise</code> - the count of nodes that have been disconnected  
+**Returns**: <code>Promise</code> - return 'OK' if successfully  
 **Access:** public  
 
 | Param | Type |

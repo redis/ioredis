@@ -1309,9 +1309,9 @@ describe('cluster', function () {
         cluster.set('foo', 'bar', function () {
           setCommandHandled = true;
         });
-        cluster.quit(function (err, nodeCount) {
+        cluster.quit(function (err, state) {
           expect(setCommandHandled).to.eql(true);
-          expect(nodeCount).to.eql(3);
+          expect(state).to.eql('OK');
           cluster.disconnect();
           disconnect([node1, node2, node3], done);
         });
