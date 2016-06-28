@@ -1,3 +1,17 @@
+<a name="2.2.0"></a>
+# [2.2.0](https://github.com/luin/ioredis/compare/v2.1.0...v2.2.0) (2016-06-28)
+
+
+### Bug Fixes
+
+* **cluster:** ensure node exists before being redirected via an ASK (#341) ([5d9d0d3](https://github.com/luin/ioredis/commit/5d9d0d3))
+
+### Features
+
+* **cluster:** add Cluster#quit() to quit cluster gracefully. (#339) ([68c4ccc](https://github.com/luin/ioredis/commit/68c4ccc)), closes [#315](https://github.com/luin/ioredis/issues/315)
+
+
+
 <a name="2.1.0"></a>
 # [2.1.0](https://github.com/luin/ioredis/compare/v2.0.1...v2.1.0) (2016-06-22)
 
