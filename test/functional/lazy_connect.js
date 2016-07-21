@@ -34,4 +34,12 @@ describe('lazy connect', function () {
     });
     redis.disconnect();
   });
+
+  describe('Cluster', function () {
+    it('should not call `connect` when init', function () {
+      stub(Redis.Cluster.prototype, 'connect').throws(new Error('`connect` should not be called'));
+      new Redis.Cluster([], { lazyConnect: true });
+      Redis.Cluster.prototype.connect.restore();
+    });
+  });
 });
