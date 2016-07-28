@@ -34,4 +34,55 @@ describe('lazy connect', function () {
     });
     redis.disconnect();
   });
+
+  describe('Cluster', function () {
+    it('should not call `connect` when init', function () {
+      stub(Redis.Cluster.prototype, 'connect').throws(new Error('`connect` should not be called'));
+      new Redis.Cluster([], { lazyConnect: true });
+      Redis.Cluster.prototype.connect.restore();
+    });
+
+    it('should quit before "close" being emited', function (done) {
+      stub(Redis.Cluster.prototype, 'connect').throws(new Error('`connect` should not be called'));
+      var cluster = new Redis.Cluster([], { lazyConnect: true });
+      cluster.quit(function () {
+        cluster.once('close', function () {
+          cluster.once('end', function () {
+            Redis.Cluster.prototype.connect.restore();
+            done();
+          });
+        });
+      });
+    });
+
+    it('should disconnect before "close" being emited', function (done) {
+      stub(Redis.Cluster.prototype, 'connect').throws(new Error('`connect` should not be called'));
+      var cluster = new Redis.Cluster([], { lazyConnect: true });
+      cluster.disconnect();
+      cluster.once('close', function () {
+        cluster.once('end', function () {
+          Redis.Cluster.prototype.connect.restore();
+          done();
+        });
+      });
+    });
+
+    it('should support disconnecting with reconnect', function (done) {
+      stub(Redis.Cluster.prototype, 'connect').throws(new Error('`connect` should not be called'));
+      var cluster = new Redis.Cluster([], {
+        lazyConnect: true,
+        clusterRetryStrategy: function () {
+          return 1;
+        }
+      });
+      cluster.disconnect(true);
+      cluster.once('close', function () {
+        Redis.Cluster.prototype.connect.restore();
+        stub(Redis.Cluster.prototype, 'connect', function () {
+          Redis.Cluster.prototype.connect.restore();
+          done();
+        });
+      });
+    });
+  });
 });
