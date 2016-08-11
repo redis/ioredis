@@ -1,3 +1,18 @@
+<a name="2.3.0"></a>
+# [2.3.0](https://github.com/luin/ioredis/compare/v2.2.0...v2.3.0) (2016-08-11)
+
+
+### Bug Fixes
+
+* reject with general error in Redis#connect ([#354](https://github.com/luin/ioredis/issues/354)) ([8f7a436](https://github.com/luin/ioredis/commit/8f7a436))
+
+
+### Features
+
+* **cluster:** add lazy connect support ([#352](https://github.com/luin/ioredis/issues/352)) ([f1cadff](https://github.com/luin/ioredis/commit/f1cadff))
+
+
+
 <a name="2.2.0"></a>
 # [2.2.0](https://github.com/luin/ioredis/compare/v2.1.0...v2.2.0) (2016-06-28)
 
