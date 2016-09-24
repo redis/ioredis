@@ -1,3 +1,13 @@
+<a name="2.3.1"></a>
+## [2.3.1](https://github.com/luin/ioredis/compare/v2.3.0...v2.3.1) (2016-09-24)
+
+
+### Bug Fixes
+
+* prevent sentinel from getting duplicated nodes ([0338677](https://github.com/luin/ioredis/commit/0338677))
+
+
+
 <a name="2.3.0"></a>
 # [2.3.0](https://github.com/luin/ioredis/compare/v2.2.0...v2.3.0) (2016-08-11)
 
