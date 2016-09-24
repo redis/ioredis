@@ -9,7 +9,7 @@
 
 
 <a name="2.3.0"></a>
-# [2.3.0](https://github.com/luin/ioredis/compare/v2.2.0...v2.3.0) (2016-08-11)
+## [2.3.0](https://github.com/luin/ioredis/compare/v2.2.0...v2.3.0) (2016-08-11)
 
 
 ### Bug Fixes
@@ -24,7 +24,7 @@
 
 
 <a name="2.2.0"></a>
-# [2.2.0](https://github.com/luin/ioredis/compare/v2.1.0...v2.2.0) (2016-06-28)
+## [2.2.0](https://github.com/luin/ioredis/compare/v2.1.0...v2.2.0) (2016-06-28)
 
 
 ### Bug Fixes
@@ -38,7 +38,7 @@
 
 
 <a name="2.1.0"></a>
-# [2.1.0](https://github.com/luin/ioredis/compare/v2.0.1...v2.1.0) (2016-06-22)
+## [2.1.0](https://github.com/luin/ioredis/compare/v2.0.1...v2.1.0) (2016-06-22)
 
 
 ### Bug Fixes
@@ -58,14 +58,14 @@
 
 
 <a name="2.0.1"></a>
-# [2.0.1](https://github.com/luin/ioredis/compare/v2.0.0...v2.0.1) (2016-06-01)
+## [2.0.1](https://github.com/luin/ioredis/compare/v2.0.0...v2.0.1) (2016-06-01)
 
 ### Bug Fixes
 
 * fix transaction with dropBufferSupport:true([47a2d9a](https://github.com/luin/ioredis/commit/47a2d9a))
 
 <a name="2.0.0"></a>
-# [2.0.0](https://github.com/luin/ioredis/compare/v2.0.0-rc4...v2.0.0) (2016-05-29)
+## [2.0.0](https://github.com/luin/ioredis/compare/v2.0.0-rc4...v2.0.0) (2016-05-29)
 
 Refer to [Breaking Changes between V1 and V2](https://github.com/luin/ioredis/wiki/Breaking-changes-between-v1-and-v2) for all breaking changes.
 
@@ -82,7 +82,7 @@ Changes since 2.0.0-rc4:
 
 
 <a name="2.0.0-rc4"></a>
-# [2.0.0-rc4](https://github.com/luin/ioredis/compare/v2.0.0-rc3...v2.0.0-rc4) (2016-05-08)
+## [2.0.0-rc4](https://github.com/luin/ioredis/compare/v2.0.0-rc3...v2.0.0-rc4) (2016-05-08)
 
 
 ### Bug Fixes
@@ -108,7 +108,7 @@ instead of "authError" event
 
 
 <a name="2.0.0-rc3"></a>
-# [2.0.0-rc3](https://github.com/luin/ioredis/compare/v2.0.0-rc2...v2.0.0-rc3) (2016-05-02)
+## [2.0.0-rc3](https://github.com/luin/ioredis/compare/v2.0.0-rc2...v2.0.0-rc3) (2016-05-02)
 
 
 ### Bug Fixes
@@ -123,7 +123,7 @@ instead of "authError" event
 
 
 <a name="2.0.0-rc2"></a>
-# [2.0.0-rc2](https://github.com/luin/ioredis/compare/v2.0.0-rc1...v2.0.0-rc2) (2016-04-10)
+## [2.0.0-rc2](https://github.com/luin/ioredis/compare/v2.0.0-rc1...v2.0.0-rc2) (2016-04-10)
 
 
 ### Bug Fixes
@@ -136,7 +136,7 @@ instead of "authError" event
 * add stringNumbers option to return numbers as JavaScript strings (#282) ([2a33fc7](https://github.com/luin/ioredis/commit/2a33fc7)), closes [#273](https://github.com/luin/ioredis/issues/273)
 
 <a name="2.0.0-rc1"></a>
-# [2.0.0-rc1](https://github.com/luin/ioredis/compare/v2.0.0-alpha3...v2.0.0-rc1) (2016-03-18)
+## [2.0.0-rc1](https://github.com/luin/ioredis/compare/v2.0.0-alpha3...v2.0.0-rc1) (2016-03-18)
 
 ### Features
 
@@ -144,7 +144,7 @@ instead of "authError" event
 
 
 <a name="2.0.0-alpha3"></a>
-# [2.0.0-alpha3](https://github.com/luin/ioredis/compare/v2.0.0-alpha2...v2.0.0-alpha3) (2016-03-13)
+## [2.0.0-alpha3](https://github.com/luin/ioredis/compare/v2.0.0-alpha2...v2.0.0-alpha3) (2016-03-13)
 
 ### Bug Fixes
 
@@ -164,7 +164,7 @@ instead of "authError" event
   2. `Pipeline#execBuffer()` is deprecated. Use `Pipeline#exec()` instead.
 
 <a name="2.0.0-alpha2"></a>
-# [2.0.0-alpha2](https://github.com/luin/ioredis/compare/v2.0.0-alpha1...v2.0.0-alpha2) (2016-02-29)
+## [2.0.0-alpha2](https://github.com/luin/ioredis/compare/v2.0.0-alpha1...v2.0.0-alpha2) (2016-02-29)
 
 
 ### Bug Fixes
@@ -178,7 +178,7 @@ instead of "authError" event
 
 
 <a name="2.0.0-alpha1"></a>
-# [2.0.0-alpha1](https://github.com/luin/ioredis/compare/v1.15.0...v2.0.0-alpha1) (2016-02-10)
+## [2.0.0-alpha1](https://github.com/luin/ioredis/compare/v1.15.0...v2.0.0-alpha1) (2016-02-10)
 
 
 ### Bug Fixes
@@ -200,11 +200,11 @@ instead of "authError" event
 * **cluster:** Option `readOnly` is removed. Check out `scaleReads` option.
 
 <a name="1.15.1"></a>
-# [1.15.1](https://github.com/luin/ioredis/compare/v1.15.0...v1.15.1) (2016-02-19)
+## [1.15.1](https://github.com/luin/ioredis/compare/v1.15.0...v1.15.1) (2016-02-19)
 * select db on connect event to prevent subscribe errors ([829bf26](https://github.com/luin/ioredis/commit/829bf26)), closes [#255](https://github.com/luin/ioredis/issues/255)
 
 <a name="1.15.0"></a>
-# [1.15.0](https://github.com/luin/ioredis/compare/v1.14.0...v1.15.0) (2016-01-31)
+## [1.15.0](https://github.com/luin/ioredis/compare/v1.14.0...v1.15.0) (2016-01-31)
 
 
 ### Bug Fixes
