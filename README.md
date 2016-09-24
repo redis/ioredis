@@ -608,10 +608,46 @@ The arguments passed to the constructor are different from the ones you use to c
 
 * `name` identifies a group of Redis instances composed of a master and one or more slaves (`mymaster` in the example);
 * `sentinels` are a list of sentinels to connect to. The list does not need to enumerate all your sentinel instances, but a few so that if one is down the client will try the next one.
+* `role` (optional) with a value of `slave` will return a random slave from the Sentinel group.
+* `preferredSlaves` (optional) can be used to prefer a particular slave or set of slaves based on priority. It accepts a function or array.
 
 ioredis **guarantees** that the node you connected to is always a master even after a failover. When a failover happens, instead of trying to reconnect to the failed node (which will be demoted to slave when it's available again), ioredis will ask sentinels for the new master node and connect to it. All commands sent during the failover are queued and will be executed when the new connection is established so that none of the commands will be lost.
 
-It's possible to connect to a slave instead of a master by specifying the option `role` with the value of `slave`, and ioredis will try to connect to a random slave of the specified master, with the guarantee that the connected node is always a slave. If the current node is promoted to master due to a failover, ioredis will disconnect from it and ask the sentinels for another slave node to connect to.
+It's possible to connect to a slave instead of a master by specifying the option `role` with the value of `slave` and ioredis will try to connect to a random slave of the specified master, with the guarantee that the connected node is always a slave. If the current node is promoted to master due to a failover, ioredis will disconnect from it and ask the sentinels for another slave node to connect to. 
+
+If you specify the option `preferredSlaves` along with `role: 'slave'` ioredis will attempt to use this value when selecting the slave from the pool of available slaves. The value of `preferredSlaves` should either be a function that accepts an array of avaiable slaves and returns a single result, or an array of slave values priorities by the lowest `prio` value first with a default value of `1`.
+
+```javascript
+// available slaves format
+var availableSlaves = [{ ip: '127.0.0.1', port: '31231', flags: 'slave' }];
+
+// preferredSlaves array format
+var preferredSlaves = [
+  { ip: '127.0.0.1', port: '31231', prio: 1 },
+  { ip: '127.0.0.1', port: '31232', prio: 2 }
+];
+
+// preferredSlaves function format
+preferredSlaves = function(availableSlaves) {
+  for (var i = 0; i < availableSlaves.length; i++) {
+    var slave = availableSlaves[i];
+    if (slave.ip === '127.0.0.1') {
+      if (slave.port === '31234') {
+        return slave;
+      }
+    }
+  }
+  // if no preferred slaves are available a random one is used
+  return false;
+};
+
+var redis = new Redis({
+  sentinels: [{ host: '127.0.0.1', port: 26379 }, { host: '127.0.0.1', port: 26380 }],
+  name: 'mymaster',
+  role: 'slave',
+  preferredSlaves: preferredSlaves
+});
+```
 
 Besides the `retryStrategy` option, there's also a `sentinelRetryStrategy` in Sentinel mode which will be invoked when all the sentinel nodes are unreachable during connecting. If `sentinelRetryStrategy` returns a valid delay time, ioredis will try to reconnect from scratch. The default value of `sentinelRetryStrategy` is:
 
