@@ -231,7 +231,76 @@ describe('sentinel', function () {
           { host: '127.0.0.1', port: '27379' }
         ],
         name: 'master',
-        role: 'slave'
+        role: 'slave',
+        preferredSlaves: [{ ip: '127.0.0.1', port: '17381', prio: 10 }]
+      });
+    });
+
+    it('should connect to the slave successfully based on preferred slave priority', function (done) {
+      var sentinel = new MockServer(27379, function (argv) {
+        if (argv[0] === 'sentinel' && argv[1] === 'slaves' && argv[2] === 'master') {
+          return [
+            ['ip', '127.0.0.1', 'port', '44444', 'flags', 'slave'],
+            ['ip', '127.0.0.1', 'port', '17381', 'flags', 'slave'],
+            ['ip', '127.0.0.1', 'port', '55555', 'flags', 'slave']
+          ];
+        }
+      });
+      var slave = new MockServer(17381);
+      slave.on('connect', function () {
+        redis.disconnect();
+        sentinel.disconnect(function () {
+          slave.disconnect(done);
+        });
+      });
+
+      var redis = new Redis({
+        sentinels: [
+          { host: '127.0.0.1', port: '27379' }
+        ],
+        name: 'master',
+        role: 'slave',
+        // for code coverage (sorting, etc), use multiple valid values that resolve to prio 1
+        preferredSlaves: [,
+          { ip: '127.0.0.1', port: '11111', prio: 100 },
+          { ip: '127.0.0.1', port: '17381', prio: 1 },
+          { ip: '127.0.0.1', port: '22222', prio: 100 },
+          { ip: '127.0.0.1', port: '17381' },
+          { ip: '127.0.0.1', port: '17381' }
+        ]
+      });
+    });
+
+    it('should connect to the slave successfully based on preferred slave filter function', function (done) {
+      var sentinel = new MockServer(27379, function (argv) {
+        if (argv[0] === 'sentinel' && argv[1] === 'slaves' && argv[2] === 'master') {
+          return [['ip', '127.0.0.1', 'port', '17381', 'flags', 'slave']];
+        }
+      });
+      // only one running slave, which we will prefer
+      var slave = new MockServer(17381);
+      slave.on('connect', function () {
+        redis.disconnect();
+        sentinel.disconnect(function () {
+          slave.disconnect(done);
+        });
+      });
+
+      var redis = new Redis({
+        sentinels: [
+          { host: '127.0.0.1', port: '27379' }
+        ],
+        name: 'master',
+        role: 'slave',
+        preferredSlaves: function(slaves){
+          for (var i = 0; i < slaves.length; i++){
+            var slave = slaves[i];
+            if (slave.ip == '127.0.0.1' && slave.port =='17381'){
+              return slave;
+            }
+          }
+          return false;
+        }
       });
     });
 
