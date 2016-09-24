@@ -1,3 +1,13 @@
+<a name="2.4.0"></a>
+# [2.4.0](https://github.com/luin/ioredis/compare/v2.3.1...v2.4.0) (2016-09-24)
+
+
+### Features
+
+* Sentinel preferredSlaves option ([#370](https://github.com/luin/ioredis/issues/370)) ([6ddcc99](https://github.com/luin/ioredis/commit/6ddcc99))
+
+
+
 <a name="2.3.1"></a>
 ## [2.3.1](https://github.com/luin/ioredis/compare/v2.3.0...v2.3.1) (2016-09-24)
 
