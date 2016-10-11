@@ -1,4 +1,11 @@
 *.cpuprofile
-/test.js
+API.md
+Changelog.md
+README.md
+benchmarks/
+bin/
+examples/
 logo.svg
 medis.png
+test/
+test_sentinel.js
