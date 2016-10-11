@@ -29,7 +29,6 @@ MockServer.prototype.connect = function () {
     });
 
     var parser = new Parser({
-      name: 'javascript',
       returnBuffers: true,
       returnReply: function (reply) {
         reply = utils.convertBufferToString(reply);
