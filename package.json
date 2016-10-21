@@ -3,6 +3,10 @@
   "version": "2.4.0",
   "description": "A delightful, performance-focused Redis client for Node and io.js",
   "main": "index.js",
+  "files": [
+    "index.js",
+    "lib/"
+  ],
   "scripts": {
     "test": "NODE_ENV=test mocha",
     "test:cov": "NODE_ENV=test node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -R spec",
