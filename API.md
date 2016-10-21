@@ -60,7 +60,7 @@ Creates a Redis instance
 | [options.db] | <code>number</code> | <code>0</code> | Database index to use. |
 | [options.password] | <code>string</code> | <code>null</code> | If set, client will send AUTH command with the value of this option when connected. |
 | [options.parser] | <code>string</code> | <code>null</code> | Either "hiredis" or "javascript". If not set, "hiredis" parser will be used if it's installed (`npm install hiredis`), otherwise "javascript" parser will be used. |
-| [options.dropBufferSupport] | <code>boolean</code> | <code>false</code> | Drop the buffer support for better performance. This option is recommanded to be enabled when "hiredis" parser is used. Refer to https://github.com/luin/ioredis/wiki/Improve-Performance for more details. |
+| [options.dropBufferSupport] | <code>boolean</code> | <code>false</code> | Drop the buffer support for better performance. This option is recommended to be enabled when "hiredis" parser is used. Refer to https://github.com/luin/ioredis/wiki/Improve-Performance for more details. |
 | [options.enableReadyCheck] | <code>boolean</code> | <code>true</code> | When a connection is established to the Redis server, the server might still be loading the database from disk. While loading, the server not respond to any commands. To work around this, when this option is `true`, ioredis will check the status of the Redis server, and when the Redis server is able to process commands, a `ready` event will be emitted. |
 | [options.enableOfflineQueue] | <code>boolean</code> | <code>true</code> | By default, if there is no active connection to the Redis server, commands are added to a queue and are executed once the connection is "ready" (when `enableReadyCheck` is `true`, "ready" means the Redis server has loaded the database from disk, otherwise means the connection to the Redis server has been established). If this option is false, when execute the command when the connection isn't ready, an error will be returned. |
 | [options.connectTimeout] | <code>number</code> | <code>10000</code> | The milliseconds before a timeout occurs during the initial connection to the Redis server. |
@@ -99,7 +99,7 @@ This method will be invoked automatically when creating a new Redis instance.
 
 | Param | Type |
 | --- | --- |
-| callback | <code>function</code> | 
+| callback | <code>function</code> |
 
 <a name="Redis+disconnect"></a>
 
@@ -270,7 +270,7 @@ Quit the cluster gracefully.
 
 | Param | Type |
 | --- | --- |
-| callback | <code>function</code> | 
+| callback | <code>function</code> |
 
 <a name="Cluster+nodes"></a>
 
