@@ -56,6 +56,7 @@ Creates a Redis instance
 | [options.family] | <code>string</code> | <code>4</code> | Version of IP stack. Defaults to 4. |
 | [options.path] | <code>string</code> | <code>null</code> | Local domain socket path. If set the `port`, `host` and `family` will be ignored. |
 | [options.keepAlive] | <code>number</code> | <code>0</code> | TCP KeepAlive on the socket with a X ms delay before start. Set to a non-number value to disable keepAlive. |
+| [options.noDelay] | <code>boolean</code> | <code>true</code> | Whether to disable the Nagle's Algorithm. By default we disable it to reduce the latency. |
 | [options.connectionName] | <code>string</code> | <code>null</code> | Connection name. |
 | [options.db] | <code>number</code> | <code>0</code> | Database index to use. |
 | [options.password] | <code>string</code> | <code>null</code> | If set, client will send AUTH command with the value of this option when connected. |
@@ -99,7 +100,7 @@ This method will be invoked automatically when creating a new Redis instance.
 
 | Param | Type |
 | --- | --- |
-| callback | <code>function</code> |
+| callback | <code>function</code> | 
 
 <a name="Redis+disconnect"></a>
 
@@ -270,7 +271,7 @@ Quit the cluster gracefully.
 
 | Param | Type |
 | --- | --- |
-| callback | <code>function</code> |
+| callback | <code>function</code> | 
 
 <a name="Cluster+nodes"></a>
 
