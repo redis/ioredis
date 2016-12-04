@@ -1,3 +1,13 @@
+<a name="2.4.2"></a>
+## [2.4.2](https://github.com/luin/ioredis/compare/v2.4.1...v2.4.2) (2016-12-04)
+
+
+### Bug Fixes
+
+* handle error when creating tls connection ([904f433](https://github.com/luin/ioredis/commit/904f433))
+
+
+
 <a name="2.4.1"></a>
 ## [2.4.1](https://github.com/luin/ioredis/compare/v2.4.0...v2.4.1) (2016-12-04)
 
