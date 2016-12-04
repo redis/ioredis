@@ -989,7 +989,7 @@ describe('cluster', function () {
           disconnect([server], done);
           return Redis.prototype.subscribe.apply(this, arguments);
         });
-        client.on('end', function () {
+        client.once('end', function () {
           client.connect();
         });
         client.disconnect();
@@ -1016,7 +1016,7 @@ describe('cluster', function () {
           disconnect([server], done);
           return Redis.prototype.psubscribe.apply(this, arguments);
         });
-        client.on('end', function () {
+        client.once('end', function () {
           client.connect();
         });
         client.disconnect();
