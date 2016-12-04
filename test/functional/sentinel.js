@@ -74,7 +74,11 @@ describe('sentinel', function () {
         finish();
       });
 
-      var pending = 2;
+      redis.on('end', function () {
+        finish();
+      });
+
+      var pending = 3;
       function finish() {
         if (!--pending) {
           redis.disconnect();
