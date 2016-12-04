@@ -1,3 +1,13 @@
+<a name="2.4.1"></a>
+## [2.4.1](https://github.com/luin/ioredis/compare/v2.4.0...v2.4.1) (2016-12-04)
+
+
+### Performance Improvements
+
+* by default call setNoDelay on the stream (#406) ([990a221](https://github.com/luin/ioredis/commit/990a221))
+
+
+
 <a name="2.4.0"></a>
 # [2.4.0](https://github.com/luin/ioredis/compare/v2.3.1...v2.4.0) (2016-09-24)
 
