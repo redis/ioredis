@@ -683,7 +683,7 @@ cluster.get('foo', function (err, res) {
 
 0. The first argument is a list of nodes of the cluster you want to connect to.
 Just like Sentinel, the list does not need to enumerate all your cluster nodes,
-but a few so that if one is unreachable the client will try the next one, and the client will discover other nodes automatically when at least one node is connnected.
+but a few so that if one is unreachable the client will try the next one, and the client will discover other nodes automatically when at least one node is connected.
 0. The second argument is the options, where:
 
     * `clusterRetryStrategy`: When none of the startup nodes are reachable, `clusterRetryStrategy` will be invoked. When a number is returned,
