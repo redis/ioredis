@@ -16,9 +16,9 @@ describe('pipeline', function () {
     });
   });
 
-  it('should return an empty array on empty pipeline', function(done) {
+  it('should return an empty array on empty pipeline', function (done) {
     var redis = new Redis();
-    redis.pipeline().exec(function(err, results) {
+    redis.pipeline().exec(function (err, results) {
       expect(err).to.eql(null);
       expect(results).to.eql([]);
       done();
@@ -27,7 +27,10 @@ describe('pipeline', function () {
 
   it('should support mix string command and buffer command', function (done) {
     var redis = new Redis();
-    redis.pipeline().set('foo', 'bar').set('foo', new Buffer('bar')).getBuffer('foo').get(new Buffer('foo')).exec(function (err, results) {
+    redis.pipeline().set('foo', 'bar')
+    .set('foo', new Buffer('bar')).getBuffer('foo')
+    .get(new Buffer('foo'))
+    .exec(function (err, results) {
       expect(err).to.eql(null);
       expect(results).to.eql([
         [null, 'OK'],
@@ -83,7 +86,8 @@ describe('pipeline', function () {
 
   it('should support key prefixing', function (done) {
     var redis = new Redis({ keyPrefix: 'foo:' });
-    redis.pipeline().set('bar', 'baz').get('bar').lpush('app1', 'test1').lpop('app1').keys('*').exec(function (err, results) {
+    redis.pipeline().set('bar', 'baz').get('bar').lpush('app1', 'test1')
+    .lpop('app1').keys('*').exec(function (err, results) {
       expect(err).to.eql(null);
       expect(results).to.eql([
         [null, 'OK'],
@@ -96,10 +100,10 @@ describe('pipeline', function () {
     });
   });
 
-  describe('custom commands', function() {
+  describe('custom commands', function () {
     var redis;
 
-    before(function() {
+    before(function () {
       redis = new Redis();
       redis.defineCommand('echo', {
         numberOfKeys: 2,
@@ -107,7 +111,7 @@ describe('pipeline', function () {
       });
     });
 
-    it('should work', function(done) {
+    it('should work', function (done) {
       redis.pipeline().echo('foo', 'bar', '123', 'abc').exec(function(err, results) {
         expect(err).to.eql(null);
         expect(results).to.eql([
@@ -117,15 +121,15 @@ describe('pipeline', function () {
       });
     });
 
-    it('should support callbacks', function(done) {
+    it('should support callbacks', function (done) {
       var pending = 1;
       redis.pipeline()
-        .echo('foo', 'bar', '123', 'abc', function(err, result) {
+        .echo('foo', 'bar', '123', 'abc', function (err, result) {
           pending -= 1;
           expect(err).to.eql(null);
           expect(result).to.eql(['foo', 'bar', '123', 'abc']);
         })
-        .exec(function(err, results) {
+        .exec(function (err, results) {
           expect(err).to.eql(null);
           expect(results).to.eql([
             [null, ['foo', 'bar', '123', 'abc']]
@@ -135,14 +139,14 @@ describe('pipeline', function () {
         });
     });
 
-    it('should be supported in transaction blocks', function(done) {
+    it('should be supported in transaction blocks', function (done) {
       redis.pipeline()
         .multi()
         .set('foo', 'asdf')
         .echo('bar', 'baz', '123', 'abc')
         .get('foo')
         .exec()
-        .exec(function(err, results) {
+        .exec(function (err, results) {
           expect(err).to.eql(null);
           expect(results[4][1][1]).to.eql(['bar', 'baz', '123', 'abc']);
           expect(results[4][1][2]).to.eql('asdf');
@@ -175,7 +179,7 @@ describe('pipeline', function () {
       redis.multi({ pipeline: false });
       redis.set('foo', 'bar');
       redis.get('foo');
-      redis.exec().then(function (res) {
+      redis.exec().then(function () {
         done();
       });
     });
