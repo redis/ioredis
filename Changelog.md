@@ -1,3 +1,13 @@
+<a name="2.4.3"></a>
+## [2.4.3](https://github.com/luin/ioredis/compare/v2.4.2...v2.4.3) (2016-12-15)
+
+
+### Bug Fixes
+
+* wait all the commands in a pipeline before sending #411 (#413) ([bfa879a](https://github.com/luin/ioredis/commit/bfa879a))
+
+
+
 <a name="2.4.2"></a>
 ## [2.4.2](https://github.com/luin/ioredis/compare/v2.4.1...v2.4.2) (2016-12-04)
 
