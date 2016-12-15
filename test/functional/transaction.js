@@ -144,4 +144,21 @@ describe('transaction', function () {
       });
     });
   });
+
+  describe('#exec', function () {
+    it('should batch all commands before ready event', function (done) {
+      var redis = new Redis();
+      redis.on('connect', function () {
+        redis.multi().info().config('get', 'maxmemory').exec(function (err, res) {
+          expect(err).to.eql(null);
+          expect(res).to.have.lengthOf(2);
+          expect(res[0][0]).to.eql(null);
+          expect(typeof res[0][1]).to.eql('string');
+          expect(res[1][0]).to.eql(null);
+          expect(Array.isArray(res[1][1])).to.eql(true);
+          done();
+        });
+      });
+    });
+  });
 });
