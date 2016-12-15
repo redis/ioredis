@@ -32,4 +32,4 @@ addons:
     repo_token: 4cee2f60edbf31acac6ddff823f0b93e2e9882c3e5c55130049e0fd878549f84
 
 after_success:
-- if [ "$INSTALL_HIREDIS" = "yes" ]; then cat ./coverage/lcov.info | ./node_modules/.bin/codeclimate; fi
+- if [ "$INSTALL_HIREDIS" = "yes" ]; then cat ./coverage/lcov.info | ./node_modules/.bin/codeclimate-test-reporter; fi
