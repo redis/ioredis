@@ -146,6 +146,38 @@ describe('connection', function () {
         }
       });
     });
+
+    it('should skip reconnecting if quitting before connecting', function (done) {
+      var count = 0;
+      var redis = new Redis({
+        port: 8999,
+        retryStrategy: function () {
+          count++;
+        }
+      });
+
+      redis.quit().then(function (result) {
+        expect(result).to.eql('OK');
+        expect(count).to.eql(0);
+        done();
+      });
+    });
+
+    it('should skip reconnecting if quitting before connecting (buffer)', function (done) {
+      var count = 0;
+      var redis = new Redis({
+        port: 8999,
+        retryStrategy: function () {
+          count++;
+        }
+      });
+
+      redis.quitBuffer().then(function (result) {
+        expect(result).to.be.instanceof(Buffer);
+        expect(result.toString()).to.eql('OK');
+        done();
+      });
+    });
   });
 
   describe('connectionName', function () {
