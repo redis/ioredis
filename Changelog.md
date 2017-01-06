@@ -1,3 +1,13 @@
+<a name="2.5.0"></a>
+# [2.5.0](https://github.com/luin/ioredis/compare/v2.4.3...v2.5.0) (2017-01-06)
+
+
+### Features
+
+* quit immediately when in reconnecting state (#410) ([a6f04f2](https://github.com/luin/ioredis/commit/a6f04f2))
+
+
+
 <a name="2.4.3"></a>
 ## [2.4.3](https://github.com/luin/ioredis/compare/v2.4.2...v2.4.3) (2016-12-15)
 
