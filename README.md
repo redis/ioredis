@@ -839,10 +839,6 @@ var cluster = new Redis.Cluster([
 });
 ```
 
-## Improve Performance
-ioredis supports two parsers, "hiredis" and "javascript". Refer to https://github.com/luin/ioredis/wiki/Improve-Performance
-for details about the differences between them in terms of performance.
-
 <hr>
 
 # Error Handling
