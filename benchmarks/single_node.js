@@ -12,9 +12,9 @@ console.log('node version: ' + process.version);
 console.log('current commit: ' + childProcess.execSync('git rev-parse --short HEAD'));
 console.log('==========================');
 
-var redisJD, redisJ, redisBD, redisB;
+var redisJD, redisJ;
 var waitReady = function (next) {
-  var pending = 4;
+  var pending = 2;
   function check() {
     if (!--pending) {
       next();
@@ -22,19 +22,13 @@ var waitReady = function (next) {
   }
   redisJD = new Redis({ parser: 'javascript', dropBufferSupport: true });
   redisJ = new Redis({ parser: 'javascript', dropBufferSupport: false });
-  redisBD = new Redis({ parser: 'hiredis', dropBufferSupport: true });
-  redisB = new Redis({ parser: 'hiredis', dropBufferSupport: false });
   redisJD.on('ready', check);
   redisJ.on('ready', check);
-  redisBD.on('ready', check);
-  redisB.on('ready', check);
 };
 
 var quit = function () {
   redisJD.quit();
   redisJ.quit();
-  redisBD.quit();
-  redisB.quit();
 };
 
 suite('SET foo bar', function () {
@@ -49,15 +43,7 @@ suite('SET foo bar', function () {
   });
 
   bench('javascript parser', function (next) {
-    redisJ.setBuffer('foo', 'bar', next);
-  });
-
-  bench('hiredis parser + dropBufferSupport: true', function (next) {
-    redisBD.set('foo', 'bar', next);
-  });
-
-  bench('hiredis parser', function (next) {
-    redisB.setBuffer('foo', 'bar', next);
+    redisJ.set('foo', 'bar', next);
   });
 
   after(quit);
@@ -83,15 +69,7 @@ suite('LRANGE foo 0 99', function () {
   });
 
   bench('javascript parser', function (next) {
-    redisJ.lrangeBuffer('foo', 0, 99, next);
-  });
-
-  bench('hiredis parser + dropBufferSupport: true', function (next) {
-    redisBD.lrange('foo', 0, 99, next);
-  });
-
-  bench('hiredis parser', function (next) {
-    redisB.lrangeBuffer('foo', 0, 99, next);
+    redisJ.lrange('foo', 0, 99, next);
   });
 
   after(quit);
