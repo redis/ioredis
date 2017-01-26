@@ -1,3 +1,22 @@
+<a name="3.0.0-0"></a>
+# [3.0.0-0](https://github.com/luin/ioredis/compare/v2.5.0...v3.0.0-0) (2017-01-26)
+
+This is a performance-focused release. We finially switch to the new version of JavaScript parser and drop the support for hiredis (Thanks to the lovely community!).
+Also, we switch to [denque](https://github.com/Salakar/denque) to improve the queueing performance.
+
+Let us know if there's any issue when using this pre-release.
+
+### Other Changes
+
+* increase the default reconnection interval ([c5fefb7](https://github.com/luin/ioredis/commit/c5fefb7)), closes [#414](https://github.com/luin/ioredis/issues/414)
+
+
+### BREAKING CHANGES
+
+* Although the interface doesn't change after upgrading the js parser, there may be still some potential internal differences that may break the applications which rely on them. Also, force a major version bump emphasizes the dropping of the hiredis.
+
+
+
 <a name="2.5.0"></a>
 # [2.5.0](https://github.com/luin/ioredis/compare/v2.4.3...v2.5.0) (2017-01-06)
 
