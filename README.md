@@ -504,7 +504,7 @@ using the `retryStrategy` option:
 var redis = new Redis({
   // This is the default value of `retryStrategy`
   retryStrategy: function (times) {
-    var delay = Math.min(times * 2, 2000);
+    var delay = Math.min(times * 50, 2000);
     return delay;
   }
 });
