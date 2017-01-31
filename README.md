@@ -658,7 +658,7 @@ function (times) {
 ```
 
 ## Cluster
-Redis Cluster provides a way to run a Redis installation where data is automatically sharded across multiple Redis nodes.
+Redis Cluster provides a way to run a Redis installation where data is automatically shared across multiple Redis nodes.
 You can connect to a Redis Cluster like this:
 
 ```javascript
