@@ -18,6 +18,22 @@ describe('sentinel', function () {
 
     });
 
+    it('should default to the default sentinel port', function (done) {
+      var sentinel = new MockServer(26379);
+      sentinel.once('connect', function () {
+        redis.disconnect();
+        sentinel.disconnect(done);
+      });
+
+      var redis = new Redis({
+        sentinels: [
+          { host: '127.0.0.1' }
+        ],
+        name: 'master'
+      });
+
+    });
+
     it('should try to connect to all sentinel', function (done) {
       var sentinel = new MockServer(27380);
       sentinel.once('connect', function () {
