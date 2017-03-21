@@ -590,7 +590,7 @@ var redis = new Redis({
 
 ## Sentinel
 ioredis supports Sentinel out of the box. It works transparently as all features that work when
-you connect to a single node also work when you connect to a sentinel group. Make sure to run Redis >= 2.8.12 if you want to use this feature.
+you connect to a single node also work when you connect to a sentinel group. Make sure to run Redis >= 2.8.12 if you want to use this feature. Sentinels have a default port of 26379.
 
 To connect using Sentinel, use:
 
