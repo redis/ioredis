@@ -1,3 +1,20 @@
+<a name="3.0.0-1"></a>
+# [3.0.0-1](https://github.com/luin/ioredis/compare/v3.0.0-0...v3.0.0-1) (2017-04-16)
+
+
+### Features
+
+* add debug logs for resolved sentinel nodes ([8f3d3f7](https://github.com/luin/ioredis/commit/8f3d3f7))
+* report error on Sentinel connection refused ([#445](https://github.com/luin/ioredis/issues/445)) ([#446](https://github.com/luin/ioredis/issues/446)) ([286a5bc](https://github.com/luin/ioredis/commit/286a5bc))
+* set default port of sentinels to 26379. ([#441](https://github.com/luin/ioredis/issues/441)) ([539fe41](https://github.com/luin/ioredis/commit/539fe41))
+
+
+### BREAKING CHANGES
+
+* The default port of sentinels are now 26379 instead of 6379. This shouldn't break your app in most case since few setups has the sentinel server running on 6379, but if it's your case and the port isn't set explicitly, please go to update it.
+
+
+
 <a name="3.0.0-0"></a>
 # [3.0.0-0](https://github.com/luin/ioredis/compare/v2.5.0...v3.0.0-0) (2017-01-26)
 
