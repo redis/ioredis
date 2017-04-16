@@ -150,7 +150,7 @@ redis.on('messageBuffer', function (channel, message) {
 `PSUBSCRIBE` is also supported in a similar way:
 
 ```javascript
-redis.psubscribe('pat?ern', function (err, count) {});
+redis.psubscribe('pattern', function (err, count) {});
 redis.on('pmessage', function (pattern, channel, message) {});
 redis.on('pmessageBuffer', function (pattern, channel, message) {});
 ```
