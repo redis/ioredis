@@ -168,7 +168,7 @@ describe('sentinel', function () {
       redis.connect().then(function () {
         throw new Error('Expect `connect` to be thrown');
       }).catch(function (err) {
-        expect(err.message).to.eql('All sentinels are unreachable. Last error: just rejected');
+        expect(err.message).to.eql('All sentinels are unreachable and retry is disabled. Last error: just rejected');
         redis.disconnect();
         sentinel.disconnect(done);
       });
