@@ -1,3 +1,13 @@
+<a name="3.0.0-2"></a>
+# [3.0.0-2](https://github.com/luin/ioredis/compare/v3.0.0-1...v3.0.0-2) (2017-05-03)
+
+
+### Bug Fixes
+
+* restore the default connectTimeout to 10000 ([dc8256e](https://github.com/luin/ioredis/commit/dc8256e))
+
+
+
 <a name="3.0.0-1"></a>
 # [3.0.0-1](https://github.com/luin/ioredis/compare/v3.0.0-0...v3.0.0-1) (2017-04-16)
 
