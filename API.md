@@ -15,9 +15,6 @@
 <dt><a href="#defaultOptions">defaultOptions</a></dt>
 <dd><p>Default options</p>
 </dd>
-<dt><a href="#defaultOptions">defaultOptions</a></dt>
-<dd><p>Default options</p>
-</dd>
 </dl>
 
 <a name="Redis"></a>
@@ -400,11 +397,4 @@ Send a command
 Default options
 
 **Kind**: global variable  
-**Access:** protected  
-<a name="defaultOptions"></a>
-
-## defaultOptions
-Default options
-
-**Kind**: global variable  
-**Access:** protected  
+**Access:** protected   
