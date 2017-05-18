@@ -1,3 +1,14 @@
+<a name="3.0.0"></a>
+# [3.0.0](https://github.com/luin/ioredis/compare/v3.0.0-2...v3.0.0) (2017-05-18)
+
+
+### Features
+
+* **pipeline:** add #length to get the command count ([a6060cb](https://github.com/luin/ioredis/commit/a6060cb)), closes [#461](https://github.com/luin/ioredis/issues/461)
+* **sentinel:** allow connection to IPv6-only sentinels ([#463](https://github.com/luin/ioredis/issues/463)) ([a389f3c](https://github.com/luin/ioredis/commit/a389f3c))
+
+
+
 <a name="3.0.0-2"></a>
 # [3.0.0-2](https://github.com/luin/ioredis/compare/v3.0.0-1...v3.0.0-2) (2017-05-03)
 
