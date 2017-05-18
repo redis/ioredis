@@ -112,7 +112,7 @@ describe('pipeline', function () {
     });
 
     it('should work', function (done) {
-      redis.pipeline().echo('foo', 'bar', '123', 'abc').exec(function(err, results) {
+      redis.pipeline().echo('foo', 'bar', '123', 'abc').exec(function (err, results) {
         expect(err).to.eql(null);
         expect(results).to.eql([
           [null, ['foo', 'bar', '123', 'abc']]
@@ -205,6 +205,21 @@ describe('pipeline', function () {
           done();
         });
       });
+    });
+  });
+
+  describe('#length', function () {
+    it('return the command count', function () {
+      var redis = new Redis();
+
+      var pipeline1 = redis.pipeline().multi().set('foo', 'bar').get('foo').exec();
+      expect(pipeline1.length).to.eql(4);
+
+      var pipeline2 = redis.pipeline([
+        ['set', 'foo', 'bar'],
+        ['get', 'foo']
+      ]);
+      expect(pipeline2.length).to.eql(2);
     });
   });
 });

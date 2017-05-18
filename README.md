@@ -225,6 +225,13 @@ redis.pipeline([
 ]).exec(function () { /* ... */ });
 ```
 
+`#length` property shows how many commands in the pipeline:
+
+```javascript
+const length = redis.pipeline().set('foo', 'bar').get('foo').length;
+// length === 2
+```
+
 
 ## Transaction
 Most of the time, the transaction commands `multi` & `exec` are used together with pipeline.
