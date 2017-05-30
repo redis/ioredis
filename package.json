@@ -33,7 +33,7 @@
     "flexbuffer": "0.0.6",
     "lodash": "^4.8.2",
     "redis-commands": "^1.2.0",
-    "redis-parser": "^2.4.0"
+    "redis-parser": "^3.0.0"
   },
   "devDependencies": {
     "chai": "^3.5.0",
