@@ -1,3 +1,18 @@
+<a name="3.1.0"></a>
+# [3.1.0](https://github.com/luin/ioredis/compare/v3.0.0...v3.1.0) (2017-05-30)
+
+
+### Bug Fixes
+
+* non-owned properties cause empty args for mset & hmset ([#469](https://github.com/luin/ioredis/issues/469)) ([e7b6352](https://github.com/luin/ioredis/commit/e7b6352))
+
+
+### Features
+
+* **cluster:** add option to control timeout on cluster slots refresh ([#475](https://github.com/luin/ioredis/issues/475)) ([493d095](https://github.com/luin/ioredis/commit/493d095))
+
+
+
 <a name="3.0.0"></a>
 # [3.0.0](https://github.com/luin/ioredis/compare/v3.0.0-2...v3.0.0) (2017-05-18)
 
