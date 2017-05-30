@@ -9,14 +9,6 @@
 <dd></dd>
 </dl>
 
-## Members
-
-<dl>
-<dt><a href="#defaultOptions">defaultOptions</a></dt>
-<dd><p>Default options</p>
-</dd>
-</dl>
-
 <a name="Redis"></a>
 
 ## Redis ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
@@ -26,7 +18,7 @@
 * [Redis](#Redis) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
     * [new Redis([port], [host], [options])](#new_Redis_new)
     * _instance_
-        * [.connect(callback)](#Redis+connect) ⇒ <code>Promise</code>
+        * [.connect([callback])](#Redis+connect) ⇒ <code>Promise</code>
         * [.disconnect()](#Redis+disconnect)
         * ~~[.end()](#Redis+end)~~
         * [.duplicate()](#Redis+duplicate)
@@ -87,7 +79,7 @@ var authedRedis = new Redis(6380, '192.168.100.1', { password: 'password' });
 ```
 <a name="Redis+connect"></a>
 
-### redis.connect(callback) ⇒ <code>Promise</code>
+### redis.connect([callback]) ⇒ <code>Promise</code>
 Create a connection to Redis.
 This method will be invoked automatically when creating a new Redis instance.
 
@@ -96,7 +88,7 @@ This method will be invoked automatically when creating a new Redis instance.
 
 | Param | Type |
 | --- | --- |
-| callback | <code>function</code> | 
+| [callback] | <code>function</code> | 
 
 <a name="Redis+disconnect"></a>
 
@@ -214,8 +206,8 @@ Create a Redis instance
 * [Cluster](#Cluster) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
     * [new Cluster(startupNodes, options)](#new_Cluster_new)
     * [.connect()](#Cluster+connect) ⇒ <code>Promise</code>
-    * [.disconnect()](#Cluster+disconnect)
-    * [.quit(callback)](#Cluster+quit) ⇒ <code>Promise</code>
+    * [.disconnect([reconnect])](#Cluster+disconnect)
+    * [.quit([callback])](#Cluster+quit) ⇒ <code>Promise</code>
     * [.nodes([role])](#Cluster+nodes) ⇒ <code>[Array.&lt;Redis&gt;](#Redis)</code>
     * [.getBuiltinCommands()](#Commander+getBuiltinCommands) ⇒ <code>Array.&lt;string&gt;</code>
     * [.createBuiltinCommand(commandName)](#Commander+createBuiltinCommand) ⇒ <code>object</code>
@@ -240,6 +232,7 @@ Creates a Redis Cluster instance
 | [options.retryDelayOnFailover] | <code>number</code> | <code>100</code> | When an error is received when sending a command(e.g. "Connection is closed." when the target Redis node is down), |
 | [options.retryDelayOnClusterDown] | <code>number</code> | <code>100</code> | When a CLUSTERDOWN error is received, client will retry if `retryDelayOnClusterDown` is valid delay time. |
 | [options.retryDelayOnTryAgain] | <code>number</code> | <code>100</code> | When a TRYAGAIN error is received, client will retry if `retryDelayOnTryAgain` is valid delay time. |
+| [options.slotsRefreshTimeout] | <code>number</code> | <code>1000</code> | The milliseconds before a timeout occurs while refreshing slots from the cluster. |
 | [options.redisOptions] | <code>Object</code> |  | Passed to the constructor of `Redis`. |
 
 <a name="Cluster+connect"></a>
@@ -251,14 +244,19 @@ Connect to a cluster
 **Access:** public  
 <a name="Cluster+disconnect"></a>
 
-### cluster.disconnect()
+### cluster.disconnect([reconnect])
 Disconnect from every node in the cluster.
 
 **Kind**: instance method of <code>[Cluster](#Cluster)</code>  
 **Access:** public  
+
+| Param | Type |
+| --- | --- |
+| [reconnect] | <code>boolean</code> | 
+
 <a name="Cluster+quit"></a>
 
-### cluster.quit(callback) ⇒ <code>Promise</code>
+### cluster.quit([callback]) ⇒ <code>Promise</code>
 Quit the cluster gracefully.
 
 **Kind**: instance method of <code>[Cluster](#Cluster)</code>  
@@ -267,7 +265,7 @@ Quit the cluster gracefully.
 
 | Param | Type |
 | --- | --- |
-| callback | <code>function</code> | 
+| [callback] | <code>function</code> | 
 
 <a name="Cluster+nodes"></a>
 
@@ -391,10 +389,3 @@ Send a command
 
 **Kind**: instance abstract method of <code>[Commander](#Commander)</code>  
 **Access:** public  
-<a name="defaultOptions"></a>
-
-## defaultOptions
-Default options
-
-**Kind**: global variable  
-**Access:** protected   
