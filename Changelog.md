@@ -1,3 +1,13 @@
+<a name="3.1.1"></a>
+## [3.1.1](https://github.com/luin/ioredis/compare/v3.1.0...v3.1.1) (2017-05-31)
+
+
+### Bug Fixes
+
+* show error name the error stack for Node.js 8 ([a628aa7](https://github.com/luin/ioredis/commit/a628aa7))
+
+
+
 <a name="3.1.0"></a>
 # [3.1.0](https://github.com/luin/ioredis/compare/v3.0.0...v3.1.0) (2017-05-30)
 
