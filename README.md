@@ -77,7 +77,8 @@ redis.get('foo').then(function (result) {
   console.log(result);
 });
 
-// Arguments to commands are flattened, so the following are the same:
+// Arguments to commands are flattened, so the following are the same.
+// When the number of arguments is big the latter is slightly faster.
 redis.sadd('set', 1, 3, 5, 7);
 redis.sadd('set', [1, 3, 5, 7]);
 
