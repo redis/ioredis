@@ -702,7 +702,8 @@ but a few so that if one is unreachable the client will try the next one, and th
           return delay;
         }
         ```
-    It' possible to modify the `startupNodes` property in order to switch to another set of nodes here:
+
+        It's possible to modify the `startupNodes` property in order to switch to another set of nodes here:
 
         ```javascript
         function (times) {
