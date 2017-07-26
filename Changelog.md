@@ -1,3 +1,13 @@
+<a name="3.1.2"></a>
+## [3.1.2](https://github.com/luin/ioredis/compare/v3.1.1...v3.1.2) (2017-07-26)
+
+
+### Bug Fixes
+
+* stop mutating the arguments when calling multi ([#480](https://github.com/luin/ioredis/issues/480)) ([a380030](https://github.com/luin/ioredis/commit/a380030))
+
+
+
 <a name="3.1.1"></a>
 ## [3.1.1](https://github.com/luin/ioredis/compare/v3.1.0...v3.1.1) (2017-05-31)
 
