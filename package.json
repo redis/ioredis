@@ -49,15 +49,14 @@
     "redis-parser": "^2.4.0"
   },
   "devDependencies": {
-    "chai": "^3.5.0",
-    "codeclimate-test-reporter": "0.4.0",
-    "cz-conventional-changelog": "^1.1.5",
+    "chai": "^4.1.1",
+    "codeclimate-test-reporter": "^0.5.0",
+    "cz-conventional-changelog": "^2.0.0",
     "istanbul": "^0.4.2",
     "jsdoc": "^3.4.0",
-    "jsdoc-to-markdown": "^2.0.0",
+    "jsdoc-to-markdown": "^3.0.0",
     "matcha": "^0.7.0",
     "mocha": "^3.1.1",
-    "redis": "^2.4.2",
     "server-destroy": "^1.0.1",
     "sinon": "^1.17.3"
   },

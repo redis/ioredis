@@ -36,7 +36,9 @@ describe('utils', function () {
     it('should return correctly', function () {
       expect(utils.wrapMultiResult(null)).to.eql(null);
       expect(utils.wrapMultiResult([1, 2])).to.eql([[null, 1], [null, 2]]);
-      expect(utils.wrapMultiResult([1, 2, new Error('2')])).to.eql([[null, 1], [null, 2], [new Error('2')]]);
+
+      var error = new Error('2');
+      expect(utils.wrapMultiResult([1, 2, error])).to.eql([[null, 1], [null, 2], [error]]);
     });
   });
 
