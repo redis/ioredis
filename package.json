@@ -31,6 +31,7 @@
     "debug": "^2.2.0",
     "denque": "^1.1.0",
     "flexbuffer": "0.0.6",
+    "lodash.assign": "^4.2.0",
     "lodash.bind": "^4.2.1",
     "lodash.clone": "^4.5.0",
     "lodash.clonedeep": "^4.5.0",
@@ -40,6 +41,7 @@
     "lodash.foreach": "^4.5.0",
     "lodash.isempty": "^4.4.0",
     "lodash.keys": "^4.2.0",
+    "lodash.noop": "^3.0.1",
     "lodash.partial": "^4.2.1",
     "lodash.pick": "^4.4.0",
     "lodash.sample": "^4.2.1",
@@ -68,6 +70,5 @@
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
     }
-  },
-  "false": {}
+  }
 }
