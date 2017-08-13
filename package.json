@@ -51,7 +51,7 @@
     "redis-parser": "^2.4.0"
   },
   "devDependencies": {
-    "chai": "^4.1.1",
+    "chai": "^3.5.0",
     "codeclimate-test-reporter": "^0.5.0",
     "cz-conventional-changelog": "^2.0.0",
     "istanbul": "^0.4.2",
