@@ -1,6 +1,9 @@
 <a name="3.1.4"></a>
 ## [3.1.4](https://github.com/luin/ioredis/compare/v3.1.3...v3.1.4) (2017-08-13)
 
+We mistakenly used `Object.assign` to replace `lodash.assign` in v3.1.3, which is not supported
+by the old Node.js version (0.10.x). This change was a BC change and shouldn't happen without changing
+the major version, so we added `lodash.assign` back.
 
 
 <a name="3.1.3"></a>
