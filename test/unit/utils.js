@@ -82,6 +82,9 @@ describe('utils', function () {
 
   describe('.convertObjectToArray', function () {
     it('should return correctly', function () {
+      var nullObject = Object.create(null);
+      nullObject.abc = 'def';
+      expect(utils.convertObjectToArray(nullObject)).to.eql(['abc', 'def']);
       expect(utils.convertObjectToArray({ 1: 2 })).to.eql(['1', 2]);
       expect(utils.convertObjectToArray({ 1: '2' })).to.eql(['1', '2']);
       expect(utils.convertObjectToArray({ 1: '2', abc: 'def' })).to.eql(['1', '2', 'abc', 'def']);
