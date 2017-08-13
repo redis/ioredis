@@ -1,3 +1,13 @@
+<a name="3.1.3"></a>
+## [3.1.3](https://github.com/luin/ioredis/compare/v3.1.2...v3.1.3) (2017-08-13)
+
+
+### Bug Fixes
+
+* allow convertObjectToArray to handle objects with no prototype ([#507](https://github.com/luin/ioredis/issues/507)) ([8e17920](https://github.com/luin/ioredis/commit/8e17920))
+
+
+
 <a name="3.1.2"></a>
 ## [3.1.2](https://github.com/luin/ioredis/compare/v3.1.1...v3.1.2) (2017-07-26)
 
