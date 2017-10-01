@@ -1,3 +1,13 @@
+<a name="3.2.0"></a>
+# [3.2.0](https://github.com/luin/ioredis/compare/v3.1.4...v3.2.0) (2017-10-01)
+
+
+### Features
+
+* truncate large/long debug output arguments ([#523](https://github.com/luin/ioredis/issues/523)) ([cf18554](https://github.com/luin/ioredis/commit/cf18554))
+
+
+
 <a name="3.1.4"></a>
 ## [3.1.4](https://github.com/luin/ioredis/compare/v3.1.3...v3.1.4) (2017-08-13)
 
