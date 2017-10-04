@@ -1,3 +1,13 @@
+<a name="3.2.1"></a>
+## [3.2.1](https://github.com/luin/ioredis/compare/v3.2.0...v3.2.1) (2017-10-04)
+
+
+### Bug Fixes
+
+* **Cluster:** empty key name was sent to random nodes ([e42f30f](https://github.com/luin/ioredis/commit/e42f30f))
+
+
+
 <a name="3.2.0"></a>
 # [3.2.0](https://github.com/luin/ioredis/compare/v3.1.4...v3.2.0) (2017-10-01)
 
