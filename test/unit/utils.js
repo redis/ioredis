@@ -36,7 +36,9 @@ describe('utils', function () {
     it('should return correctly', function () {
       expect(utils.wrapMultiResult(null)).to.eql(null);
       expect(utils.wrapMultiResult([1, 2])).to.eql([[null, 1], [null, 2]]);
-      expect(utils.wrapMultiResult([1, 2, new Error('2')])).to.eql([[null, 1], [null, 2], [new Error('2')]]);
+
+      var error = new Error('2');
+      expect(utils.wrapMultiResult([1, 2, error])).to.eql([[null, 1], [null, 2], [error]]);
     });
   });
 
@@ -82,6 +84,9 @@ describe('utils', function () {
 
   describe('.convertObjectToArray', function () {
     it('should return correctly', function () {
+      var nullObject = Object.create(null);
+      nullObject.abc = 'def';
+      expect(utils.convertObjectToArray(nullObject)).to.eql(['abc', 'def']);
       expect(utils.convertObjectToArray({ 1: 2 })).to.eql(['1', 2]);
       expect(utils.convertObjectToArray({ 1: '2' })).to.eql(['1', '2']);
       expect(utils.convertObjectToArray({ 1: '2', abc: 'def' })).to.eql(['1', '2', 'abc', 'def']);
