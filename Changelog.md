@@ -1,3 +1,51 @@
+<a name="3.2.1"></a>
+## [3.2.1](https://github.com/luin/ioredis/compare/v3.2.0...v3.2.1) (2017-10-04)
+
+
+### Bug Fixes
+
+* **Cluster:** empty key name was sent to random nodes ([e42f30f](https://github.com/luin/ioredis/commit/e42f30f))
+
+
+
+<a name="3.2.0"></a>
+# [3.2.0](https://github.com/luin/ioredis/compare/v3.1.4...v3.2.0) (2017-10-01)
+
+
+### Features
+
+* truncate large/long debug output arguments ([#523](https://github.com/luin/ioredis/issues/523)) ([cf18554](https://github.com/luin/ioredis/commit/cf18554))
+
+
+
+<a name="3.1.4"></a>
+## [3.1.4](https://github.com/luin/ioredis/compare/v3.1.3...v3.1.4) (2017-08-13)
+
+We mistakenly used `Object.assign` to replace `lodash.assign` in v3.1.3, which is not supported
+by the old Node.js version (0.10.x). This change was a BC change and shouldn't happen without changing
+the major version, so we added `lodash.assign` back.
+
+
+<a name="3.1.3"></a>
+## [3.1.3](https://github.com/luin/ioredis/compare/v3.1.2...v3.1.3) (2017-08-13)
+
+
+### Bug Fixes
+
+* allow convertObjectToArray to handle objects with no prototype ([#507](https://github.com/luin/ioredis/issues/507)) ([8e17920](https://github.com/luin/ioredis/commit/8e17920))
+
+
+
+<a name="3.1.2"></a>
+## [3.1.2](https://github.com/luin/ioredis/compare/v3.1.1...v3.1.2) (2017-07-26)
+
+
+### Bug Fixes
+
+* stop mutating the arguments when calling multi ([#480](https://github.com/luin/ioredis/issues/480)) ([a380030](https://github.com/luin/ioredis/commit/a380030))
+
+
+
 <a name="3.1.1"></a>
 ## [3.1.1](https://github.com/luin/ioredis/compare/v3.1.0...v3.1.1) (2017-05-31)
 
