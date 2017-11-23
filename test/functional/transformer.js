@@ -160,5 +160,44 @@ describe('transformer', function () {
         });
       });
     });
+
+    describe('zadd', function () {
+      it('should support object', function (done) {
+        var redis = new Redis();
+        redis.zadd('foo', { a: 100, b: 99 }, function (err, result) {
+          expect(result).to.eql(2);
+          redis.zscore('foo', 'b', function (err, result) {
+            expect(result).to.eql('99');
+            done();
+          });
+        });
+      });
+      it('should support Map', function (done) {
+        if (typeof Map === 'undefined') {
+          return done();
+        }
+        var redis = new Redis();
+        var map = new Map();
+        map.set('a', 100);
+        map.set('b', 99);
+        redis.zadd('foo', map, function (err, result) {
+          expect(result).to.eql(2);
+          redis.zscore('foo', 'b', function (err, result) {
+            expect(result).to.eql('99');
+            done();
+          });
+        });
+      });
+      it('should not affect the old way', function (done) {
+        var redis = new Redis();
+        redis.zadd('foo', 100, 'a', 99, 'b', function (err, result) {
+          expect(result).to.eql(2);
+          redis.zscore('foo', 'b', function (err, result) {
+            expect(result).to.eql('99');
+            done();
+          });
+        });
+      });
+    });
   });
 });

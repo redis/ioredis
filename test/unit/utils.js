@@ -93,12 +93,30 @@ describe('utils', function () {
     });
   });
 
+  describe('.convertObjectToInvertArray', function () {
+    it('should return correctly', function () {
+      expect(utils.convertObjectToInvertArray({ 1: 2 })).to.eql([2, '1']);
+      expect(utils.convertObjectToInvertArray({ 1: '2' })).to.eql(['2', '1']);
+      expect(utils.convertObjectToInvertArray({ 1: '2', abc: 'def' })).to.eql(['2', '1', 'def', 'abc']);
+    });
+  });
+
   describe('.convertMapToArray', function () {
     it('should return correctly', function () {
       if (typeof Map !== 'undefined') {
         expect(utils.convertMapToArray(new Map([['1', 2]]))).to.eql(['1', 2]);
         expect(utils.convertMapToArray(new Map([[1, 2]]))).to.eql([1, 2]);
         expect(utils.convertMapToArray(new Map([[1, '2'], ['abc', 'def']]))).to.eql([1, '2', 'abc', 'def']);
+      }
+    });
+  });
+
+  describe('.convertMapToInvertArray', function () {
+    it('should return correctly', function () {
+      if (typeof Map !== 'undefined') {
+        expect(utils.convertMapToInvertArray(new Map([['1', 2]]))).to.eql([2, '1']);
+        expect(utils.convertMapToInvertArray(new Map([[1, 2]]))).to.eql([2, 1]);
+        expect(utils.convertMapToInvertArray(new Map([[1, '2'], ['abc', 'def']]))).to.eql(['2', 1, 'def', 'abc']);
       }
     });
   });
