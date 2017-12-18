@@ -74,6 +74,24 @@ describe('connection', function () {
     });
   });
 
+  it.only('can handle next tick disconnects on non db:0', function (done) {
+    var redis = new Redis({ db: 1 });
+    process.on('unhandledRejection', function (err, promise) {
+      console.log('found unhandled error')
+      done(err);
+    })
+
+    redis.on('error', function (err)  { // never emitted
+      console.log('error event', err)
+      done(err)
+    })
+
+    process.nextTick(function () {
+      redis.disconnect();
+      done();
+    })
+  })
+
   describe('#connect', function () {
     it('should return a promise', function (done) {
       var pending = 2;
