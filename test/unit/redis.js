@@ -1,5 +1,7 @@
 'use strict';
 
+var Socket = require('net').Socket;
+var Connector = require('../../lib/connectors/connector');
 var Promise = require('bluebird');
 
 describe('Redis', function () {
@@ -145,6 +147,34 @@ describe('Redis', function () {
       flushQueue.call(redis, new Error(), { commandQueue: false });
       offline.verify();
       command.verify();
+    });
+  });
+
+  describe('#connect', function () {
+    it('should resolve the connect promise on plain connections', function (done) {
+      var mockedStream = new Socket();
+      var connectStub = stub(Connector.prototype, 'connect');
+
+      new Redis({ lazyConnect: true })
+        .connect()
+        .then(done)
+        .finally(connectStub.restore);
+
+      connectStub.callArgWith(0, null, mockedStream);
+      mockedStream.emit('connect');
+    });
+
+    it('should resolve the connect promise on TLS connections', function (done) {
+      var mockedStream = new Socket();
+      var connectStub = stub(Connector.prototype, 'connect');
+
+      new Redis({ lazyConnect: true, tls: true })
+        .connect()
+        .then(done)
+        .finally(connectStub.restore);
+
+      connectStub.callArgWith(0, null, mockedStream);
+      mockedStream.emit('secureConnect');
     });
   });
 });
