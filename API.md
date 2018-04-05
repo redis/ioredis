@@ -56,6 +56,7 @@ Creates a Redis instance
 | [options.autoResubscribe] | <code>boolean</code> | <code>true</code> | After reconnected, if the previous connection was in the subscriber mode, client will auto re-subscribe these channels. |
 | [options.autoResendUnfulfilledCommands] | <code>boolean</code> | <code>true</code> | If true, client will resend unfulfilled commands(e.g. block commands) in the previous connection when reconnected. |
 | [options.lazyConnect] | <code>boolean</code> | <code>false</code> | By default, When a new `Redis` instance is created, it will connect to Redis server automatically. If you want to keep disconnected util a command is called, you can pass the `lazyConnect` option to the constructor: ```javascript var redis = new Redis({ lazyConnect: true }); // No attempting to connect to the Redis server here. // Now let's connect to the Redis server redis.get('foo', function () { }); ``` |
+| [options.tls] | <code>Object</code> |  | TLS connection support. See https://github.com/luin/ioredis#tls-options |
 | [options.keyPrefix] | <code>string</code> | <code>&quot;&#x27;&#x27;&quot;</code> | The prefix to prepend to all keys in a command. |
 | [options.retryStrategy] | <code>function</code> |  | See "Quick Start" section |
 | [options.reconnectOnError] | <code>function</code> |  | See "Quick Start" section |
