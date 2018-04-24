@@ -434,6 +434,23 @@ redis.get('k3', function (err, result) {
 });
 ```
 
+Another useful example of a reply transformer is one that changes `hgetall` to return array of arrays instead of objects which avoids a unwanted conversation of hash keys to strings when dealing with binary hash keys:
+
+```javascript
+Redis.Command.setReplyTransformer('hgetall', function (result) {
+  var arr = [];
+  for (var i = 0; i < result.length; i += 2) {
+    arr.push([result[i], result[i + 1]]);
+  }
+  return arr;
+});
+redis.hset('h1', Buffer.from([0x01]), Buffer.from([0x02]));
+redis.hset('h1', Buffer.from([0x03]), Buffer.from([0x04]));
+redis.hgetallBuffer('h1', function (err, result) {
+  // result === [ [ <Buffer 01>, <Buffer 02> ], [ <Buffer 03>, <Buffer 04> ] ];
+});
+```
+
 ## Monitor
 Redis supports the MONITOR command,
 which lets you see all commands received by the Redis server across all client connections,
@@ -619,7 +636,7 @@ The arguments passed to the constructor are different from the ones you use to c
 
 ioredis **guarantees** that the node you connected to is always a master even after a failover. When a failover happens, instead of trying to reconnect to the failed node (which will be demoted to slave when it's available again), ioredis will ask sentinels for the new master node and connect to it. All commands sent during the failover are queued and will be executed when the new connection is established so that none of the commands will be lost.
 
-It's possible to connect to a slave instead of a master by specifying the option `role` with the value of `slave` and ioredis will try to connect to a random slave of the specified master, with the guarantee that the connected node is always a slave. If the current node is promoted to master due to a failover, ioredis will disconnect from it and ask the sentinels for another slave node to connect to. 
+It's possible to connect to a slave instead of a master by specifying the option `role` with the value of `slave` and ioredis will try to connect to a random slave of the specified master, with the guarantee that the connected node is always a slave. If the current node is promoted to master due to a failover, ioredis will disconnect from it and ask the sentinels for another slave node to connect to.
 
 If you specify the option `preferredSlaves` along with `role: 'slave'` ioredis will attempt to use this value when selecting the slave from the pool of available slaves. The value of `preferredSlaves` should either be a function that accepts an array of avaiable slaves and returns a single result, or an array of slave values priorities by the lowest `prio` value first with a default value of `1`.
 
