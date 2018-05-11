@@ -7,6 +7,8 @@ node_js:
 - '5'
 - '6'
 - '8'
+- '9'
+- '10'
 
 services:
 - redis-server
