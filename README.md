@@ -610,6 +610,19 @@ var redis = new Redis({
 });
 ```
 
+```javascript
+var cluster = new Redis.Cluster(nodesList, {
+  redisOptions: {
+    tls: {
+      // Refer to `tls.connect()` section in
+      // https://nodejs.org/api/tls.html
+      // for all supported options
+      ca: fs.readFileSync('cert.pem')
+    }
+  }
+});
+```
+
 <hr>
 
 ## Sentinel
@@ -744,6 +757,7 @@ but a few so that if one is unreachable the client will try the next one, and th
     will resend the commands rejected with `TRYAGAIN` error after the specified time (in ms).
     * `redisOptions`: Default options passed to the constructor of `Redis` when connecting to a node.
     * `slotsRefreshTimeout`: Milliseconds before a timeout occurs while refreshing slots from the cluster (default `1000`)
+    * `natRemap`: Remap each node's `host:port` key to a NAT endpoint. See: [`CLUSTER NODES`](https://redis.io/commands/cluster-nodes). Example: `natRemap: { 'xxxx-cache-0001-001.xxxx-cache.xx.xxxx1.cache.amazonaws.com:6379': { host: '13.8.8.8', port: 6380 } }`
 
 ### Read-write splitting
 
