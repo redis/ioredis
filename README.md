@@ -744,6 +744,7 @@ but a few so that if one is unreachable the client will try the next one, and th
     will resend the commands rejected with `TRYAGAIN` error after the specified time (in ms).
     * `redisOptions`: Default options passed to the constructor of `Redis` when connecting to a node.
     * `slotsRefreshTimeout`: Milliseconds before a timeout occurs while refreshing slots from the cluster (default `1000`)
+    * `slotsRefreshInterval`: Milliseconds between every automatic slots refresh (default `5000`)
 
 ### Read-write splitting
 
