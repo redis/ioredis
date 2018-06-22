@@ -19,3 +19,5 @@ afterEach(function (done) {
     });
   });
 });
+
+console.error = function () {}
