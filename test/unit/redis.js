@@ -82,8 +82,8 @@ describe('Redis', function () {
       }
       Redis.prototype.connect.restore();
 
-      function getOption() {
-        var redis = Redis.apply(null, arguments);
+      function getOption(...args) {
+        var redis = new Redis(...args);
         return redis.options;
       }
     });
