@@ -81,6 +81,7 @@ describe('lazy connect', function () {
         stub(Redis.Cluster.prototype, 'connect', function () {
           Redis.Cluster.prototype.connect.restore();
           done();
+          return Promise.resolve();
         });
       });
     });
