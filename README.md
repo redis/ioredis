@@ -16,7 +16,7 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 
 0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](http://redis.io/topics/sentinel), [Pipelining](http://redis.io/topics/pipelining) and of course [Lua scripting](http://redis.io/commands/eval) & [Pub/Sub](http://redis.io/topics/pubsub) (with the support of binary messages).
 0. High performance.
-0. Delightful API. It works with Node callbacks and [Bluebird promises](https://github.com/petkaantonov/bluebird).
+0. Delightful API. It works with Node callbacks and Native promises.
 0. Transformation of command arguments and replies.
 0. Transparent key prefixing.
 0. Abstraction for Lua scripting, allowing you to define custom commands.
@@ -943,6 +943,24 @@ Redis.Promise.onPossiblyUnhandledRejection(function (error) {
 var redis = new Redis();
 redis.set('foo');
 ```
+
+# Plugging in your own Promises Library
+If you're an advanced user, you may want to plug in your own promise library like [bluebird](https://www.npmjs.com/package/bluebird). Just set Redis.Promise to your favorite ES6-style promise constructor and ioredis will use it.
+
+```javascript
+const Redis = require('ioredis')
+Redis.Promise = require('bluebird')
+
+const redis = new Redis()
+
+// Use bluebird
+assert.equal(redis.get().constructor, require('bluebird'))
+
+// You can change the Promise implementation at any time:
+Redis.Promise = global.Promise
+assert.equal(redis.get().constructor, global.Promise)
+```
+
 
 # Running tests
 

@@ -1,7 +1,5 @@
 'use strict';
 
-var Promise = require('bluebird');
-
 describe('Redis', function () {
   describe('constructor', function () {
     it('should parse options correctly', function () {
