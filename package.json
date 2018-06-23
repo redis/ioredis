@@ -44,7 +44,7 @@
     "lodash.shuffle": "^4.2.0",
     "lodash.values": "^4.3.0",
     "redis-commands": "^1.2.0",
-    "redis-parser": "^2.4.0",
+    "redis-parser": "^2.6.0",
     "standard-as-callback": "^1.0.0"
   },
   "devDependencies": {
@@ -59,8 +59,7 @@
     "sinon": "^1.17.3"
   },
   "engines": {
-    "node": ">= 0.10.16",
-    "iojs": ">= 1.0.0"
+    "node": ">=4"
   },
   "config": {
     "commitizen": {
