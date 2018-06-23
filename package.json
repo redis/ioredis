@@ -8,8 +8,8 @@
     "lib/"
   ],
   "scripts": {
-    "test": "NODE_ENV=test mocha --exit",
-    "test:cov": "NODE_ENV=test node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -R spec --exit",
+    "test": "NODE_ENV=test mocha",
+    "test:cov": "NODE_ENV=test node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -R spec",
     "generate-docs": "jsdoc2md lib/redis.js lib/cluster/index.js lib/commander.js > API.md",
     "bench": "matcha benchmarks/*.js"
   },
@@ -52,11 +52,12 @@
   },
   "devDependencies": {
     "chai": "^3.5.0",
+    "codeclimate-test-reporter": "^0.5.0",
     "cz-conventional-changelog": "^2.0.0",
     "istanbul": "^0.4.2",
     "jsdoc": "^3.4.0",
     "jsdoc-to-markdown": "^4.0.1",
-    "mocha": "^5.2.0",
+    "mocha": "^3.1.1",
     "server-destroy": "^1.0.1",
     "sinon": "^1.17.3"
   },
