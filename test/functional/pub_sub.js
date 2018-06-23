@@ -152,16 +152,20 @@ describe('pub/sub', function () {
     var pub = new Redis();
     redis.subscribe('foo', 'bar', function () {
       redis.on('ready', function () {
-        var pending = 2;
-        redis.on('message', function (channel, message) {
-          if (!--pending) {
-            redis.disconnect();
-            pub.disconnect();
-            done();
-          }
-        });
-        pub.publish('foo', 'hi1');
-        pub.publish('bar', 'hi2');
+        // Execute a random command to make sure that `subscribe`
+        // is sent
+        redis.ping(function () {
+          var pending = 2;
+          redis.on('message', function (channel, message) {
+            if (!--pending) {
+              redis.disconnect();
+              pub.disconnect();
+              done();
+            }
+          });
+          pub.publish('foo', 'hi1');
+          pub.publish('bar', 'hi2');
+        })
       });
       redis.disconnect({ reconnect: true });
     });
@@ -172,16 +176,18 @@ describe('pub/sub', function () {
     var pub = new Redis();
     redis.psubscribe('fo?o', 'ba?r', function () {
       redis.on('ready', function () {
-        var pending = 2;
-        redis.on('pmessage', function (pattern, channel, message) {
-          if (!--pending) {
-            redis.disconnect();
-            pub.disconnect();
-            done();
-          }
+        redis.ping(function () {
+          var pending = 2;
+          redis.on('pmessage', function (pattern, channel, message) {
+            if (!--pending) {
+              redis.disconnect();
+              pub.disconnect();
+              done();
+            }
+          });
+          pub.publish('fo1o', 'hi1');
+          pub.publish('ba1r', 'hi2');
         });
-        pub.publish('fo1o', 'hi1');
-        pub.publish('ba1r', 'hi2');
       });
       redis.disconnect({ reconnect: true });
     });
