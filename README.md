@@ -546,6 +546,16 @@ This behavior can be disabled by setting the `autoResubscribe` option to `false`
 And if the previous connection has some unfulfilled commands (most likely blocking commands such as `brpop` and `blpop`),
 the client will resend them when reconnected. This behavior can be disabled by setting the `autoResendUnfulfilledCommands` option to `false`.
 
+By default, all pending commands will be flushed with an error every 20 retry attempts. That makes sure commands won't wait forever when the connection is down. You can change this behavior by setting `maxRetriesPerRequest`:
+
+```javascript
+var redis = new Redis({
+  maxRetriesPerRequest: 1
+});
+```
+
+Set maxRetriesPerRequest to `null` to disable this behavior, and every command will wait forever until the connection is alive again (which is the default behavior before ioredis v4).
+
 ### Reconnect on error
 
 Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on the specified errors by the `reconnectOnError` option. Here's an example that will reconnect when receiving `READONLY` error:
