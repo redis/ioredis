@@ -18,7 +18,7 @@
 * [Redis](#Redis) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
     * [new Redis([port], [host], [options])](#new_Redis_new)
     * _instance_
-        * [.connect([callback])](#Redis+connect) ⇒ <code>Promise</code>
+        * [.connect([callback])](#Redis+connect) ⇒ <code>Promise.&lt;void&gt;</code>
         * [.disconnect()](#Redis+disconnect)
         * ~~[.end()](#Redis+end)~~
         * [.duplicate()](#Redis+duplicate)
@@ -68,7 +68,6 @@ Creates a Redis instance
 var Redis = require('ioredis');
 
 var redis = new Redis();
-// or: var redis = Redis();
 
 var redisOnPort6380 = new Redis(6380);
 var anotherRedis = new Redis(6380, '192.168.100.1');
@@ -80,9 +79,13 @@ var authedRedis = new Redis(6380, '192.168.100.1', { password: 'password' });
 ```
 <a name="Redis+connect"></a>
 
-### redis.connect([callback]) ⇒ <code>Promise</code>
+### redis.connect([callback]) ⇒ <code>Promise.&lt;void&gt;</code>
 Create a connection to Redis.
-This method will be invoked automatically when creating a new Redis instance.
+This method will be invoked automatically when creating a new Redis instance
+unless `lazyConnect: true` is passed.
+
+When calling this method manually, a Promise is returned, which will
+be resolved when the connection status is ready.
 
 **Kind**: instance method of [<code>Redis</code>](#Redis)  
 **Access**: public  
@@ -234,6 +237,7 @@ Creates a Redis Cluster instance
 | [options.retryDelayOnClusterDown] | <code>number</code> | <code>100</code> | When a CLUSTERDOWN error is received, client will retry if `retryDelayOnClusterDown` is valid delay time. |
 | [options.retryDelayOnTryAgain] | <code>number</code> | <code>100</code> | When a TRYAGAIN error is received, client will retry if `retryDelayOnTryAgain` is valid delay time. |
 | [options.slotsRefreshTimeout] | <code>number</code> | <code>1000</code> | The milliseconds before a timeout occurs while refreshing slots from the cluster. |
+| [options.slotsRefreshInterval] | <code>number</code> | <code>5000</code> | The milliseconds between every automatic slots refresh. |
 | [options.redisOptions] | <code>Object</code> |  | Passed to the constructor of `Redis`. |
 
 <a name="Cluster+connect"></a>
