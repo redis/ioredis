@@ -1,7 +1,6 @@
 'use strict';
 
 var Cluster = require('../../lib/cluster');
-var Promise = require('bluebird');
 
 describe('cluster', function () {
   beforeEach(function () {
