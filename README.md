@@ -482,7 +482,8 @@ var redis = new Redis();
 var stream = redis.scanStream();
 var keys = [];
 stream.on('data', function (resultKeys) {
-  // `resultKeys` is an array of strings representing key names
+  // `resultKeys` is an array of strings representing key names.
+  // Note that resultKeys may contain 0 keys.
   for (var i = 0; i < resultKeys.length; i++) {
     keys.push(resultKeys[i]);
   }
@@ -516,6 +517,26 @@ var stream = redis.hscanStream('myhash', {
 ```
 
 You can learn more from the [Redis documentation](http://redis.io/commands/scan).
+
+**Useful Tips**
+It's pretty common that doing an async task in the `data` handler. We'd like the scanning process to be paused until the async task to be finished. `Stream#pause()` and `Stream.resume()` do the trick. For example if we want to migrate data in Redis to MySQL:
+
+```javascript
+var stream = redis.scanStream();
+stream.on('data', function (resultKeys) {
+  // Pause the stream from scanning more keys until we've migrated the current keys.
+  stream.pause();
+
+  Promise.all(resultKeys.map(migrateKeyToMySQL)).then(() => {
+    // Resume the stream here.
+    stream.resume();
+  });
+});
+
+stream.on('end', function () {
+  console.log('done migration');
+});
+```
 
 ## Auto-reconnect
 By default, ioredis will try to reconnect when the connection to Redis is lost
