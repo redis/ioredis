@@ -1,10 +1,9 @@
 'use strict';
 
 describe('watch-exec', function () {
-
-  it('should support watch/exec transactions', function (done) {
+  it('should support watch/exec transactions', function () {
     var redis1 = new Redis();
-    redis1.watch('watchkey')
+    return redis1.watch('watchkey')
       .then(function() {
         return redis1.multi().set('watchkey', '1').exec();
       })
@@ -12,13 +11,12 @@ describe('watch-exec', function () {
         expect(result.length).to.eql(1);
         expect(result[0]).to.eql([null, 'OK']);
       })
-      .nodeify(done);
   });
 
-  it('should support watch/exec transaction rollback', function (done) {
+  it('should support watch/exec transaction rollback', function () {
     var redis1 = new Redis();
     var redis2 = new Redis();
-    redis1.watch('watchkey')
+    return redis1.watch('watchkey')
       .then(function() {
         return redis2.set('watchkey', '2');
       })
@@ -28,7 +26,6 @@ describe('watch-exec', function () {
       .then(function(result) {
         expect(result).to.be.null;
       })
-      .nodeify(done);
   });
 
 });

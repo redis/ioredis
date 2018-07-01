@@ -16,7 +16,7 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 
 0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](http://redis.io/topics/sentinel), [Pipelining](http://redis.io/topics/pipelining) and of course [Lua scripting](http://redis.io/commands/eval) & [Pub/Sub](http://redis.io/topics/pubsub) (with the support of binary messages).
 0. High performance.
-0. Delightful API. It works with Node callbacks and [Bluebird promises](https://github.com/petkaantonov/bluebird).
+0. Delightful API. It works with Node callbacks and Native promises.
 0. Transformation of command arguments and replies.
 0. Transparent key prefixing.
 0. Abstraction for Lua scripting, allowing you to define custom commands.
@@ -490,7 +490,8 @@ var redis = new Redis();
 var stream = redis.scanStream();
 var keys = [];
 stream.on('data', function (resultKeys) {
-  // `resultKeys` is an array of strings representing key names
+  // `resultKeys` is an array of strings representing key names.
+  // Note that resultKeys may contain 0 keys.
   for (var i = 0; i < resultKeys.length; i++) {
     keys.push(resultKeys[i]);
   }
@@ -525,6 +526,26 @@ var stream = redis.hscanStream('myhash', {
 
 You can learn more from the [Redis documentation](http://redis.io/commands/scan).
 
+**Useful Tips**
+It's pretty common that doing an async task in the `data` handler. We'd like the scanning process to be paused until the async task to be finished. `Stream#pause()` and `Stream.resume()` do the trick. For example if we want to migrate data in Redis to MySQL:
+
+```javascript
+var stream = redis.scanStream();
+stream.on('data', function (resultKeys) {
+  // Pause the stream from scanning more keys until we've migrated the current keys.
+  stream.pause();
+
+  Promise.all(resultKeys.map(migrateKeyToMySQL)).then(() => {
+    // Resume the stream here.
+    stream.resume();
+  });
+});
+
+stream.on('end', function () {
+  console.log('done migration');
+});
+```
+
 ## Auto-reconnect
 By default, ioredis will try to reconnect when the connection to Redis is lost
 except when the connection is closed manually by `redis.disconnect()` or `redis.quit()`.
@@ -553,6 +574,16 @@ This behavior can be disabled by setting the `autoResubscribe` option to `false`
 
 And if the previous connection has some unfulfilled commands (most likely blocking commands such as `brpop` and `blpop`),
 the client will resend them when reconnected. This behavior can be disabled by setting the `autoResendUnfulfilledCommands` option to `false`.
+
+By default, all pending commands will be flushed with an error every 20 retry attempts. That makes sure commands won't wait forever when the connection is down. You can change this behavior by setting `maxRetriesPerRequest`:
+
+```javascript
+var redis = new Redis({
+  maxRetriesPerRequest: 1
+});
+```
+
+Set maxRetriesPerRequest to `null` to disable this behavior, and every command will wait forever until the connection is alive again (which is the default behavior before ioredis v4).
 
 ### Reconnect on error
 
@@ -752,6 +783,7 @@ but a few so that if one is unreachable the client will try the next one, and th
     will resend the commands rejected with `TRYAGAIN` error after the specified time (in ms).
     * `redisOptions`: Default options passed to the constructor of `Redis` when connecting to a node.
     * `slotsRefreshTimeout`: Milliseconds before a timeout occurs while refreshing slots from the cluster (default `1000`)
+    * `slotsRefreshInterval`: Milliseconds between every automatic slots refresh (default `5000`)
 
 ### Read-write splitting
 
@@ -950,6 +982,24 @@ Redis.Promise.onPossiblyUnhandledRejection(function (error) {
 var redis = new Redis();
 redis.set('foo');
 ```
+
+# Plugging in your own Promises Library
+If you're an advanced user, you may want to plug in your own promise library like [bluebird](https://www.npmjs.com/package/bluebird). Just set Redis.Promise to your favorite ES6-style promise constructor and ioredis will use it.
+
+```javascript
+const Redis = require('ioredis')
+Redis.Promise = require('bluebird')
+
+const redis = new Redis()
+
+// Use bluebird
+assert.equal(redis.get().constructor, require('bluebird'))
+
+// You can change the Promise implementation at any time:
+Redis.Promise = global.Promise
+assert.equal(redis.get().constructor, global.Promise)
+```
+
 
 # Running tests
 

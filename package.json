@@ -8,8 +8,8 @@
     "lib/"
   ],
   "scripts": {
-    "test": "NODE_ENV=test mocha",
-    "test:cov": "NODE_ENV=test node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -R spec",
+    "test": "NODE_ENV=test mocha --exit",
+    "test:cov": "NODE_ENV=test node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -R spec --exit",
     "generate-docs": "jsdoc2md lib/redis.js lib/cluster/index.js lib/commander.js > API.md",
     "bench": "matcha benchmarks/*.js"
   },
@@ -26,12 +26,10 @@
   "author": "luin <i@zihua.li> (http://zihua.li)",
   "license": "MIT",
   "dependencies": {
-    "bluebird": "^3.3.4",
     "cluster-key-slot": "^1.0.6",
     "debug": "^3.1.0",
     "denque": "^1.1.0",
     "flexbuffer": "0.0.6",
-    "lodash.assign": "^4.2.0",
     "lodash.bind": "^4.2.1",
     "lodash.clone": "^4.5.0",
     "lodash.clonedeep": "^4.5.0",
@@ -40,30 +38,28 @@
     "lodash.flatten": "^4.4.0",
     "lodash.foreach": "^4.5.0",
     "lodash.isempty": "^4.4.0",
-    "lodash.keys": "^4.2.0",
-    "lodash.noop": "^3.0.1",
     "lodash.partial": "^4.2.1",
     "lodash.pick": "^4.4.0",
     "lodash.sample": "^4.2.1",
     "lodash.shuffle": "^4.2.0",
     "lodash.values": "^4.3.0",
     "redis-commands": "^1.2.0",
-    "redis-parser": "^2.4.0"
+    "redis-parser": "^2.6.0",
+    "standard-as-callback": "^1.0.0"
   },
   "devDependencies": {
+    "bluebird": "^3.5.1",
     "chai": "^3.5.0",
-    "codeclimate-test-reporter": "^0.5.0",
     "cz-conventional-changelog": "^2.0.0",
     "istanbul": "^0.4.2",
     "jsdoc": "^3.4.0",
     "jsdoc-to-markdown": "^4.0.1",
-    "mocha": "^3.1.1",
+    "mocha": "^5.2.0",
     "server-destroy": "^1.0.1",
     "sinon": "^1.17.3"
   },
   "engines": {
-    "node": ">= 0.10.16",
-    "iojs": ">= 1.0.0"
+    "node": ">=4"
   },
   "config": {
     "commitizen": {

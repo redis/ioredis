@@ -75,6 +75,34 @@ describe('cluster:connect', function () {
     });
   });
 
+  it('should wait for ready state before resolving', function (done) {
+    var slotTable = [
+      [0, 16383, ['127.0.0.1', 30001]]
+    ];
+    var argvHandler = function (argv) {
+      if (argv[0] === 'info') {
+        // return 'role:master'
+      }
+      if (argv[0] === 'cluster' && argv[1] === 'slots') {
+        return slotTable;
+      }
+      if (argv[0] === 'cluster' && argv[1] === 'info') {
+        return 'cluster_state:ok';
+      }
+    };
+    var node = new MockServer(30001, argvHandler);
+
+    var cluster = new Redis.Cluster([
+      { host: '127.0.0.1', port: '30001' }
+    ], { lazyConnect: true });
+
+    cluster.connect().then(function () {
+      expect(cluster.status).to.eql('ready');
+      cluster.disconnect();
+      disconnect([node], done);
+    });
+  });
+
   it('should support url schema', function (done) {
     var node = new MockServer(30001);
 
@@ -249,6 +277,7 @@ describe('cluster:connect', function () {
       expect(err.message).to.eql(errorMessage);
       checkDone();
     });
+
     function checkDone() {
       if (!--pending) {
         cluster.disconnect();
@@ -289,5 +318,40 @@ describe('cluster:connect', function () {
       { host: '127.0.0.1', port: '30001', password: 'other password' },
       { host: '127.0.0.1', port: '30002', password: null }
     ], { redisOptions: { lazyConnect: false, password: 'default password' } });
+  });
+
+  it('should discover other nodes automatically every slotsRefreshInterval', function (done) {
+    var times = 0;
+    var argvHandler = function (argv) {
+      if (argv[0] === 'cluster' && argv[1] === 'slots') {
+        times++;
+        if (times === 1) {
+          return [
+            [0, 5460, ['127.0.0.1', 30001]],
+            [5461, 10922, ['127.0.0.1', 30001]],
+            [10923, 16383, ['127.0.0.1', 30001]]
+          ];
+        }
+
+        return [
+          [0, 5460, ['127.0.0.1', 30001]],
+          [5461, 10922, ['127.0.0.1', 30001]],
+          [10923, 16383, ['127.0.0.1', 30002]]
+        ];
+      }
+    };
+    var node1 = new MockServer(30001, argvHandler);
+    var node2 = new MockServer(30002, argvHandler);
+
+    node1.once('connect', function() {
+      node2.once('connect', function () {
+        cluster.disconnect();
+        disconnect([node1, node2], done);
+      });
+    });
+
+    var cluster = new Redis.Cluster([
+      { host: '127.0.0.1', port: '30001' }
+    ], { slotsRefreshInterval: 100, redisOptions: { lazyConnect: false } });
   });
 });

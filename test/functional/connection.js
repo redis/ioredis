@@ -96,7 +96,9 @@ describe('connection', function () {
 
     it('should stop reconnecting when disconnected', function (done) {
       var redis = new Redis(8999, {
-        retryStrategy: function () { return 0; }
+        retryStrategy: function () {
+          return 0;
+        }
       });
 
       redis.on('close', function () {
@@ -113,6 +115,42 @@ describe('connection', function () {
       var redis = new Redis();
       redis.connect().catch(function (err) {
         expect(err.message).to.match(/Redis is already connecting/);
+        done();
+      });
+    });
+
+    it('should resolve when the status become ready', function (done) {
+      var redis = new Redis({ lazyConnect: true });
+      redis.connect().then(function () {
+        expect(redis.status).to.eql('ready');
+        done();
+      });
+    });
+
+    it('should reject when closed (reconnecting)', function (done) {
+      var redis = new Redis({
+        port: 8989,
+        lazyConnect: true,
+        retryStrategy: function () {
+          return 0;
+        }
+      });
+
+      redis.connect().catch(function () {
+        expect(redis.status).to.eql('reconnecting');
+        done();
+      });
+    });
+
+    it('should reject when closed (end)', function (done) {
+      var redis = new Redis({
+        port: 8989,
+        lazyConnect: true,
+        retryStrategy: false
+      });
+
+      redis.connect().catch(function () {
+        expect(redis.status).to.eql('end');
         done();
       });
     });

@@ -1,7 +1,5 @@
 'use strict';
 
-var Promise = require('bluebird');
-
 describe('Redis', function () {
   describe('constructor', function () {
     it('should parse options correctly', function () {
@@ -84,8 +82,8 @@ describe('Redis', function () {
       }
       Redis.prototype.connect.restore();
 
-      function getOption() {
-        var redis = Redis.apply(null, arguments);
+      function getOption(...args) {
+        var redis = new Redis(...args);
         return redis.options;
       }
     });
