@@ -8,7 +8,7 @@
 
 A robust, performance-focused and full-featured [Redis](http://redis.io) client for [Node](https://nodejs.org) and [io.js](https://iojs.org).
 
-Supports Redis >= 2.6.12 and (Node.js >= 0.10.16).
+Supports Redis >= 2.6.12 and (Node.js >= 6).
 
 # Features
 ioredis is a robust, full-featured Redis client that is
