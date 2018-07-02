@@ -919,16 +919,7 @@ redis.set('foo', function (err) {
 });
 ```
 
-When a reply error is not handled (no callback is specified, and no `catch` method is chained),
-the error will be logged to stderr. For instance:
-
-```javascript
-var Redis = require('ioredis');
-var redis = new Redis();
-redis.set('foo');
-```
-
-The following error will be printed:
+This is the error stack of the `ReplyError`:
 
 ```
 Unhandled rejection ReplyError: ERR wrong number of arguments for 'set' command
@@ -941,7 +932,7 @@ Unhandled rejection ReplyError: ERR wrong number of arguments for 'set' command
     at TCP.onread (net.js:509:20)
 ```
 
-But the error stack doesn't make any sense because the whole stack happens in the ioredis
+By default, the error stack doesn't make any sense because the whole stack happens in the ioredis
 module itself, not in your code. So it's not easy to find out where the error happens in your code.
 ioredis provides an option `showFriendlyErrorStack` to solve the problem. When you enable
 `showFriendlyErrorStack`, ioredis will optimize the error stack for you:
@@ -955,7 +946,7 @@ redis.set('foo');
 And the output will be:
 
 ```
-Unhandled rejection ReplyError: ERR wrong number of arguments for 'set' command
+ReplyError: ERR wrong number of arguments for 'set' command
     at Object.<anonymous> (/app/index.js:3:7)
     at Module._compile (module.js:446:26)
     at Object.Module._extensions..js (module.js:464:10)
@@ -969,19 +960,6 @@ Unhandled rejection ReplyError: ERR wrong number of arguments for 'set' command
 This time the stack tells you that the error happens on the third line in your code. Pretty sweet!
 However, it would decrease the performance significantly to optimize the error stack. So by
 default, this option is disabled and can only be used for debugging purposes. You **shouldn't** use this feature in a production environment.
-
-If you want to catch all unhandled errors without decreased performance, there's another way:
-
-```javascript
-var Redis = require('ioredis');
-Redis.Promise.onPossiblyUnhandledRejection(function (error) {
-  // you can log the error here.
-  // error.command.name is the command name, here is 'set'
-  // error.command.args is the command arguments, here is ['foo']
-});
-var redis = new Redis();
-redis.set('foo');
-```
 
 # Plugging in your own Promises Library
 If you're an advanced user, you may want to plug in your own promise library like [bluebird](https://www.npmjs.com/package/bluebird). Just set Redis.Promise to your favorite ES6-style promise constructor and ioredis will use it.
