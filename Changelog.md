@@ -1,3 +1,13 @@
+<a name="4.0.0-1"></a>
+# [4.0.0-1](https://github.com/luin/ioredis/compare/v4.0.0-0...v4.0.0-1) (2018-07-02)
+
+
+### Bug Fixes
+
+* remove unnecessary bluebird usage ([2502b1b](https://github.com/luin/ioredis/commit/2502b1b))
+
+
+
 <a name="4.0.0-0"></a>
 # [4.0.0-0](https://github.com/luin/ioredis/compare/v3.2.2...v4.0.0-0) (2018-07-01)
 
