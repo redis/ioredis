@@ -922,7 +922,7 @@ redis.set('foo', function (err) {
 This is the error stack of the `ReplyError`:
 
 ```
-Unhandled rejection ReplyError: ERR wrong number of arguments for 'set' command
+ReplyError: ERR wrong number of arguments for 'set' command
     at ReplyParser._parseResult (/app/node_modules/ioredis/lib/parsers/javascript.js:60:14)
     at ReplyParser.execute (/app/node_modules/ioredis/lib/parsers/javascript.js:178:20)
     at Socket.<anonymous> (/app/node_modules/ioredis/lib/redis/event_handler.js:99:22)
