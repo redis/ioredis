@@ -50,6 +50,12 @@ export default class SentinelConnector extends Connector {
     const roleMatches: boolean = !info.role || this.options.role === info.role
     if (!roleMatches) {
       debug('role invalid, expected %s, but got %s', this.options.role, info.role)
+      // Start from the next item.
+      // Note that `reset` will move the cursor to the previous element,
+      // so we advance two steps here.
+      this.sentinelIterator.next()
+      this.sentinelIterator.next()
+      this.sentinelIterator.reset(true)
     }
     return roleMatches
   }
@@ -180,7 +186,7 @@ export default class SentinelConnector extends Connector {
   
   resolve (endpoint, callback: NodeCallback<ITcpConnectionOptions>) {
     if (typeof Redis === 'undefined') {
-      Redis = require('../redis')
+      Redis = require('../../redis')
     }
     var client = new Redis({
       port: endpoint.port || 26379,
@@ -251,13 +257,13 @@ function selectPreferredSentinel (availableSlaves: IAddressFromResponse[], prefe
         break
       }
     }
-    // if none of the preferred slaves are available, a random available slave is returned
-    if (!selectedSlave) {
-      selectedSlave = sample(availableSlaves)
-    }
-
-    return addressResponseToAddress(selectedSlave)
   }
+
+  // if none of the preferred slaves are available, a random available slave is returned
+  if (!selectedSlave) {
+    selectedSlave = sample(availableSlaves)
+  }
+  return addressResponseToAddress(selectedSlave)
 }
 
 function addressResponseToAddress (input: IAddressFromResponse): ISentinelAddress {

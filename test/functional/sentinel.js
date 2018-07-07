@@ -199,23 +199,19 @@ describe('sentinel', function () {
     });
 
     it('should connect to the next sentinel if the role is wrong', function (done) {
-      var sentinel = new MockServer(27379, function (argv) {
+      new MockServer(27379, function (argv) {
         if (argv[0] === 'sentinel' && argv[1] === 'get-master-addr-by-name' && argv[2] === 'master') {
           return ['127.0.0.1', '17380'];
         }
       });
 
-      var sentinel2 = new MockServer(27380);
-      sentinel2.on('connect', function () {
+      var sentinel = new MockServer(27380);
+      sentinel.on('connect', function () {
         redis.disconnect();
-        sentinel.disconnect(function () {
-          master.disconnect(function () {
-            sentinel2.disconnect(done);
-          });
-        });
+        done();
       });
 
-      var master = new MockServer(17380, function (argv) {
+      new MockServer(17380, function (argv) {
         if (argv[0] === 'info') {
           return 'role:slave';
         }
@@ -292,7 +288,7 @@ describe('sentinel', function () {
     });
 
     it('should connect to the slave successfully based on preferred slave filter function', function (done) {
-      var sentinel = new MockServer(27379, function (argv) {
+      new MockServer(27379, function (argv) {
         if (argv[0] === 'sentinel' && argv[1] === 'slaves' && argv[2] === 'master') {
           return [['ip', '127.0.0.1', 'port', '17381', 'flags', 'slave']];
         }
@@ -301,9 +297,7 @@ describe('sentinel', function () {
       var slave = new MockServer(17381);
       slave.on('connect', function () {
         redis.disconnect();
-        sentinel.disconnect(function () {
-          slave.disconnect(done);
-        });
+        done();
       });
 
       var redis = new Redis({
@@ -312,7 +306,7 @@ describe('sentinel', function () {
         ],
         name: 'master',
         role: 'slave',
-        preferredSlaves: function(slaves){
+        preferredSlaves (slaves) {
           for (var i = 0; i < slaves.length; i++){
             var slave = slaves[i];
             if (slave.ip == '127.0.0.1' && slave.port =='17381'){

@@ -18,8 +18,8 @@ export default class SentinelIterator {
     return this.hasNext() ? this.sentinels[this.cursor++] : null
   }
 
-  reset (success: boolean): void {
-    if (success && this.sentinels.length > 1 && this.cursor !== 1) {
+  reset (moveCurrentEndpointToFirst: boolean): void {
+    if (moveCurrentEndpointToFirst && this.sentinels.length > 1 && this.cursor !== 1) {
       const remains = this.sentinels.slice(this.cursor - 1)
       this.sentinels = remains.concat(this.sentinels.slice(0, this.cursor - 1))
     }
@@ -38,6 +38,6 @@ export default class SentinelIterator {
   }
 
   toString (): string {
-    return JSON.stringify(this.sentinels)
+    return `${JSON.stringify(this.sentinels)} @${this.cursor}`
   }
 }
