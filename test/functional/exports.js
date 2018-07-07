@@ -15,7 +15,7 @@ describe('exports', function () {
 
   describe('.ReplyError', function () {
     it('should be `ReplyError`', function () {
-      var ReplyError = require('../../lib/reply_error');
+      var {ReplyError} = require('redis-errors');
       expect(Redis.ReplyError).to.eql(ReplyError);
     });
   });

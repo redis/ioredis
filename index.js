@@ -2,7 +2,7 @@
 
 exports = module.exports = require('./lib/redis');
 
-exports.ReplyError = require('./lib/reply_error');
+exports.ReplyError = require('redis-errors').ReplyError;
 exports.Cluster = require('./lib/cluster');
 exports.Command = require('./lib/command');
 

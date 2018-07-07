@@ -8,7 +8,7 @@
     "lib/"
   ],
   "scripts": {
-    "test": "NODE_ENV=test mocha --exit",
+    "test": "NODE_ENV=test mocha --timeout 8000 --exit",
     "test:cov": "NODE_ENV=test node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -R spec --exit",
     "generate-docs": "jsdoc2md lib/redis.js lib/cluster/index.js lib/commander.js > API.md",
     "bench": "matcha benchmarks/*.js"
@@ -44,7 +44,8 @@
     "lodash.shuffle": "^4.2.0",
     "lodash.values": "^4.3.0",
     "redis-commands": "^1.2.0",
-    "redis-parser": "^2.6.0",
+    "redis-errors": "^1.2.0",
+    "redis-parser": "^3.0.0",
     "standard-as-callback": "^1.0.0"
   },
   "devDependencies": {
