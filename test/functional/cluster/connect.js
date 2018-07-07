@@ -1,5 +1,3 @@
-var disconnect = require('./_helpers').disconnect;
-
 describe('cluster:connect', function () {
   it('should flush the queue when all startup nodes are unreachable', function (done) {
     var cluster = new Redis.Cluster([
@@ -42,8 +40,8 @@ describe('cluster:connect', function () {
         return new Error('CLUSTERDOWN');
       }
     };
-    var node1 = new MockServer(30001, argvHandler);
-    var node2 = new MockServer(30002, argvHandler);
+    new MockServer(30001, argvHandler);
+    new MockServer(30002, argvHandler);
 
     var t = 0;
     var cluster = new Redis.Cluster([
@@ -54,7 +52,7 @@ describe('cluster:connect', function () {
         expect(times).to.eql(++t);
         if (times === 3) {
           cluster.disconnect();
-          disconnect([node1, node2], done);
+          done();
           return;
         }
         return 0;
@@ -71,7 +69,7 @@ describe('cluster:connect', function () {
 
     node.once('connect', function () {
       cluster.disconnect();
-      disconnect([node], done);
+      done();
     });
   });
 
@@ -90,7 +88,7 @@ describe('cluster:connect', function () {
         return 'cluster_state:ok';
       }
     };
-    var node = new MockServer(30001, argvHandler);
+    new MockServer(30001, argvHandler);
 
     var cluster = new Redis.Cluster([
       { host: '127.0.0.1', port: '30001' }
@@ -99,7 +97,7 @@ describe('cluster:connect', function () {
     cluster.connect().then(function () {
       expect(cluster.status).to.eql('ready');
       cluster.disconnect();
-      disconnect([node], done);
+      done();
     });
   });
 
@@ -112,7 +110,7 @@ describe('cluster:connect', function () {
 
     node.once('connect', function () {
       cluster.disconnect();
-      disconnect([node], done);
+      done();
     });
   });
 
@@ -123,7 +121,7 @@ describe('cluster:connect', function () {
 
     node.once('connect', function () {
       cluster.disconnect();
-      disconnect([node], done);
+      done();
     });
   });
 
@@ -138,9 +136,9 @@ describe('cluster:connect', function () {
         return slotTable;
       }
     };
-    var node1 = new MockServer(30001, argvHandler);
-    var node2 = new MockServer(30002, argvHandler);
-    var node3 = new MockServer(30003, argvHandler);
+    new MockServer(30001, argvHandler);
+    new MockServer(30002, argvHandler);
+    new MockServer(30003, argvHandler);
 
     stub(Redis.Cluster.prototype, 'connect', function () {
       return Promise.resolve();
@@ -152,7 +150,7 @@ describe('cluster:connect', function () {
 
     cluster.connect().then(function () {
       cluster.disconnect();
-      disconnect([node1, node2, node3], done);
+      done();
     });
   });
 
@@ -217,13 +215,13 @@ describe('cluster:connect', function () {
     function check() {
       if (!--pending) {
         cluster.disconnect();
-        disconnect([node1, node2, node3], done);
+        done();
       }
     }
   });
 
   it('should send command to the correct node', function (done) {
-    var node1 = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return [
           [0, 1, ['127.0.0.1', 30001]],
@@ -231,11 +229,11 @@ describe('cluster:connect', function () {
         ];
       }
     });
-    var node2 = new MockServer(30002, function (argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === 'get' && argv[1] === 'foo') {
         process.nextTick(function () {
           cluster.disconnect();
-          disconnect([node1, node2], done);
+          done();
         });
       }
     });
@@ -253,8 +251,8 @@ describe('cluster:connect', function () {
         return new Error(errorMessage);
       }
     };
-    var node1 = new MockServer(30001, argvHandler);
-    var node2 = new MockServer(30002, argvHandler);
+    new MockServer(30001, argvHandler);
+    new MockServer(30002, argvHandler);
 
     var pending = 2;
     var retry = 0;
@@ -281,13 +279,13 @@ describe('cluster:connect', function () {
     function checkDone() {
       if (!--pending) {
         cluster.disconnect();
-        disconnect([node1, node2], done);
+        done();
       }
     }
   });
 
   it('should using the specified password', function (done) {
-    var node1, node2, node3;
+    var cluster;
     var slotTable = [
       [0, 5460, ['127.0.0.1', 30001]],
       [5461, 10922, ['127.0.0.1', 30002]],
@@ -306,15 +304,15 @@ describe('cluster:connect', function () {
         } else if (port === 30003) {
           expect(password).to.eql('default password');
           cluster.disconnect();
-          disconnect([node1, node2, node3], done);
+          done();
         }
       }
     };
-    node1 = new MockServer(30001, argvHandler.bind(null, 30001));
-    node2 = new MockServer(30002, argvHandler.bind(null, 30002));
-    node3 = new MockServer(30003, argvHandler.bind(null, 30003));
+    new MockServer(30001, argvHandler.bind(null, 30001));
+    new MockServer(30002, argvHandler.bind(null, 30002));
+    new MockServer(30003, argvHandler.bind(null, 30003));
 
-    var cluster = new Redis.Cluster([
+    cluster = new Redis.Cluster([
       { host: '127.0.0.1', port: '30001', password: 'other password' },
       { host: '127.0.0.1', port: '30002', password: null }
     ], { redisOptions: { lazyConnect: false, password: 'default password' } });
@@ -322,6 +320,7 @@ describe('cluster:connect', function () {
 
   it('should discover other nodes automatically every slotsRefreshInterval', function (done) {
     var times = 0;
+    var cluster;
     var argvHandler = function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         times++;
@@ -343,14 +342,14 @@ describe('cluster:connect', function () {
     var node1 = new MockServer(30001, argvHandler);
     var node2 = new MockServer(30002, argvHandler);
 
-    node1.once('connect', function() {
+    node1.once('connect', function () {
       node2.once('connect', function () {
         cluster.disconnect();
-        disconnect([node1, node2], done);
+        done();
       });
     });
 
-    var cluster = new Redis.Cluster([
+    cluster = new Redis.Cluster([
       { host: '127.0.0.1', port: '30001' }
     ], { slotsRefreshInterval: 100, redisOptions: { lazyConnect: false } });
   });

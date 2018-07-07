@@ -1,5 +1,4 @@
 var calculateSlot = require('cluster-key-slot');
-var disconnect = require('./_helpers').disconnect;
 
 describe('cluster:ASK', function () {
   it('should support ASK', function (done) {
@@ -9,7 +8,7 @@ describe('cluster:ASK', function () {
       [0, 1, ['127.0.0.1', 30001]],
       [2, 16383, ['127.0.0.1', 30002]]
     ];
-    var node1 = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -19,7 +18,7 @@ describe('cluster:ASK', function () {
         asked = true;
       }
     });
-    var node2 = new MockServer(30002, function (argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -27,7 +26,7 @@ describe('cluster:ASK', function () {
         if (++times === 2) {
           process.nextTick(function () {
             cluster.disconnect();
-            disconnect([node1, node2], done);
+            done();
           });
         } else {
           return new Error('ASK ' + calculateSlot('foo') + ' 127.0.0.1:30001');
@@ -48,15 +47,15 @@ describe('cluster:ASK', function () {
     var slotTable = [
       [0, 16383, ['127.0.0.1', 30002]]
     ];
-    var node1 = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'get' && argv[1] === 'foo') {
         expect(asked).to.eql(true);
-        return "bar"
+        return 'bar';
       } else if (argv[0] === 'asking') {
         asked = true;
       }
     });
-    var node2 = new MockServer(30002, function (argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -71,7 +70,7 @@ describe('cluster:ASK', function () {
     cluster.get('foo', function (err, res) {
       expect(res).to.eql('bar');
       cluster.disconnect();
-      disconnect([node1, node2], done);
+      done();
     });
   });
 });
