@@ -1,0 +1,267 @@
+import {createConnection, Socket} from 'net'
+import {sample} from '../../utils/lodash'
+import {CONNECTION_CLOSED_ERROR_MSG, packObject} from '../../utils/index'
+import Connector, {ITcpConnectionOptions, ErrorEmitter, isIIpcConnectionOptions} from '../Connector'
+import {TLSSocket} from 'tls'
+import SentinelIterator from './SentinelIterator'
+import { ISentinelAddress } from './types';
+const debug = require('../../utils/debug')('ioredis:SentinelConnector')
+
+let Redis
+
+interface IAddressFromResponse {
+  port: string,
+  ip: string,
+  flags?: string
+}
+
+type NodeCallback<T = void> = (err: Error | null, result?: T) => void
+type PreferredSlaves = 
+  ((slaves: Array<IAddressFromResponse>) => IAddressFromResponse) |
+  Array<{port: string, ip: string, prio?: number}> |
+  {port: string, ip: string, prio?: number}
+
+interface ISentinelConnectionOptions extends ITcpConnectionOptions {
+  role: 'master' | 'slave'
+  name: 'string'
+  sentinels: Array<ISentinelAddress>
+  sentinelRetryStrategy?: (retryAttempts: number) => number
+  preferredSlaves?: PreferredSlaves
+  connectTimeout?: number
+}
+
+export default class SentinelConnector extends Connector {
+  private retryAttempts: number
+  private sentinelIterator: SentinelIterator
+
+  constructor (protected options: ISentinelConnectionOptions) {
+    super(options)
+    if (this.options.sentinels.length === 0) {
+      throw new Error('Requires at least one sentinel to connect to.')
+    }
+    if (!this.options.name) {
+      throw new Error('Requires the name of master.')
+    }
+
+    this.sentinelIterator = new SentinelIterator(this.options.sentinels)
+  }
+
+  public check (info: {role?: string}): boolean {
+    const roleMatches: boolean = !info.role || this.options.role === info.role
+    if (!roleMatches) {
+      debug('role invalid, expected %s, but got %s', this.options.role, info.role)
+    }
+    return roleMatches
+  }
+
+  connect (callback: NodeCallback<Socket | TLSSocket>, eventEmitter: ErrorEmitter): void {
+    this.connecting = true
+    this.retryAttempts = 0
+  
+    let lastError
+    const _this = this
+    connectToNext()
+  
+    function connectToNext() {
+      if (!_this.sentinelIterator.hasNext()) {
+        _this.sentinelIterator.reset(false)
+        const retryDelay = typeof _this.options.sentinelRetryStrategy === 'function'
+          ? _this.options.sentinelRetryStrategy(++_this.retryAttempts)
+          : null
+  
+        let errorMsg = typeof retryDelay !== 'number'
+          ? 'All sentinels are unreachable and retry is disabled.'
+          : `All sentinels are unreachable. Retrying from scratch after ${retryDelay}ms.`
+  
+        if (lastError) {
+          errorMsg += ` Last error: ${lastError.message}`
+        }
+  
+        debug(errorMsg)
+  
+        const error = new Error(errorMsg)
+        if (typeof retryDelay === 'number') {
+          setTimeout(connectToNext, retryDelay)
+          eventEmitter('error', error)
+        } else {
+          callback(error)
+        }
+        return
+      }
+  
+      const endpoint = _this.sentinelIterator.next()
+      _this.resolve(endpoint, function (err, resolved) {
+        if (!_this.connecting) {
+          callback(new Error(CONNECTION_CLOSED_ERROR_MSG))
+          return
+        }
+        if (resolved) {
+          debug('resolved: %s:%s', resolved.host, resolved.port)
+          _this.stream = createConnection(resolved)
+          _this.sentinelIterator.reset(true)
+          callback(null, _this.stream)
+        } else {
+          const endpointAddress = endpoint.host + ':' + endpoint.port
+          const errorMsg = err
+            ? 'failed to connect to sentinel ' + endpointAddress + ' because ' + err.message
+            : 'connected to sentinel ' + endpointAddress + ' successfully, but got an invalid reply: ' + resolved
+  
+          debug(errorMsg)
+  
+          eventEmitter('sentinelError', new Error(errorMsg))
+  
+          if (err) {
+            lastError = err
+          }
+          connectToNext()
+        }
+      })
+    }
+  }
+  
+  updateSentinels (client, callback: NodeCallback) {
+    client.sentinel('sentinels', this.options.name, (err, result) => {
+      if (err) {
+        client.disconnect()
+        return callback(err)
+      }
+      if (!Array.isArray(result)) {
+        return callback(null)
+      }
+
+      result.map<IAddressFromResponse>(packObject).forEach(sentinel => {
+        const flags = sentinel.flags ? sentinel.flags.split(',') : []
+        if (flags.indexOf('disconnected') === -1 && sentinel.ip && sentinel.port) {
+          const endpoint = addressResponseToAddress(sentinel)
+          if (this.sentinelIterator.add(endpoint)) {
+            debug('adding sentinel %s:%s', endpoint.host, endpoint.port)
+          }
+        }
+      })
+      debug('Updated internal sentinels: %s', this.sentinelIterator)
+      callback(null)
+    })
+  }
+  
+  resolveMaster (client, callback: NodeCallback<ITcpConnectionOptions>) {
+    client.sentinel('get-master-addr-by-name', this.options.name, (err, result) => {
+      if (err) {
+        client.disconnect()
+        return callback(err)
+      }
+      this.updateSentinels(client, (err) => {
+        client.disconnect()
+        if (err) {
+          return callback(err)
+        }
+        callback(null, Array.isArray(result) ? { host: result[0], port: Number(result[1]) } : null)
+      })
+    })
+  }
+  
+  resolveSlave (client, callback: NodeCallback<ITcpConnectionOptions | null>): void {
+    client.sentinel('slaves', this.options.name, (err, result) => {
+      client.disconnect()
+      if (err) {
+        return callback(err)
+      }
+
+      if (!Array.isArray(result)) {
+        return callback(null, null)
+      }
+
+      const availableSlaves = result.map<IAddressFromResponse>(packObject).filter(slave => (
+        slave.flags && !slave.flags.match(/(disconnected|s_down|o_down)/)
+      ))
+
+      callback(null, selectPreferredSentinel(availableSlaves, this.options.preferredSlaves))
+    })
+  }
+  
+  resolve (endpoint, callback: NodeCallback<ITcpConnectionOptions>) {
+    if (typeof Redis === 'undefined') {
+      Redis = require('../redis')
+    }
+    var client = new Redis({
+      port: endpoint.port || 26379,
+      host: endpoint.host,
+      family: endpoint.family || (isIIpcConnectionOptions(this.options) ? undefined : this.options.family),
+      retryStrategy: null,
+      enableReadyCheck: false,
+      connectTimeout: this.options.connectTimeout,
+      dropBufferSupport: true
+    })
+  
+    // ignore the errors since resolve* methods will handle them
+    client.on('error', noop)
+  
+    if (this.options.role === 'slave') {
+      this.resolveSlave(client, callback)
+    } else {
+      this.resolveMaster(client, callback)
+    }
+  }
+}
+
+function selectPreferredSentinel (availableSlaves: IAddressFromResponse[], preferredSlaves?: PreferredSlaves): ISentinelAddress | null {
+  if (availableSlaves.length === 0) {
+    return null
+  }
+
+  let selectedSlave: IAddressFromResponse
+  if (typeof preferredSlaves === 'function') {
+    selectedSlave = preferredSlaves(availableSlaves)
+  } else if (preferredSlaves !== null && typeof preferredSlaves === 'object') {
+    const preferredSlavesArray = Array.isArray(preferredSlaves)
+      ? preferredSlaves
+      : [preferredSlaves]
+
+    // sort by priority
+    preferredSlavesArray.sort((a, b) => {
+      // default the priority to 1
+      if (!a.prio) {
+        a.prio = 1
+      }
+      if (!b.prio) {
+        b.prio = 1
+      }
+
+      // lowest priority first
+      if (a.prio < b.prio) {
+        return -1
+      }
+      if (a.prio > b.prio) {
+        return 1
+      }
+      return 0
+    })
+    
+    // loop over preferred slaves and return the first match
+    for (let p = 0; p < preferredSlavesArray.length; p++) {
+      for (let a = 0; a < availableSlaves.length; a++) {
+        const slave = availableSlaves[a]
+        if (slave.ip === preferredSlavesArray[p].ip) {
+          if (slave.port === preferredSlavesArray[p].port) {
+            selectedSlave = slave
+            break
+          }
+        }
+      }
+      if (selectedSlave) {
+        break
+      }
+    }
+    // if none of the preferred slaves are available, a random available slave is returned
+    if (!selectedSlave) {
+      selectedSlave = sample(availableSlaves)
+    }
+
+    return addressResponseToAddress(selectedSlave)
+  }
+}
+
+function addressResponseToAddress (input: IAddressFromResponse): ISentinelAddress {
+  return {host: input.ip, port: Number(input.port)}
+}
+
+function noop (): void {}
