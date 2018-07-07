@@ -59,6 +59,7 @@ Creates a Redis instance
 | [options.tls] | <code>Object</code> |  | TLS connection support. See https://github.com/luin/ioredis#tls-options |
 | [options.keyPrefix] | <code>string</code> | <code>&quot;&#x27;&#x27;&quot;</code> | The prefix to prepend to all keys in a command. |
 | [options.retryStrategy] | <code>function</code> |  | See "Quick Start" section |
+| [options.maxRetriesPerRequest] | <code>number</code> |  | See "Quick Start" section |
 | [options.reconnectOnError] | <code>function</code> |  | See "Quick Start" section |
 | [options.readOnly] | <code>boolean</code> | <code>false</code> | Enable READONLY mode for the connection. Only available for cluster mode. |
 | [options.stringNumbers] | <code>boolean</code> | <code>false</code> | Force numbers to be always returned as JavaScript strings. This option is necessary when dealing with big numbers (exceed the [-2^53, +2^53] range). |
