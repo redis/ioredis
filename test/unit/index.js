@@ -1,6 +1,6 @@
 'use strict';
 
-var ioredis = require('../..');
+var ioredis = require('../../lib');
 describe('index', function () {
   describe('print()', function () {
     it('prints logs', function () {
