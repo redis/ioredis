@@ -51,6 +51,7 @@
     "standard-as-callback": "^1.0.0"
   },
   "devDependencies": {
+    "@types/node": "^10.5.2",
     "bluebird": "^3.5.1",
     "chai": "^3.5.0",
     "cz-conventional-changelog": "^2.0.0",
