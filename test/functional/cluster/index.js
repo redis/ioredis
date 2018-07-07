@@ -1,13 +1,11 @@
 'use strict';
 
 var utils = require('../../../lib/utils');
-var calculateSlot = require('cluster-key-slot');
-var disconnect = require('./_helpers').disconnect;
 
 describe('cluster', function () {
   it('should return the error successfully', function (done) {
     var called = false;
-    var node1 = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return [
           [0, 16383, ['127.0.0.1', 30001]]
@@ -26,12 +24,12 @@ describe('cluster', function () {
       expect(called).to.eql(true);
       expect(err.message).to.match(/Wrong arguments count/);
       cluster.disconnect();
-      disconnect([node1], done);
+      done();
     });
   });
 
   it('should get value successfully', function (done) {
-    var node1 = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return [
           [0, 1, ['127.0.0.1', 30001]],
@@ -39,7 +37,7 @@ describe('cluster', function () {
         ];
       }
     });
-    var node2 = new MockServer(30002, function (argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === 'get' && argv[1] === 'foo') {
         return 'bar';
       }
@@ -51,14 +49,14 @@ describe('cluster', function () {
     cluster.get('foo', function (err, result) {
       expect(result).to.eql('bar');
       cluster.disconnect();
-      disconnect([node1, node2], done);
+      done();
     });
   });
 
   describe('enableReadyCheck', function () {
     it('should reconnect when cluster state is not ok', function (done) {
       var state = 'fail';
-      var server = new MockServer(30001, function (argv) {
+      new MockServer(30001, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
           return [
             [0, 16383, ['127.0.0.1', 30001]]
@@ -81,14 +79,14 @@ describe('cluster', function () {
       });
       client.on('ready', function () {
         client.disconnect();
-        disconnect([server], done);
+        done();
       });
     });
   });
 
   describe('startupNodes', function () {
     it('should allow updating startupNodes', function (done) {
-      var node1 = new MockServer(30001, function (argv) {
+      new MockServer(30001, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
           return [
             [0, 16383, ['127.0.0.1', 30001]]
@@ -106,9 +104,9 @@ describe('cluster', function () {
           return 0;
         }
       });
-      var node2 = new MockServer(30002, function () {
+      new MockServer(30002, function () {
         client.disconnect();
-        disconnect([node1, node2], done);
+        done();
       });
     });
   });
@@ -128,10 +126,6 @@ describe('cluster', function () {
       this.node2 = new MockServer(30002, handler.bind(null, 30002));
       this.node3 = new MockServer(30003, handler.bind(null, 30003));
       this.node4 = new MockServer(30004, handler.bind(null, 30004));
-    });
-
-    afterEach(function (done) {
-      disconnect([this.node1, this.node2, this.node3, this.node4], done);
     });
 
     context('master', function () {
@@ -259,18 +253,18 @@ describe('cluster', function () {
         [0, 5460, ['127.0.0.1', 30001], ['127.0.0.1', 30003]],
         [5461, 10922, ['127.0.0.1', 30002]]
       ];
-      var node1 = new MockServer(30001, function (argv) {
+      var node = new MockServer(30001, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
           return slotTable;
         }
       });
-      var node2 = new MockServer(30002, function (argv) {
+      new MockServer(30002, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
           return slotTable;
         }
       });
 
-      var node3 = new MockServer(30003, function (argv) {
+      new MockServer(30003, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
           return slotTable;
         }
@@ -289,9 +283,9 @@ describe('cluster', function () {
           expect(cluster.nodes('master')).to.have.lengthOf(1);
           expect(cluster.nodes('slave')).to.have.lengthOf(1);
           cluster.disconnect();
-          disconnect([node2, node3], done);
+          done();
         });
-        disconnect([node1]);
+        node.disconnect();
       });
 
     });
@@ -303,18 +297,18 @@ describe('cluster', function () {
         [0, 5460, ['127.0.0.1', 30001], ['127.0.0.1', 30003]],
         [5461, 10922, ['127.0.0.1', 30002]]
       ];
-      var node1 = new MockServer(30001, function (argv) {
+      new MockServer(30001, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
           return slotTable;
         }
       });
-      var node2 = new MockServer(30002, function (argv) {
+      new MockServer(30002, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
           return slotTable;
         }
       });
 
-      var node3 = new MockServer(30003, function (argv) {
+      new MockServer(30003, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
           return slotTable;
         }
@@ -341,7 +335,7 @@ describe('cluster', function () {
               expect(node.options).to.have.property('readOnly', false);
             });
             cluster.disconnect();
-            disconnect([node1, node2, node3], done);
+            done();
           });
         });
       });
@@ -359,9 +353,9 @@ describe('cluster', function () {
           return slotTable;
         }
       };
-      var node1 = new MockServer(30001, argvHandler);
-      var node2 = new MockServer(30002, argvHandler);
-      var node3 = new MockServer(30003, argvHandler);
+      new MockServer(30001, argvHandler);
+      new MockServer(30002, argvHandler);
+      new MockServer(30003, argvHandler);
 
       var cluster = new Redis.Cluster([
         { host: '127.0.0.1', port: '30001' }
@@ -376,7 +370,7 @@ describe('cluster', function () {
           expect(setCommandHandled).to.eql(true);
           expect(state).to.eql('OK');
           cluster.disconnect();
-          disconnect([node1, node2, node3], done);
+          done();
         });
       });
     });

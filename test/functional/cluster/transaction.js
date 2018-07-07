@@ -1,5 +1,4 @@
 var calculateSlot = require('cluster-key-slot');
-var disconnect = require('./_helpers').disconnect;
 
 describe('cluster:transaction', function () {
   it('should auto redirect commands on MOVED', function (done) {
@@ -9,7 +8,7 @@ describe('cluster:transaction', function () {
       [12182, 12183, ['127.0.0.1', 30002]],
       [12184, 16383, ['127.0.0.1', 30001]]
     ];
-    var node1 = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -21,7 +20,7 @@ describe('cluster:transaction', function () {
         return ['bar', 'OK'];
       }
     });
-    var node2 = new MockServer(30002, function (argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -42,7 +41,7 @@ describe('cluster:transaction', function () {
       expect(result[0]).to.eql([null, 'bar']);
       expect(result[1]).to.eql([null, 'OK']);
       cluster.disconnect();
-      disconnect([node1, node2], done);
+      done();
     });
   });
 
@@ -53,7 +52,7 @@ describe('cluster:transaction', function () {
       [12182, 12183, ['127.0.0.1', 30002]],
       [12184, 16383, ['127.0.0.1', 30001]]
     ];
-    var node1 = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -75,7 +74,7 @@ describe('cluster:transaction', function () {
         asked = false;
       }
     });
-    var node2 = new MockServer(30002, function (argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -95,7 +94,7 @@ describe('cluster:transaction', function () {
       expect(result[0]).to.eql([null, 'bar']);
       expect(result[1]).to.eql([null, 'OK']);
       cluster.disconnect();
-      disconnect([node1, node2], done);
+      done();
     });
   });
 });

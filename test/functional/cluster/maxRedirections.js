@@ -1,5 +1,4 @@
 var calculateSlot = require('cluster-key-slot');
-var disconnect = require('./_helpers').disconnect;
 
 describe('cluster:maxRedirections', function () {
   it('should return error when reached max redirection', function (done) {
@@ -15,8 +14,8 @@ describe('cluster:maxRedirections', function () {
         return new Error('ASK ' + calculateSlot('foo') + ' 127.0.0.1:30001');
       }
     };
-    var node1 = new MockServer(30001, argvHandler);
-    var node2 = new MockServer(30002, argvHandler);
+    new MockServer(30001, argvHandler);
+    new MockServer(30002, argvHandler);
 
     var cluster = new Redis.Cluster([
       { host: '127.0.0.1', port: '30001' }
@@ -25,7 +24,7 @@ describe('cluster:maxRedirections', function () {
       expect(redirectTimes).to.eql(6);
       expect(err.message).to.match(/Too many Cluster redirections/);
       cluster.disconnect();
-      disconnect([node1, node2], done);
+      done();
     });
   });
 });

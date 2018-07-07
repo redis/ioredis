@@ -3,13 +3,12 @@
 describe('auth', function () {
   it('should send auth before other commands', function (done) {
     var authed = false;
-    var server = new MockServer(17379, function (argv) {
+    new MockServer(17379, function (argv) {
       if (argv[0] === 'auth' && argv[1] === 'pass') {
         authed = true;
       } else if (argv[0] === 'get' && argv[1] === 'foo') {
         expect(authed).to.eql(true);
         redis.disconnect();
-        server.disconnect();
         done();
       }
     });
@@ -20,7 +19,7 @@ describe('auth', function () {
   it('should resend auth after reconnect', function (done) {
     var begin = false;
     var authed = false;
-    var server = new MockServer(17379, function (argv) {
+    new MockServer(17379, function (argv) {
       if (!begin) {
         return;
       }
@@ -29,7 +28,6 @@ describe('auth', function () {
       } else if (argv[0] === 'get' && argv[1] === 'foo') {
         expect(authed).to.eql(true);
         redis.disconnect();
-        server.disconnect();
         done();
       }
     });
@@ -58,7 +56,6 @@ describe('auth', function () {
         setTimeout(function () {
           expect(errorEmited).to.eql(false);
           redis.disconnect();
-          server.disconnect();
           done();
         }, 0);
       }
@@ -66,7 +63,7 @@ describe('auth', function () {
   });
 
   it('should emit "error" when the password is wrong', function (done) {
-    var server = new MockServer(17379, function (argv) {
+    new MockServer(17379, function (argv) {
       if (argv[0] === 'auth' && argv[1] === 'pass') {
         return new Error('ERR invalid password');
       }
@@ -76,7 +73,6 @@ describe('auth', function () {
     function check() {
       if (!--pending) {
         redis.disconnect();
-        server.disconnect();
         done();
       }
     }
@@ -91,7 +87,7 @@ describe('auth', function () {
   });
 
   it('should emit "error" when password is not provided', function (done) {
-    var server = new MockServer(17379, function (argv) {
+    new MockServer(17379, function (argv) {
       if (argv[0] === 'info') {
         return new Error('NOAUTH Authentication required.');
       }
@@ -100,7 +96,6 @@ describe('auth', function () {
     redis.on('error', function (error) {
       expect(error).to.have.property('message', 'NOAUTH Authentication required.');
       redis.disconnect();
-      server.disconnect();
       done();
     });
   });

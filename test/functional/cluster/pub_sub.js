@@ -1,5 +1,3 @@
-var disconnect = require('./_helpers').disconnect;
-
 describe('cluster:pub/sub', function () {
   it('should receive messages', function (done) {
     var handler = function (argv) {
@@ -11,7 +9,7 @@ describe('cluster:pub/sub', function () {
       }
     };
     var node1 = new MockServer(30001, handler);
-    var node2 = new MockServer(30002, handler);
+    new MockServer(30002, handler);
 
     var options = [{ host: '127.0.0.1', port: '30001' }];
     var sub = new Redis.Cluster(options);
@@ -23,12 +21,12 @@ describe('cluster:pub/sub', function () {
       expect(channel).to.eql('test channel');
       expect(message).to.eql('hi');
       sub.disconnect();
-      disconnect([node1, node2], done);
+      done();
     });
   });
 
   it('should re-subscribe after reconnection', function (done) {
-    var server = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return [
           [0, 16383, ['127.0.0.1', 30001]]
@@ -44,7 +42,7 @@ describe('cluster:pub/sub', function () {
         expect(channels).to.eql(['test cluster']);
         Redis.prototype.subscribe.restore();
         client.disconnect();
-        disconnect([server], done);
+        done();
         return Redis.prototype.subscribe.apply(this, arguments);
       });
       client.once('end', function () {
@@ -55,7 +53,7 @@ describe('cluster:pub/sub', function () {
   });
 
   it('should re-psubscribe after reconnection', function (done) {
-    var server = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return [
           [0, 16383, ['127.0.0.1', 30001]]
@@ -71,7 +69,7 @@ describe('cluster:pub/sub', function () {
         expect(channels).to.eql(['test?']);
         Redis.prototype.psubscribe.restore();
         client.disconnect();
-        disconnect([server], done);
+        done();
         return Redis.prototype.psubscribe.apply(this, arguments);
       });
       client.once('end', function () {

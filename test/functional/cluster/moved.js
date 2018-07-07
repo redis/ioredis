@@ -1,15 +1,15 @@
 var calculateSlot = require('cluster-key-slot');
-var disconnect = require('./_helpers').disconnect;
 
 describe('cluster:MOVED', function () {
   it('should auto redirect the command to the correct nodes', function (done) {
+    var cluster;
     var moved = false;
     var times = 0;
     var slotTable = [
       [0, 1, ['127.0.0.1', 30001]],
       [2, 16383, ['127.0.0.1', 30002]]
     ];
-    var node1 = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -18,12 +18,12 @@ describe('cluster:MOVED', function () {
           expect(moved).to.eql(true);
           process.nextTick(function () {
             cluster.disconnect();
-            disconnect([node1, node2], done);
+            done();
           });
         }
       }
     });
-    var node2 = new MockServer(30002, function (argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -34,7 +34,7 @@ describe('cluster:MOVED', function () {
       }
     });
 
-    var cluster = new Redis.Cluster([
+    cluster = new Redis.Cluster([
       { host: '127.0.0.1', port: '30001' }
     ]);
     cluster.get('foo', function () {
@@ -43,7 +43,7 @@ describe('cluster:MOVED', function () {
   });
 
   it('should be able to redirect a command to a unknown node', function (done) {
-    var node1 = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return [
           [0, 16383, ['127.0.0.1', 30001]]
@@ -53,7 +53,7 @@ describe('cluster:MOVED', function () {
         return new Error('MOVED ' + calculateSlot('foo') + ' 127.0.0.1:30002');
       }
     });
-    var node2 = new MockServer(30002, function (argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return [
           [0, 16381, ['127.0.0.1', 30001]],
@@ -70,18 +70,19 @@ describe('cluster:MOVED', function () {
     cluster.get('foo', function (err, res) {
       expect(res).to.eql('bar');
       cluster.disconnect();
-      disconnect([node1, node2], done);
+      done();
     });
   });
 
   it('should auto redirect the command within a pipeline', function (done) {
+    var cluster;
     var moved = false;
     var times = 0;
     var slotTable = [
       [0, 1, ['127.0.0.1', 30001]],
       [2, 16383, ['127.0.0.1', 30002]]
     ];
-    var node1 = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -90,12 +91,12 @@ describe('cluster:MOVED', function () {
           expect(moved).to.eql(true);
           process.nextTick(function () {
             cluster.disconnect();
-            disconnect([node1, node2], done);
+            done();
           });
         }
       }
     });
-    var node2 = new MockServer(30002, function (argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -106,7 +107,7 @@ describe('cluster:MOVED', function () {
       }
     });
 
-    var cluster = new Redis.Cluster([
+    cluster = new Redis.Cluster([
       { host: '127.0.0.1', port: '30001' }
     ], { lazyConnect: false });
     cluster.get('foo', function () {
