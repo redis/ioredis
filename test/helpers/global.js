@@ -11,13 +11,7 @@ global.Redis = require('../..');
 global.MockServer = require('./mock_server');
 
 afterEach(function (done) {
-  var redis = new Redis();
-  redis.flushall(function () {
-    redis.script('flush', function () {
-      redis.disconnect();
-      done();
-    });
-  });
+  new Redis().pipeline().flushall().script('flush').client('kill', 'normal').exec(done);
 });
 
-console.error = function () {}
+console.error = function () {};
