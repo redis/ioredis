@@ -1,7 +1,7 @@
 {
   "name": "ioredis",
   "version": "4.0.0-2",
-  "description": "A delightful, performance-focused Redis client for Node and io.js",
+  "description": "A robust, performance-focused and full-featured Redis client for Node.js.",
   "main": "built/index.js",
   "files": [
     "index.js",
