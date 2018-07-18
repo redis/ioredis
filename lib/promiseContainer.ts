@@ -1,4 +1,4 @@
-exports.isPromise = function (obj) {
+export function isPromise (obj: any): boolean {
   return !!obj &&
     (typeof obj === 'object' || typeof obj === 'function') &&
     typeof obj.then === 'function'
@@ -6,11 +6,11 @@ exports.isPromise = function (obj) {
 
 let promise = global.Promise
 
-exports.get = function () {
+export function get (): Function {
   return promise
 }
 
-exports.set = function (lib) {
+export function set (lib: Function): void {
   if (typeof lib !== 'function') {
     throw new Error(`Provided Promise must be a function, got ${lib}`)
   }

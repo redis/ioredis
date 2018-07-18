@@ -1,6 +1,6 @@
 'use strict';
 
-var Readable = require('stream').Readable;
+const {Readable} = require('stream')
 
 describe('*scanStream', function () {
   describe('scanStream', function () {
@@ -55,7 +55,7 @@ describe('*scanStream', function () {
         }
         Redis.prototype.scan.restore();
         Redis.prototype.scan.apply(this, arguments);
-        expect(count).to.eql(2);
+        expect(count).to.eql('2');
       });
       redis.mset('foo1', 1, 'foo2', 1, 'foo3', 1, 'foo4', 1, 'foo10', 1, function () {
         var stream = redis.scanStream({
