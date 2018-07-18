@@ -2,13 +2,13 @@
 
 var net = require('net');
 var tls = require('tls');
-var Connector = require('../../../lib/connectors/connector').default;
+var {StandaloneConnector} = require('../../../lib/connectors');
 
-describe('Connector', function () {
+describe('StandaloneConnector', function () {
   describe('connect()', function () {
     it('first tries path', function (done) {
       stub(net, 'createConnection');
-      var connector = new Connector({ port: 6379, path: '/tmp' });
+      var connector = new StandaloneConnector({ port: 6379, path: '/tmp' });
       connector.connect(function () {
         net.createConnection.calledWith({ path: '/tmp' });
         net.createConnection.restore();
@@ -18,7 +18,7 @@ describe('Connector', function () {
 
     it('supports tls', function (done) {
       stub(tls, 'connect');
-      var connector = new Connector({ port: 6379, tls: 'on' });
+      var connector = new StandaloneConnector({ port: 6379, tls: 'on' });
       connector.connect(function () {
         tls.connect.calledWith({ port: 6379, tls: 'on' });
         tls.connect.restore();

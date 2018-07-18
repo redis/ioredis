@@ -1,8 +1,9 @@
 import {createConnection, Socket} from 'net'
 import {bind, sample} from '../utils/lodash'
 import {CONNECTION_CLOSED_ERROR_MSG, packObject} from '../utils/index'
-import Connector, {ITcpConnectionOptions, IIpcConnectionOptions, ErrorEmitter, isIIpcConnectionOptions} from './Connector'
-import { TLSSocket } from 'tls';
+import {ITcpConnectionOptions, IIpcConnectionOptions, isIIpcConnectionOptions} from './StandaloneConnector'
+import { TLSSocket } from 'tls'
+import AbstractConnector, {ErrorEmitter} from './AbstractConnector'
 const debug = require('../utils/debug')('ioredis:SentinelConnector')
 
 let Redis
@@ -30,13 +31,14 @@ type NodeCallback<T = void> = (err: Error | null, result?: T) => void
 interface ISentinelTcpConnectionOptions extends ITcpConnectionOptions, ISentinelOptions {}
 interface ISentinelIpcConnectionOptions extends IIpcConnectionOptions, ISentinelOptions {}
 
-export default class SentinelConnector extends Connector {
+export default class SentinelConnector extends AbstractConnector {
   private retryAttempts: number
   private currentPoint: number = -1
   private sentinels: any[]
 
   constructor (protected options: ISentinelTcpConnectionOptions | ISentinelIpcConnectionOptions) {
-    super(options)
+    super()
+
     if (this.options.sentinels.length === 0) {
       throw new Error('Requires at least one sentinel to connect to.')
     }
@@ -55,7 +57,7 @@ export default class SentinelConnector extends Connector {
     return roleMatches
   }
 
-  connect (callback: NodeCallback<Socket | TLSSocket>, eventEmitter: ErrorEmitter): void {
+  public connect (callback: NodeCallback<Socket | TLSSocket>, eventEmitter: ErrorEmitter): void {
     this.connecting = true
     this.retryAttempts = 0
   
@@ -121,7 +123,7 @@ export default class SentinelConnector extends Connector {
     }
   }
   
-  updateSentinels (client, callback: NodeCallback) {
+  private updateSentinels (client, callback: NodeCallback): void {
     var _this = this
     client.sentinel('sentinels', this.options.name, function (err, result) {
       if (err) {
@@ -147,7 +149,7 @@ export default class SentinelConnector extends Connector {
     })
   }
   
-  resolveMaster (client, callback: NodeCallback<ITcpConnectionOptions>) {
+  private resolveMaster (client, callback: NodeCallback<ITcpConnectionOptions>): void {
     var _this = this
     client.sentinel('get-master-addr-by-name', this.options.name, function (err, result) {
       if (err) {
@@ -164,7 +166,7 @@ export default class SentinelConnector extends Connector {
     })
   }
   
-  resolveSlave (client, callback: NodeCallback<ITcpConnectionOptions>) {
+  private resolveSlave (client, callback: NodeCallback<ITcpConnectionOptions>): void {
     client.sentinel('slaves', this.options.name, (err, result) => {
       client.disconnect()
       if (err) {
@@ -234,7 +236,7 @@ export default class SentinelConnector extends Connector {
     })
   }
   
-  resolve (endpoint, callback: NodeCallback<ITcpConnectionOptions>) {
+  private resolve (endpoint, callback: NodeCallback<ITcpConnectionOptions>): void {
     if (typeof Redis === 'undefined') {
       Redis = require('../redis')
     }

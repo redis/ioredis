@@ -1,6 +1,7 @@
 import {createConnection, TcpNetConnectOpts, IpcNetConnectOpts, Socket} from 'net'
 import {connect as createTLSConnection, SecureContextOptions, TLSSocket} from 'tls'
 import {CONNECTION_CLOSED_ERROR_MSG} from '../utils/index'
+import AbstractConnector, {ErrorEmitter} from './AbstractConnector'
 
 export function isIIpcConnectionOptions (value: any): value is IIpcConnectionOptions {
   return value.hasOwnProperty('path')
@@ -14,23 +15,9 @@ export interface IIpcConnectionOptions extends IpcNetConnectOpts {
   tls?: SecureContextOptions
 }
 
-export type ErrorEmitter = (type: string, err: Error) => void
-
-export default class Connector {
-  protected connecting: boolean = false
-  protected stream: Socket | TLSSocket
-
-  constructor (protected options: ITcpConnectionOptions | IIpcConnectionOptions) {}
-
-  public check (info: any): boolean {
-    return true
-  }
-
-  public disconnect (): void {
-    this.connecting = false
-    if (this.stream) {
-      this.stream.end()
-    }
+export default class StandaloneConnector extends AbstractConnector {
+  constructor (protected options: ITcpConnectionOptions | IIpcConnectionOptions) {
+    super()
   }
 
   public connect (callback: Function, _: ErrorEmitter) {
