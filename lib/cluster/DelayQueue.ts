@@ -1,4 +1,4 @@
-import * as Deque from 'denque'
+const Deque = require('denque')
 const debug = require('../utils/debug')('ioredis:delayqueue')
 
 /**
@@ -19,7 +19,7 @@ export interface IDelayQueueOptions {
  * @class DelayQueue
  */
 export default class DelayQueue {
-  private queues: {[key: string]: Deque | null} = {}
+  private queues: {[key: string]: any | null} = {}
   private timeouts: {[key: string]: NodeJS.Timer} = {}
 
   /**
