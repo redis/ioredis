@@ -7,6 +7,28 @@ var EventEmitter = require('events').EventEmitter;
 var enableDestroy = require('server-destroy');
 var Parser = require('redis-parser');
 
+var createdMockServers = [];
+
+afterEach(function (done) {
+  if (createdMockServers.length === 0) {
+    done();
+    return;
+  }
+  var pending = 0;
+
+  for (var i = 0; i < createdMockServers.length; ++i) {
+    pending += 1;
+    createdMockServers[i].disconnect(check);
+  }
+
+  function check() {
+    if (!--pending) {
+      createdMockServers = [];
+      done();
+    }
+  }
+});
+
 function MockServer(port, handler) {
   EventEmitter.call(this);
 
@@ -14,6 +36,8 @@ function MockServer(port, handler) {
   this.handler = handler;
 
   this.clients = [];
+
+  createdMockServers.push(this);
 
   this.connect();
 }

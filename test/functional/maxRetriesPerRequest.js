@@ -17,6 +17,7 @@ describe('maxRetriesPerRequest', function () {
 
   it('defaults to max 20 retries', function (done) {
     var redis = new Redis(9999, {
+      connectTimeout: 1,
       retryStrategy() {
         return 1
       }

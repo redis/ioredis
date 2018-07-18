@@ -1,16 +1,18 @@
 {
   "name": "ioredis",
-  "version": "4.0.0-1",
-  "description": "A delightful, performance-focused Redis client for Node and io.js",
-  "main": "index.js",
+  "version": "4.0.0-2",
+  "description": "A robust, performance-focused and full-featured Redis client for Node.js.",
+  "main": "built/index.js",
   "files": [
     "index.js",
-    "lib/"
+    "built/"
   ],
   "scripts": {
-    "test": "NODE_ENV=test mocha --exit",
-    "test:cov": "NODE_ENV=test node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -R spec --exit",
+    "test": "NODE_ENV=test mocha --timeout 8000 -r ts-node/register --exit",
+    "test:cov": "NODE_ENV=test node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -r ts-node/register -R spec --exit",
+    "build": "tsc",
     "generate-docs": "jsdoc2md lib/redis.js lib/cluster/index.js lib/commander.js > API.md",
+    "prepublish": "npm run build && npm test",
     "bench": "matcha benchmarks/*.js"
   },
   "repository": {
@@ -44,10 +46,12 @@
     "lodash.shuffle": "^4.2.0",
     "lodash.values": "^4.3.0",
     "redis-commands": "^1.2.0",
-    "redis-parser": "^2.6.0",
+    "redis-errors": "^1.2.0",
+    "redis-parser": "^3.0.0",
     "standard-as-callback": "^1.0.0"
   },
   "devDependencies": {
+    "@types/node": "^10.5.2",
     "bluebird": "^3.5.1",
     "chai": "^3.5.0",
     "cz-conventional-changelog": "^2.0.0",
@@ -56,7 +60,9 @@
     "jsdoc-to-markdown": "^4.0.1",
     "mocha": "^5.2.0",
     "server-destroy": "^1.0.1",
-    "sinon": "^1.17.3"
+    "sinon": "^1.17.3",
+    "ts-node": "^7.0.0",
+    "typescript": "^2.9.2"
   },
   "engines": {
     "node": ">=4"

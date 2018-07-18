@@ -2,7 +2,7 @@
 
 var net = require('net');
 var tls = require('tls');
-var Connector = require('../../../lib/connectors/connector');
+var Connector = require('../../../lib/connectors/connector').default;
 
 describe('Connector', function () {
   describe('connect()', function () {

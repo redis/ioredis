@@ -1,3 +1,10 @@
+<a name="4.0.0-2"></a>
+# [4.0.0-2](https://github.com/luin/ioredis/compare/v4.0.0-1...v4.0.0-2) (2018-07-07)
+
+Upgrade redis-parser to v3.
+See release notes on [redis-parser repo](https://github.com/NodeRedis/node-redis-parser/releases/tag/v.3.0.0) for details.
+
+
 <a name="4.0.0-1"></a>
 # [4.0.0-1](https://github.com/luin/ioredis/compare/v4.0.0-0...v4.0.0-1) (2018-07-02)
 

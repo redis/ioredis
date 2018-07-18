@@ -1,5 +1,4 @@
 var calculateSlot = require('cluster-key-slot');
-var disconnect = require('./_helpers').disconnect;
 
 describe('cluster:pipeline', function () {
   it('should throw when not all keys belong to the same slot', function (done) {
@@ -8,12 +7,12 @@ describe('cluster:pipeline', function () {
       [12182, 12183, ['127.0.0.1', 30002]],
       [12184, 16383, ['127.0.0.1', 30001]]
     ];
-    var node1 = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
     });
-    var node2 = new MockServer(30002, function (argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -25,7 +24,7 @@ describe('cluster:pipeline', function () {
     cluster.pipeline().set('foo', 'bar').get('foo2').exec().catch(function (err) {
       expect(err.message).to.match(/All keys in the pipeline should belong to the same slot/);
       cluster.disconnect();
-      disconnect([node1, node2], done);
+      done();
     });
   });
 
@@ -36,7 +35,7 @@ describe('cluster:pipeline', function () {
       [12182, 12183, ['127.0.0.1', 30002]],
       [12184, 16383, ['127.0.0.1', 30001]]
     ];
-    var node1 = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -44,7 +43,7 @@ describe('cluster:pipeline', function () {
         return 'bar';
       }
     });
-    var node2 = new MockServer(30002, function (argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -65,7 +64,7 @@ describe('cluster:pipeline', function () {
       expect(result[0]).to.eql([null, 'bar']);
       expect(result[1]).to.eql([null, 'OK']);
       cluster.disconnect();
-      disconnect([node1, node2], done);
+      done();
     });
   });
 
@@ -76,7 +75,7 @@ describe('cluster:pipeline', function () {
       [12182, 12183, ['127.0.0.1', 30002]],
       [12184, 16383, ['127.0.0.1', 30001]]
     ];
-    var node1 = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -91,7 +90,7 @@ describe('cluster:pipeline', function () {
         asked = false;
       }
     });
-    var node2 = new MockServer(30002, function (argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -108,7 +107,7 @@ describe('cluster:pipeline', function () {
       expect(result[0]).to.eql([null, 'bar']);
       expect(result[1]).to.eql([null, 'OK']);
       cluster.disconnect();
-      disconnect([node1, node2], done);
+      done();
     });
   });
 
@@ -117,7 +116,7 @@ describe('cluster:pipeline', function () {
     var slotTable = [
       [0, 16383, ['127.0.0.1', 30001]]
     ];
-    var server = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -135,7 +134,7 @@ describe('cluster:pipeline', function () {
       expect(result[0][1]).to.eql('OK');
       expect(result[1][1]).to.eql('OK');
       cluster.disconnect();
-      disconnect([server], done);
+      done();
     });
   });
 
@@ -145,7 +144,7 @@ describe('cluster:pipeline', function () {
       [12182, 12183, ['127.0.0.1', 30002]],
       [12184, 16383, ['127.0.0.1', 30001]]
     ];
-    var node1 = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -153,7 +152,7 @@ describe('cluster:pipeline', function () {
         return 'bar';
       }
     });
-    var node2 = new MockServer(30002, function (argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -170,7 +169,7 @@ describe('cluster:pipeline', function () {
       expect(result[0][0].message).to.match(/MOVED/);
       expect(result[1]).to.eql([null, 'OK']);
       cluster.disconnect();
-      disconnect([node1, node2], done);
+      done();
     });
   });
 
@@ -180,7 +179,7 @@ describe('cluster:pipeline', function () {
       [12182, 12183, ['127.0.0.1', 30002]],
       [12184, 16383, ['127.0.0.1', 30001]]
     ];
-    var node1 = new MockServer(30001, function (argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return slotTable;
       }
@@ -208,7 +207,7 @@ describe('cluster:pipeline', function () {
       expect(result[0]).to.eql([null, 'bar']);
       expect(result[1]).to.eql([null, 'OK']);
       cluster.disconnect();
-      disconnect([node1, node2], done);
+      done();
     });
   });
 });
