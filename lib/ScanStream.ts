@@ -1,5 +1,11 @@
 import {Readable, ReadableOptions} from 'stream'
-
+/**
+ * Options for ScanStream
+ *
+ * @export
+ * @interface IScanStreamOptions
+ * @extends {ReadableOptions}
+ */
 export interface IScanStreamOptions extends ReadableOptions {
   key?: string
   match?: string

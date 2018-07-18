@@ -1,15 +1,35 @@
 import * as Deque from 'denque'
 const debug = require('../utils/debug')('ioredis:delayqueue')
 
+/**
+ * Options for DelayQueue
+ *
+ * @export
+ * @interface IDelayQueueOptions
+ */
 export interface IDelayQueueOptions {
   callback?: Function
   timeout: number
 }
 
+/**
+ * Queue that runs items after specified duration
+ *
+ * @export
+ * @class DelayQueue
+ */
 export default class DelayQueue {
   private queues: {[key: string]: Deque | null} = {}
   private timeouts: {[key: string]: NodeJS.Timer} = {}
 
+  /**
+   * Add a new item to the queue
+   *
+   * @param {string} bucket bucket name
+   * @param {Function} item function that will run later
+   * @param {IDelayQueueOptions} options
+   * @memberof DelayQueue
+   */
   public push (bucket: string, item: Function, options: IDelayQueueOptions): void {
     const callback = options.callback || process.nextTick
     if (!this.queues[bucket]) {

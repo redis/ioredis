@@ -1,6 +1,6 @@
 import {createConnection, TcpNetConnectOpts, IpcNetConnectOpts, Socket} from 'net'
 import {connect as createTLSConnection, SecureContextOptions, TLSSocket} from 'tls'
-import {CONNECTION_CLOSED_ERROR_MSG} from '../utils/index'
+import {CONNECTION_CLOSED_ERROR_MSG} from '../utils'
 import AbstractConnector, {ErrorEmitter} from './AbstractConnector'
 
 export function isIIpcConnectionOptions (value: any): value is IIpcConnectionOptions {
