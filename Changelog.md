@@ -1,3 +1,14 @@
+<a name="4.0.0-3"></a>
+# [4.0.0-3](https://github.com/luin/ioredis/compare/v4.0.0-2...v4.0.0-3) (2018-07-22)
+
+
+### Bug Fixes
+
+* **Sentinel:** unreachable errors when sentinals are healthy ([7bf6fea](https://github.com/luin/ioredis/commit/7bf6fea))
+* resolve warning for Buffer() in Node.js 10 ([6144c56](https://github.com/luin/ioredis/commit/6144c56))
+
+
+
 <a name="4.0.0-2"></a>
 # [4.0.0-2](https://github.com/luin/ioredis/compare/v4.0.0-1...v4.0.0-2) (2018-07-07)
 
