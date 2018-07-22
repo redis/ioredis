@@ -1,6 +1,6 @@
 {
   "name": "ioredis",
-  "version": "4.0.0-2",
+  "version": "4.0.0-3",
   "description": "A robust, performance-focused and full-featured Redis client for Node.js.",
   "main": "built/index.js",
   "files": [
@@ -10,7 +10,7 @@
   "scripts": {
     "test": "NODE_ENV=test mocha --timeout 8000 -r ts-node/register --exit",
     "test:cov": "NODE_ENV=test node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -r ts-node/register -R spec --exit",
-    "build": "tsc",
+    "build": "rm -rf built && tsc",
     "generate-docs": "jsdoc2md lib/redis.js lib/cluster/index.js lib/commander.js > API.md",
     "prepublish": "npm run build && npm test",
     "bench": "matcha benchmarks/*.js"

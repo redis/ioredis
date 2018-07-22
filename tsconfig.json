@@ -4,7 +4,8 @@
     "allowJs": true,
     "target": "es6",
     "moduleResolution": "node",
-    "types": ["node"]
+    "types": ["node"],
+    "module": "commonjs"
   },
   "include": [
     "./lib/**/*"
