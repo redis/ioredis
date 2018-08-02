@@ -10,7 +10,19 @@ describe('StandaloneConnector', function () {
       stub(net, 'createConnection');
       var connector = new StandaloneConnector({ port: 6379, path: '/tmp' });
       connector.connect(function () {
-        net.createConnection.calledWith({ path: '/tmp' });
+        expect(net.createConnection.calledOnce).to.eql(true);
+        expect(net.createConnection.firstCall.args[0]).to.eql({path: '/tmp'});
+        net.createConnection.restore();
+        done();
+      });
+    });
+
+    it('ignore path when port is set and path is null', function (done) {
+      stub(net, 'createConnection');
+      var connector = new StandaloneConnector({ port: 6379, path: null });
+      connector.connect(function () {
+        expect(net.createConnection.calledOnce).to.eql(true);
+        expect(net.createConnection.firstCall.args[0]).to.eql({port: 6379});
         net.createConnection.restore();
         done();
       });
@@ -18,9 +30,10 @@ describe('StandaloneConnector', function () {
 
     it('supports tls', function (done) {
       stub(tls, 'connect');
-      var connector = new StandaloneConnector({ port: 6379, tls: 'on' });
+      var connector = new StandaloneConnector({ port: 6379, tls: {ca: 'on'} });
       connector.connect(function () {
-        tls.connect.calledWith({ port: 6379, tls: 'on' });
+        expect(tls.connect.calledOnce).to.eql(true);
+        expect(tls.connect.firstCall.args[0]).to.eql({ port: 6379, ca: 'on' });
         tls.connect.restore();
         done();
       });
