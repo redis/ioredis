@@ -4,7 +4,7 @@ import {CONNECTION_CLOSED_ERROR_MSG} from '../utils'
 import AbstractConnector, {ErrorEmitter} from './AbstractConnector'
 
 export function isIIpcConnectionOptions (value: any): value is IIpcConnectionOptions {
-  return value.hasOwnProperty('path')
+  return value.path
 }
 
 export interface ITcpConnectionOptions extends TcpNetConnectOpts {
@@ -30,17 +30,22 @@ export default class StandaloneConnector extends AbstractConnector {
         path: options.path
       }
     } else {
-      connectionOptions = {
-        port: options.port,
-        host: options.host,
-        family: options.family
+      connectionOptions = {}
+      if (options.port != null) {
+        connectionOptions.port = options.port
+      }
+      if (options.host != null) {
+        connectionOptions.host = options.host
+      }
+      if (options.family != null) {
+        connectionOptions.family = options.family
       }
     }
 
     if (options.tls) {
       Object.assign(connectionOptions, options.tls)
     }
-  
+
     process.nextTick(() => {
       if (!this.connecting) {
         callback(new Error(CONNECTION_CLOSED_ERROR_MSG))
