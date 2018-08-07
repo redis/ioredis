@@ -488,16 +488,16 @@ provides a streaming interface for the `SCAN` command to make things much easier
 var redis = new Redis();
 // Create a readable stream (object mode)
 var stream = redis.scanStream();
-var keys = [];
 stream.on('data', function (resultKeys) {
   // `resultKeys` is an array of strings representing key names.
-  // Note that resultKeys may contain 0 keys.
+  // Note that resultKeys may contain 0 keys, and that it will sometimes
+  // contain duplicates due to SCAN's implementation in Redis.
   for (var i = 0; i < resultKeys.length; i++) {
-    keys.push(resultKeys[i]);
+    console.log(resultKeys[i]);
   }
 });
 stream.on('end', function () {
-  console.log('done with the keys: ', keys);
+  console.log('all keys have been visited');
 });
 ```
 
