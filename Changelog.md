@@ -66,7 +66,7 @@ by default. So when a redis server is down, pending commands won't wait forever
 until the connection become alive, instead, they only wait about 10s (depends on the
 retryStrategy option)
 * The `new` keyword is required explicitly. Calling `Redis` as a function like
-Redis(/* options */)` is deprecated and will not be supported in the next major version,
+`Redis(/* options */)` is deprecated and will not be supported in the next major version,
 use `new Redis(/* options */)` instead.
 * This change makes all the code that rely on the features provided by Bluebird not working
 anymore. For example, `redis.get('foo').timeout(500)` now should be failed since the native
