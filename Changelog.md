@@ -1,3 +1,19 @@
+<a name="4.0.0"></a>
+# [4.0.0](https://github.com/luin/ioredis/compare/v4.0.0-3...v4.0.0) (2018-08-14)
+
+
+### Bug Fixes
+
+* port is ignored when path set to null ([d40a99e](https://github.com/luin/ioredis/commit/d40a99e)), closes [#668](https://github.com/luin/ioredis/issues/668)
+
+
+### Features
+
+* export Pipeline for inheritances enabling ([#675](https://github.com/luin/ioredis/issues/675)) ([ca58249](https://github.com/luin/ioredis/commit/ca58249))
+* export ScanStream at package level ([#667](https://github.com/luin/ioredis/issues/667)) ([5eb4198](https://github.com/luin/ioredis/commit/5eb4198))
+
+
+
 <a name="4.0.0-3"></a>
 # [4.0.0-3](https://github.com/luin/ioredis/compare/v4.0.0-2...v4.0.0-3) (2018-07-22)
 
