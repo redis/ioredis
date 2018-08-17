@@ -1,3 +1,84 @@
+<a name="4.0.0"></a>
+# [4.0.0](https://github.com/luin/ioredis/compare/v4.0.0-3...v4.0.0) (2018-08-14)
+
+**This is a major release and contain breaking changes. Please read this changelog before upgrading.**
+
+## Changes since 4.0.0-3:
+
+### Bug Fixes
+
+* port is ignored when path set to null ([d40a99e](https://github.com/luin/ioredis/commit/d40a99e)), closes [#668](https://github.com/luin/ioredis/issues/668)
+
+
+### Features
+
+* export Pipeline for inheritances enabling ([#675](https://github.com/luin/ioredis/issues/675)) ([ca58249](https://github.com/luin/ioredis/commit/ca58249))
+* export ScanStream at package level ([#667](https://github.com/luin/ioredis/issues/667)) ([5eb4198](https://github.com/luin/ioredis/commit/5eb4198))
+
+## Changes since 3.x
+
+### Bug Fixes
+
+* **Sentinel:** unreachable errors when sentinals are healthy ([7bf6fea](https://github.com/luin/ioredis/commit/7bf6fea))
+* resolve warning for Buffer() in Node.js 10 ([6144c56](https://github.com/luin/ioredis/commit/6144c56))
+* don't add cluster.info to the failover queue before ready ([491546d](https://github.com/luin/ioredis/commit/491546d))
+* solves vulnerabilities dependencies ([2950b79](https://github.com/luin/ioredis/commit/2950b79))
+* **Cluster:** issues when setting enableOfflineQueue to false ([#649](https://github.com/luin/ioredis/issues/649)) ([cfe4258](https://github.com/luin/ioredis/commit/cfe4258))
+
+### Performance Improvements
+
+* upgrade redis-parser for better performance.
+
+### Features
+
+* use native Promise instead of Bluebird, and allow users to switch back. ([da60b8b](https://github.com/luin/ioredis/commit/da60b8b))
+* add maxRetriesPerRequest option to limit the retries attempts per command ([1babc13](https://github.com/luin/ioredis/commit/1babc13))
+* `Redis#connect()` will be resolved when status is ready ([#648](https://github.com/luin/ioredis/issues/648)) ([f0c600b](https://github.com/luin/ioredis/commit/f0c600b))
+* add debug details for connection pool ([9ec16b6](https://github.com/luin/ioredis/commit/9ec16b6))
+* wait for ready state before resolving cluster.connect() ([7517a73](https://github.com/luin/ioredis/commit/7517a73))
+
+
+### BREAKING CHANGES
+
+* Drop support for < node v6
+* **Use native Promise instead of Bluebird**. This change makes all the code that rely on the features provided by Bluebird not working
+anymore. For example, `redis.get('foo').timeout(500)` now should be failed since the native
+Promise doesn't support the `timeout` method. You can switch back to the Bluebird
+implementation by setting `Redis.Promise`:
+
+```
+const Redis = require('ioredis')
+Redis.Promise = require('bluebird')
+
+const redis = new Redis()
+
+// Use bluebird
+assert.equal(redis.get().constructor, require('bluebird'))
+
+// You can change the Promise implementation at any time:
+Redis.Promise = global.Promise
+assert.equal(redis.get().constructor, global.Promise)
+```
+* `Redis#connect()` will be resolved when status is ready
+instead of `connect`:
+
+```
+const redis = new Redis({ lazyConnect: true })
+redis.connect().then(() => {
+  assert(redis.status === 'ready')
+})
+```
+* `Cluster#connect()` will be resolved when the connection
+status become `ready` instead of `connect`.
+* The maxRetriesPerRequest is set to 20 instead of null (same behavior as ioredis v3)
+by default. So when a redis server is down, pending commands won't wait forever
+until the connection become alive, instead, they only wait about 10s (depends on the
+retryStrategy option)
+* The `new` keyword is required explicitly. Calling `Redis` as a function like
+Redis(/* options */)` is deprecated and will not be supported in the next major version,
+use `new Redis(/* options */)` instead.
+
+
 <a name="4.0.0-3"></a>
 # [4.0.0-3](https://github.com/luin/ioredis/compare/v4.0.0-2...v4.0.0-3) (2018-07-22)
 
@@ -50,6 +131,24 @@ See release notes on [redis-parser repo](https://github.com/NodeRedis/node-redis
 ### BREAKING CHANGES
 
 * Drop support for < node v6
+* Use native Promise instead of Bluebird. This change makes all the code that rely on the features provided by Bluebird not working
+anymore. For example, `redis.get('foo').timeout(500)` now should be failed since the native
+Promise doesn't support the `timeout` method. You can switch back to the Bluebird
+implementation by setting `Redis.Promise`:
+
+```
+const Redis = require('ioredis')
+Redis.Promise = require('bluebird')
+
+const redis = new Redis()
+
+// Use bluebird
+assert.equal(redis.get().constructor, require('bluebird'))
+
+// You can change the Promise implementation at any time:
+Redis.Promise = global.Promise
+assert.equal(redis.get().constructor, global.Promise)
+```
 * `Redis#connect()` will be resolved when status is ready
 instead of `connect`:
 
@@ -68,24 +167,6 @@ retryStrategy option)
 * The `new` keyword is required explicitly. Calling `Redis` as a function like
 `Redis(/* options */)` is deprecated and will not be supported in the next major version,
 use `new Redis(/* options */)` instead.
-* This change makes all the code that rely on the features provided by Bluebird not working
-anymore. For example, `redis.get('foo').timeout(500)` now should be failed since the native
-Promise doesn't support the `timeout` method. You can switch back to the Bluebird
-implementation by setting `Redis.Promise`:
-
-```
-const Redis = require('ioredis')
-Redis.Promise = require('bluebird')
-
-const redis = new Redis()
-
-// Use bluebird
-assert.equal(redis.get().constructor, require('bluebird'))
-
-// You can change the Promise implementation at any time:
-Redis.Promise = global.Promise
-assert.equal(redis.get().constructor, global.Promise)
-```
 
 <a name="3.2.2"></a>
 ## [3.2.2](https://github.com/luin/ioredis/compare/v3.2.1...v3.2.2) (2017-11-30)
