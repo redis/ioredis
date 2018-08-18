@@ -165,7 +165,7 @@ by default. So when a redis server is down, pending commands won't wait forever
 until the connection become alive, instead, they only wait about 10s (depends on the
 retryStrategy option)
 * The `new` keyword is required explicitly. Calling `Redis` as a function like
-Redis(/* options */)` is deprecated and will not be supported in the next major version,
+`Redis(/* options */)` is deprecated and will not be supported in the next major version,
 use `new Redis(/* options */)` instead.
 
 <a name="3.2.2"></a>
