@@ -142,6 +142,13 @@ describe('utils', function () {
         password: 'pass',
         key: 'value'
       });
+      expect(utils.parseURL('redis://user::pass@127.0.0.1:6380/4?key=value')).to.eql({
+        host: '127.0.0.1',
+        port: '6380',
+        db: '4',
+        password: ':pass',
+        key: 'value'
+      });
       expect(utils.parseURL('redis://127.0.0.1/')).to.eql({
         host: '127.0.0.1'
       });
