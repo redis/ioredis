@@ -17,7 +17,7 @@ describe('Command', function () {
     });
 
     it('should return buffer when there\'s at least one arg is a buffer', function () {
-      var command = new Command('get', ['foo', new Buffer('bar'), 'zooo']);
+      var command = new Command('get', ['foo', Buffer.from('bar'), 'zooo']);
       var result = command.toWritable();
       expect(result).to.be.instanceof(Buffer);
       expect(result.toString()).to.eql('*4\r\n$3\r\nget\r\n$3\r\nfoo\r\n$3\r\nbar\r\n$4\r\nzooo\r\n');
@@ -31,7 +31,7 @@ describe('Command', function () {
         expect(result.toString()).to.eql('foo');
         done();
       });
-      command.resolve(new Buffer('foo'));
+      command.resolve(Buffer.from('foo'));
     });
 
     it('should covert result to string if replyEncoding is specified', function (done) {
@@ -39,16 +39,16 @@ describe('Command', function () {
         expect(result).to.eql('foo');
         done();
       });
-      command.resolve(new Buffer('foo'));
+      command.resolve(Buffer.from('foo'));
     });
 
     it('should regard replyEncoding', function (done) {
-      var base64 = new Buffer('foo').toString('base64');
+      var base64 = Buffer.from('foo').toString('base64');
       var command = new Command('get', ['foo'], { replyEncoding: 'base64' }, function (err, result) {
         expect(result).to.eql(base64);
         done();
       });
-      command.resolve(new Buffer('foo'));
+      command.resolve(Buffer.from('foo'));
     });
   });
 

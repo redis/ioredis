@@ -38,10 +38,10 @@ describe('send command', function () {
 
   it('should support get & set buffer', function (done) {
     var redis = new Redis();
-    redis.set(new Buffer('foo'), new Buffer('bar'), function (err, res) {
+    redis.set(Buffer.from('foo'), Buffer.from('bar'), function (err, res) {
       expect(res).to.eql('OK');
     });
-    redis.getBuffer(new Buffer('foo'), function (err, result) {
+    redis.getBuffer(Buffer.from('foo'), function (err, result) {
       expect(result).to.be.instanceof(Buffer);
       expect(result.toString()).to.eql('bar');
       done();
@@ -50,10 +50,10 @@ describe('send command', function () {
 
   it('should support get & set buffer via `call`', function (done) {
     var redis = new Redis();
-    redis.call('set', new Buffer('foo'), new Buffer('bar'), function (err, res) {
+    redis.call('set', Buffer.from('foo'), Buffer.from('bar'), function (err, res) {
       expect(res).to.eql('OK');
     });
-    redis.callBuffer('get', new Buffer('foo'), function (err, result) {
+    redis.callBuffer('get', Buffer.from('foo'), function (err, result) {
       expect(result).to.be.instanceof(Buffer);
       expect(result.toString()).to.eql('bar');
       done();
@@ -62,8 +62,8 @@ describe('send command', function () {
 
   it('should handle empty buffer', function (done) {
     var redis = new Redis();
-    redis.set(new Buffer('foo'), new Buffer(''));
-    redis.getBuffer(new Buffer('foo'), function (err, result) {
+    redis.set(Buffer.from('foo'), Buffer.from(''));
+    redis.getBuffer(Buffer.from('foo'), function (err, result) {
       expect(result).to.be.instanceof(Buffer);
       expect(result.toString()).to.eql('');
       done();
@@ -72,7 +72,7 @@ describe('send command', function () {
 
   it('should support utf8', function (done) {
     var redis = new Redis();
-    redis.set(new Buffer('你好'), new String('你好'));
+    redis.set(Buffer.from('你好'), new String('你好'));
     redis.getBuffer('你好', function (err, result) {
       expect(result.toString()).to.eql('你好');
       redis.get('你好', function (err, result) {

@@ -67,7 +67,7 @@ describe('scripting', function () {
     });
 
     redis.testBuffer('k1', 'k2', 'a1', 'a2', function (err, result) {
-      expect(result).to.eql([new Buffer('k1'), new Buffer('k2'), new Buffer('a1'), new Buffer('a2')]);
+      expect(result).to.eql([Buffer.from('k1'), Buffer.from('k2'), Buffer.from('a1'), Buffer.from('a2')]);
       done();
     });
   });

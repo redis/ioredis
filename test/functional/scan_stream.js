@@ -98,8 +98,8 @@ describe('*scanStream', function () {
           keys = keys.concat(data);
         });
         stream.on('end', function () {
-          expect(keys.sort()).to.eql([new Buffer('foo1'), new Buffer('foo10'),
-            new Buffer('foo2'), new Buffer('foo3'), new Buffer('foo4')]);
+          expect(keys.sort()).to.eql([Buffer.from('foo1'), Buffer.from('foo10'),
+            Buffer.from('foo2'), Buffer.from('foo3'), Buffer.from('foo4')]);
           done();
         });
       });

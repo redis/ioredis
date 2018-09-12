@@ -22,7 +22,7 @@ describe('utils/debug', function () {
       expect(debug.getStringValue(-1.1)).to.be.undefined;
 
       expect(debug.getStringValue('abc')).to.be.a('string');
-      expect(debug.getStringValue(Buffer.from ? Buffer.from('abc') : new Buffer('abc'))).to.be.a('string');
+      expect(debug.getStringValue(Buffer.from ? Buffer.from('abc') : Buffer.from('abc'))).to.be.a('string');
       expect(debug.getStringValue(new Date())).to.be.a('string');
       expect(debug.getStringValue({ foo: { bar: 'qux' } })).to.be.a('string');
     });
