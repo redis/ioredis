@@ -65,7 +65,7 @@
     "typescript": "^2.9.2"
   },
   "engines": {
-    "node": ">=4"
+    "node": ">=6"
   },
   "config": {
     "commitizen": {
