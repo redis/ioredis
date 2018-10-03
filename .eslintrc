@@ -2,6 +2,9 @@
   "env": {
     "node": true
   },
+  "parserOptions": {
+    "ecmaVersion": 6
+  },
   "rules": {
     "no-const-assign": 2,
     "strict": [2, "global"],
