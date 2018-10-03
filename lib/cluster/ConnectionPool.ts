@@ -1,6 +1,7 @@
 import {parseURL} from '../utils'
 import {EventEmitter} from 'events'
 import {noop, defaults} from '../utils/lodash'
+import {NODE_STATUS} from '../utils'
 
 const Redis = require('../redis')
 const debug = require('../utils/debug')('ioredis:cluster:connectionPool')
@@ -75,13 +76,36 @@ export default class ConnectionPool extends EventEmitter {
         enableOfflineQueue: true,
         readOnly: readOnly
       }, node, this.redisOptions, { lazyConnect: true }))
-      this.nodes.all[node.key] = redis
-      this.nodes[readOnly ? 'slave' : 'master'][node.key] = redis
 
-      redis.once('end', () => {
+      const role = readOnly ? 'slave' : 'master'
+      this.nodes.all[node.key] = redis
+      this.nodes[role][node.key] = redis
+
+      const updateKeyListener = () => {
+        const opts = redis.options
+        const currentKey = opts.key
+
+        opts.key = null
+        setKey(opts)
+
+        if (currentKey !== opts.key){
+          delete this.nodes.all[currentKey]
+          delete this.nodes[role][currentKey]
+
+          this.nodes.all[redis.options.key] = redis
+          this.nodes[role][redis.options.key] = redis
+        }
+      }
+
+      redis.once(NODE_STATUS.CONNECT, updateKeyListener)
+
+      redis.once(NODE_STATUS.END, () => {
+        redis.removeListener(NODE_STATUS.CONNECT, updateKeyListener)
+
         delete this.nodes.all[node.key]
         delete this.nodes.master[node.key]
         delete this.nodes.slave[node.key]
+
         this.emit('-node', redis)
         if (!Object.keys(this.nodes.all).length) {
           this.emit('drain')
