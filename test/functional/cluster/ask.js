@@ -1,3 +1,4 @@
+'use strict';
 var calculateSlot = require('cluster-key-slot');
 
 describe('cluster:ASK', function () {
