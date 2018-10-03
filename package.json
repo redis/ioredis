@@ -52,7 +52,7 @@
   },
   "devDependencies": {
     "@types/node": "^10.11.4",
-    "bluebird": "^3.5.1",
+    "bluebird": "^3.5.2",
     "chai": "^4.2.0",
     "cz-conventional-changelog": "^2.1.0",
     "istanbul": "^0.4.2",
@@ -61,7 +61,7 @@
     "mocha": "^5.2.0",
     "server-destroy": "^1.0.1",
     "sinon": "^6.3.5",
-    "ts-node": "^7.0.0",
+    "ts-node": "^7.0.1",
     "typescript": "^3.1.1"
   },
   "engines": {
