@@ -1,0 +1,18 @@
+{
+  "extension": [
+    ".js",
+    ".ts",
+    ".tsx"
+  ],
+  "include": [
+    "lib/**"
+  ],
+  "exclude": [
+    "**/*.d.ts"
+  ],
+  "reporter": [
+    "lcov",
+    "text-summary"
+  ],
+  "all": true
+}

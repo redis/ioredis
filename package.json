@@ -8,8 +8,8 @@
     "built/"
   ],
   "scripts": {
-    "test": "NODE_ENV=test mocha --timeout 8000 -r ts-node/register --exit",
-    "test:cov": "NODE_ENV=test node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -r ts-node/register -R spec --exit",
+    "test": "cross-env NODE_ENV=test mocha",
+    "test:cov": "cross-env NODE_ENV=test nyc mocha",
     "build": "rm -rf built && tsc",
     "generate-docs": "jsdoc2md lib/redis.js lib/cluster/index.js lib/commander.js > API.md",
     "prepublish": "npm run build && npm test",
@@ -54,13 +54,15 @@
     "@types/node": "^10.11.4",
     "bluebird": "^3.5.2",
     "chai": "^4.2.0",
+    "cross-env": "^5.2.0",
     "cz-conventional-changelog": "^2.1.0",
-    "istanbul": "^0.4.2",
     "jsdoc": "^3.5.5",
     "jsdoc-to-markdown": "^4.0.1",
     "mocha": "^5.2.0",
+    "nyc": "^13.0.1",
     "server-destroy": "^1.0.1",
     "sinon": "^6.3.5",
+    "source-map-support": "^0.5.9",
     "ts-node": "^7.0.1",
     "typescript": "^3.1.1"
   },

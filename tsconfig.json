@@ -5,10 +5,11 @@
     "target": "es6",
     "moduleResolution": "node",
     "types": ["node"],
-    "module": "commonjs"
+    "module": "commonjs",
+    "sourceMap": true
   },
   "include": [
     "./lib/**/*"
-    ]
+  ]
 }
 

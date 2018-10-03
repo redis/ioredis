@@ -2,4 +2,6 @@ node_modules
 *.cpuprofile
 /test.js
 /coverage
+/.nyc_output
+/.npmrc
 built
