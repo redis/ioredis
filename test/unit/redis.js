@@ -3,7 +3,7 @@
 describe('Redis', function () {
   describe('constructor', function () {
     it('should parse options correctly', function () {
-      stub(Redis.prototype, 'connect').returns(Promise.resolve());
+      stub(Redis.prototype, 'connect').resolves();
 
       var option;
       try {
@@ -106,7 +106,7 @@ describe('Redis', function () {
   describe('#end', function () {
     it('should redirect to #disconnect', function (done) {
       var redis = new Redis({ lazyConnect: true });
-      stub(redis, 'disconnect', function () {
+      stub(redis, 'disconnect').callsFake(function () {
         redis.disconnect.restore();
         done();
       });

@@ -4,7 +4,7 @@ var Commander = require('../../lib/commander');
 
 describe('Commander', function () {
   it('should pass the correct arguments', function () {
-    stub(Commander.prototype, 'sendCommand', function (command) {
+    stub(Commander.prototype, 'sendCommand').callsFake(function (command) {
       return command;
     });
 

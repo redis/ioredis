@@ -150,7 +150,7 @@ describe('utils', function () {
 
   describe('.sample', function () {
     it('should return a random value', function () {
-      stub(Math, 'random', function () {
+      stub(Math, 'random').callsFake(function () {
         return 0;
       });
       expect(utils.sample([1, 2, 3])).to.eql(1);
@@ -158,7 +158,7 @@ describe('utils', function () {
       expect(utils.sample([1, 2, 3], 2)).to.eql(3);
       Math.random.restore();
 
-      stub(Math, 'random', function () {
+      stub(Math, 'random').callsFake(function () {
         return 0.999999;
       });
       expect(utils.sample([1, 2, 3])).to.eql(3);

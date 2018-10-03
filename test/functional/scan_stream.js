@@ -45,7 +45,7 @@ describe('*scanStream', function () {
     it('should recognize `COUNT`', function (done) {
       var keys = [];
       var redis = new Redis();
-      stub(Redis.prototype, 'scan', function (args) {
+      stub(Redis.prototype, 'scan').callsFake(function (args) {
         var count;
         for (var i = 0; i < args.length; ++i) {
           if (typeof args[i] === 'string' && args[i].toUpperCase() === 'COUNT') {

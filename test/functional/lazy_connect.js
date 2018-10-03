@@ -78,7 +78,7 @@ describe('lazy connect', function () {
       cluster.disconnect(true);
       cluster.once('close', function () {
         Redis.Cluster.prototype.connect.restore();
-        stub(Redis.Cluster.prototype, 'connect', function () {
+        stub(Redis.Cluster.prototype, 'connect').callsFake(function () {
           Redis.Cluster.prototype.connect.restore();
           done();
           return Promise.resolve();

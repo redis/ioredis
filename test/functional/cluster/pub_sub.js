@@ -1,3 +1,5 @@
+'use strict';
+
 describe('cluster:pub/sub', function () {
   it('should receive messages', function (done) {
     var handler = function (argv) {
@@ -38,7 +40,7 @@ describe('cluster:pub/sub', function () {
     var client = new Redis.Cluster([{ host: '127.0.0.1', port: '30001' }]);
 
     client.subscribe('test cluster', function () {
-      stub(Redis.prototype, 'subscribe', function (channels) {
+      stub(Redis.prototype, 'subscribe').callsFake(function (channels) {
         expect(channels).to.eql(['test cluster']);
         Redis.prototype.subscribe.restore();
         client.disconnect();
@@ -65,7 +67,7 @@ describe('cluster:pub/sub', function () {
     var client = new Redis.Cluster([{ host: '127.0.0.1', port: '30001' }]);
 
     client.psubscribe('test?', function () {
-      stub(Redis.prototype, 'psubscribe', function (channels) {
+      stub(Redis.prototype, 'psubscribe').callsFake(function (channels) {
         expect(channels).to.eql(['test?']);
         Redis.prototype.psubscribe.restore();
         client.disconnect();

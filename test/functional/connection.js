@@ -21,7 +21,7 @@ describe('connection', function () {
     var redis = new Redis({ password: '123' });
     redis.get('foo');
     var times = 0;
-    stub(redis, 'sendCommand', function (command) {
+    stub(redis, 'sendCommand').callsFake(function (command) {
       times += 1;
       if (times === 1) {
         expect(command.name).to.eql('auth');
@@ -66,7 +66,7 @@ describe('connection', function () {
   it('should clear the timeout when connected', function (done) {
     var redis = new Redis({ connectTimeout: 10000 });
     setImmediate(function () {
-      stub(redis.stream, 'setTimeout', function (timeout) {
+      stub(redis.stream, 'setTimeout').callsFake(function (timeout) {
         expect(timeout).to.eql(0);
         redis.stream.setTimeout.restore();
         done();

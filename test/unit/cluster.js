@@ -4,7 +4,7 @@ var Cluster = require('../../lib/cluster');
 
 describe('cluster', function () {
   beforeEach(function () {
-    stub(Cluster.prototype, 'connect', function () {
+    stub(Cluster.prototype, 'connect').callsFake(function () {
       return Promise.resolve();
     });
   });

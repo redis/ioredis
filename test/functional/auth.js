@@ -50,7 +50,7 @@ describe('auth', function () {
     redis.on('error', function () {
       errorEmited = true;
     });
-    stub(console, 'warn', function (warn) {
+    stub(console, 'warn').callsFake(function (warn) {
       if (warn.indexOf('but a password was supplied') !== -1) {
         console.warn.restore();
         setTimeout(function () {

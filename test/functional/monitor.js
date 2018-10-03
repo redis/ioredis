@@ -50,7 +50,7 @@ describe('monitor', function () {
     var redis = new Redis();
     redis.on('ready', function () {
       var ready;
-      stub(Redis.prototype, '_readyCheck', function () {
+      stub(Redis.prototype, '_readyCheck').callsFake(function () {
         ready = true;
         Redis.prototype._readyCheck.restore();
         Redis.prototype._readyCheck.apply(this, arguments);

@@ -1,3 +1,5 @@
+'use strict';
+
 describe('cluster:connect', function () {
   it('should flush the queue when all startup nodes are unreachable', function (done) {
     var cluster = new Redis.Cluster([
@@ -140,7 +142,7 @@ describe('cluster:connect', function () {
     new MockServer(30002, argvHandler);
     new MockServer(30003, argvHandler);
 
-    stub(Redis.Cluster.prototype, 'connect', function () {
+    stub(Redis.Cluster.prototype, 'connect').callsFake(function () {
       return Promise.resolve();
     });
     var cluster = new Redis.Cluster([
@@ -155,7 +157,7 @@ describe('cluster:connect', function () {
   });
 
   it('should return a promise to be rejected when closed', function (done) {
-    stub(Redis.Cluster.prototype, 'connect', function () {
+    stub(Redis.Cluster.prototype, 'connect').callsFake(function () {
       return Promise.resolve();
     });
     var cluster = new Redis.Cluster([
