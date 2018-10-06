@@ -56,6 +56,9 @@ MockServer.prototype.connect = function () {
       returnBuffers: true,
       returnReply: function (reply) {
         reply = utils.convertBufferToString(reply);
+        if (reply.length === 3 && reply[0].toLowerCase() === 'client' && reply[1].toLowerCase() === 'setname') {
+          c._connectionName = reply[2]
+        }
         _this.write(c, _this.handler && _this.handler(reply));
       },
       returnError: function () { }
@@ -118,6 +121,14 @@ MockServer.prototype.write = function (c, data) {
     return str + result;
   }
 };
+
+MockServer.prototype.findClientByName = function (name) {
+  for (const client of this.clients) {
+    if (client._connectionName === name) {
+      return client
+    }
+  }
+}
 
 MockServer.REDIS_OK = '+OK';
 
