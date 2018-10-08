@@ -5,6 +5,10 @@ describe('monitor', function () {
     var redis = new Redis();
     redis.on('ready', function () {
       redis.monitor(function (err, monitor) {
+        if (err) {
+          done(err);
+          return;
+        }
         monitor.on('monitor', function (time, args) {
           expect(args[0]).to.eql('get');
           expect(args[1]).to.eql('foo');
@@ -32,6 +36,10 @@ describe('monitor', function () {
   it('should continue monitoring after reconnection', function (done) {
     var redis = new Redis();
     redis.monitor(function (err, monitor) {
+      if (err) {
+        done(err);
+        return;
+      }
       monitor.on('monitor', function (time, args) {
         if (args[0] === 'set') {
           redis.disconnect();
