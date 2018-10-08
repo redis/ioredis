@@ -12,7 +12,7 @@
     "test:cov": "NODE_ENV=test node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -r ts-node/register -R spec --exit",
     "build": "rm -rf built && tsc",
     "generate-docs": "jsdoc2md lib/redis.js lib/cluster/index.js lib/commander.js > API.md",
-    "prepublish": "npm run build && npm test",
+    "prepublishOnly": "npm run build && npm test",
     "bench": "matcha benchmarks/*.js"
   },
   "repository": {
@@ -32,9 +32,6 @@
     "debug": "^3.1.0",
     "denque": "^1.1.0",
     "flexbuffer": "0.0.6",
-    "lodash.bind": "^4.2.1",
-    "lodash.clone": "^4.5.0",
-    "lodash.clonedeep": "^4.5.0",
     "lodash.defaults": "^4.2.0",
     "lodash.difference": "^4.5.0",
     "lodash.flatten": "^4.4.0",

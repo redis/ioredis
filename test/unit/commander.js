@@ -3,6 +3,16 @@
 var Commander = require('../../lib/commander');
 
 describe('Commander', function () {
+  describe('#getBuiltinCommands()', () => {
+    it('returns a new copy of commands', () => {
+      const c = new Commander()
+      const commands = c.getBuiltinCommands()
+      commands.unshift('abc')
+      const commandsNew = c.getBuiltinCommands()
+      expect(commands.slice(1)).to.eql(commandsNew)
+    })
+  })
+
   it('should pass the correct arguments', function () {
     stub(Commander.prototype, 'sendCommand', function (command) {
       return command;
