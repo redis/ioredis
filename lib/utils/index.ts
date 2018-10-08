@@ -1,31 +1,30 @@
-'use strict';
-var urllib = require('url');
-var _ = require('./lodash');
+import {parse as urllibParse} from 'url'
+import {defaults} from './lodash'
 
 /**
  * Test if two buffers are equal
  *
+ * @export
  * @param {Buffer} a
  * @param {Buffer} b
- * @return {Boolean} Whether the two buffers are equal
- * @private
+ * @returns {boolean} Whether the two buffers are equal
  */
-export function bufferEqual (a, b) {
+export function bufferEqual (a: Buffer, b: Buffer): boolean {
   if (typeof a.equals === 'function') {
-    return a.equals(b);
+    return a.equals(b)
   }
 
   if (a.length !== b.length) {
-    return false;
+    return false
   }
 
   for (var i = 0; i < a.length; ++i) {
     if (a[i] !== b[i]) {
-      return false;
+      return false
     }
   }
-  return true;
-};
+  return true
+}
 
 /**
  * Convert a buffer to string, supports buffer array
@@ -35,28 +34,28 @@ export function bufferEqual (a, b) {
  * @return {*} The result
  * @example
  * ```js
- * var input = [Buffer.from('foo'), [Buffer.from('bar')]];
- * var res = convertBufferToString(input, 'utf8');
- * expect(res).to.eql(['foo', ['bar']]);
+ * var input = [Buffer.from('foo'), [Buffer.from('bar')]]
+ * var res = convertBufferToString(input, 'utf8')
+ * expect(res).to.eql(['foo', ['bar']])
  * ```
  * @private
  */
 export function convertBufferToString (value, encoding) {
   if (value instanceof Buffer) {
-    return value.toString(encoding);
+    return value.toString(encoding)
   }
   if (Array.isArray(value)) {
-    var length = value.length;
-    var res = Array(length);
+    var length = value.length
+    var res = Array(length)
     for (var i = 0; i < length; ++i) {
       res[i] = value[i] instanceof Buffer && encoding === 'utf8'
         ? value[i].toString()
-        : convertBufferToString(value[i], encoding);
+        : convertBufferToString(value[i], encoding)
     }
-    return res;
+    return res
   }
-  return value;
-};
+  return value
+}
 
 /**
  * Convert a list of results to node-style
@@ -65,9 +64,9 @@ export function convertBufferToString (value, encoding) {
  * @return {Array} The output value
  * @example
  * ```js
- * var input = ['a', 'b', new Error('c'), 'd'];
- * var output = exports.wrapMultiResult(input);
- * expect(output).to.eql([[null, 'a'], [null, 'b'], [new Error('c')], [null, 'd']);
+ * var input = ['a', 'b', new Error('c'), 'd']
+ * var output = exports.wrapMultiResult(input)
+ * expect(output).to.eql([[null, 'a'], [null, 'b'], [new Error('c')], [null, 'd'])
  * ```
  * @private
  */
@@ -75,20 +74,20 @@ export function wrapMultiResult (arr) {
   // When using WATCH/EXEC transactions, the EXEC will return
   // a null instead of an array
   if (!arr) {
-    return null;
+    return null
   }
-  var result = [];
-  var length = arr.length;
+  var result = []
+  var length = arr.length
   for (var i = 0; i < length; ++i) {
-    var item = arr[i];
+    var item = arr[i]
     if (item instanceof Error) {
-      result.push([item]);
+      result.push([item])
     } else {
-      result.push([null, item]);
+      result.push([null, item])
     }
   }
-  return result;
-};
+  return result
+}
 
 /**
  * Detect the argument is a int
@@ -111,9 +110,9 @@ export function wrapMultiResult (arr) {
  * @private
  */
 export function isInt (value) {
-  var x = parseFloat(value);
-  return !isNaN(value) && (x | 0) === x;
-};
+  var x = parseFloat(value)
+  return !isNaN(value) && (x | 0) === x
+}
 
 /**
  * Pack an array to an Object
@@ -127,15 +126,15 @@ export function isInt (value) {
  * ```
  */
 export function packObject (array) {
-  var result = {};
-  var length = array.length;
+  var result = {}
+  var length = array.length
 
   for (var i = 1; i < length; i += 2) {
-    result[array[i - 1]] = array[i];
+    result[array[i - 1]] = array[i]
   }
 
-  return result;
-};
+  return result
+}
 
 /**
  * Return a callback with timeout
@@ -145,17 +144,17 @@ export function packObject (array) {
  * @return {function}
  */
 export function timeout (callback, timeout) {
-  var timer;
+  var timer
   var run = function () {
     if (timer) {
-      clearTimeout(timer);
-      timer = null;
-      callback.apply(this, arguments);
+      clearTimeout(timer)
+      timer = null
+      callback.apply(this, arguments)
     }
-  };
-  timer = setTimeout(run, timeout, new Error('timeout'));
-  return run;
-};
+  }
+  timer = setTimeout(run, timeout, new Error('timeout'))
+  return run
+}
 
 /**
  * Convert an object to an array
@@ -169,14 +168,14 @@ export function timeout (callback, timeout) {
  * ```
  */
 export function convertObjectToArray (obj) {
-  var result = [];
-  var keys = Object.keys(obj);
+  var result = []
+  var keys = Object.keys(obj)
 
   for (var i = 0, l = keys.length; i < l; i++) {
-    result.push(keys[i], obj[keys[i]]);
+    result.push(keys[i], obj[keys[i]])
   }
-  return result;
-};
+  return result
+}
 
 /**
  * Convert a map to an array
@@ -190,15 +189,15 @@ export function convertObjectToArray (obj) {
  * ```
  */
 export function convertMapToArray (map) {
-  var result = [];
-  var pos = 0;
+  var result = []
+  var pos = 0
   map.forEach(function (value, key) {
-    result[pos] = key;
-    result[pos + 1] = value;
-    pos += 2;
-  });
-  return result;
-};
+    result[pos] = key
+    result[pos + 1] = value
+    pos += 2
+  })
+  return result
+}
 
 /**
  * Convert a non-string arg to a string
@@ -208,10 +207,10 @@ export function convertMapToArray (map) {
  */
 export function toArg (arg) {
   if (arg === null || typeof arg === 'undefined') {
-    return '';
+    return ''
   }
-  return String(arg);
-};
+  return String(arg)
+}
 
 /**
  * Optimize error stack
@@ -221,21 +220,21 @@ export function toArg (arg) {
  * @param {string} filterPath - only show stacks with the specified path
  */
 export function optimizeErrorStack (error, friendlyStack, filterPath) {
-  var stacks = friendlyStack.split('\n');
-  var lines = '';
-  var i;
+  var stacks = friendlyStack.split('\n')
+  var lines = ''
+  var i
   for (i = 1; i < stacks.length; ++i) {
     if (stacks[i].indexOf(filterPath) === -1) {
-      break;
+      break
     }
   }
   for (var j = i; j < stacks.length; ++j) {
-    lines += '\n' + stacks[j];
+    lines += '\n' + stacks[j]
   }
-  var pos = error.stack.indexOf('\n');
-  error.stack = error.stack.slice(0, pos) + lines;
-  return error;
-};
+  var pos = error.stack.indexOf('\n')
+  error.stack = error.stack.slice(0, pos) + lines
+  return error
+}
 
 /**
  * Parse the redis protocol url
@@ -245,58 +244,57 @@ export function optimizeErrorStack (error, friendlyStack, filterPath) {
  */
 export function parseURL (url) {
   if (isInt(url)) {
-    return { port: url };
+    return { port: url }
   }
-  var parsed = urllib.parse(url, true, true);
+  var parsed = urllibParse(url, true, true)
 
   if (!parsed.slashes && url[0] !== '/') {
-    url = '//' + url;
-    parsed = urllib.parse(url, true, true);
+    url = '//' + url
+    parsed = urllibParse(url, true, true)
   }
 
-  var result: any = {};
+  var result: any = {}
   if (parsed.auth) {
-    result.password = parsed.auth.split(':')[1];
+    result.password = parsed.auth.split(':')[1]
   }
   if (parsed.pathname) {
     if (parsed.protocol === 'redis:') {
       if (parsed.pathname.length > 1) {
-        result.db = parsed.pathname.slice(1);
+        result.db = parsed.pathname.slice(1)
       }
     } else {
-      result.path = parsed.pathname;
+      result.path = parsed.pathname
     }
   }
   if (parsed.host) {
-    result.host = parsed.hostname;
+    result.host = parsed.hostname
   }
   if (parsed.port) {
-    result.port = parsed.port;
+    result.port = parsed.port
   }
-  _.defaults(result, parsed.query);
+  defaults(result, parsed.query)
 
-  return result;
-};
+  return result
+}
 
 /**
  * Get a random element from `array`
  *
- * @param {array} array - the array
- * @param {number} [from=0] - start index
- * @return {}
+ * @export
+ * @template T
+ * @param {T[]} array the array
+ * @param {number} [from=0] start index
+ * @returns {T}
  */
-export function sample (array, from) {
-  var length = array.length;
-  if (typeof from !== 'number') {
-    from = 0;
-  }
+export function sample<T> (array: T[], from: number = 0): T {
+  const length = array.length
   if (from >= length) {
-    return;
+    return
   }
-  return array[from + Math.floor(Math.random() * (length - from))];
-};
+  return array[from + Math.floor(Math.random() * (length - from))]
+}
 
 /**
  * Error message for connection being disconnected
  */
-export const CONNECTION_CLOSED_ERROR_MSG = 'Connection is closed.';
+export const CONNECTION_CLOSED_ERROR_MSG = 'Connection is closed.'
