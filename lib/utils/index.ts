@@ -10,7 +10,7 @@ var _ = require('./lodash');
  * @return {Boolean} Whether the two buffers are equal
  * @private
  */
-exports.bufferEqual = function (a, b) {
+export function bufferEqual (a, b) {
   if (typeof a.equals === 'function') {
     return a.equals(b);
   }
@@ -41,7 +41,7 @@ exports.bufferEqual = function (a, b) {
  * ```
  * @private
  */
-exports.convertBufferToString = function (value, encoding) {
+export function convertBufferToString (value, encoding) {
   if (value instanceof Buffer) {
     return value.toString(encoding);
   }
@@ -51,7 +51,7 @@ exports.convertBufferToString = function (value, encoding) {
     for (var i = 0; i < length; ++i) {
       res[i] = value[i] instanceof Buffer && encoding === 'utf8'
         ? value[i].toString()
-        : exports.convertBufferToString(value[i], encoding);
+        : convertBufferToString(value[i], encoding);
     }
     return res;
   }
@@ -71,7 +71,7 @@ exports.convertBufferToString = function (value, encoding) {
  * ```
  * @private
  */
-exports.wrapMultiResult = function (arr) {
+export function wrapMultiResult (arr) {
   // When using WATCH/EXEC transactions, the EXEC will return
   // a null instead of an array
   if (!arr) {
@@ -110,7 +110,7 @@ exports.wrapMultiResult = function (arr) {
  * ```
  * @private
  */
-exports.isInt = function (value) {
+export function isInt (value) {
   var x = parseFloat(value);
   return !isNaN(value) && (x | 0) === x;
 };
@@ -126,7 +126,7 @@ exports.isInt = function (value) {
  * { a: 'b', c: 'd' }
  * ```
  */
-exports.packObject = function (array) {
+export function packObject (array) {
   var result = {};
   var length = array.length;
 
@@ -144,7 +144,7 @@ exports.packObject = function (array) {
  * @param {number} timeout
  * @return {function}
  */
-exports.timeout = function (callback, timeout) {
+export function timeout (callback, timeout) {
   var timer;
   var run = function () {
     if (timer) {
@@ -168,7 +168,7 @@ exports.timeout = function (callback, timeout) {
  * ['a', '1']
  * ```
  */
-exports.convertObjectToArray = function (obj) {
+export function convertObjectToArray (obj) {
   var result = [];
   var keys = Object.keys(obj);
 
@@ -189,7 +189,7 @@ exports.convertObjectToArray = function (obj) {
  * [1, '2']
  * ```
  */
-exports.convertMapToArray = function (map) {
+export function convertMapToArray (map) {
   var result = [];
   var pos = 0;
   map.forEach(function (value, key) {
@@ -206,7 +206,7 @@ exports.convertMapToArray = function (map) {
  * @param {*} arg
  * @return {string}
  */
-exports.toArg = function (arg) {
+export function toArg (arg) {
   if (arg === null || typeof arg === 'undefined') {
     return '';
   }
@@ -220,7 +220,7 @@ exports.toArg = function (arg) {
  * @param {string} friendlyStack - the stack that more meaningful
  * @param {string} filterPath - only show stacks with the specified path
  */
-exports.optimizeErrorStack = function (error, friendlyStack, filterPath) {
+export function optimizeErrorStack (error, friendlyStack, filterPath) {
   var stacks = friendlyStack.split('\n');
   var lines = '';
   var i;
@@ -243,8 +243,8 @@ exports.optimizeErrorStack = function (error, friendlyStack, filterPath) {
  * @param {string} url - the redis protocol url
  * @return {Object}
  */
-exports.parseURL = function (url) {
-  if (exports.isInt(url)) {
+export function parseURL (url) {
+  if (isInt(url)) {
     return { port: url };
   }
   var parsed = urllib.parse(url, true, true);
@@ -254,7 +254,7 @@ exports.parseURL = function (url) {
     parsed = urllib.parse(url, true, true);
   }
 
-  var result = {};
+  var result: any = {};
   if (parsed.auth) {
     result.password = parsed.auth.split(':')[1];
   }
@@ -285,7 +285,7 @@ exports.parseURL = function (url) {
  * @param {number} [from=0] - start index
  * @return {}
  */
-exports.sample = function (array, from) {
+export function sample (array, from) {
   var length = array.length;
   if (typeof from !== 'number') {
     from = 0;
@@ -299,4 +299,4 @@ exports.sample = function (array, from) {
 /**
  * Error message for connection being disconnected
  */
-exports.CONNECTION_CLOSED_ERROR_MSG = 'Connection is closed.';
+export const CONNECTION_CLOSED_ERROR_MSG = 'Connection is closed.';

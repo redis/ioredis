@@ -1,6 +1,6 @@
 import {createConnection, Socket} from 'net'
 import {sample} from '../../utils/lodash'
-import {CONNECTION_CLOSED_ERROR_MSG, packObject} from '../../utils/index'
+import {CONNECTION_CLOSED_ERROR_MSG, packObject} from '../../utils'
 import {TLSSocket} from 'tls'
 import {ITcpConnectionOptions, isIIpcConnectionOptions} from '../StandaloneConnector'
 import SentinelIterator from './SentinelIterator'
@@ -17,7 +17,7 @@ interface IAddressFromResponse {
 }
 
 type NodeCallback<T = void> = (err: Error | null, result?: T) => void
-type PreferredSlaves = 
+type PreferredSlaves =
   ((slaves: Array<IAddressFromResponse>) => IAddressFromResponse) |
   Array<{port: string, ip: string, prio?: number}> |
   {port: string, ip: string, prio?: number}
@@ -65,28 +65,28 @@ export default class SentinelConnector extends AbstractConnector {
   public connect (callback: NodeCallback<Socket | TLSSocket>, eventEmitter: ErrorEmitter): void {
     this.connecting = true
     this.retryAttempts = 0
-  
+
     let lastError
     const _this = this
     connectToNext()
-  
+
     function connectToNext() {
       if (!_this.sentinelIterator.hasNext()) {
         _this.sentinelIterator.reset(false)
         const retryDelay = typeof _this.options.sentinelRetryStrategy === 'function'
           ? _this.options.sentinelRetryStrategy(++_this.retryAttempts)
           : null
-  
+
         let errorMsg = typeof retryDelay !== 'number'
           ? 'All sentinels are unreachable and retry is disabled.'
           : `All sentinels are unreachable. Retrying from scratch after ${retryDelay}ms.`
-  
+
         if (lastError) {
           errorMsg += ` Last error: ${lastError.message}`
         }
-  
+
         debug(errorMsg)
-  
+
         const error = new Error(errorMsg)
         if (typeof retryDelay === 'number') {
           setTimeout(connectToNext, retryDelay)
@@ -96,7 +96,7 @@ export default class SentinelConnector extends AbstractConnector {
         }
         return
       }
-  
+
       const endpoint = _this.sentinelIterator.next()
       _this.resolve(endpoint, function (err, resolved) {
         if (!_this.connecting) {
@@ -113,11 +113,11 @@ export default class SentinelConnector extends AbstractConnector {
           const errorMsg = err
             ? 'failed to connect to sentinel ' + endpointAddress + ' because ' + err.message
             : 'connected to sentinel ' + endpointAddress + ' successfully, but got an invalid reply: ' + resolved
-  
+
           debug(errorMsg)
-  
+
           eventEmitter('sentinelError', new Error(errorMsg))
-  
+
           if (err) {
             lastError = err
           }
@@ -126,7 +126,7 @@ export default class SentinelConnector extends AbstractConnector {
       })
     }
   }
-  
+
   private updateSentinels (client, callback: NodeCallback): void {
     client.sentinel('sentinels', this.options.name, (err, result) => {
       if (err) {
@@ -137,7 +137,7 @@ export default class SentinelConnector extends AbstractConnector {
         return callback(null)
       }
 
-      result.map<IAddressFromResponse>(packObject).forEach(sentinel => {
+      result.map<IAddressFromResponse>(packObject as (value: any) => IAddressFromResponse).forEach(sentinel => {
         const flags = sentinel.flags ? sentinel.flags.split(',') : []
         if (flags.indexOf('disconnected') === -1 && sentinel.ip && sentinel.port) {
           const endpoint = addressResponseToAddress(sentinel)
@@ -150,7 +150,7 @@ export default class SentinelConnector extends AbstractConnector {
       callback(null)
     })
   }
-  
+
   private resolveMaster (client, callback: NodeCallback<ITcpConnectionOptions>): void {
     client.sentinel('get-master-addr-by-name', this.options.name, (err, result) => {
       if (err) {
@@ -166,7 +166,7 @@ export default class SentinelConnector extends AbstractConnector {
       })
     })
   }
-  
+
   private resolveSlave (client, callback: NodeCallback<ITcpConnectionOptions | null>): void {
     client.sentinel('slaves', this.options.name, (err, result) => {
       client.disconnect()
@@ -178,14 +178,14 @@ export default class SentinelConnector extends AbstractConnector {
         return callback(null, null)
       }
 
-      const availableSlaves = result.map<IAddressFromResponse>(packObject).filter(slave => (
+      const availableSlaves = result.map<IAddressFromResponse>(packObject as (value: any) => IAddressFromResponse).filter(slave => (
         slave.flags && !slave.flags.match(/(disconnected|s_down|o_down)/)
       ))
 
       callback(null, selectPreferredSentinel(availableSlaves, this.options.preferredSlaves))
     })
   }
-  
+
   private resolve (endpoint, callback: NodeCallback<ITcpConnectionOptions>): void {
     if (typeof Redis === 'undefined') {
       Redis = require('../../redis')
@@ -199,10 +199,10 @@ export default class SentinelConnector extends AbstractConnector {
       connectTimeout: this.options.connectTimeout,
       dropBufferSupport: true
     })
-  
+
     // ignore the errors since resolve* methods will handle them
     client.on('error', noop)
-  
+
     if (this.options.role === 'slave') {
       this.resolveSlave(client, callback)
     } else {
@@ -243,7 +243,7 @@ function selectPreferredSentinel (availableSlaves: IAddressFromResponse[], prefe
       }
       return 0
     })
-    
+
     // loop over preferred slaves and return the first match
     for (let p = 0; p < preferredSlavesArray.length; p++) {
       for (let a = 0; a < availableSlaves.length; a++) {
