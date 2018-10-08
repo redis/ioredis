@@ -172,7 +172,7 @@ If you need to send regular commands to Redis while in subscriber mode, just ope
 ## Handle Binary Data
 Arguments can be buffers:
 ```javascript
-redis.set('foo', new Buffer('bar'));
+redis.set('foo', Buffer.from('bar'));
 ```
 
 And every command has a method that returns a Buffer (by adding a suffix of "Buffer" to the command name).
@@ -329,7 +329,7 @@ redis.echo('k1', 'k2', 'a1', 'a2', function (err, result) {
 
 // `echoBuffer` is also defined automatically to return buffers instead of strings:
 redis.echoBuffer('k1', 'k2', 'a1', 'a2', function (err, result) {
-  // result[0] === new Buffer('k1');
+  // result[0] equals to Buffer.from('k1');
 });
 
 // And of course it works with pipeline:

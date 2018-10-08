@@ -5,29 +5,29 @@ var utils = require('../../lib/utils');
 describe('utils', function () {
   describe('.bufferEqual', function () {
     it('should return correctly', function () {
-      expect(utils.bufferEqual(new Buffer('123'), new Buffer('abc'))).to.eql(false);
-      expect(utils.bufferEqual(new Buffer('abc'), new Buffer('abc'))).to.eql(true);
-      expect(utils.bufferEqual(new Buffer('bc'), new Buffer('abc'))).to.eql(false);
-      expect(utils.bufferEqual(new Buffer(''), new Buffer(''))).to.eql(true);
+      expect(utils.bufferEqual(Buffer.from('123'), Buffer.from('abc'))).to.eql(false);
+      expect(utils.bufferEqual(Buffer.from('abc'), Buffer.from('abc'))).to.eql(true);
+      expect(utils.bufferEqual(Buffer.from('bc'), Buffer.from('abc'))).to.eql(false);
+      expect(utils.bufferEqual(Buffer.from(''), Buffer.from(''))).to.eql(true);
     });
 
     it('should work when Buffer#equals not exists', function () {
       var equals = Buffer.prototype.equals;
       delete Buffer.prototype.equals;
-      expect(utils.bufferEqual(new Buffer('123'), new Buffer('abc'))).to.eql(false);
-      expect(utils.bufferEqual(new Buffer('abc'), new Buffer('abc'))).to.eql(true);
-      expect(utils.bufferEqual(new Buffer('bc'), new Buffer('abc'))).to.eql(false);
-      expect(utils.bufferEqual(new Buffer(''), new Buffer(''))).to.eql(true);
+      expect(utils.bufferEqual(Buffer.from('123'), Buffer.from('abc'))).to.eql(false);
+      expect(utils.bufferEqual(Buffer.from('abc'), Buffer.from('abc'))).to.eql(true);
+      expect(utils.bufferEqual(Buffer.from('bc'), Buffer.from('abc'))).to.eql(false);
+      expect(utils.bufferEqual(Buffer.from(''), Buffer.from(''))).to.eql(true);
       Buffer.prototype.equals = equals;
     });
   });
 
   describe('.convertBufferToString', function () {
     it('should return correctly', function () {
-      expect(utils.convertBufferToString(new Buffer('123'))).to.eql('123');
-      expect(utils.convertBufferToString([new Buffer('abc'), new Buffer('abc')])).to.eql(['abc', 'abc']);
-      expect(utils.convertBufferToString([new Buffer('abc'), [[new Buffer('abc')]]])).to.eql(['abc', [['abc']]]);
-      expect(utils.convertBufferToString([new Buffer('abc'), 5, 'b', [[new Buffer('abc'), 4]]]))
+      expect(utils.convertBufferToString(Buffer.from('123'))).to.eql('123');
+      expect(utils.convertBufferToString([Buffer.from('abc'), Buffer.from('abc')])).to.eql(['abc', 'abc']);
+      expect(utils.convertBufferToString([Buffer.from('abc'), [[Buffer.from('abc')]]])).to.eql(['abc', [['abc']]]);
+      expect(utils.convertBufferToString([Buffer.from('abc'), 5, 'b', [[Buffer.from('abc'), 4]]]))
         .to.eql(['abc', 5, 'b', [['abc', 4]]]);
     });
   });

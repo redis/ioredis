@@ -83,8 +83,8 @@ describe('transaction', function () {
         expect(res[0][1]).to.eql('OK');
         expect(res[1][1]).to.eql(data);
         expect(res[2][1]).to.eql({
-          name: new Buffer('Bob'),
-          age: new Buffer('17')
+          name: Buffer.from('Bob'),
+          age: Buffer.from('17')
         });
         expect(res[3][0]).to.have.property('message',
           'WRONGTYPE Operation against a key holding the wrong kind of value');
@@ -104,9 +104,9 @@ describe('transaction', function () {
       .hgetall('foo').exec().hgetall('foo').exec(function (err, res) {
         expect(res[0][1]).to.eql('OK');
         expect(res[1][1]).to.eql('OK');
-        expect(res[2][1]).to.eql(new Buffer('QUEUED'));
+        expect(res[2][1]).to.eql(Buffer.from('QUEUED'));
         expect(res[3][1]).to.eql('QUEUED');
-        expect(res[4][1]).to.eql([new Buffer('hash'), data]);
+        expect(res[4][1]).to.eql([Buffer.from('hash'), data]);
         expect(res[5][1]).to.eql(data);
         done();
       });

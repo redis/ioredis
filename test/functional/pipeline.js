@@ -28,14 +28,14 @@ describe('pipeline', function () {
   it('should support mix string command and buffer command', function (done) {
     var redis = new Redis();
     redis.pipeline().set('foo', 'bar')
-    .set('foo', new Buffer('bar')).getBuffer('foo')
-    .get(new Buffer('foo'))
+    .set('foo', Buffer.from('bar')).getBuffer('foo')
+    .get(Buffer.from('foo'))
     .exec(function (err, results) {
       expect(err).to.eql(null);
       expect(results).to.eql([
         [null, 'OK'],
         [null, 'OK'],
-        [null, new Buffer('bar')],
+        [null, Buffer.from('bar')],
         [null, 'bar']
       ]);
       done();
