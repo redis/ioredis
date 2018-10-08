@@ -8,6 +8,16 @@
 
 
 
+<a name="4.0.1"></a>
+## [4.0.1](https://github.com/luin/ioredis/compare/v4.0.0...v4.0.1) (2018-10-08)
+
+
+### Bug Fixes
+
+* **cluster:** robust solution for pub/sub in cluster ([#697](https://github.com/luin/ioredis/issues/697)) ([13a5bc4](https://github.com/luin/ioredis/commit/13a5bc4)), closes [#696](https://github.com/luin/ioredis/issues/696)
+
+
+
 <a name="4.0.0"></a>
 # [4.0.0](https://github.com/luin/ioredis/compare/v4.0.0-3...v4.0.0) (2018-08-14)
 
