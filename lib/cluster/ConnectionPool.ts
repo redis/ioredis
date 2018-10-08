@@ -1,19 +1,12 @@
 import {parseURL} from '../utils'
 import {EventEmitter} from 'events'
-import {noop, defaults} from '../utils/lodash'
+import {noop, defaults, values} from '../utils/lodash'
+import {IRedisOptions, getNodeKey} from './util'
 
 const Redis = require('../redis')
 const debug = require('../utils/debug')('ioredis:cluster:connectionPool')
 
 type NODE_TYPE = 'all' | 'master' | 'slave'
-
-interface IRedisOptions {
-  [key: string]: any
-}
-
-interface IRedisOptionsWithKey extends IRedisOptions {
-  key: string
-}
 
 export default class ConnectionPool extends EventEmitter {
   // master + slave = all
@@ -29,6 +22,10 @@ export default class ConnectionPool extends EventEmitter {
     super()
   }
 
+  public getNodes(role: 'all' | 'master' | 'slave' = 'all'): any[] {
+    return values(this.nodes[role])
+  }
+
   /**
    * Find or create a connection to the node
    *
@@ -37,33 +34,34 @@ export default class ConnectionPool extends EventEmitter {
    * @returns {*}
    * @memberof ConnectionPool
    */
-  public findOrCreate (node: IRedisOptions, readOnly: boolean = false): any {
-    setKey(node)
+  public findOrCreate(node: IRedisOptions, readOnly: boolean = false): any {
+    fillDefaultOptions(node)
+    const key = getNodeKey(node)
     readOnly = Boolean(readOnly)
 
-    if (this.specifiedOptions[node.key]) {
-      Object.assign(node, this.specifiedOptions[node.key])
+    if (this.specifiedOptions[key]) {
+      Object.assign(node, this.specifiedOptions[key])
     } else {
-      this.specifiedOptions[node.key] = node
+      this.specifiedOptions[key] = node
     }
 
     let redis
-    if (this.nodes.all[node.key]) {
-      redis = this.nodes.all[node.key]
+    if (this.nodes.all[key]) {
+      redis = this.nodes.all[key]
       if (redis.options.readOnly !== readOnly) {
         redis.options.readOnly = readOnly
-        debug('Change role of %s to %s', node.key, readOnly ? 'slave' : 'master')
+        debug('Change role of %s to %s', key, readOnly ? 'slave' : 'master')
         redis[readOnly ? 'readonly' : 'readwrite']().catch(noop)
         if (readOnly) {
-          delete this.nodes.master[node.key]
-          this.nodes.slave[node.key] = redis
+          delete this.nodes.master[key]
+          this.nodes.slave[key] = redis
         } else {
-          delete this.nodes.slave[node.key]
-          this.nodes.master[node.key] = redis
+          delete this.nodes.slave[key]
+          this.nodes.master[key] = redis
         }
       }
     } else {
-      debug('Connecting to %s as %s', node.key, readOnly ? 'slave' : 'master')
+      debug('Connecting to %s as %s', key, readOnly ? 'slave' : 'master')
       redis = new Redis(defaults({
         // Never try to reconnect when a node is lose,
         // instead, waiting for a `MOVED` error and
@@ -75,23 +73,23 @@ export default class ConnectionPool extends EventEmitter {
         enableOfflineQueue: true,
         readOnly: readOnly
       }, node, this.redisOptions, { lazyConnect: true }))
-      this.nodes.all[node.key] = redis
-      this.nodes[readOnly ? 'slave' : 'master'][node.key] = redis
+      this.nodes.all[key] = redis
+      this.nodes[readOnly ? 'slave' : 'master'][key] = redis
 
       redis.once('end', () => {
-        delete this.nodes.all[node.key]
-        delete this.nodes.master[node.key]
-        delete this.nodes.slave[node.key]
-        this.emit('-node', redis)
+        delete this.nodes.all[key]
+        delete this.nodes.master[key]
+        delete this.nodes.slave[key]
+        this.emit('-node', redis, key)
         if (!Object.keys(this.nodes.all).length) {
           this.emit('drain')
         }
       })
 
-      this.emit('+node', redis)
+      this.emit('+node', redis, key)
 
       redis.on('error', function (error) {
-        this.emit('nodeError', error)
+        this.emit('nodeError', error, key)
       })
     }
 
@@ -105,14 +103,15 @@ export default class ConnectionPool extends EventEmitter {
    * @param {(Array<string | number | object>)} nodes
    * @memberof ConnectionPool
    */
-  public reset (nodes: Array<string | number | object>): void {
+  public reset(nodes: Array<string | number | object>): void {
+    debug('Reset with %O', nodes);
     const newNodes = {}
     nodes.forEach((node) => {
-      const options: {port?: number | string, db?: number, key?: string} = {}
+      const options: IRedisOptions = {}
       if (typeof node === 'object') {
-        defaults(options, node)
+        Object.assign(options, node)
       } else if (typeof node === 'string') {
-        defaults(options, parseURL(node))
+        Object.assign(options, parseURL(node))
       } else if (typeof node === 'number') {
         options.port = node
       } else {
@@ -123,8 +122,8 @@ export default class ConnectionPool extends EventEmitter {
       }
       delete options.db
 
-      setKey(options)
-      newNodes[options.key] = options
+      fillDefaultOptions(options)
+      newNodes[getNodeKey(options)] = options
     }, this)
 
     Object.keys(this.nodes.all).forEach((key) => {
@@ -140,15 +139,7 @@ export default class ConnectionPool extends EventEmitter {
   }
 }
 
-/**
- * Set key property
- *
- * @private
- */
-function setKey(node: IRedisOptions): IRedisOptionsWithKey {
-  node = node || {}
+function fillDefaultOptions(node: IRedisOptions): void {
   node.port = node.port || 6379
   node.host = node.host || '127.0.0.1'
-  node.key = node.key || node.host + ':' + node.port
-  return <IRedisOptionsWithKey>node
 }

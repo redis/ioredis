@@ -15,13 +15,33 @@ describe('cluster:pub/sub', function () {
     var sub = new Redis.Cluster(options);
 
     sub.subscribe('test cluster', function () {
-      node1.write(node1.clients[0], ['message', 'test channel', 'hi']);
+      node1.write(node1.findClientByName('ioredisClusterSubscriber'), ['message', 'test channel', 'hi']);
     });
     sub.on('message', function (channel, message) {
       expect(channel).to.eql('test channel');
       expect(message).to.eql('hi');
       sub.disconnect();
       done();
+    });
+  });
+
+  it('should works when sending regular commands', function (done) {
+    var handler = function (argv) {
+      if (argv[0] === 'cluster' && argv[1] === 'slots') {
+        return [
+          [0, 16383, ['127.0.0.1', 30001]]
+        ];
+      }
+    };
+    new MockServer(30001, handler);
+
+    var sub = new Redis.Cluster([{port: '30001'}]);
+
+    sub.subscribe('test cluster', function () {
+      sub.set('foo', 'bar').then((res) => {
+        expect(res).to.eql('OK')
+        done();
+      });
     });
   });
 
@@ -79,4 +99,3 @@ describe('cluster:pub/sub', function () {
     });
   });
 });
-
