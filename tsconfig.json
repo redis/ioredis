@@ -3,6 +3,7 @@
     "outDir": "./built",
     "allowJs": true,
     "target": "es6",
+    "lib": ["es6"],
     "moduleResolution": "node",
     "types": ["node"],
     "typeRoots": ["node_modules/@types"],

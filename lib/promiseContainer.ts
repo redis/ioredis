@@ -4,9 +4,9 @@ export function isPromise (obj: any): boolean {
     typeof obj.then === 'function'
 }
 
-let promise = global.Promise
+let promise = Promise
 
-export function get (): Function {
+export function get (): PromiseConstructor {
   return promise
 }
 
@@ -15,5 +15,5 @@ export function set (lib: Function): void {
     throw new Error(`Provided Promise must be a function, got ${lib}`)
   }
 
-  promise = lib
+  promise = lib as PromiseConstructor
 }
