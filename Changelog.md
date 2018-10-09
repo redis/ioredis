@@ -1,10 +1,9 @@
 <a name="4.0.2"></a>
-## [4.0.2](https://github.com/luin/ioredis/compare/v4.0.0...v4.0.2) (2018-10-09)
+## [4.0.2](https://github.com/luin/ioredis/compare/v4.0.1...v4.0.2) (2018-10-09)
 
 
 ### Bug Fixes
 
-* **cluster:** robust solution for pub/sub in cluster ([#697](https://github.com/luin/ioredis/issues/697)) ([13a5bc4](https://github.com/luin/ioredis/commit/13a5bc4)), closes [#696](https://github.com/luin/ioredis/issues/696)
 * **cluster:** subscription regards password setting ([47e2ab5](https://github.com/luin/ioredis/commit/47e2ab5)), closes [#718](https://github.com/luin/ioredis/issues/718)
 
 
