@@ -1,6 +1,5 @@
 import {createConnection, Socket} from 'net'
-import {sample} from '../../utils/lodash'
-import {CONNECTION_CLOSED_ERROR_MSG, packObject} from '../../utils'
+import {CONNECTION_CLOSED_ERROR_MSG, packObject, sample} from '../../utils'
 import {TLSSocket} from 'tls'
 import {ITcpConnectionOptions, isIIpcConnectionOptions} from '../StandaloneConnector'
 import SentinelIterator from './SentinelIterator'

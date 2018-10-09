@@ -1,7 +1,8 @@
 import {EventEmitter} from 'events'
 import ConnectionPool from './ConnectionPool'
-import {sample, noop} from '../utils/lodash'
+import {noop} from '../utils/lodash'
 import {getNodeKey} from './util'
+import {sample} from '../utils'
 
 const Redis = require('../redis')
 const debug = require('../utils/debug')('ioredis:cluster:subscriber')

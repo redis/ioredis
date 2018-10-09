@@ -293,6 +293,33 @@ export function sample<T> (array: T[], from: number = 0): T {
   }
   return array[from + Math.floor(Math.random() * (length - from))]
 }
+/**
+ * Shuffle the array using the Fisher-Yates Shuffle.
+ * This method will mutate the original array.
+ *
+ * @export
+ * @template T
+ * @param {T[]} array
+ * @returns {T[]}
+ */
+export function shuffle<T> (array: T[]): T[] {
+  let counter = array.length
+
+  // While there are elements in the array
+  while (counter > 0) {
+    // Pick a random index
+    const index = Math.floor(Math.random() * counter)
+
+    // Decrease counter by 1
+    counter--
+
+    // And swap the last element with it
+    [array[counter], array[index]] = [array[index], array[counter]]
+  }
+
+  return array
+}
+
 
 /**
  * Error message for connection being disconnected

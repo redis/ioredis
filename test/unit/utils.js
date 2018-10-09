@@ -167,4 +167,53 @@ describe('utils', function () {
       Math.random.restore();
     });
   });
+
+  describe('.shuffle', function () {
+    function compareArray (arr1, arr2) {
+      if (arr1.length !== arr2.length) {
+        return false
+      }
+      arr1.sort()
+      arr2.sort()
+      for (let i = 0; i < arr1.length; i++) {
+        if (arr1[i] !== arr2[i]) {
+          return false
+        }
+      }
+      return true
+    }
+    function testShuffle (arr) {
+      const origin = arr.slice(0)
+      expect(compareArray(origin, utils.shuffle(arr))).to.eql(true)
+    }
+    it('contains all items', () => {
+      testShuffle([1])
+      testShuffle([1, 2])
+      testShuffle([2, 1])
+      testShuffle([1, 1, 1])
+      testShuffle([1, 2, 3])
+      testShuffle([3, -1, 0, 2, -1])
+      testShuffle(['a', 'b', 'd', 'c'])
+      testShuffle(['c', 'b'])
+    })
+
+    it('mutates the original array', () => {
+      const arr = [3, 7]
+      const ret = utils.shuffle(arr)
+      expect(arr === ret).to.eql(true)
+    })
+
+    it('shuffles the array', () => {
+      const arr = [1, 2, 3, 4]
+      const copy = arr.slice(0)
+      while (true) {
+        utils.shuffle(copy)
+        for (let i = 0; i < copy.length; i++) {
+          if (arr[i] !== copy[i]) {
+            return
+          }
+        }
+      }
+    })
+  })
 });

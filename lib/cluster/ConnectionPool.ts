@@ -1,6 +1,6 @@
 import {parseURL} from '../utils'
 import {EventEmitter} from 'events'
-import {noop, defaults, values} from '../utils/lodash'
+import {noop, defaults} from '../utils/lodash'
 import {IRedisOptions, getNodeKey} from './util'
 
 const Redis = require('../redis')
@@ -23,7 +23,8 @@ export default class ConnectionPool extends EventEmitter {
   }
 
   public getNodes(role: 'all' | 'master' | 'slave' = 'all'): any[] {
-    return values(this.nodes[role])
+    const nodes = this.nodes[role]
+    return Object.keys(nodes).map((key) => nodes[key])
   }
 
   /**
