@@ -55,15 +55,20 @@ export default class ClusterSubscriber {
     const {options} = sampleNode
     debug('selected a subscriber %s:%s', options.host, options.port)
 
-    // Create a specialized Redis connection for the subscription.
-    // Note that auto reconnection is enabled here.
-    // `enableReadyCheck` is disabled because subscription is allowed
-    // when redis is loading data from the disk.
+    /*
+     * Create a specialized Redis connection for the subscription.
+     * Note that auto reconnection is enabled here.
+     *
+     * `enableReadyCheck` is also enabled because although subscription is allowed
+     * while redis is loading data from the disk, we can check if the password
+     * provided for the subscriber is correct, and if not, the current subscriber
+     * will be disconnected and a new subscriber will be selected.
+     */
     this.subscriber = new Redis({
       port: options.port,
       host: options.host,
       password: options.password,
-      enableReadyCheck: false,
+      enableReadyCheck: true,
       connectionName: SUBSCRIBER_CONNECTION_NAME,
       lazyConnect: true
     })
