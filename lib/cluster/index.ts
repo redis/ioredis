@@ -7,65 +7,29 @@ import ClusterSubscriber from './ClusterSubscriber'
 import DelayQueue from './DelayQueue'
 import ScanStream from '../ScanStream'
 import {AbortError} from 'redis-errors'
-import asCallback from 'standard-as-callback'
+import * as asCallback from 'standard-as-callback'
 import * as PromiseContainer from '../promiseContainer'
 import {CallbackFunction} from '../types';
+import {IClusterOptions, DEFAULT_CLUSTER_OPTIONS} from './ClusterOptions'
+import {sample, CONNECTION_CLOSED_ERROR_MSG, shuffle, timeout} from '../utils'
+import * as commands from 'redis-commands'
 
 const Deque = require('denque')
-const {isIP} = require('net')
 const Redis = require('../redis')
-const utils = require('../utils')
 const debug = require('../utils/debug')('ioredis:cluster')
 const Commander = require('../commander')
 const Command = require('../command')
-const commands = require('redis-commands')
 
 type ClusterStatus = 'end' | 'close' | 'wait' | 'connecting' | 'connect' | 'ready' | 'reconnecting' | 'disconnecting'
 
 /**
- * Creates a Redis Cluster instance
+ * Client for the official Redis Cluster
  *
- * @constructor
- * @param {Object[]} startupNodes - An array of nodes in the cluster, [{ port: number, host: string }]
- * @param {Object} options
- * @param {function} [options.clusterRetryStrategy] - See "Quick Start" section
- * @param {boolean} [options.enableOfflineQueue=true] - See Redis class
- * @param {boolean} [options.enableReadyCheck=true] - When enabled, ioredis only emits "ready" event when `CLUSTER INFO`
- * command reporting the cluster is ready for handling commands.
- * @param {string} [options.scaleReads=master] - Scale reads to the node with the specified role.
- * Available values are "master", "slave" and "all".
- * @param {number} [options.maxRedirections=16] - When a MOVED or ASK error is received, client will redirect the
- * command to another node. This option limits the max redirections allowed to send a command.
- * @param {number} [options.retryDelayOnFailover=100] - When an error is received when sending a command(e.g.
- * "Connection is closed." when the target Redis node is down),
- * @param {number} [options.retryDelayOnClusterDown=100] - When a CLUSTERDOWN error is received, client will retry
- * if `retryDelayOnClusterDown` is valid delay time.
- * @param {number} [options.retryDelayOnTryAgain=100] - When a TRYAGAIN error is received, client will retry
- * if `retryDelayOnTryAgain` is valid delay time.
- * @param {number} [options.slotsRefreshTimeout=1000] - The milliseconds before a timeout occurs while refreshing
- * slots from the cluster.
- * @param {number} [options.slotsRefreshInterval=5000] - The milliseconds between every automatic slots refresh.
- * @param {Object} [options.redisOptions] - Passed to the constructor of `Redis`.
- * @extends [EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)
- * @extends Commander
+ * @class Cluster
+ * @extends {EventEmitter}
  */
 class Cluster extends EventEmitter {
-  static defaultOptions = {
-    clusterRetryStrategy: function (times) {
-      return Math.min(100 + times * 2, 2000)
-    },
-    enableOfflineQueue: true,
-    enableReadyCheck: true,
-    scaleReads: 'master',
-    maxRedirections: 16,
-    retryDelayOnFailover: 100,
-    retryDelayOnClusterDown: 100,
-    retryDelayOnTryAgain: 100,
-    slotsRefreshTimeout: 1000,
-    slotsRefreshInterval: 5000
-  }
-
-  private options: any
+  private options: IClusterOptions
   private startupNodes: IRedisOptions[]
   private connectionPool: ConnectionPool
   private slots: Array<NodeKey[]> = []
@@ -79,16 +43,23 @@ class Cluster extends EventEmitter {
   private status: ClusterStatus
   private isRefreshing: boolean = false
 
-  constructor (startupNodes: Array<string | number | object>, options) {
+  /**
+   * Creates an instance of Cluster.
+   *
+   * @param {(Array<string | number | object>)} startupNodes
+   * @param {IClusterOptions} [options={}]
+   * @memberof Cluster
+   */
+  constructor(startupNodes: Array<string | number | object>, options: IClusterOptions = {}) {
     super()
     Commander.call(this)
 
     this.startupNodes = normalizeNodeOptions(startupNodes)
-    this.options = defaults(this.options, options, Cluster.defaultOptions)
+    this.options = defaults(this.options, options, DEFAULT_CLUSTER_OPTIONS)
 
     // validate options
     if (typeof this.options.scaleReads !== 'function' &&
-        ['all', 'master', 'slave'].indexOf(this.options.scaleReads) === -1) {
+      ['all', 'master', 'slave'].indexOf(this.options.scaleReads) === -1) {
       throw new Error('Invalid option scaleReads "' + this.options.scaleReads +
         '". Expected "all", "master", "slave" or a custom function')
     }
@@ -120,15 +91,15 @@ class Cluster extends EventEmitter {
   }
 
 
-  resetOfflineQueue () {
+  resetOfflineQueue() {
     this.offlineQueue = new Deque()
   }
 
-  resetNodesRefreshInterval () {
+  resetNodesRefreshInterval() {
     if (this.slotsTimer) {
       return
     }
-    this.slotsTimer = setInterval(function() {
+    this.slotsTimer = setInterval(function () {
       this.refreshSlotsCache()
     }.bind(this), this.options.slotsRefreshInterval)
   }
@@ -139,7 +110,7 @@ class Cluster extends EventEmitter {
    * @returns {Promise<void>}
    * @memberof Cluster
    */
-  public connect (): Promise<void> {
+  public connect(): Promise<void> {
     const Promise = PromiseContainer.get()
     return new Promise((resolve, reject) => {
       if (this.status === 'connecting' || this.status === 'connect' || this.status === 'ready') {
@@ -208,7 +179,7 @@ class Cluster extends EventEmitter {
    * @private
    * @memberof Cluster
    */
-  private handleCloseEvent (): void {
+  private handleCloseEvent(): void {
     let retryDelay
     if (!this.manuallyClosing && typeof this.options.clusterRetryStrategy === 'function') {
       retryDelay = this.options.clusterRetryStrategy.call(this, ++this.retryAttempts)
@@ -234,7 +205,7 @@ class Cluster extends EventEmitter {
    * @param {boolean} [reconnect=false]
    * @memberof Cluster
    */
-  public disconnect (reconnect: boolean = false) {
+  public disconnect(reconnect: boolean = false) {
     const status = this.status
     this.setStatus('disconnecting')
 
@@ -267,7 +238,7 @@ class Cluster extends EventEmitter {
    * @returns {Promise<'OK'>}
    * @memberof Cluster
    */
-  public quit (callback?: CallbackFunction<'OK'>): Promise<'OK'> {
+  public quit(callback?: CallbackFunction<'OK'>): Promise<'OK'> {
     const status = this.status
     this.setStatus('disconnecting')
 
@@ -312,7 +283,7 @@ class Cluster extends EventEmitter {
    * @returns {any[]}
    * @memberof Cluster
    */
-  public nodes (role: NodeRole = 'all'): any[] {
+  public nodes(role: NodeRole = 'all'): any[] {
     if (role !== 'all' && role !== 'master' && role !== 'slave') {
       throw new Error('Invalid role "' + role + '". Expected "all", "master" or "slave"')
     }
@@ -326,7 +297,7 @@ class Cluster extends EventEmitter {
    * @param {ClusterStatus} status
    * @memberof Cluster
    */
-  private setStatus (status: ClusterStatus): void {
+  private setStatus(status: ClusterStatus): void {
     debug('status: %s -> %s', this.status || '[empty]', status)
     this.status = status
     process.nextTick(this.emit.bind(this, status))
@@ -339,7 +310,7 @@ class Cluster extends EventEmitter {
    * @param {CallbackFunction} [callback]
    * @memberof Cluster
    */
-  private refreshSlotsCache (callback?: CallbackFunction): void {
+  private refreshSlotsCache(callback?: CallbackFunction): void {
     if (this.isRefreshing) {
       if (typeof callback === 'function') {
         process.nextTick(callback)
@@ -356,7 +327,7 @@ class Cluster extends EventEmitter {
       }
     }
 
-    const nodes = utils.shuffle(this.connectionPool.getNodes())
+    const nodes = shuffle(this.connectionPool.getNodes())
 
     let lastNodeError = null
 
@@ -391,7 +362,7 @@ class Cluster extends EventEmitter {
    * @param {Error} error
    * @memberof Cluster
    */
-  private flushQueue (error: Error) {
+  private flushQueue(error: Error) {
     let item
     while (this.offlineQueue.length > 0) {
       item = this.offlineQueue.shift()
@@ -399,7 +370,7 @@ class Cluster extends EventEmitter {
     }
   }
 
-  executeOfflineCommands () {
+  executeOfflineCommands() {
     if (this.offlineQueue.length) {
       debug('send %d commands in offline queue', this.offlineQueue.length)
       const offlineQueue = this.offlineQueue
@@ -411,12 +382,12 @@ class Cluster extends EventEmitter {
     }
   }
 
-  sendCommand (command, stream, node) {
+  sendCommand(command, stream, node) {
     if (this.status === 'wait') {
       this.connect().catch(noop)
     }
     if (this.status === 'end') {
-      command.reject(new Error(utils.CONNECTION_CLOSED_ERROR_MSG))
+      command.reject(new Error(CONNECTION_CLOSED_ERROR_MSG))
       return command.promise
     }
     let to = this.options.scaleReads
@@ -444,14 +415,14 @@ class Cluster extends EventEmitter {
               _this.slots[slot] = [key]
             }
             const splitKey = key.split(':')
-            _this.connectionPool.findOrCreate({ host: splitKey[0], port: Number(splitKey[1]) })
+            _this.connectionPool.findOrCreate({host: splitKey[0], port: Number(splitKey[1])})
             tryConnection()
             _this.refreshSlotsCache()
           },
           ask: function (slot, key) {
             debug('command %s is required to ask %s:%s', command.name, key)
             const splitKey = key.split(':')
-            _this.connectionPool.findOrCreate({ host: splitKey[0], port: Number(splitKey[1]) })
+            _this.connectionPool.findOrCreate({host: splitKey[0], port: Number(splitKey[1])})
             tryConnection(false, key)
           },
           tryagain: partialTry,
@@ -478,7 +449,7 @@ class Cluster extends EventEmitter {
         if (node && node.redis) {
           redis = node.redis
         } else if (Command.checkFlag('ENTER_SUBSCRIBER_MODE', command.name) ||
-                  Command.checkFlag('EXIT_SUBSCRIBER_MODE', command.name)) {
+          Command.checkFlag('EXIT_SUBSCRIBER_MODE', command.name)) {
           redis = _this.subscriber.getInstance()
           if (!redis) {
             command.reject(new AbortError('No subscriber for the cluster'))
@@ -490,13 +461,13 @@ class Cluster extends EventEmitter {
               const nodeKeys = _this.slots[targetSlot]
               if (typeof to === 'function') {
                 const nodes =
-                    nodeKeys
-                      .map(function (key) {
-                        return _this.connectionPool.getInstanceByKey(key)
-                      })
+                  nodeKeys
+                    .map(function (key) {
+                      return _this.connectionPool.getInstanceByKey(key)
+                    })
                 redis = to(nodes, command)
                 if (Array.isArray(redis)) {
-                  redis = utils.sample(redis)
+                  redis = sample(redis)
                 }
                 if (!redis) {
                   redis = nodes[0]
@@ -504,9 +475,9 @@ class Cluster extends EventEmitter {
               } else {
                 let key
                 if (to === 'all') {
-                  key = utils.sample(nodeKeys)
+                  key = sample(nodeKeys)
                 } else if (to === 'slave' && nodeKeys.length > 1) {
-                  key = utils.sample(nodeKeys, 1)
+                  key = sample(nodeKeys, 1)
                 } else {
                   key = nodeKeys[0]
                 }
@@ -519,7 +490,9 @@ class Cluster extends EventEmitter {
             }
           }
           if (!redis) {
-            redis = _this.connectionPool.getSampleInstance(to) || _this.connectionPool.getSampleInstance('all')
+            redis =
+              (typeof to === 'function' ? null : _this.connectionPool.getSampleInstance(to)) ||
+              _this.connectionPool.getSampleInstance('all')
           }
         }
         if (node && !node.redis) {
@@ -541,7 +514,7 @@ class Cluster extends EventEmitter {
     return command.promise
   }
 
-  handleError (error, ttl, handlers) {
+  handleError(error, ttl, handlers) {
     if (typeof ttl.value === 'undefined') {
       ttl.value = this.options.maxRedirections
     } else {
@@ -564,7 +537,7 @@ class Cluster extends EventEmitter {
         callback: this.refreshSlotsCache.bind(this)
       })
     } else if (
-      error.message === utils.CONNECTION_CLOSED_ERROR_MSG &&
+      error.message === CONNECTION_CLOSED_ERROR_MSG &&
       this.options.retryDelayOnFailover > 0 &&
       this.status === 'ready'
     ) {
@@ -577,11 +550,11 @@ class Cluster extends EventEmitter {
     }
   }
 
-  getInfoFromNode (redis, callback) {
+  getInfoFromNode(redis, callback) {
     if (!redis) {
       return callback(new Error('Node is disconnected'))
     }
-    redis.cluster('slots', utils.timeout((err, result) => {
+    redis.cluster('slots', timeout((err, result) => {
       if (err) {
         redis.disconnect()
         return callback(err)
@@ -597,7 +570,7 @@ class Cluster extends EventEmitter {
 
         const keys = []
         for (let j = 2; j < items.length; j++) {
-          items[j] = { host: items[j][0], port: items[j][1] }
+          items[j] = {host: items[j][0], port: items[j][1]}
           items[j].readOnly = j !== 2
           nodes.push(items[j])
           keys.push(items[j].host + ':' + items[j].port)
@@ -621,7 +594,7 @@ class Cluster extends EventEmitter {
    * @param {Function} callback
    * @private
    */
-  private readyCheck (callback: CallbackFunction<void | 'fail'>): void {
+  private readyCheck(callback: CallbackFunction<void | 'fail'>): void {
     (this as any).cluster('info', function (err, res) {
       if (err) {
         return callback(err)
