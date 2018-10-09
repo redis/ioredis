@@ -41,6 +41,7 @@
   },
   "devDependencies": {
     "@types/node": "^10.5.2",
+    "@types/redis-errors": "1.2.0",
     "bluebird": "^3.5.1",
     "chai": "^3.5.0",
     "cz-conventional-changelog": "^2.0.0",

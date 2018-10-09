@@ -5,6 +5,7 @@
     "target": "es6",
     "moduleResolution": "node",
     "types": ["node"],
+    "typeRoots": ["node_modules/@types"],
     "module": "commonjs"
   },
   "include": [
