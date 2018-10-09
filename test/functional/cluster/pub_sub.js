@@ -45,6 +45,31 @@ describe('cluster:pub/sub', function () {
     });
   });
 
+  it('supports password', function (done) {
+    const handler = function (argv, c) {
+      if (argv[0] === 'auth') {
+        c.password = argv[1]
+        return
+      }
+      if (argv[0] === 'subscribe') {
+        expect(c.password).to.eql('abc')
+        expect(c.getConnectionName()).to.eql('ioredisClusterSubscriber')
+      }
+      if (argv[0] === 'cluster' && argv[1] === 'slots') {
+        return [
+          [0, 16383, ['127.0.0.1', 30001]]
+        ];
+      }
+    };
+    new MockServer(30001, handler);
+
+    var sub = new Redis.Cluster([{port: '30001', password: 'abc'}]);
+
+    sub.subscribe('test cluster', function () {
+      done();
+    });
+  });
+
   it('should re-subscribe after reconnection', function (done) {
     new MockServer(30001, function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {

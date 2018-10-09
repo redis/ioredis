@@ -47,6 +47,7 @@ util.inherits(MockServer, EventEmitter);
 MockServer.prototype.connect = function () {
   var _this = this;
   this.socket = net.createServer(function (c) {
+    c.getConnectionName = () => (c._connectionName)
     var clientIndex = _this.clients.push(c) - 1;
     process.nextTick(function () {
       _this.emit('connect', c);
@@ -59,7 +60,7 @@ MockServer.prototype.connect = function () {
         if (reply.length === 3 && reply[0].toLowerCase() === 'client' && reply[1].toLowerCase() === 'setname') {
           c._connectionName = reply[2]
         }
-        _this.write(c, _this.handler && _this.handler(reply));
+        _this.write(c, _this.handler && _this.handler(reply, c));
       },
       returnError: function () { }
     });
