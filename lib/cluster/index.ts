@@ -300,7 +300,9 @@ class Cluster extends EventEmitter {
   private setStatus(status: ClusterStatus): void {
     debug('status: %s -> %s', this.status || '[empty]', status)
     this.status = status
-    process.nextTick(this.emit.bind(this, status))
+    process.nextTick(() => {
+      this.emit(status)
+    })
   }
 
   /**
