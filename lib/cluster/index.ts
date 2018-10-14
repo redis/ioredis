@@ -253,6 +253,8 @@ class Cluster extends EventEmitter {
       this.slotsTimer = null
     }
 
+    this.subscriber.stop()
+
     const Promise = PromiseContainer.get()
     if (status === 'wait') {
       const ret = asCallback(Promise.resolve('OK'), callback)
