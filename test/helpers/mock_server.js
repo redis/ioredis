@@ -29,11 +29,12 @@ afterEach(function (done) {
   }
 });
 
-function MockServer(port, handler) {
+function MockServer(port, handler, slotTable) {
   EventEmitter.call(this);
 
   this.port = port;
   this.handler = handler;
+  this.slotTable = slotTable;
 
   this.clients = [];
 
@@ -59,6 +60,10 @@ MockServer.prototype.connect = function () {
         reply = utils.convertBufferToString(reply);
         if (reply.length === 3 && reply[0].toLowerCase() === 'client' && reply[1].toLowerCase() === 'setname') {
           c._connectionName = reply[2]
+        }
+        if (_this.slotTable && reply.length === 2 && reply[0].toLowerCase() === 'cluster' && reply[1].toLowerCase() === 'slots') {
+          _this.write(c, _this.slotTable)
+          return
         }
         _this.write(c, _this.handler && _this.handler(reply, c));
       },
