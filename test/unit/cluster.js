@@ -1,6 +1,6 @@
 'use strict';
 
-var Cluster = require('../../lib/cluster');
+var Cluster = require('../../lib/cluster').default;
 
 describe('cluster', function () {
   beforeEach(function () {

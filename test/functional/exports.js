@@ -8,7 +8,7 @@ describe('exports', function () {
 
   describe('.Cluster', function () {
     it('should be `Cluster`', function () {
-      var Cluster = require('../../lib/cluster');
+      var Cluster = require('../../lib/cluster').default;
       expect(Redis.Cluster).to.eql(Cluster);
     });
   });

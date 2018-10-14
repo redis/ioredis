@@ -1,7 +1,7 @@
-import {parseURL} from '../utils'
 import {EventEmitter} from 'events'
+import {sample} from '../utils'
 import {noop, defaults} from '../utils/lodash'
-import {IRedisOptions, getNodeKey} from './util'
+import {IRedisOptions, getNodeKey, NodeKey, NodeRole} from './util'
 
 const Redis = require('../redis')
 const debug = require('../utils/debug')('ioredis:cluster:connectionPool')
@@ -22,9 +22,19 @@ export default class ConnectionPool extends EventEmitter {
     super()
   }
 
-  public getNodes(role: 'all' | 'master' | 'slave' = 'all'): any[] {
+  public getNodes(role: NodeRole = 'all'): any[] {
     const nodes = this.nodes[role]
     return Object.keys(nodes).map((key) => nodes[key])
+  }
+
+  public getInstanceByKey(key: NodeKey): any {
+    return this.nodes.all[key]
+  }
+
+  public getSampleInstance(role: NodeRole): any {
+    const keys = Object.keys(this.nodes[role])
+    const sampleKey = sample(keys)
+    return this.nodes[role][sampleKey]
   }
 
   /**
@@ -36,7 +46,6 @@ export default class ConnectionPool extends EventEmitter {
    * @memberof ConnectionPool
    */
   public findOrCreate(node: IRedisOptions, readOnly: boolean = false): any {
-    fillDefaultOptions(node)
     const key = getNodeKey(node)
     readOnly = Boolean(readOnly)
 
@@ -104,28 +113,12 @@ export default class ConnectionPool extends EventEmitter {
    * @param {(Array<string | number | object>)} nodes
    * @memberof ConnectionPool
    */
-  public reset(nodes: Array<string | number | object>): void {
+  public reset(nodes: IRedisOptions[]): void {
     debug('Reset with %O', nodes);
     const newNodes = {}
     nodes.forEach((node) => {
-      const options: IRedisOptions = {}
-      if (typeof node === 'object') {
-        Object.assign(options, node)
-      } else if (typeof node === 'string') {
-        Object.assign(options, parseURL(node))
-      } else if (typeof node === 'number') {
-        options.port = node
-      } else {
-        throw new Error('Invalid argument ' + node)
-      }
-      if (typeof options.port === 'string') {
-        options.port = parseInt(options.port, 10)
-      }
-      delete options.db
-
-      fillDefaultOptions(options)
-      newNodes[getNodeKey(options)] = options
-    }, this)
+      newNodes[getNodeKey(node)] = node
+    })
 
     Object.keys(this.nodes.all).forEach((key) => {
       if (!newNodes[key]) {
@@ -138,9 +131,4 @@ export default class ConnectionPool extends EventEmitter {
       this.findOrCreate(node, node.readOnly)
     })
   }
-}
-
-function fillDefaultOptions(node: IRedisOptions): void {
-  node.port = node.port || 6379
-  node.host = node.host || '127.0.0.1'
 }
