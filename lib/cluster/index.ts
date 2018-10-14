@@ -267,11 +267,16 @@ class Cluster extends EventEmitter {
       return ret
     }
     return asCallback(
-      Promise.all(this.nodes().map(function (node) {
-        return node.quit()
-      })).then(function () {
-        return 'OK'
-      }),
+      Promise.all(this.nodes().map((node) => (
+        node.quit().catch((err) => {
+          // Ignore the error caused by disconnecting since
+          // we're disconnecting...
+          if (err.message === CONNECTION_CLOSED_ERROR_MSG) {
+            return 'OK'
+          }
+          throw err
+        })
+      ))).then(() => 'OK'),
       callback
     )
   }
