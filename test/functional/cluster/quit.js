@@ -1,15 +1,15 @@
-describe('cluster:quit', function () {
-  it('quit successfully when server is disconnecting', function (done) {
+describe('cluster:quit', () => {
+  it('quit successfully when server is disconnecting', (done) => {
     const slotTable = [
       [0, 1000, ['127.0.0.1', 30001]],
       [1001, 16383, ['127.0.0.1', 30002]]
     ]
-    const server = new MockServer(30001, function (argv, c) {
+    const server = new MockServer(30001, (argv, c) => {
       if (argv[0] === 'quit') {
         c.destroy()
       }
     }, slotTable)
-    new MockServer(30002, function (argv, c) {
+    new MockServer(30002, (argv, c) => {
       if (argv[0] === 'quit') {
         c.destroy()
       }
@@ -20,8 +20,9 @@ describe('cluster:quit', function () {
     ])
     cluster.on('ready', () => {
       server.disconnect()
-      cluster.quit(function () {
-        console.log(arguments)
+      cluster.quit((err, res) => {
+        expect(err).to.eql(null)
+        expect(res).to.eql('OK')
         done()
       })
     })
