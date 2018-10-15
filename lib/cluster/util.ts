@@ -1,11 +1,14 @@
 import {parseURL} from '../utils'
+import {isIP} from 'net'
 
 export type NodeKey = string
 export type NodeRole = 'master' | 'slave' | 'all'
 
 export interface IRedisOptions {
   port: number,
-  host: string
+  host: string,
+  password?: string,
+  [key: string]: any
 }
 
 export function getNodeKey(node: IRedisOptions): NodeKey {
@@ -42,4 +45,13 @@ export function normalizeNodeOptions(nodes: Array<string | number | object>): IR
 
     return options
   })
+}
+
+export function getUniqueHostnamesFromOptions (nodes: IRedisOptions[]): string[] {
+  const uniqueHostsMap = {}
+  nodes.forEach((node) => {
+    uniqueHostsMap[node.host] = true
+  })
+
+  return Object.keys(uniqueHostsMap).filter(host => !isIP(host))
 }

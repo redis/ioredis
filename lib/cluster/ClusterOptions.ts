@@ -1,4 +1,7 @@
 import {NodeRole} from './util'
+import {lookup} from 'dns'
+
+export type DNSLookupFunction = (hostname: string, callback: (err: NodeJS.ErrnoException, address: string, family: number) => void) => void
 
 /**
  * Options for Cluster constructor
@@ -93,9 +96,26 @@ export interface IClusterOptions {
   redisOptions?: any
 
   /**
+   * By default, When a new Cluster instance is created,
+   * it will connect to the Redis cluster automatically.
+   * If you want to keep the instance disconnected until the first command is called,
+   * set this option to `true`.
+   *
    * @default false
    */
   lazyConnect?: boolean
+
+  /**
+   * Hostnames will be resolved to IP addresses via this function.
+   * This is needed when the addresses of startup nodes are hostnames instead
+   * of IPs.
+   *
+   * You may provide a custom `lookup` function when you want to customize
+   * the cache behavior of the default function.
+   *
+   * @default require('dns').lookup
+   */
+  dnsLookup?: DNSLookupFunction
 }
 
 export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {
@@ -108,5 +128,6 @@ export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {
   retryDelayOnClusterDown: 100,
   retryDelayOnTryAgain: 100,
   slotsRefreshTimeout: 1000,
-  slotsRefreshInterval: 5000
+  slotsRefreshInterval: 5000,
+  dnsLookup: lookup
 }
