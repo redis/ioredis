@@ -7,7 +7,6 @@
 * **cluster:** quit() ignores errors caused by disconnected connection ([#720](https://github.com/luin/ioredis/issues/720)) ([fb3eb76](https://github.com/luin/ioredis/commit/fb3eb76))
 * **cluster:** robust solution for pub/sub in cluster ([#697](https://github.com/luin/ioredis/issues/697)) ([13a5bc4](https://github.com/luin/ioredis/commit/13a5bc4)), closes [#696](https://github.com/luin/ioredis/issues/696)
 * **cluster:** stop subscriber when disconnecting ([fb27b66](https://github.com/luin/ioredis/commit/fb27b66))
-* **cluster:** subscription regards password setting ([47e2ab5](https://github.com/luin/ioredis/commit/47e2ab5)), closes [#718](https://github.com/luin/ioredis/issues/718)
 
 
 ### Features
@@ -17,7 +16,6 @@
 
 ### Performance Improvements
 
-* reduce package bundle size ([eb68e9a](https://github.com/luin/ioredis/commit/eb68e9a))
 * remove lodash deps for smaller memory footprint ([80f4a45](https://github.com/luin/ioredis/commit/80f4a45))
 * **cluster:** make disconnecting from cluster faster ([#721](https://github.com/luin/ioredis/issues/721)) ([ce46d6b](https://github.com/luin/ioredis/commit/ce46d6b))
 
