@@ -29,3 +29,18 @@ addons:
 
 after_success:
 - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
+
+deploy:
+  # runs semantic-release on each
+  - provider: script
+    script: npm run semantic-release
+    on:
+      tags: false
+      all_branches: true
+
+  # when master is merged to release, promote "next" to "latest"
+  - provider: script
+    script: node bin/promote-next.js
+    on:
+      branch: release
+
