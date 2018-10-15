@@ -23,6 +23,7 @@ describe('cluster:quit', () => {
       cluster.quit((err, res) => {
         expect(err).to.eql(null)
         expect(res).to.eql('OK')
+        cluster.disconnect()
         done()
       })
     })
@@ -51,6 +52,7 @@ describe('cluster:quit', () => {
     cluster.on('ready', () => {
       cluster.quit((err) => {
         expect(err.message).to.eql(ERROR_MESSAGE)
+        cluster.disconnect()
         done()
       })
     })
