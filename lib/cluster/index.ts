@@ -30,7 +30,7 @@ type ClusterStatus = 'end' | 'close' | 'wait' | 'connecting' | 'connect' | 'read
  */
 class Cluster extends EventEmitter {
   private options: IClusterOptions
-  private startupNodes: IRedisOptions[]
+  private startupNodes: Array<string | number | object>
   private connectionPool: ConnectionPool
   private slots: Array<NodeKey[]> = []
   private manuallyClosing: boolean
@@ -66,7 +66,7 @@ class Cluster extends EventEmitter {
     super()
     Commander.call(this)
 
-    this.startupNodes = normalizeNodeOptions(startupNodes)
+    this.startupNodes = startupNodes
     this.options = defaults(this.options, options, DEFAULT_CLUSTER_OPTIONS)
 
     // validate options
@@ -657,10 +657,11 @@ class Cluster extends EventEmitter {
   }
 
   private resolveStartupNodeHostnames (): Promise<IRedisOptions[]> {
-    const hostnames = getUniqueHostnamesFromOptions(this.startupNodes)
+    const startupNodes = normalizeNodeOptions(this.startupNodes)
+    const hostnames = getUniqueHostnamesFromOptions(startupNodes)
 
     if (hostnames.length === 0) {
-      return Promise.resolve(this.startupNodes)
+      return Promise.resolve(startupNodes)
     }
 
     const hostnameToIP = new Map<string, string>()
@@ -678,7 +679,7 @@ class Cluster extends EventEmitter {
         })
       }
     )))).then(() => (
-      this.startupNodes.map((node) => {
+      startupNodes.map((node) => {
         if (!hostnameToIP.has(node.host)) {
           return node
         }
