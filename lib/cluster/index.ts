@@ -132,10 +132,6 @@ class Cluster extends EventEmitter {
       const epoch = ++this.connectionEpoch
       this.setStatus('connecting')
 
-      if (!Array.isArray(this.startupNodes) || this.startupNodes.length === 0) {
-        throw new Error('`startupNodes` should contain at least one node.')
-      }
-
       this.resolveStartupNodeHostnames().then((nodes) => {
         if (this.connectionEpoch !== epoch) {
           debug('discard connecting after resolving startup nodes because epoch not match: %d != %d', epoch, this.connectionEpoch)
@@ -657,6 +653,10 @@ class Cluster extends EventEmitter {
   }
 
   private resolveStartupNodeHostnames (): Promise<IRedisOptions[]> {
+    if (!Array.isArray(this.startupNodes) || this.startupNodes.length === 0) {
+      return Promise.reject(new Error('`startupNodes` should contain at least one node.'))
+    }
+
     const startupNodes = normalizeNodeOptions(this.startupNodes)
     const hostnames = getUniqueHostnamesFromOptions(startupNodes)
 
