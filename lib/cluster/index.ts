@@ -348,8 +348,12 @@ class Cluster extends EventEmitter {
       const node = nodes[index]
       debug('getting slot cache from %s:%s', node.options.host, node.options.port)
       _this.getInfoFromNode(node, function (err) {
-        if (_this.status === 'end') {
-          return wrapper(new Error('Cluster is disconnected.'))
+        switch (_this.status) {
+          case 'close':
+          case 'end':
+            return wrapper(new Error('Cluster is disconnected.'))
+          case 'disconnecting':
+            return wrapper(new Error('Cluster is disconnecting.'))
         }
         if (err) {
           _this.emit('node error', err)
@@ -567,6 +571,11 @@ class Cluster extends EventEmitter {
       if (err) {
         redis.disconnect()
         return callback(err)
+      }
+      if (this.status === 'disconnecting' || this.status === 'close' || this.status === 'end') {
+        debug('ignore CLUSTER.SLOTS results (count: %d) since cluster status is %s', result.length, this.status)
+        callback()
+        return
       }
       const nodes = []
 
