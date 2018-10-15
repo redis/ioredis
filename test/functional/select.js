@@ -7,6 +7,7 @@ describe('select', function () {
     redis.select('2');
     redis.get('foo', function (err, res) {
       expect(res).to.eql('2');
+      redis.disconnect();
       done();
     });
   });
@@ -24,6 +25,7 @@ describe('select', function () {
           redis.select('3');
           redis.get('foo', function (err, res) {
             expect(res).to.eql('3');
+            redis.disconnect();
             done();
           });
         });
@@ -41,6 +43,7 @@ describe('select', function () {
         redis.stream.destroy();
         redis.get('foo', function (err, res) {
           expect(res).to.eql('2');
+          redis.disconnect();
           done();
         });
       });
@@ -59,6 +62,7 @@ describe('select', function () {
         expect(changes).to.eql([2, 4]);
         redis.select('4', function () {
           expect(changes).to.eql([2, 4]);
+          redis.disconnect();
           done();
         });
       });

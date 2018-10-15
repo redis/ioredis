@@ -20,6 +20,7 @@ describe('*scanStream', function () {
         });
         stream.on('end', function () {
           expect(keys.sort()).to.eql(['foo1', 'foo10', 'foo2', 'foo3', 'foo4']);
+          redis.disconnect();
           done();
         });
       });
@@ -37,6 +38,7 @@ describe('*scanStream', function () {
         });
         stream.on('end', function () {
           expect(keys).to.eql(['foo10']);
+          redis.disconnect();
           done();
         });
       });
@@ -66,6 +68,7 @@ describe('*scanStream', function () {
         });
         stream.on('end', function () {
           expect(keys.sort()).to.eql(['foo1', 'foo10', 'foo2', 'foo3', 'foo4']);
+          redis.disconnect();
           done();
         });
       });
@@ -100,6 +103,7 @@ describe('*scanStream', function () {
         stream.on('end', function () {
           expect(keys.sort()).to.eql([Buffer.from('foo1'), Buffer.from('foo10'),
             Buffer.from('foo2'), Buffer.from('foo3'), Buffer.from('foo4')]);
+          redis.disconnect();
           done();
         });
       });
@@ -117,6 +121,7 @@ describe('*scanStream', function () {
         });
         stream.on('end', function () {
           expect(keys).to.eql(['foo10']);
+          redis.disconnect();
           done();
         });
       });
@@ -160,25 +165,10 @@ describe('*scanStream', function () {
         stream.on('end', function () {
           expect(keys).to.eql(serverKeys);
           cluster.disconnect();
-          disconnect([node1, node2, node3], done);
+          done();
         });
       });
 
     });
   });
 });
-
-function disconnect(clients, callback) {
-  var pending = 0;
-
-  for (var i = 0; i < clients.length; ++i) {
-    pending += 1;
-    clients[i].disconnect(check);
-  }
-
-  function check() {
-    if (!--pending && callback) {
-      callback();
-    }
-  }
-}

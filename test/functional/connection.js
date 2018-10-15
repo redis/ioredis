@@ -27,6 +27,7 @@ describe('connection', function () {
         expect(command.name).to.eql('auth');
       } else if (times === 2) {
         expect(command.name).to.eql('info');
+        redis.disconnect();
         done();
       }
     });
@@ -39,6 +40,7 @@ describe('connection', function () {
     });
     redis.get('foo', function (err, res) {
       expect(res).to.eql('bar');
+      redis.disconnect();
       done();
     });
   });
@@ -58,6 +60,7 @@ describe('connection', function () {
     redis.get('foo', function (err) {
       expect(err.message).to.match(/Connection is closed/);
       if (!--pending) {
+        redis.disconnect();
         done();
       }
     });
@@ -69,6 +72,7 @@ describe('connection', function () {
       stub(redis.stream, 'setTimeout', function (timeout) {
         expect(timeout).to.eql(0);
         redis.stream.setTimeout.restore();
+        redis.disconnect();
         done();
       });
     });
@@ -115,6 +119,7 @@ describe('connection', function () {
       var redis = new Redis();
       redis.connect().catch(function (err) {
         expect(err.message).to.match(/Redis is already connecting/);
+        redis.disconnect()
         done();
       });
     });
@@ -123,6 +128,7 @@ describe('connection', function () {
       var redis = new Redis({ lazyConnect: true });
       redis.connect().then(function () {
         expect(redis.status).to.eql('ready');
+        redis.disconnect()
         done();
       });
     });
@@ -138,6 +144,7 @@ describe('connection', function () {
 
       redis.connect().catch(function () {
         expect(redis.status).to.eql('reconnecting');
+        redis.disconnect()
         done();
       });
     });
@@ -151,6 +158,7 @@ describe('connection', function () {
 
       redis.connect().catch(function () {
         expect(redis.status).to.eql('end');
+        redis.disconnect()
         done();
       });
     });
@@ -178,6 +186,7 @@ describe('connection', function () {
         retryStrategy: function () {
           process.nextTick(function () {
             expect(redis.status).to.eql('end');
+            redis.disconnect()
             done();
           });
           return null;
@@ -197,12 +206,12 @@ describe('connection', function () {
       redis.quit().then(function (result) {
         expect(result).to.eql('OK');
         expect(count).to.eql(0);
+        redis.disconnect()
         done();
       });
     });
 
     it('should skip reconnecting if quitting before connecting (buffer)', function (done) {
-      var count = 0;
       var redis = new Redis({
         port: 8999,
         retryStrategy: function () {
@@ -213,6 +222,7 @@ describe('connection', function () {
       redis.quitBuffer().then(function (result) {
         expect(result).to.be.instanceof(Buffer);
         expect(result.toString()).to.eql('OK');
+        redis.disconnect()
         done();
       });
     });
@@ -224,6 +234,7 @@ describe('connection', function () {
       redis.once('ready', function () {
         redis.client('getname', function (err, res) {
           expect(res).to.eql('niceName');
+          redis.disconnect()
           done();
         });
       });
@@ -238,6 +249,7 @@ describe('connection', function () {
           redis.unsubscribe('l', function () {
             redis.client('getname', function (err, res) {
               expect(res).to.eql('niceName');
+              redis.disconnect()
               done();
             });
           });
@@ -275,6 +287,7 @@ describe('connection', function () {
           expect(res[0]).to.eql('l');
           expect(res[1]).to.eql('1');
           if (!--pending) {
+            redis.disconnect()
             done();
           }
         });
@@ -304,6 +317,7 @@ describe('connection', function () {
             redis.unsubscribe('l', function() {
               pub.pubsub('channels', function(err, channels){
                 expect(channels.length).to.eql(channelsBefore.length);
+                redis.disconnect()
                 done();
               });
             });

@@ -11,6 +11,7 @@ describe('maxRetriesPerRequest', function () {
     });
     redis.get('foo', (err) => {
       expect(err).instanceOf(MaxRetriesPerRequestError)
+      redis.disconnect()
       done()
     })
   })
@@ -26,6 +27,7 @@ describe('maxRetriesPerRequest', function () {
       expect(redis.retryAttempts).to.eql(21)
       redis.get('foo', () => {
         expect(redis.retryAttempts).to.eql(42)
+        redis.disconnect()
         done()
       })
     })
@@ -42,6 +44,7 @@ describe('maxRetriesPerRequest', function () {
       expect(redis.retryAttempts).to.eql(2)
       redis.get('foo', () => {
         expect(redis.retryAttempts).to.eql(4)
+        redis.disconnect()
         done()
       })
     })
@@ -58,6 +61,7 @@ describe('maxRetriesPerRequest', function () {
       expect(redis.retryAttempts).to.eql(1)
       redis.get('foo', () => {
         expect(redis.retryAttempts).to.eql(2)
+        redis.disconnect()
         done()
       })
     })
