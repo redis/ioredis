@@ -41,6 +41,10 @@
     "standard-as-callback": "^1.0.0"
   },
   "devDependencies": {
+    "@semantic-release/changelog": "^3.0.0",
+    "@semantic-release/git": "^7.0.4",
+    "@semantic-release/github": "^5.0.6",
+    "@semantic-release/npm": "^5.0.4",
     "@types/node": "^10.11.5",
     "@types/redis-errors": "1.2.0",
     "bluebird": "^3.5.1",
