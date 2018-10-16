@@ -1,5 +1,6 @@
 import {parseURL} from '../utils'
 import {isIP} from 'net'
+import {DNSLookupFunction} from './ClusterOptions';
 
 export type NodeKey = string
 export type NodeRole = 'master' | 'slave' | 'all'

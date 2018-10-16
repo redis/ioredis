@@ -11,7 +11,7 @@ import * as asCallback from 'standard-as-callback'
 import * as PromiseContainer from '../promiseContainer'
 import {CallbackFunction} from '../types';
 import {IClusterOptions, DEFAULT_CLUSTER_OPTIONS} from './ClusterOptions'
-import {sample, CONNECTION_CLOSED_ERROR_MSG, shuffle, timeout} from '../utils'
+import {sample, CONNECTION_CLOSED_ERROR_MSG, shuffle, timeout, zipMap} from '../utils'
 import * as commands from 'redis-commands'
 
 const Deque = require('denque')
@@ -652,40 +652,49 @@ class Cluster extends EventEmitter {
     })
   }
 
-  private resolveStartupNodeHostnames (): Promise<IRedisOptions[]> {
+  private dnsLookup (hostname: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      this.options.dnsLookup(hostname, (err, address) => {
+        if (err) {
+          debug('failed to resolve hostname %s to IP: %s', hostname, err.message)
+          reject(err)
+        } else {
+          debug('resolved hostname %s to IP %s', hostname, address)
+          resolve(address)
+        }
+      })
+    });
+  }
+
+  /**
+   * Normalize startup nodes, and resolving hostnames to IPs.
+   *
+   * This process happens every time when #connect() is called since
+   * #startupNodes and DNS records may chanage.
+   *
+   * @private
+   * @returns {Promise<IRedisOptions[]>}
+   */
+  private resolveStartupNodeHostnames(): Promise<IRedisOptions[]> {
     if (!Array.isArray(this.startupNodes) || this.startupNodes.length === 0) {
       return Promise.reject(new Error('`startupNodes` should contain at least one node.'))
     }
-
     const startupNodes = normalizeNodeOptions(this.startupNodes)
-    const hostnames = getUniqueHostnamesFromOptions(startupNodes)
 
+    const hostnames = getUniqueHostnamesFromOptions(startupNodes)
     if (hostnames.length === 0) {
       return Promise.resolve(startupNodes)
     }
 
-    const hostnameToIP = new Map<string, string>()
-    return Promise.all(hostnames.map((hostname) => (
-      new Promise((resolve, reject) => {
-        this.options.dnsLookup(hostname, (err, address) => {
-          if (err) {
-            debug('failed to resolve hostname %s to IP: %s', hostname, err.message)
-            reject(err)
-          } else {
-            debug('resolved hostname %s to IP %s', hostname, address)
-            hostnameToIP.set(hostname, address)
-            resolve()
-          }
-        })
-      }
-    )))).then(() => (
-      startupNodes.map((node) => {
-        if (!hostnameToIP.has(node.host)) {
-          return node
-        }
-        return Object.assign({}, node, {host: hostnameToIP.get(node.host)})
-      })
-    ))
+    return Promise.all(hostnames.map((hostname) => this.dnsLookup(hostname))).then((ips) => {
+      const hostnameToIP = zipMap(hostnames, ips)
+
+      return startupNodes.map((node) => (
+        hostnameToIP.has(node.host)
+          ? Object.assign({}, node, {host: hostnameToIP.get(node.host)})
+          : node
+      ))
+    })
   }
 }
 
