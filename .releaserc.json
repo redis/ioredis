@@ -1,0 +1,41 @@
+{
+  "branch": "master",
+  "verifyConditions": [
+    "@semantic-release/npm",
+    "@semantic-release/changelog",
+    "@semantic-release/git",
+    "@semantic-release/github"
+  ],
+  "prepare": [
+    {
+      "path": "@semantic-release/changelog",
+      "changelogFile": "Changelog.md"
+    },
+    "@semantic-release/npm",
+    {
+      "path": "@semantic-release/git",
+      "assets": [
+        "Changelog.md",
+        "package.json",
+        "package-lock.json",
+        "npm-shrinkwrap.json"
+      ]
+    }
+  ],
+  "publish": [
+    "@semantic-release/npm",
+    "@semantic-release/github"
+  ],
+  "analyzeCommits": {
+    "preset": "angular",
+    "releaseRules": [
+      { "type": "docs", "release": "patch" },
+      { "type": "refactor", "release": "patch" },
+      { "type": "style", "release": "patch" },
+      { "type": "minor", "release": "minor" },
+      { "type": "patch", "release": "patch" },
+      { "type": "major", "release": "major" },
+      { "type": "breaking", "release": "major" }
+    ]
+  }
+}

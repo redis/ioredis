@@ -29,3 +29,29 @@ addons:
 
 after_success:
 - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
+
+# Trigger a push build on master/release and greenkeeper branches + PRs build on every branches
+# Avoid double build on PRs (See https://github.com/travis-ci/travis-ci/issues/1147)
+branches:
+  only:
+    - master
+    - release
+    - /^greenkeeper.*$/
+
+deploy:
+  # runs semantic-release on each
+  - provider: script
+    script: npm ci && npx semantic-release
+    skip_cleanup: true
+    on:
+      tags: false
+      all_branches: true
+      node: '10'
+
+  # when master is merged to release, promote "next" to "latest"
+  - provider: script
+    script: npm ci && node bin/promote-next.js
+    skip_cleanup: true
+    on:
+      branch: release
+      node: '10'
