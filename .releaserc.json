@@ -6,6 +6,7 @@
     "@semantic-release/git",
     "@semantic-release/github"
   ],
+  "getLastRelease": "@semantic-release/git",
   "prepare": [
     {
       "path": "@semantic-release/changelog",
