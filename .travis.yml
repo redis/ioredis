@@ -33,7 +33,7 @@ after_success:
 deploy:
   # runs semantic-release on each
   - provider: script
-    script: npm ci && npm run semantic-release
+    script: npm ci && npx semantic-release
     on:
       tags: false
       all_branches: true
