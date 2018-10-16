@@ -1,3 +1,26 @@
+<a name="4.1.0"></a>
+# [4.1.0](https://github.com/luin/ioredis/compare/v4.0.0...v4.1.0) (2018-10-15)
+
+
+### Bug Fixes
+
+* **cluster:** quit() ignores errors caused by disconnected connection ([#720](https://github.com/luin/ioredis/issues/720)) ([fb3eb76](https://github.com/luin/ioredis/commit/fb3eb76))
+* **cluster:** robust solution for pub/sub in cluster ([#697](https://github.com/luin/ioredis/issues/697)) ([13a5bc4](https://github.com/luin/ioredis/commit/13a5bc4)), closes [#696](https://github.com/luin/ioredis/issues/696)
+* **cluster:** stop subscriber when disconnecting ([fb27b66](https://github.com/luin/ioredis/commit/fb27b66))
+
+
+### Features
+
+* **cluster:** re-select subscriber when the currenct one is failed ([c091f2e](https://github.com/luin/ioredis/commit/c091f2e))
+
+
+### Performance Improvements
+
+* remove lodash deps for smaller memory footprint ([80f4a45](https://github.com/luin/ioredis/commit/80f4a45))
+* **cluster:** make disconnecting from cluster faster ([#721](https://github.com/luin/ioredis/issues/721)) ([ce46d6b](https://github.com/luin/ioredis/commit/ce46d6b))
+
+
+
 <a name="4.0.2"></a>
 ## [4.0.2](https://github.com/luin/ioredis/compare/v4.0.1...v4.0.2) (2018-10-09)
 
