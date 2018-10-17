@@ -12,6 +12,7 @@ describe('scripting', function () {
 
       redis.test('k1', 'k2', 'a1', 'a2', function (err, result) {
         expect(result).to.eql(['k1', 'k2', 'a1', 'a2']);
+        redis.disconnect();
         done();
       });
     });
@@ -25,6 +26,7 @@ describe('scripting', function () {
 
       redis.test(2, 'k1', 'k2', 'a1', 'a2', function (err, result) {
         expect(result).to.eql(['k1', 'k2', 'a1', 'a2']);
+        redis.disconnect();
         done();
       });
     });
@@ -39,6 +41,7 @@ describe('scripting', function () {
 
       redis.test('2', 'a2', function (err, result) {
         expect(result).to.eql(['2', 'a2']);
+        redis.disconnect();
         done();
       });
     });
@@ -53,6 +56,7 @@ describe('scripting', function () {
       redis.test('k1', 'k2', 'a1', 'a2', function (err, result) {
         expect(err).to.be.instanceof(Error);
         expect(err.toString()).to.match(/value is not an integer/);
+        redis.disconnect();
         done();
       });
     });
@@ -68,6 +72,7 @@ describe('scripting', function () {
 
     redis.testBuffer('k1', 'k2', 'a1', 'a2', function (err, result) {
       expect(result).to.eql([Buffer.from('k1'), Buffer.from('k2'), Buffer.from('a1'), Buffer.from('a2')]);
+      redis.disconnect();
       done();
     });
   });
@@ -82,6 +87,7 @@ describe('scripting', function () {
 
     redis.pipeline().set('test', 'pipeline').test('test').exec(function (err, results) {
       expect(results).to.eql([[null, 'OK'], [null, 'pipeline']]);
+      redis.disconnect();
       done();
     });
   });
@@ -97,6 +103,7 @@ describe('scripting', function () {
       expect(err).to.eql(null);
       expect(results[1][0]).to.be.instanceof(Error);
       expect(results[1][0].toString()).to.match(/value is not an integer/);
+      redis.disconnect();
       done();
     });
   });
@@ -143,6 +150,7 @@ describe('scripting', function () {
             expect(name).to.eql(command[0]);
             if (!expectedComands.length) {
               monitor.disconnect();
+              redis.disconnect();
               done();
             }
           });
@@ -174,6 +182,7 @@ describe('scripting', function () {
           expect(name).to.eql(command[0]);
           if (!expectedComands.length) {
             monitor.disconnect();
+            redis.disconnect();
             done();
           }
         });
@@ -193,6 +202,7 @@ describe('scripting', function () {
 
     redis.echo('k1', 'k2', 'a1', 'a2', function (err, result) {
       expect(result).to.eql(['foo:k1', 'foo:k2', 'a1', 'a2']);
+      redis.disconnect();
       done();
     });
   });

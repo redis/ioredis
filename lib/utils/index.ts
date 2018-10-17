@@ -325,3 +325,11 @@ export function shuffle<T> (array: T[]): T[] {
  * Error message for connection being disconnected
  */
 export const CONNECTION_CLOSED_ERROR_MSG = 'Connection is closed.'
+
+export function zipMap<K, V> (keys: K[], values: V[]): Map<K, V> {
+  const map = new Map<K, V>()
+  keys.forEach((key, index) => {
+    map.set(key, values[index])
+  })
+  return map
+}

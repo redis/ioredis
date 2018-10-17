@@ -2,16 +2,16 @@ import {EventEmitter} from 'events'
 import ClusterAllFailedError from '../errors/ClusterAllFailedError'
 import {defaults, noop} from '../utils/lodash'
 import ConnectionPool from './ConnectionPool'
-import {NodeKey, IRedisOptions, normalizeNodeOptions, NodeRole} from './util'
+import {NodeKey, IRedisOptions, normalizeNodeOptions, NodeRole, getUniqueHostnamesFromOptions} from './util'
 import ClusterSubscriber from './ClusterSubscriber'
 import DelayQueue from './DelayQueue'
 import ScanStream from '../ScanStream'
-import {AbortError} from 'redis-errors'
+import {AbortError, RedisError} from 'redis-errors'
 import * as asCallback from 'standard-as-callback'
 import * as PromiseContainer from '../promiseContainer'
 import {CallbackFunction} from '../types';
 import {IClusterOptions, DEFAULT_CLUSTER_OPTIONS} from './ClusterOptions'
-import {sample, CONNECTION_CLOSED_ERROR_MSG, shuffle, timeout} from '../utils'
+import {sample, CONNECTION_CLOSED_ERROR_MSG, shuffle, timeout, zipMap} from '../utils'
 import * as commands from 'redis-commands'
 
 const Deque = require('denque')
@@ -30,7 +30,7 @@ type ClusterStatus = 'end' | 'close' | 'wait' | 'connecting' | 'connect' | 'read
  */
 class Cluster extends EventEmitter {
   private options: IClusterOptions
-  private startupNodes: IRedisOptions[]
+  private startupNodes: Array<string | number | object>
   private connectionPool: ConnectionPool
   private slots: Array<NodeKey[]> = []
   private manuallyClosing: boolean
@@ -44,6 +44,18 @@ class Cluster extends EventEmitter {
   private isRefreshing: boolean = false
 
   /**
+   * Every time Cluster#connect() is called, this value will be
+   * auto-incrementing. The purpose of this value is used for
+   * discarding previous connect attampts when creating a new
+   * connection.
+   *
+   * @private
+   * @type {number}
+   * @memberof Cluster
+   */
+  private connectionEpoch: number = 0
+
+  /**
    * Creates an instance of Cluster.
    *
    * @param {(Array<string | number | object>)} startupNodes
@@ -54,7 +66,7 @@ class Cluster extends EventEmitter {
     super()
     Commander.call(this)
 
-    this.startupNodes = normalizeNodeOptions(startupNodes)
+    this.startupNodes = startupNodes
     this.options = defaults(this.options, options, DEFAULT_CLUSTER_OPTIONS)
 
     // validate options
@@ -117,59 +129,68 @@ class Cluster extends EventEmitter {
         reject(new Error('Redis is already connecting/connected'))
         return
       }
+      const epoch = ++this.connectionEpoch
       this.setStatus('connecting')
 
-      if (!Array.isArray(this.startupNodes) || this.startupNodes.length === 0) {
-        throw new Error('`startupNodes` should contain at least one node.')
-      }
+      this.resolveStartupNodeHostnames().then((nodes) => {
+        if (this.connectionEpoch !== epoch) {
+          debug('discard connecting after resolving startup nodes because epoch not match: %d != %d', epoch, this.connectionEpoch)
+          reject(new RedisError('Connection is discarded because a new connection is made'))
+          return
+        }
+        if (this.status !== 'connecting') {
+          debug('discard connecting after resolving startup nodes because the status changed to %s', this.status)
+          reject(new RedisError('Connection is aborted'))
+          return
+        }
+        this.connectionPool.reset(nodes)
 
-      this.connectionPool.reset(this.startupNodes)
+        function readyHandler() {
+          this.setStatus('ready')
+          this.retryAttempts = 0
+          this.executeOfflineCommands()
+          this.resetNodesRefreshInterval()
+          resolve()
+        }
 
-      function readyHandler() {
-        this.setStatus('ready')
-        this.retryAttempts = 0
-        this.executeOfflineCommands()
-        this.resetNodesRefreshInterval()
-        resolve()
-      }
-
-      let closeListener: () => void
-      const refreshListener = () => {
-        this.removeListener('close', closeListener)
-        this.manuallyClosing = false
-        this.setStatus('connect')
-        if (this.options.enableReadyCheck) {
-          this.readyCheck((err, fail) => {
-            if (err || fail) {
-              debug('Ready check failed (%s). Reconnecting...', err || fail)
-              if (this.status === 'connect') {
-                this.disconnect(true)
+        let closeListener: () => void
+        const refreshListener = () => {
+          this.removeListener('close', closeListener)
+          this.manuallyClosing = false
+          this.setStatus('connect')
+          if (this.options.enableReadyCheck) {
+            this.readyCheck((err, fail) => {
+              if (err || fail) {
+                debug('Ready check failed (%s). Reconnecting...', err || fail)
+                if (this.status === 'connect') {
+                  this.disconnect(true)
+                }
+              } else {
+                readyHandler.call(this)
               }
-            } else {
-              readyHandler.call(this)
-            }
-          })
-        } else {
-          readyHandler.call(this)
+            })
+          } else {
+            readyHandler.call(this)
+          }
         }
-      }
 
-      closeListener = function () {
-        this.removeListener('refresh', refreshListener)
-        reject(new Error('None of startup nodes is available'))
-      }
-
-      this.once('refresh', refreshListener)
-      this.once('close', closeListener)
-      this.once('close', this.handleCloseEvent.bind(this))
-
-      this.refreshSlotsCache(function (err) {
-        if (err && err.message === 'Failed to refresh slots cache.') {
-          Redis.prototype.silentEmit.call(this, 'error', err)
-          this.connectionPool.reset([])
+        closeListener = function () {
+          this.removeListener('refresh', refreshListener)
+          reject(new Error('None of startup nodes is available'))
         }
-      }.bind(this))
-      this.subscriber.start()
+
+        this.once('refresh', refreshListener)
+        this.once('close', closeListener)
+        this.once('close', this.handleCloseEvent.bind(this))
+
+        this.refreshSlotsCache(function (err) {
+          if (err && err.message === 'Failed to refresh slots cache.') {
+            Redis.prototype.silentEmit.call(this, 'error', err)
+            this.connectionPool.reset([])
+          }
+        }.bind(this))
+        this.subscriber.start()
+      }).catch(reject)
     })
   }
 
@@ -637,6 +658,51 @@ class Cluster extends EventEmitter {
       } else {
         callback()
       }
+    })
+  }
+
+  private dnsLookup (hostname: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      this.options.dnsLookup(hostname, (err, address) => {
+        if (err) {
+          debug('failed to resolve hostname %s to IP: %s', hostname, err.message)
+          reject(err)
+        } else {
+          debug('resolved hostname %s to IP %s', hostname, address)
+          resolve(address)
+        }
+      })
+    });
+  }
+
+  /**
+   * Normalize startup nodes, and resolving hostnames to IPs.
+   *
+   * This process happens every time when #connect() is called since
+   * #startupNodes and DNS records may chanage.
+   *
+   * @private
+   * @returns {Promise<IRedisOptions[]>}
+   */
+  private resolveStartupNodeHostnames(): Promise<IRedisOptions[]> {
+    if (!Array.isArray(this.startupNodes) || this.startupNodes.length === 0) {
+      return Promise.reject(new Error('`startupNodes` should contain at least one node.'))
+    }
+    const startupNodes = normalizeNodeOptions(this.startupNodes)
+
+    const hostnames = getUniqueHostnamesFromOptions(startupNodes)
+    if (hostnames.length === 0) {
+      return Promise.resolve(startupNodes)
+    }
+
+    return Promise.all(hostnames.map((hostname) => this.dnsLookup(hostname))).then((ips) => {
+      const hostnameToIP = zipMap(hostnames, ips)
+
+      return startupNodes.map((node) => (
+        hostnameToIP.has(node.host)
+          ? Object.assign({}, node, {host: hostnameToIP.get(node.host)})
+          : node
+      ))
     })
   }
 }

@@ -353,4 +353,13 @@ describe('cluster:connect', function () {
       { host: '127.0.0.1', port: '30001' }
     ], { slotsRefreshInterval: 100, redisOptions: { lazyConnect: false } });
   });
+
+  it('throws when startupNodes is empty', (done) => {
+    const cluster = new Redis.Cluster(null, {lazyConnect: true})
+    cluster.connect().catch(err => {
+      expect(err.message).to.eql('`startupNodes` should contain at least one node.')
+      cluster.disconnect()
+      done()
+    })
+  })
 });

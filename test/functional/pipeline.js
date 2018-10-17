@@ -12,6 +12,7 @@ describe('pipeline', function () {
         [null, 3],
         [null, '3']
       ]);
+      redis.disconnect()
       done();
     });
   });
@@ -21,6 +22,7 @@ describe('pipeline', function () {
     redis.pipeline().exec(function (err, results) {
       expect(err).to.eql(null);
       expect(results).to.eql([]);
+      redis.disconnect()
       done();
     });
   });
@@ -38,6 +40,7 @@ describe('pipeline', function () {
         [null, Buffer.from('bar')],
         [null, 'bar']
       ]);
+      redis.disconnect()
       done();
     });
   });
@@ -49,6 +52,7 @@ describe('pipeline', function () {
       expect(results.length).to.eql(1);
       expect(results[0].length).to.eql(1);
       expect(results[0][0].toString()).to.match(/wrong number of arguments/);
+      redis.disconnect()
       done();
     });
   });
@@ -62,6 +66,7 @@ describe('pipeline', function () {
     }).exec(function (err, results) {
       expect(pending).to.eql(0);
       expect(results[1][1]).to.eql('bar');
+      redis.disconnect()
       done();
     });
   });
@@ -74,6 +79,7 @@ describe('pipeline', function () {
       expect(result[1][1]).to.eql('QUEUED');
       expect(result[2][1]).to.eql('QUEUED');
       expect(result[3][1]).to.eql(['OK', 'bar']);
+      redis.disconnect()
       done();
     });
   });
@@ -82,6 +88,7 @@ describe('pipeline', function () {
     var redis = new Redis({ showFriendlyErrorStack: true });
     var pipeline = redis.pipeline();
     expect(pipeline.options).to.have.property('showFriendlyErrorStack', true);
+    redis.disconnect()
   });
 
   it('should support key prefixing', function (done) {
@@ -96,6 +103,7 @@ describe('pipeline', function () {
         [null, 'test1'],
         [null, ['foo:bar']]
       ]);
+      redis.disconnect()
       done();
     });
   });
@@ -110,6 +118,10 @@ describe('pipeline', function () {
         lua: 'return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}'
       });
     });
+
+    after(function () {
+      redis.disconnect()
+    })
 
     it('should work', function (done) {
       redis.pipeline().echo('foo', 'bar', '123', 'abc').exec(function (err, results) {
@@ -168,6 +180,7 @@ describe('pipeline', function () {
       ]).exec(function (err, results) {
         expect(pending).to.eql(0);
         expect(results[1][1]).to.eql('bar');
+        redis.disconnect()
         done();
       });
     });
@@ -180,6 +193,7 @@ describe('pipeline', function () {
       redis.set('foo', 'bar');
       redis.get('foo');
       redis.exec().then(function () {
+        redis.disconnect()
         done();
       });
     });
@@ -188,6 +202,7 @@ describe('pipeline', function () {
       var redis = new Redis();
       redis.exec().catch(function (err) {
         expect(err.message).to.eql('ERR EXEC without MULTI');
+        redis.disconnect()
         done();
       });
     });
@@ -202,6 +217,7 @@ describe('pipeline', function () {
           expect(typeof res[0][1]).to.eql('string');
           expect(res[1][0]).to.eql(null);
           expect(Array.isArray(res[1][1])).to.eql(true);
+          redis.disconnect()
           done();
         });
       });
@@ -220,6 +236,7 @@ describe('pipeline', function () {
         ['get', 'foo']
       ]);
       expect(pipeline2.length).to.eql(2);
+      redis.disconnect()
     });
   });
 });
