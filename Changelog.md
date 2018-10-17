@@ -1,3 +1,10 @@
+# [4.2.0](https://github.com/luin/ioredis/compare/v4.1.0...v4.2.0) (2018-10-17)
+
+
+### Features
+
+* support customize dns lookup function ([#723](https://github.com/luin/ioredis/issues/723)) ([b9c4793](https://github.com/luin/ioredis/commit/b9c4793)), closes [antirez/redis#2410](https://github.com/antirez/redis/issues/2410)
+
 <a name="4.1.0"></a>
 # [4.1.0](https://github.com/luin/ioredis/compare/v4.0.0...v4.1.0) (2018-10-15)
 
