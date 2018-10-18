@@ -1,6 +1,6 @@
 'use strict';
 
-var Command = require('../../lib/command');
+var Command = require('../../lib/command').default;
 
 describe('Command', function () {
   describe('constructor()', function () {

@@ -13,12 +13,12 @@ import {CallbackFunction} from '../types';
 import {IClusterOptions, DEFAULT_CLUSTER_OPTIONS} from './ClusterOptions'
 import {sample, CONNECTION_CLOSED_ERROR_MSG, shuffle, timeout, zipMap} from '../utils'
 import * as commands from 'redis-commands'
+import Command from '../command'
 
 const Deque = require('denque')
 const Redis = require('../redis')
 const debug = require('../utils/debug')('ioredis:cluster')
 const Commander = require('../commander')
-const Command = require('../command')
 
 type ClusterStatus = 'end' | 'close' | 'wait' | 'connecting' | 'connect' | 'ready' | 'reconnecting' | 'disconnecting'
 
