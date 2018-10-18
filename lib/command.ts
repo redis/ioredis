@@ -6,19 +6,30 @@ import {convertBufferToString, optimizeErrorStack, toArg, convertMapToArray, con
 import {flatten} from './utils/lodash'
 import {get as getPromise} from './promiseContainer'
 
+interface ICommandOptions {
+  /**
+   * Set the encoding of the reply, by default buffer will be returned.
+   *
+   * @type {(string | null)}
+   * @memberof ICommandOptions
+   */
+  replyEncoding?: string | null,
+  errorStack?: string,
+  keyPrefix?: string
+}
+
+type ArgumentTransformer = (args: any[]) => any[]
+type ReplyTransformer = (reply: any) => any
+type FlagMap = {[flag: string]: {[command: string]: true}}
+
 /**
  * Command instance
  *
  * It's rare that you need to create a Command instance yourself.
  *
- * @constructor
- * @param {string} name - Command name
- * @param {string[]} [args=null] - An array of command arguments
- * @param {object} [options]
- * @param {string} [options.replyEncoding=null] - Set the encoding of the reply,
- * by default buffer will be returned.
- * @param {function} [callback=null] - The callback that handles the response.
- * If omit, the response will be handled via Promise.
+ * @export
+ * @class Command
+ *
  * @example
  * ```js
  * var infoCommand = new Command('info', null, function (err, result) {
@@ -34,20 +45,8 @@ import {get as getPromise} from './promiseContainer'
  *   console.log('result', result);
  * });
  * ```
- *
  * @see {@link Redis#sendCommand} which can send a Command instance to Redis
- * @public
  */
-
-interface ICommandOptions {
-  replyEncoding?: string | null,
-  errorStack?: string,
-  keyPrefix?: string
-}
-
-type ArgumentTransformer = (args: any[]) => any[]
-type ReplyTransformer = (reply: any) => any
-
 export default class Command {
   public static FLAGS = {
     // Commands that can be processed when client is in the subscriber mode
@@ -62,9 +61,9 @@ export default class Command {
     WILL_DISCONNECT: ['quit']
   }
 
-  private static flagMap?: {[flag: string]: {[command: string]: true}}
+  private static flagMap?: FlagMap
 
-  private static getFlagMap () {
+  private static getFlagMap (): FlagMap {
     if (!this.flagMap) {
       this.flagMap = Object.keys(Command.FLAGS).reduce((map, flagName) => {
         map[flagName] = {}
@@ -118,6 +117,15 @@ export default class Command {
   public resolve: (result: any) => void
   public promise: Promise<any>
 
+  /**
+   * Creates an instance of Command.
+   * @param {string} name Command name
+   * @param {(Array<string | Buffer | number>)} [args=[]] An array of command arguments
+   * @param {ICommandOptions} [options={}]
+   * @param {Function} [callback] The callback that handles the response.
+   * If omit, the response will be handled via Promise
+   * @memberof Command
+   */
   constructor (public name: string, args: Array<string | Buffer | number> = [], options: ICommandOptions = {}, callback?: Function) {
     this.replyEncoding = options.replyEncoding
     this.errorStack = options.errorStack
@@ -272,6 +280,7 @@ export default class Command {
    * @memberof Command
    */
   public transformReply (result: Buffer | Buffer[]): string | string[] | Buffer | Buffer[] {
+    console.log(this.replyEncoding)
     if (this.replyEncoding) {
       result = convertBufferToString(result, this.replyEncoding)
     }
