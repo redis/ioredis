@@ -1,7 +1,7 @@
 describe('exports', function () {
   describe('.Command', function () {
     it('should be `Command`', function () {
-      var Command = require('../../lib/command');
+      var Command = require('../../lib/command').default;
       expect(Redis.Command).to.eql(Command);
     });
   });
