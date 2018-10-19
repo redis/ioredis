@@ -280,7 +280,6 @@ export default class Command {
    * @memberof Command
    */
   public transformReply (result: Buffer | Buffer[]): string | string[] | Buffer | Buffer[] {
-    console.log(this.replyEncoding)
     if (this.replyEncoding) {
       result = convertBufferToString(result, this.replyEncoding)
     }
