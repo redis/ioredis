@@ -31,8 +31,6 @@
     "preset": "angular",
     "releaseRules": [
       { "type": "docs", "release": "patch" },
-      { "type": "refactor", "release": "patch" },
-      { "type": "style", "release": "patch" },
       { "type": "minor", "release": "minor" },
       { "type": "patch", "release": "patch" },
       { "type": "major", "release": "major" },
