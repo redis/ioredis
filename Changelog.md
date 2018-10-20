@@ -1,3 +1,5 @@
+## [4.2.2](https://github.com/luin/ioredis/compare/v4.2.1...v4.2.2) (2018-10-20)
+
 ## [4.2.1](https://github.com/luin/ioredis/compare/v4.2.0...v4.2.1) (2018-10-19)
 
 # [4.2.0](https://github.com/luin/ioredis/compare/v4.1.0...v4.2.0) (2018-10-17)
