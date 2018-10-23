@@ -621,6 +621,10 @@ class Cluster extends EventEmitter {
           this.slots[slot] = keys
         }
       }
+      
+      if (this.options && typeof this.options.processNodes === 'function') {
+        this.options.processNodes(nodes);
+      }
 
       this.connectionPool.reset(nodes)
       callback()
