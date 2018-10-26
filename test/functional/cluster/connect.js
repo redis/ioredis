@@ -77,14 +77,29 @@ describe('cluster:connect', function () {
     var slotTable = [
       [0, 16383, ['127.0.0.1', 30001]]
     ];
+
+    var slots = 0;
+    var state = 0;
+
     var argvHandler = function (argv) {
       if (argv[0] === 'info') {
         // return 'role:master'
       }
+
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
+        if (slots < 3) {
+          slots += 1;
+          return [];
+        }
+
         return slotTable;
       }
+
       if (argv[0] === 'cluster' && argv[1] === 'info') {
+        if (state < 3) {
+          state += 1;
+          return 'cluster_state:fail';
+        }
         return 'cluster_state:ok';
       }
     };
