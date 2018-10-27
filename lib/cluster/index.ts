@@ -21,6 +21,10 @@ const debug = require('../utils/debug')('ioredis:cluster')
 const Commander = require('../commander')
 
 type ClusterStatus = 'end' | 'close' | 'wait' | 'connecting' | 'connect' | 'ready' | 'reconnecting' | 'disconnecting'
+type Deferred = Promise<void> & {
+  resolve?(): void
+  reject?(): void
+}
 
 /**
  * Client for the official Redis Cluster
@@ -42,6 +46,7 @@ class Cluster extends EventEmitter {
   private reconnectTimeout: NodeJS.Timer
   private status: ClusterStatus
   private isRefreshing: boolean = false
+  private connectionPromise?: Deferred
 
   /**
    * Every time Cluster#connect() is called, this value will be
@@ -122,9 +127,15 @@ class Cluster extends EventEmitter {
    * @returns {Promise<void>}
    * @memberof Cluster
    */
-  public connect(): Promise<void> {
+  public connect(): Deferred {
     const Promise = PromiseContainer.get()
-    return new Promise((resolve, reject) => {
+
+    let deferredResolve;
+    let deferredReject;
+    const promise: Deferred = new Promise((resolve, reject) => {
+      deferredResolve = resolve
+      deferredReject = reject
+
       if (this.status === 'connecting' || this.status === 'connect' || this.status === 'ready') {
         reject(new Error('Redis is already connecting/connected'))
         return
@@ -192,6 +203,27 @@ class Cluster extends EventEmitter {
         this.subscriber.start()
       }).catch(reject)
     })
+
+    // populate them
+    promise.resolve = deferredResolve
+    promise.reject = deferredReject
+
+    // if connection promise already exists
+    if (this.connectionPromise) {
+      promise.then(this.connectionPromise.resolve, this.connectionPromise.reject)
+      this.connectionPromise = null
+    }
+
+    promise.catch(noop).then(() => {
+      promise.reject = null
+      promise.resolve = null
+      if (this.connectionPromise === promise) {
+        this.connectionPromise = undefined
+      }
+    })
+
+    this.connectionPromise = promise
+    return promise
   }
 
   /**
