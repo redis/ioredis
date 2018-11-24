@@ -1,3 +1,10 @@
+## [4.2.3](https://github.com/luin/ioredis/compare/v4.2.2...v4.2.3) (2018-11-24)
+
+
+### Bug Fixes
+
+* MOVED slot redirection handler ([#749](https://github.com/luin/ioredis/issues/749)) ([bba418f](https://github.com/luin/ioredis/commit/bba418f))
+
 ## [4.2.2](https://github.com/luin/ioredis/compare/v4.2.1...v4.2.2) (2018-10-20)
 
 ## [4.2.1](https://github.com/luin/ioredis/compare/v4.2.0...v4.2.1) (2018-10-19)
