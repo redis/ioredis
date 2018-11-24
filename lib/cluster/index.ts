@@ -432,7 +432,7 @@ class Cluster extends EventEmitter {
       }
     }
 
-    const targetSlot = node ? node.slot : command.getSlot()
+    let targetSlot = node ? node.slot : command.getSlot()
     const ttl = {}
     const _this = this
     if (!node && !command.__is_reject_overwritten) {
@@ -443,6 +443,7 @@ class Cluster extends EventEmitter {
         _this.handleError(err, ttl, {
           moved: function (slot, key) {
             debug('command %s is moved to %s', command.name, key)
+            targetSlot = Number(slot)
             if (_this.slots[slot]) {
               _this.slots[slot][0] = key
             } else {
