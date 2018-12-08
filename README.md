@@ -29,6 +29,7 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 0. Support for ES6 types, such as `Map` and `Set`.
 0. Support for GEO commands (Redis 3.2 Unstable).
 0. Sophisticated error handling strategy.
+0. Support for NAT mapping.
 
 # Links
 * [API Documentation](API.md)
@@ -835,6 +836,26 @@ Promise.all(masters.map(function (node) {
   // keys: [['key1', 'key2'], ['key3', 'key4']]
 });
 ```
+
+### NAT Mapping
+Sometimes the cluster is hosted within a internal network that can only be accessed via a NAT (Network Address Translation) instance. See [Accessing ElastiCache from outside AWS](https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/accessing-elasticache.html) as an example.
+
+You can specify nat mapping rules via `natMap` option:
+
+```javascript
+const cluster = new Redis.Cluster([{
+  host: '203.0.113.73',
+  port: 30001
+}], {
+  natMap: {
+    '10.0.1.230:30001': {host: '203.0.113.73', port: 30001},
+    '10.0.1.231:30001': {host: '203.0.113.73', port: 30002},
+    '10.0.1.232:30001': {host: '203.0.113.73', port: 30003}
+  }
+})
+```
+
+This option is also useful when the cluster is running inside a Docker container.
 
 ### Transaction and pipeline in Cluster mode
 Almost all features that are supported by `Redis` are also supported by `Redis.Cluster`, e.g. custom commands, transaction and pipeline.

@@ -18,6 +18,17 @@ export function getNodeKey(node: IRedisOptions): NodeKey {
   return node.host + ':' + node.port
 }
 
+export function nodeKeyToRedisOptions(nodeKey: NodeKey): IRedisOptions {
+  const portIndex = nodeKey.lastIndexOf(':')
+  if (portIndex === -1) {
+    throw new Error(`Invalid node key ${nodeKey}`)
+  }
+  return {
+    host: nodeKey.slice(0, portIndex),
+    port: Number(nodeKey.slice(portIndex + 1))
+  }
+}
+
 export function normalizeNodeOptions(nodes: Array<string | number | object>): IRedisOptions[] {
   return nodes.map((node) => {
     const options: any = {}
