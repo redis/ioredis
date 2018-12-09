@@ -1,6 +1,7 @@
 'use strict';
 
 var Cluster = require('../../lib/cluster').default;
+const {nodeKeyToRedisOptions} = require('../../lib/cluster/util')
 
 describe('cluster', function () {
   beforeEach(function () {
@@ -36,3 +37,12 @@ describe('cluster', function () {
     });
   });
 });
+
+describe('nodeKeyToRedisOptions()', () => {
+  it('returns correct result', () => {
+    expect(nodeKeyToRedisOptions('127.0.0.1:6379')).to.eql({port: 6379, host: '127.0.0.1'})
+    expect(nodeKeyToRedisOptions('192.168.1.1:30001')).to.eql({port: 30001, host: '192.168.1.1'})
+    expect(nodeKeyToRedisOptions('::0:6379')).to.eql({port: 6379, host: '::0'})
+    expect(nodeKeyToRedisOptions('0:0:6379')).to.eql({port: 6379, host: '0:0'})
+  })
+})

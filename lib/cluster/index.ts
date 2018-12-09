@@ -2,7 +2,7 @@ import {EventEmitter} from 'events'
 import ClusterAllFailedError from '../errors/ClusterAllFailedError'
 import {defaults, noop} from '../utils/lodash'
 import ConnectionPool from './ConnectionPool'
-import {NodeKey, IRedisOptions, normalizeNodeOptions, NodeRole, getUniqueHostnamesFromOptions} from './util'
+import {NodeKey, IRedisOptions, normalizeNodeOptions, NodeRole, getUniqueHostnamesFromOptions, nodeKeyToRedisOptions} from './util'
 import ClusterSubscriber from './ClusterSubscriber'
 import DelayQueue from './DelayQueue'
 import ScanStream from '../ScanStream'
@@ -416,6 +416,18 @@ class Cluster extends EventEmitter {
     }
   }
 
+  natMapper(nodeKey: NodeKey | IRedisOptions): IRedisOptions {
+    if (this.options.natMap && typeof this.options.natMap === 'object') {
+      const key = typeof nodeKey === 'string' ? nodeKey : `${nodeKey.host}:${nodeKey.port}`
+      const mapped = this.options.natMap[key]
+      if (mapped) {
+        debug('NAT mapping %s -> %O', key, mapped)
+        return mapped
+      }
+    }
+    return typeof nodeKey === 'string' ? nodeKeyToRedisOptions(nodeKey) : nodeKey
+  }
+
   sendCommand(command, stream, node) {
     if (this.status === 'wait') {
       this.connect().catch(noop)
@@ -449,16 +461,15 @@ class Cluster extends EventEmitter {
             } else {
               _this.slots[slot] = [key]
             }
-            const splitKey = key.split(':')
-            _this.connectionPool.findOrCreate({host: splitKey[0], port: Number(splitKey[1])})
+            _this.connectionPool.findOrCreate(_this.natMapper(key))
             tryConnection()
             _this.refreshSlotsCache()
           },
           ask: function (slot, key) {
             debug('command %s is required to ask %s:%s', command.name, key)
-            const splitKey = key.split(':')
-            _this.connectionPool.findOrCreate({host: splitKey[0], port: Number(splitKey[1])})
-            tryConnection(false, key)
+            const mapped = _this.natMapper(key)
+            _this.connectionPool.findOrCreate(mapped)
+            tryConnection(false, `${mapped.host}:${mapped.port}`)
           },
           tryagain: partialTry,
           clusterDown: partialTry,
@@ -610,7 +621,7 @@ class Cluster extends EventEmitter {
 
         const keys = []
         for (let j = 2; j < items.length; j++) {
-          items[j] = {host: items[j][0], port: items[j][1]}
+          items[j] = this.natMapper({host: items[j][0], port: items[j][1]})
           items[j].readOnly = j !== 2
           nodes.push(items[j])
           keys.push(items[j].host + ':' + items[j].port)

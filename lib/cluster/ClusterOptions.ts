@@ -2,6 +2,7 @@ import {NodeRole} from './util'
 import {lookup} from 'dns'
 
 export type DNSLookupFunction = (hostname: string, callback: (err: NodeJS.ErrnoException, address: string, family: number) => void) => void
+export type NatMap = {[key: string]: {host: string, port: number}}
 
 /**
  * Options for Cluster constructor
@@ -116,6 +117,7 @@ export interface IClusterOptions {
    * @default require('dns').lookup
    */
   dnsLookup?: DNSLookupFunction
+  natMap?: NatMap
 }
 
 export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {
