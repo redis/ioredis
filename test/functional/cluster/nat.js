@@ -29,6 +29,33 @@ describe('NAT', () => {
     cluster.get('foo')
   })
 
+  it('works if natMap does not match all the cases', (done) => {
+    const slotTable = [
+      [0, 1, ['192.168.1.1', 30001]],
+      [2, 16383, ['127.0.0.1', 30002]]
+    ]
+
+    let cluster
+    new MockServer(30001, null, slotTable)
+    new MockServer(30002, ([command, arg]) => {
+      if (command === 'get' && arg === 'foo') {
+        cluster.disconnect()
+        done()
+      }
+    }, slotTable)
+
+    cluster = new Redis.Cluster([{
+      host: '127.0.0.1',
+      port: 30001
+    }], {
+      natMap: {
+        '192.168.1.1:30001': {host: '127.0.0.1', port: 30001}
+      }
+    })
+
+    cluster.get('foo')
+  })
+
   it('works for moved', (done) => {
     const slotTable = [
       [0, 16383, ['192.168.1.1', 30001]]
