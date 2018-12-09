@@ -1,3 +1,10 @@
+# [4.3.0](https://github.com/luin/ioredis/compare/v4.2.3...v4.3.0) (2018-12-09)
+
+
+### Features
+
+* **cluster:** add NAT support ([#758](https://github.com/luin/ioredis/issues/758)) ([3702d67](https://github.com/luin/ioredis/commit/3702d67)), closes [#693](https://github.com/luin/ioredis/issues/693) [#365](https://github.com/luin/ioredis/issues/365)
+
 ## [4.2.3](https://github.com/luin/ioredis/compare/v4.2.2...v4.2.3) (2018-11-24)
 
 
