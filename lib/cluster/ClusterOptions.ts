@@ -16,7 +16,7 @@ export interface IClusterOptions {
    *
    * @default (times) => Math.min(100 + times * 2, 2000)
    */
-  clusterRetryStrategy?: (times: number) => number | null
+  clusterRetryStrategy?: (times: number, reason?: Error) => number | null
 
   /**
    * See Redis class.
