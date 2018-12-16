@@ -1,3 +1,10 @@
+## [4.3.1](https://github.com/luin/ioredis/compare/v4.3.0...v4.3.1) (2018-12-16)
+
+
+### Bug Fixes
+
+* **cluster:** handle connection errors by reconnection ([#762](https://github.com/luin/ioredis/issues/762)) ([21138af](https://github.com/luin/ioredis/commit/21138af)), closes [#753](https://github.com/luin/ioredis/issues/753)
+
 # [4.3.0](https://github.com/luin/ioredis/compare/v4.2.3...v4.3.0) (2018-12-09)
 
 
