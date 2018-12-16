@@ -355,11 +355,24 @@ describe('cluster:connect', function () {
   });
 
   it('throws when startupNodes is empty', (done) => {
-    const cluster = new Redis.Cluster(null, {lazyConnect: true})
+    const message = '`startupNodes` should contain at least one node.'
+    let pending = 2
+    const cluster = new Redis.Cluster(null, {
+      lazyConnect: true,
+      clusterRetryStrategy(_, reason) {
+        expect(reason.message).to.eql(message)
+        if (!--pending) {
+          done()
+        }
+        return false
+      }
+    })
     cluster.connect().catch(err => {
-      expect(err.message).to.eql('`startupNodes` should contain at least one node.')
+      expect(err.message).to.eql(message)
       cluster.disconnect()
-      done()
+      if (!--pending) {
+        done()
+      }
     })
   })
 });

@@ -55,4 +55,72 @@ describe('cluster:dnsLookup', () => {
       done()
     })
   })
+
+  it('reconnects when dns lookup fails', (done) => {
+    const slotTable = [
+      [0, 1000, ['127.0.0.1', 30001]],
+      [1001, 16383, ['127.0.0.1', 30002]]
+    ]
+    new MockServer(30001, (argv, c) => {
+    }, slotTable)
+    new MockServer(30002, (argv, c) => {
+    }, slotTable)
+
+    let retried = false
+    const cluster = new Redis.Cluster([
+      { host: 'localhost', port: '30001' }
+    ], {
+      dnsLookup (_, callback) {
+        if (retried) {
+          callback(null, '127.0.0.1')
+        } else {
+          callback(new Error('Random Exception'))
+        }
+      },
+      clusterRetryStrategy: function (_, reason) {
+        expect(reason.message).to.eql('Random Exception')
+        expect(retried).to.eql(false)
+        retried = true
+        return 0;
+      }
+    })
+    cluster.on('ready', () => {
+      cluster.disconnect();
+      done();
+    })
+  })
+
+  it('reconnects when dns lookup thrown an error', (done) => {
+    const slotTable = [
+      [0, 1000, ['127.0.0.1', 30001]],
+      [1001, 16383, ['127.0.0.1', 30002]]
+    ]
+    new MockServer(30001, (argv, c) => {
+    }, slotTable)
+    new MockServer(30002, (argv, c) => {
+    }, slotTable)
+
+    let retried = false
+    const cluster = new Redis.Cluster([
+      { host: 'localhost', port: '30001' }
+    ], {
+      dnsLookup (_, callback) {
+        if (retried) {
+          callback(null, '127.0.0.1')
+        } else {
+          throw new Error('Random Exception')
+        }
+      },
+      clusterRetryStrategy: function (_, reason) {
+        expect(reason.message).to.eql('Random Exception')
+        expect(retried).to.eql(false)
+        retried = true
+        return 0;
+      }
+    })
+    cluster.on('ready', () => {
+      cluster.disconnect();
+      done();
+    })
+  })
 })

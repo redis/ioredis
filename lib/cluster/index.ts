@@ -190,7 +190,11 @@ class Cluster extends EventEmitter {
           }
         }.bind(this))
         this.subscriber.start()
-      }).catch(reject)
+      }).catch((err) => {
+        this.setStatus('close')
+        this.handleCloseEvent(err)
+        reject(err)
+      })
     })
   }
 
@@ -200,10 +204,13 @@ class Cluster extends EventEmitter {
    * @private
    * @memberof Cluster
    */
-  private handleCloseEvent(): void {
+  private handleCloseEvent(reason?: Error): void {
+    if (reason) {
+      debug('closed because %s', reason)
+    }
     let retryDelay
     if (!this.manuallyClosing && typeof this.options.clusterRetryStrategy === 'function') {
-      retryDelay = this.options.clusterRetryStrategy.call(this, ++this.retryAttempts)
+      retryDelay = this.options.clusterRetryStrategy.call(this, ++this.retryAttempts, reason)
     }
     if (typeof retryDelay === 'number') {
       this.setStatus('reconnecting')
