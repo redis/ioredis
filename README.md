@@ -1,4 +1,5 @@
 [![ioredis](https://cdn.rawgit.com/luin/ioredis/57b5b89e3e9111ff25d8c62c0bc58ed42e5b8d1e/logo.svg)](https://github.com/luin/ioredis)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fluin%2Fioredis.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fluin%2Fioredis?ref=badge_shield)
 
 [![Build Status](https://travis-ci.org/luin/ioredis.svg?branch=master)](https://travis-ci.org/luin/ioredis)
 [![Test Coverage](https://codeclimate.com/github/luin/ioredis/badges/coverage.svg)](https://codeclimate.com/github/luin/ioredis)
@@ -1048,3 +1049,6 @@ This project exists thanks to all the people who contribute:
 # License
 
 MIT
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fluin%2Fioredis.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fluin%2Fioredis?ref=badge_large)
