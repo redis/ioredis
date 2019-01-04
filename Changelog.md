@@ -1,3 +1,10 @@
+# [4.4.0](https://github.com/luin/ioredis/compare/v4.3.1...v4.4.0) (2019-01-04)
+
+
+### Features
+
+* support setting connectTimeout in Electron ([#770](https://github.com/luin/ioredis/issues/770)) ([2d591b7](https://github.com/luin/ioredis/commit/2d591b7))
+
 ## [4.3.1](https://github.com/luin/ioredis/compare/v4.3.0...v4.3.1) (2018-12-16)
 
 
