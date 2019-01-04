@@ -70,14 +70,19 @@ describe('connection', function () {
     });
 
     it('should clear the timeout when connected', function (done) {
-      var redis = new Redis({connectTimeout: 10000});
-      setImmediate(function () {
-        stub(redis.stream, 'setTimeout', function (timeout) {
-          expect(timeout).to.eql(0);
-          redis.stream.setTimeout.restore();
-          redis.disconnect();
-          done();
-        });
+      const connectTimeout = 10000
+      var redis = new Redis({connectTimeout});
+      var set = false
+      stub(Socket.prototype, 'setTimeout', function (timeout) {
+        if (timeout === connectTimeout) {
+          set = true;
+          return;
+        }
+        expect(set).to.eql(true);
+        expect(timeout).to.eql(0);
+        Socket.prototype.setTimeout.restore();
+        redis.disconnect();
+        done();
       });
     });
 
