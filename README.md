@@ -901,7 +901,7 @@ end     | emits after `close` when no more reconnections will be made.
 node error | emits when an error occurs when connecting to a node
 
 ### Password
-Setting the `password` option to access password-proctected clusters:
+Setting the `password` option to access password-protected clusters:
 
 ```javascript
 var Redis = require('ioredis');
