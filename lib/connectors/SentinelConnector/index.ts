@@ -28,6 +28,8 @@ interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   sentinelRetryStrategy?: (retryAttempts: number) => number
   preferredSlaves?: PreferredSlaves
   connectTimeout?: number
+  enableTLSForSentinelMode: false
+  sentinelTLS: undefined
 }
 
 export default class SentinelConnector extends AbstractConnector {
@@ -104,7 +106,7 @@ export default class SentinelConnector extends AbstractConnector {
         }
         if (resolved) {
           debug('resolved: %s:%s', resolved.host, resolved.port)
-          if (_this.options.tls) {
+          if (_this.options.enableTLSForSentinelMode && _this.options.tls) {
             Object.assign(resolved, _this.options.tls)
             _this.stream = createTLSConnection(resolved)
           } else {
@@ -198,7 +200,7 @@ export default class SentinelConnector extends AbstractConnector {
       port: endpoint.port || 26379,
       host: endpoint.host,
       family: endpoint.family || (isIIpcConnectionOptions(this.options) ? undefined : this.options.family),
-      tls: this.options.tls,
+      tls: this.options.sentinelTLS,
       retryStrategy: null,
       enableReadyCheck: false,
       connectTimeout: this.options.connectTimeout,
