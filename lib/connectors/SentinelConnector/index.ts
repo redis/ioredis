@@ -1,6 +1,6 @@
 import {createConnection, Socket} from 'net'
 import {CONNECTION_CLOSED_ERROR_MSG, packObject, sample} from '../../utils'
-import {TLSSocket} from 'tls'
+import {connect as createTLSConnection, TLSSocket} from 'tls'
 import {ITcpConnectionOptions, isIIpcConnectionOptions} from '../StandaloneConnector'
 import SentinelIterator from './SentinelIterator'
 import {ISentinelAddress} from './types';
@@ -104,7 +104,12 @@ export default class SentinelConnector extends AbstractConnector {
         }
         if (resolved) {
           debug('resolved: %s:%s', resolved.host, resolved.port)
-          _this.stream = createConnection(resolved)
+          if (_this.options.tls) {
+            Object.assign(resolved, _this.options.tls)
+            _this.stream = createTLSConnection(resolved)
+          } else {
+            _this.stream = createConnection(resolved)
+          }
           _this.sentinelIterator.reset(true)
           callback(null, _this.stream)
         } else {
