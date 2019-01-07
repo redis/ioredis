@@ -1,6 +1,6 @@
 import {createConnection, Socket} from 'net'
 import {CONNECTION_CLOSED_ERROR_MSG, packObject, sample} from '../../utils'
-import {TLSSocket} from 'tls'
+import {connect as createTLSConnection, TLSSocket, SecureContextOptions} from 'tls'
 import {ITcpConnectionOptions, isIIpcConnectionOptions} from '../StandaloneConnector'
 import SentinelIterator from './SentinelIterator'
 import {ISentinelAddress} from './types';
@@ -28,6 +28,8 @@ interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   sentinelRetryStrategy?: (retryAttempts: number) => number
   preferredSlaves?: PreferredSlaves
   connectTimeout?: number
+  enableTLSForSentinelMode?: boolean
+  sentinelTLS?: SecureContextOptions
 }
 
 export default class SentinelConnector extends AbstractConnector {
@@ -104,7 +106,12 @@ export default class SentinelConnector extends AbstractConnector {
         }
         if (resolved) {
           debug('resolved: %s:%s', resolved.host, resolved.port)
-          _this.stream = createConnection(resolved)
+          if (_this.options.enableTLSForSentinelMode && _this.options.tls) {
+            Object.assign(resolved, _this.options.tls)
+            _this.stream = createTLSConnection(resolved)
+          } else {
+            _this.stream = createConnection(resolved)
+          }
           _this.sentinelIterator.reset(true)
           callback(null, _this.stream)
         } else {
@@ -193,6 +200,7 @@ export default class SentinelConnector extends AbstractConnector {
       port: endpoint.port || 26379,
       host: endpoint.host,
       family: endpoint.family || (isIIpcConnectionOptions(this.options) ? undefined : this.options.family),
+      tls: this.options.sentinelTLS,
       retryStrategy: null,
       enableReadyCheck: false,
       connectTimeout: this.options.connectTimeout,
