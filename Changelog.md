@@ -1,3 +1,10 @@
+# [4.5.0](https://github.com/luin/ioredis/compare/v4.4.0...v4.5.0) (2019-01-07)
+
+
+### Features
+
+* allow TLS when using Sentinel ([ebef8f5](https://github.com/luin/ioredis/commit/ebef8f5))
+
 # [4.4.0](https://github.com/luin/ioredis/compare/v4.3.1...v4.4.0) (2019-01-04)
 
 
