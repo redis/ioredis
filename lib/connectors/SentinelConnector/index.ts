@@ -198,6 +198,7 @@ export default class SentinelConnector extends AbstractConnector {
       port: endpoint.port || 26379,
       host: endpoint.host,
       family: endpoint.family || (isIIpcConnectionOptions(this.options) ? undefined : this.options.family),
+      tls: this.options.tls,
       retryStrategy: null,
       enableReadyCheck: false,
       connectTimeout: this.options.connectTimeout,
