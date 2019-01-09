@@ -74,28 +74,30 @@ export default class SentinelConnector extends AbstractConnector {
     function connectToNext() {
       if (!_this.sentinelIterator.hasNext()) {
         _this.sentinelIterator.reset(false)
-        const retryDelay = typeof _this.options.sentinelRetryStrategy === 'function'
-          ? _this.options.sentinelRetryStrategy(++_this.retryAttempts)
-          : null
-
-        let errorMsg = typeof retryDelay !== 'number'
-          ? 'All sentinels are unreachable and retry is disabled.'
-          : `All sentinels are unreachable. Retrying from scratch after ${retryDelay}ms.`
 
         if (lastError) {
-          errorMsg += ` Last error: ${lastError.message}`
-        }
+          const retryDelay = typeof _this.options.sentinelRetryStrategy === 'function'
+            ? _this.options.sentinelRetryStrategy(++_this.retryAttempts)
+            : null
 
-        debug(errorMsg)
+          let errorMsg = typeof retryDelay !== 'number'
+            ? 'All sentinels are unreachable and retry is disabled.'
+            : `All sentinels are unreachable. Retrying from scratch after ${retryDelay}ms.`
 
-        const error = new Error(errorMsg)
-        if (typeof retryDelay === 'number') {
-          setTimeout(connectToNext, retryDelay)
-          eventEmitter('error', error)
-        } else {
-          callback(error)
+            errorMsg += ` Last error: ${lastError.message}`
+          
+
+          debug(errorMsg)
+
+          const error = new Error(errorMsg)
+          if (typeof retryDelay === 'number') {
+            setTimeout(connectToNext, retryDelay)
+            eventEmitter('error', error)
+          } else {
+            callback(error)
+          }
+          return
         }
-        return
       }
 
       const endpoint = _this.sentinelIterator.next()
@@ -105,6 +107,7 @@ export default class SentinelConnector extends AbstractConnector {
           return
         }
         if (resolved) {
+          lastError = null
           debug('resolved: %s:%s', resolved.host, resolved.port)
           if (_this.options.enableTLSForSentinelMode && _this.options.tls) {
             Object.assign(resolved, _this.options.tls)
