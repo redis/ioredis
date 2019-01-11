@@ -212,7 +212,7 @@ class Cluster extends EventEmitter {
     if (!this.manuallyClosing && typeof this.options.clusterRetryStrategy === 'function') {
       retryDelay = this.options.clusterRetryStrategy.call(this, ++this.retryAttempts, reason)
     }
-    if (typeof retryDelay === 'number') {
+    if (typeof retryDelay === 'number' && retryDelay !== NaN) {
       this.setStatus('reconnecting')
       this.reconnectTimeout = setTimeout(function () {
         this.reconnectTimeout = null
