@@ -222,6 +222,35 @@ describe('pipeline', function () {
         });
       });
     });
+
+    it('should check and load uniq scripts only', function (done) {
+      var redis = new Redis();
+      redis.defineCommand('test', {
+        numberOfKeys: 1,
+        lua: 'return {unpack(KEYS),unpack(ARGV)}'
+      });
+      redis.defineCommand('echo', {
+        numberOfKeys: 1,
+        lua: 'return {KEYS[1],ARGV[1]}'
+      });
+
+      redis.once('ready', function () {
+        var expectedComands = ['script', 'script', 'script', 'evalsha', 'evalsha', 'evalsha', 'evalsha'];
+        redis.monitor(function (err, monitor) {
+          monitor.on('monitor', function (_, command) {
+            var name = expectedComands.shift();
+            expect(name).to.eql(command[0]);
+            if (!expectedComands.length) {
+              monitor.disconnect();
+              redis.disconnect();
+              done();
+            }
+          });
+          var pipe = redis.pipeline();
+          pipe.echo('f', '0').test('a', '1').echo('b', '2').test('b', '3').exec();
+        });
+      });
+    });
   });
 
   describe('#length', function () {
