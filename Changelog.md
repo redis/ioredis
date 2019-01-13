@@ -1,3 +1,10 @@
+## [4.5.1](https://github.com/luin/ioredis/compare/v4.5.0...v4.5.1) (2019-01-13)
+
+
+### Performance Improvements
+
+* add checking and loading scripts uniqueness in pipeline ([#781](https://github.com/luin/ioredis/issues/781)) ([66075ba](https://github.com/luin/ioredis/commit/66075ba))
+
 # [4.5.0](https://github.com/luin/ioredis/compare/v4.4.0...v4.5.0) (2019-01-07)
 
 
