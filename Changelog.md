@@ -1,3 +1,10 @@
+# [4.6.0](https://github.com/luin/ioredis/compare/v4.5.1...v4.6.0) (2019-01-21)
+
+
+### Features
+
+* add maxLoadingRetryTime option when redis server not ready ([#784](https://github.com/luin/ioredis/issues/784)) ([0e7713f](https://github.com/luin/ioredis/commit/0e7713f))
+
 ## [4.5.1](https://github.com/luin/ioredis/compare/v4.5.0...v4.5.1) (2019-01-13)
 
 
