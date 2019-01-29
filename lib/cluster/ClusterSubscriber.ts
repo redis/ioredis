@@ -74,6 +74,9 @@ export default class ClusterSubscriber {
       lazyConnect: true
     })
 
+    // Ignore the errors since they're handled in the connection pool.
+    this.subscriber.on('error', noop)
+
     // Re-subscribe previous channels
     var previousChannels = { subscribe: [], psubscribe: [] }
     if (lastActiveSubscriber) {
