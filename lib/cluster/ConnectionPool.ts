@@ -99,6 +99,7 @@ export default class ConnectionPool extends EventEmitter {
       this.emit('+node', redis, key)
 
       redis.on('error', function (error) {
+        debug('Redis cluster node error: %s - %O', key, error)
         this.emit('nodeError', error, key)
       })
     }
