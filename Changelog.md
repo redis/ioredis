@@ -1,3 +1,10 @@
+## [4.6.1](https://github.com/luin/ioredis/compare/v4.6.0...v4.6.1) (2019-01-29)
+
+
+### Bug Fixes
+
+* **Cluster:** ignore connection errors for subscriber. ([#790](https://github.com/luin/ioredis/issues/790)) ([f368c8a](https://github.com/luin/ioredis/commit/f368c8a)), closes [#768](https://github.com/luin/ioredis/issues/768)
+
 # [4.6.0](https://github.com/luin/ioredis/compare/v4.5.1...v4.6.0) (2019-01-21)
 
 
