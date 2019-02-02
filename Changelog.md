@@ -1,3 +1,10 @@
+## [4.6.2](https://github.com/luin/ioredis/compare/v4.6.1...v4.6.2) (2019-02-02)
+
+
+### Bug Fixes
+
+* subscriber initialization when using Cluster ([#792](https://github.com/luin/ioredis/issues/792)) ([32c48ef](https://github.com/luin/ioredis/commit/32c48ef)), closes [#791](https://github.com/luin/ioredis/issues/791)
+
 ## [4.6.1](https://github.com/luin/ioredis/compare/v4.6.0...v4.6.1) (2019-01-29)
 
 
