@@ -71,7 +71,8 @@ export default class ClusterSubscriber {
       password: options.password,
       enableReadyCheck: true,
       connectionName: SUBSCRIBER_CONNECTION_NAME,
-      lazyConnect: true
+      lazyConnect: true,
+      tls: options.tls
     })
 
     // Ignore the errors since they're handled in the connection pool.
