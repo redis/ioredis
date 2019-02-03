@@ -1,3 +1,10 @@
+## [4.6.3](https://github.com/luin/ioredis/compare/v4.6.2...v4.6.3) (2019-02-03)
+
+
+### Bug Fixes
+
+* add second arg to "node error" to know which node failed ([#793](https://github.com/luin/ioredis/issues/793)) ([6049f6c](https://github.com/luin/ioredis/commit/6049f6c)), closes [#774](https://github.com/luin/ioredis/issues/774)
+
 ## [4.6.2](https://github.com/luin/ioredis/compare/v4.6.1...v4.6.2) (2019-02-02)
 
 
