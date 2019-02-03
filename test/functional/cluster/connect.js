@@ -271,8 +271,9 @@ describe('cluster:connect', function () {
       }
     });
 
-    cluster.once('node error', function (err) {
+    cluster.once('node error', function (err, key) {
       expect(err.message).to.eql(errorMessage);
+      expect(['127.0.0.1:30001', '127.0.0.1:30002']).to.include(key)
       checkDone();
     });
 

@@ -898,7 +898,7 @@ reconnecting | emits after `close` when a reconnection will be made. The argumen
 end     | emits after `close` when no more reconnections will be made.
 +node   | emits when a new node is connected.
 -node   | emits when a node is disconnected.
-node error | emits when an error occurs when connecting to a node
+node error | emits when an error occurs when connecting to a node. The second argument indicates the address of the node.
 
 ### Password
 Setting the `password` option to access password-protected clusters:
