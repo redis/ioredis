@@ -87,8 +87,8 @@ class Cluster extends EventEmitter {
     this.connectionPool.on('drain', () => {
       this.setStatus('close')
     })
-    this.connectionPool.on('nodeError', (error) => {
-      this.emit('node error', error)
+    this.connectionPool.on('nodeError', (error, key) => {
+      this.emit('node error', error, key)
     })
 
     this.subscriber = new ClusterSubscriber(this.connectionPool, this)
@@ -384,7 +384,7 @@ class Cluster extends EventEmitter {
             return wrapper(new Error('Cluster is disconnecting.'))
         }
         if (err) {
-          _this.emit('node error', err)
+          _this.emit('node error', err, `${node.options.host}:${node.options.port}`)
           lastNodeError = err
           tryNode(index + 1)
         } else {
