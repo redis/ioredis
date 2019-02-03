@@ -1,10 +1,11 @@
 import * as fbuffer from 'flexbuffer'
 import * as commands from 'redis-commands'
 import * as calculateSlot from 'cluster-key-slot'
-import * as asCallback from 'standard-as-callback'
+import asCallback from 'standard-as-callback'
 import {convertBufferToString, optimizeErrorStack, toArg, convertMapToArray, convertObjectToArray} from './utils'
 import {flatten} from './utils/lodash'
 import {get as getPromise} from './promiseContainer'
+import {CallbackFunction} from './types'
 
 interface ICommandOptions {
   /**
@@ -103,10 +104,12 @@ export default class Command {
     this._transformer.reply[name] = func
   }
 
+  public ignore?: boolean
+
   private replyEncoding: string | null
   private errorStack: string
   private args: Array<string | Buffer | number>
-  private callback: Function
+  private callback: CallbackFunction
   private transformed: boolean = false
   public isCustomCommand: boolean = false
 
@@ -122,11 +125,11 @@ export default class Command {
    * @param {string} name Command name
    * @param {(Array<string | Buffer | number>)} [args=[]] An array of command arguments
    * @param {ICommandOptions} [options={}]
-   * @param {Function} [callback] The callback that handles the response.
+   * @param {CallbackFunction} [callback] The callback that handles the response.
    * If omit, the response will be handled via Promise
    * @memberof Command
    */
-  constructor (public name: string, args: Array<string | Buffer | number> = [], options: ICommandOptions = {}, callback?: Function) {
+  constructor (public name: string, args: Array<string | Buffer | number> = [], options: ICommandOptions = {}, callback?: CallbackFunction) {
     this.replyEncoding = options.replyEncoding
     this.errorStack = options.errorStack
 
