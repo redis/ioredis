@@ -103,6 +103,8 @@ export default class Command {
     this._transformer.reply[name] = func
   }
 
+  public ignore?: boolean
+
   private replyEncoding: string | null
   private errorStack: string
   private args: Array<string | Buffer | number>
