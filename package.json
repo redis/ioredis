@@ -38,7 +38,7 @@
     "redis-commands": "1.4.0",
     "redis-errors": "^1.2.0",
     "redis-parser": "^3.0.0",
-    "standard-as-callback": "^1.0.0"
+    "standard-as-callback": "^2.0.1"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^3.0.0",

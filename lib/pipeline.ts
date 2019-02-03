@@ -1,10 +1,11 @@
 import Command from './command'
 import {FlexBuffer} from 'flexbuffer'
 import {deprecate} from 'util'
-import * as asCallback from 'standard-as-callback'
+import asCallback from 'standard-as-callback'
 import {exists, hasFlag} from 'redis-commands'
 import {generateMulti} from 'cluster-key-slot'
 import * as PromiseContainer from './promiseContainer'
+import {CallbackFunction} from './types'
 const Commander = require('./commander')
 
 export default function Pipeline(redis) {
@@ -203,7 +204,7 @@ Pipeline.prototype.execBuffer = deprecate(function () {
   return execBuffer.apply(this, arguments)
 }, 'Pipeline#execBuffer: Use Pipeline#exec instead')
 
-Pipeline.prototype.exec = function (callback) {
+Pipeline.prototype.exec = function (callback: CallbackFunction) {
   if (this._transactions > 0) {
     this._transactions -= 1
     return (this.options.dropBufferSupport ? exec : execBuffer).apply(this, arguments)

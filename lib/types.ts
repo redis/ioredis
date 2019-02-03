@@ -1,1 +1,1 @@
-export type CallbackFunction<T = void> = (err?: NodeJS.ErrnoException | null, result?: T) => void
+export type CallbackFunction<T = any> = (err?: NodeJS.ErrnoException | null, result?: T) => void

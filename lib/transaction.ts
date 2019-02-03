@@ -1,6 +1,7 @@
 import {wrapMultiResult} from './utils'
-import * as asCallback from 'standard-as-callback'
+import asCallback from 'standard-as-callback'
 import Pipeline from './pipeline'
+import {CallbackFunction} from './types'
 
 export function addTransactionSupport (redis) {
   redis.pipeline = function (commands) {
@@ -26,7 +27,7 @@ export function addTransactionSupport (redis) {
       pipeline.addBatch(commands)
     }
     const exec = pipeline.exec
-    pipeline.exec = function (callback) {
+    pipeline.exec = function (callback: CallbackFunction) {
       if (this._transactions > 0) {
         exec.call(pipeline)
       }
@@ -57,7 +58,7 @@ export function addTransactionSupport (redis) {
   }
 
   const {exec} = redis
-  redis.exec = function (callback) {
+  redis.exec = function (callback: CallbackFunction) {
     return asCallback(exec.call(this).then(function (results) {
       if (Array.isArray(results)) {
         results = wrapMultiResult(results)
