@@ -5,7 +5,7 @@ import asCallback from 'standard-as-callback'
 import {convertBufferToString, optimizeErrorStack, toArg, convertMapToArray, convertObjectToArray} from './utils'
 import {flatten} from './utils/lodash'
 import {get as getPromise} from './promiseContainer'
-import {CallbackFunction} from './types';
+import {CallbackFunction} from './types'
 
 interface ICommandOptions {
   /**
