@@ -374,7 +374,8 @@ class Cluster extends EventEmitter {
         return wrapper(error)
       }
       const node = nodes[index]
-      debug('getting slot cache from %s:%s', node.options.host, node.options.port)
+      const key = `${node.options.host}:${node.options.port}`
+      debug('getting slot cache from %s', key)
       _this.getInfoFromNode(node, function (err) {
         switch (_this.status) {
           case 'close':
@@ -384,7 +385,7 @@ class Cluster extends EventEmitter {
             return wrapper(new Error('Cluster is disconnecting.'))
         }
         if (err) {
-          _this.emit('node error', err, `${node.options.host}:${node.options.port}`)
+          _this.emit('node error', err, key)
           lastNodeError = err
           tryNode(index + 1)
         } else {
