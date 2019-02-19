@@ -1,4 +1,5 @@
 import {createConnection, Socket} from 'net'
+import {NatMap} from '../../cluster/ClusterOptions';
 import {CONNECTION_CLOSED_ERROR_MSG, packObject, sample} from '../../utils'
 import {connect as createTLSConnection, TLSSocket, SecureContextOptions} from 'tls'
 import {ITcpConnectionOptions, isIIpcConnectionOptions} from '../StandaloneConnector'
@@ -30,6 +31,7 @@ interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   connectTimeout?: number
   enableTLSForSentinelMode?: boolean
   sentinelTLS?: SecureContextOptions
+  natMap: NatMap
 }
 
 export default class SentinelConnector extends AbstractConnector {
@@ -44,6 +46,10 @@ export default class SentinelConnector extends AbstractConnector {
     }
     if (!this.options.name) {
       throw new Error('Requires the name of master.')
+    }
+
+    if (this.options.natMap && Object.keys(this.options.natMap).length === 0) {
+      throw new Error('Empty natMap is not allowed.')
     }
 
     this.sentinelIterator = new SentinelIterator(this.options.sentinels)
@@ -168,7 +174,10 @@ export default class SentinelConnector extends AbstractConnector {
         if (err) {
           return callback(err)
         }
-        callback(null, Array.isArray(result) ? { host: result[0], port: Number(result[1]) } : null)
+
+        callback(null, this.sentinelNatResolve(
+          Array.isArray(result) ? { host: result[0], port: Number(result[1]) } : null
+        ))
       })
     })
   }
@@ -188,8 +197,17 @@ export default class SentinelConnector extends AbstractConnector {
         slave.flags && !slave.flags.match(/(disconnected|s_down|o_down)/)
       ))
 
-      callback(null, selectPreferredSentinel(availableSlaves, this.options.preferredSlaves))
+      callback(null, this.sentinelNatResolve(
+        selectPreferredSentinel(availableSlaves, this.options.preferredSlaves)
+      ))
     })
+  }
+
+  sentinelNatResolve (item: ISentinelAddress) {
+    if (!item || !this.options.natMap)
+      return item;
+
+    return this.options.natMap[`${item.host}:${item.port}`] || item
   }
 
   private resolve (endpoint, callback: NodeCallback<ITcpConnectionOptions>): void {
