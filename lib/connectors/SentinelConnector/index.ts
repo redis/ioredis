@@ -152,7 +152,7 @@ export default class SentinelConnector extends AbstractConnector {
       result.map<IAddressFromResponse>(packObject as (value: any) => IAddressFromResponse).forEach(sentinel => {
         const flags = sentinel.flags ? sentinel.flags.split(',') : []
         if (flags.indexOf('disconnected') === -1 && sentinel.ip && sentinel.port) {
-          const endpoint = addressResponseToAddress(sentinel)
+          const endpoint = this.sentinelNatResolve(addressResponseToAddress(sentinel))
           if (this.sentinelIterator.add(endpoint)) {
             debug('adding sentinel %s:%s', endpoint.host, endpoint.port)
           }
