@@ -1,3 +1,10 @@
+# [4.8.0](https://github.com/luin/ioredis/compare/v4.7.0...v4.8.0) (2019-03-12)
+
+
+### Features
+
+* nat support for sentinel connector ([#799](https://github.com/luin/ioredis/issues/799)) ([335b3e2](https://github.com/luin/ioredis/commit/335b3e2))
+
 # [4.7.0](https://github.com/luin/ioredis/compare/v4.6.3...v4.7.0) (2019-03-12)
 
 
