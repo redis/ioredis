@@ -1,3 +1,10 @@
+# [4.7.0](https://github.com/luin/ioredis/compare/v4.6.3...v4.7.0) (2019-03-12)
+
+
+### Features
+
+* add updateSentinels option to control new sentinel values being added to the original list ([#814](https://github.com/luin/ioredis/issues/814)) ([50a9db7](https://github.com/luin/ioredis/commit/50a9db7)), closes [#798](https://github.com/luin/ioredis/issues/798)
+
 ## [4.6.3](https://github.com/luin/ioredis/compare/v4.6.2...v4.6.3) (2019-02-03)
 
 
