@@ -1,4 +1,5 @@
 import {createConnection, Socket} from 'net'
+import {NatMap} from '../../cluster/ClusterOptions';
 import {CONNECTION_CLOSED_ERROR_MSG, packObject, sample} from '../../utils'
 import {connect as createTLSConnection, TLSSocket, SecureContextOptions} from 'tls'
 import {ITcpConnectionOptions, isIIpcConnectionOptions} from '../StandaloneConnector'
@@ -30,6 +31,7 @@ interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   connectTimeout?: number
   enableTLSForSentinelMode?: boolean
   sentinelTLS?: SecureContextOptions
+  natMap: NatMap
   updateSentinels?: boolean
 }
 
@@ -152,7 +154,7 @@ export default class SentinelConnector extends AbstractConnector {
       result.map<IAddressFromResponse>(packObject as (value: any) => IAddressFromResponse).forEach(sentinel => {
         const flags = sentinel.flags ? sentinel.flags.split(',') : []
         if (flags.indexOf('disconnected') === -1 && sentinel.ip && sentinel.port) {
-          const endpoint = addressResponseToAddress(sentinel)
+          const endpoint = this.sentinelNatResolve(addressResponseToAddress(sentinel))
           if (this.sentinelIterator.add(endpoint)) {
             debug('adding sentinel %s:%s', endpoint.host, endpoint.port)
           }
@@ -174,7 +176,10 @@ export default class SentinelConnector extends AbstractConnector {
         if (err) {
           return callback(err)
         }
-        callback(null, Array.isArray(result) ? { host: result[0], port: Number(result[1]) } : null)
+
+        callback(null, this.sentinelNatResolve(
+          Array.isArray(result) ? { host: result[0], port: Number(result[1]) } : null
+        ))
       })
     })
   }
@@ -194,8 +199,17 @@ export default class SentinelConnector extends AbstractConnector {
         slave.flags && !slave.flags.match(/(disconnected|s_down|o_down)/)
       ))
 
-      callback(null, selectPreferredSentinel(availableSlaves, this.options.preferredSlaves))
+      callback(null, this.sentinelNatResolve(
+        selectPreferredSentinel(availableSlaves, this.options.preferredSlaves)
+      ))
     })
+  }
+
+  sentinelNatResolve (item: ISentinelAddress) {
+    if (!item || !this.options.natMap)
+      return item;
+
+    return this.options.natMap[`${item.host}:${item.port}`] || item
   }
 
   private resolve (endpoint, callback: NodeCallback<ITcpConnectionOptions>): void {
