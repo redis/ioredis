@@ -1,7 +1,8 @@
 import {createHash} from 'crypto'
 import {isPromise} from './promiseContainer'
 import Command from './command'
-import * as asCallback from 'standard-as-callback'
+import asCallback from 'standard-as-callback'
+import {CallbackFunction} from './types'
 
 export default class Script {
   private sha: string
@@ -14,7 +15,7 @@ export default class Script {
     this.sha = createHash('sha1').update(lua).digest('hex')
   }
 
-  execute (container: any, args: any[], options: any, callback?: Function) {
+  execute (container: any, args: any[], options: any, callback?: CallbackFunction) {
     if (typeof this.numberOfKeys === 'number') {
       args.unshift(this.numberOfKeys)
     }

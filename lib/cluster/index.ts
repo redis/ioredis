@@ -7,7 +7,7 @@ import ClusterSubscriber from './ClusterSubscriber'
 import DelayQueue from './DelayQueue'
 import ScanStream from '../ScanStream'
 import {AbortError, RedisError} from 'redis-errors'
-import * as asCallback from 'standard-as-callback'
+import asCallback from 'standard-as-callback'
 import * as PromiseContainer from '../promiseContainer'
 import {CallbackFunction} from '../types';
 import {IClusterOptions, DEFAULT_CLUSTER_OPTIONS} from './ClusterOptions'
@@ -347,7 +347,7 @@ class Cluster extends EventEmitter {
    * @param {CallbackFunction} [callback]
    * @memberof Cluster
    */
-  private refreshSlotsCache(callback?: CallbackFunction): void {
+  private refreshSlotsCache(callback?: CallbackFunction<void>): void {
     if (this.isRefreshing) {
       if (typeof callback === 'function') {
         process.nextTick(callback)

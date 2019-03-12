@@ -32,6 +32,7 @@ interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   enableTLSForSentinelMode?: boolean
   sentinelTLS?: SecureContextOptions
   natMap: NatMap
+  updateSentinels?: boolean
 }
 
 export default class SentinelConnector extends AbstractConnector {
@@ -136,6 +137,11 @@ export default class SentinelConnector extends AbstractConnector {
   }
 
   private updateSentinels (client, callback: NodeCallback): void {
+
+    if (!this.options.updateSentinels) {
+      return callback(null)
+    }
+
     client.sentinel('sentinels', this.options.name, (err, result) => {
       if (err) {
         client.disconnect()
