@@ -48,10 +48,6 @@ export default class SentinelConnector extends AbstractConnector {
       throw new Error('Requires the name of master.')
     }
 
-    if (this.options.natMap && Object.keys(this.options.natMap).length === 0) {
-      throw new Error('Empty natMap is not allowed.')
-    }
-
     this.sentinelIterator = new SentinelIterator(this.options.sentinels)
   }
 

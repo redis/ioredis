@@ -69,22 +69,4 @@ describe('sentinel_nat', function() {
       })
   })
 
-  it('throws \'Empty natMap is not allowed.\' when empty natMap was given', function(done) {
-    try {
-      new Redis({
-        sentinels: [
-          { host: '127.0.0.1', port: '27379' }
-        ],
-        natMap: {},
-        name: 'master',
-      })
-    } catch (error) {
-      if (error.message === 'Empty natMap is not allowed.') {
-        done(null)
-      } else {
-        done(new Error('Should not call'))
-      }
-    }
-  })
-
 })
