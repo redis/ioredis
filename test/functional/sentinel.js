@@ -124,7 +124,6 @@ describe('sentinel', function () {
         name: 'master'
       });
     });
-
     it('should add additionally discovered sentinels when resolving successfully', function (done) {
 
       var sentinels = [
@@ -186,7 +185,25 @@ describe('sentinel', function () {
         name: 'master'
       });
     });
+    it('should connect to sentinel with authentication successfully', function (done) {
+      var sentinel = new MockServer(27379, function (argv) {
+        if (argv[0] === 'auth' && argv[1] === 'pass') {
+          authed = true;
+        }
+      });
+      sentinel.once('connect', function () {
+        redis.disconnect();
+        sentinel.disconnect(done);
+      });
 
+      var redis = new Redis({
+        sentinelPassword: 'pass',
+        sentinels: [
+          { host: '127.0.0.1', port: '27379' }
+        ],
+        name: 'master'
+      });
+    });
   });
 
   describe('master', function () {

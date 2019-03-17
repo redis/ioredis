@@ -673,6 +673,7 @@ redis.set('foo', 'bar');
 The arguments passed to the constructor are different from the ones you use to connect to a single node, where:
 
 * `name` identifies a group of Redis instances composed of a master and one or more slaves (`mymaster` in the example);
+* `sentinelPassword` (optional) password for Sentinel instances.
 * `sentinels` are a list of sentinels to connect to. The list does not need to enumerate all your sentinel instances, but a few so that if one is down the client will try the next one.
 * `role` (optional) with a value of `slave` will return a random slave from the Sentinel group.
 * `preferredSlaves` (optional) can be used to prefer a particular slave or set of slaves based on priority. It accepts a function or array.

@@ -25,6 +25,7 @@ type PreferredSlaves =
 interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   role: 'master' | 'slave'
   name: 'string'
+  sentinelPasseword?: 'string'
   sentinels: Array<ISentinelAddress>
   sentinelRetryStrategy?: (retryAttempts: number) => number
   preferredSlaves?: PreferredSlaves
@@ -219,6 +220,7 @@ export default class SentinelConnector extends AbstractConnector {
     var client = new Redis({
       port: endpoint.port || 26379,
       host: endpoint.host,
+      password: this.options.sentinelPasseword || null,
       family: endpoint.family || (isIIpcConnectionOptions(this.options) ? undefined : this.options.family),
       tls: this.options.sentinelTLS,
       retryStrategy: null,
