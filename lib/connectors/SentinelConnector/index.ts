@@ -25,7 +25,7 @@ type PreferredSlaves =
 interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   role: 'master' | 'slave'
   name: 'string'
-  sentinelPasseword?: 'string'
+  sentinelPassword?: 'string'
   sentinels: Array<ISentinelAddress>
   sentinelRetryStrategy?: (retryAttempts: number) => number
   preferredSlaves?: PreferredSlaves
