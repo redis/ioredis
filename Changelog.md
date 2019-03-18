@@ -1,3 +1,10 @@
+# [4.9.0](https://github.com/luin/ioredis/compare/v4.8.0...v4.9.0) (2019-03-18)
+
+
+### Features
+
+* **sentinel:** support Sentinel instances with authentication. ([#817](https://github.com/luin/ioredis/issues/817)) ([2437eae](https://github.com/luin/ioredis/commit/2437eae))
+
 # [4.8.0](https://github.com/luin/ioredis/compare/v4.7.0...v4.8.0) (2019-03-12)
 
 
