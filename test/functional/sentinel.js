@@ -186,7 +186,33 @@ describe('sentinel', function () {
         name: 'master'
       });
     });
+    it('should connect to sentinel with authentication successfully', function (done) {
+      var authed = false;
+      var redisServer = new MockServer('17380', function (argv) {
+        if (argv[0] === 'auth' && argv[1] === 'pass') {
+          authed = true;
+        } else if (argv[0] === 'get' && argv[1] === 'foo') {
+          expect(authed).to.eql(true);
+          redisServer.disconnect();
+          done();
+        }
+      })
+      var sentinel = new MockServer(27379, function (argv) {
+        if (argv[0] === 'sentinel' && argv[1] === 'get-master-addr-by-name') {
+          sentinel.disconnect(done);
+          return ['127.0.0.1', '17380'];
+        }
+      });
 
+      var redis = new Redis({
+        sentinelPassword: 'pass',
+        sentinels: [
+          { host: '127.0.0.1', port: '27379' }
+        ],
+        name: 'master'
+      });
+      redis.get('foo').catch(function () {});
+    });
   });
 
   describe('master', function () {
