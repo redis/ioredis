@@ -31,7 +31,7 @@
     "cluster-key-slot": "^1.0.6",
     "debug": "^3.1.0",
     "denque": "^1.1.0",
-    "flexbuffer": "0.0.6",
+    "flexbuffer": "github:mercadolibre/flexbuffer-node#1487df393a30872e3e81b246711a4cf6b0b23314",
     "lodash.defaults": "^4.2.0",
     "lodash.flatten": "^4.4.0",
     "redis-commands": "1.4.0",
