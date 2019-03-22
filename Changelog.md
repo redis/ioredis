@@ -1,3 +1,10 @@
+## [4.9.1](https://github.com/luin/ioredis/compare/v4.9.0...v4.9.1) (2019-03-22)
+
+
+### Bug Fixes
+
+* use flexbuffer from GH with License ([#821](https://github.com/luin/ioredis/issues/821)) ([93ecd70](https://github.com/luin/ioredis/commit/93ecd70))
+
 # [4.9.0](https://github.com/luin/ioredis/compare/v4.8.0...v4.9.0) (2019-03-18)
 
 
