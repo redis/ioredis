@@ -1,4 +1,4 @@
-import * as fbuffer from 'flexbuffer'
+import * as fbuffer from 'flexbuffer2'
 import * as commands from 'redis-commands'
 import * as calculateSlot from 'cluster-key-slot'
 import asCallback from 'standard-as-callback'

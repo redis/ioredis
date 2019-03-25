@@ -1,5 +1,5 @@
 import Command from './command'
-import {FlexBuffer} from 'flexbuffer'
+import {FlexBuffer} from 'flexbuffer2'
 import {deprecate} from 'util'
 import asCallback from 'standard-as-callback'
 import {exists, hasFlag} from 'redis-commands'
