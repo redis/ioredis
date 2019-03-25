@@ -278,7 +278,7 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
   }).then(execPipeline)
 
   function execPipeline() {
-    let data: FlexBuffer | string = ''
+    let data: FlexBuffer | Buffer | string = ''
     let writePending: number = _this.replyPending = _this._queue.length
 
     let node
@@ -303,7 +303,7 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
         }
         if (!--writePending) {
           if (bufferMode) {
-            data = data.getBuffer()
+            data = (data as FlexBuffer).getBuffer()
           }
           if (_this.isCluster) {
             node.redis.stream.write(data)
