@@ -1,4 +1,3 @@
-import * as fbuffer from 'flexbuffer'
 import * as commands from 'redis-commands'
 import * as calculateSlot from 'cluster-key-slot'
 import asCallback from 'standard-as-callback'
@@ -223,22 +222,21 @@ export default class Command {
     let result
     let commandStr = '*' + (this.args.length + 1) + '\r\n$' + this.name.length + '\r\n' + this.name + '\r\n'
     if (bufferMode) {
-      const resultBuffer = new fbuffer.FlexBuffer(0)
-      resultBuffer.write(commandStr)
+      const buffers: (string | Buffer)[] = [commandStr];
       for (const arg of this.args) {
         if (arg instanceof Buffer) {
           if (arg.length === 0) {
-            resultBuffer.write('$0\r\n\r\n')
+            buffers.push('$0\r\n\r\n')
           } else {
-            resultBuffer.write('$' + arg.length + '\r\n')
-            resultBuffer.write(arg)
-            resultBuffer.write('\r\n')
+            buffers.push('$' + arg.length + '\r\n')
+            buffers.push(arg)
+            buffers.push('\r\n')
           }
         } else {
-          resultBuffer.write('$' + Buffer.byteLength(arg as string | Buffer) + '\r\n' + arg + '\r\n')
+          buffers.push('$' + Buffer.byteLength(arg as string | Buffer) + '\r\n' + arg + '\r\n')
         }
       }
-      result = resultBuffer.getBuffer()
+      result = Buffer.concat(buffers.map(b => Buffer.isBuffer(b) ? b : Buffer.from(b, 'utf8')))
     } else {
       result = commandStr
       for (const arg of this.args) {

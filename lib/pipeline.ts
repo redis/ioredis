@@ -1,5 +1,4 @@
 import Command from './command'
-import {FlexBuffer} from 'flexbuffer'
 import {deprecate} from 'util'
 import asCallback from 'standard-as-callback'
 import {exists, hasFlag} from 'redis-commands'
@@ -278,7 +277,7 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
   }).then(execPipeline)
 
   function execPipeline() {
-    let data: FlexBuffer | string = ''
+    let data: Buffer | string = ''
     let writePending: number = _this.replyPending = _this._queue.length
 
     let node
@@ -292,19 +291,14 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
           bufferMode = true
         }
         if (bufferMode) {
-          if (typeof data === 'string') {
-            var flexBuffer = new FlexBuffer(0)
-            flexBuffer.write(data)
-            data = flexBuffer
-          }
-          (data as FlexBuffer).write(writable)
+          data = Buffer.concat([
+            typeof data === 'string' ? Buffer.from(data, 'utf8') : data,
+            typeof writable === 'string' ? Buffer.from(writable, 'utf8') : writable
+          ])
         } else {
           data += writable
         }
         if (!--writePending) {
-          if (bufferMode) {
-            data = data.getBuffer()
-          }
           if (_this.isCluster) {
             node.redis.stream.write(data)
           } else {
