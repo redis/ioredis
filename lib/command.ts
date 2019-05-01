@@ -222,7 +222,8 @@ export default class Command {
     let result
     let commandStr = '*' + (this.args.length + 1) + '\r\n$' + this.name.length + '\r\n' + this.name + '\r\n'
     if (bufferMode) {
-      const buffers: (string | Buffer)[] = [commandStr];
+      const buffers = new MixedBuffers();
+      buffers.push(commandStr);
       for (const arg of this.args) {
         if (arg instanceof Buffer) {
           if (arg.length === 0) {
@@ -236,7 +237,7 @@ export default class Command {
           buffers.push('$' + Buffer.byteLength(arg as string | Buffer) + '\r\n' + arg + '\r\n')
         }
       }
-      result = Buffer.concat(buffers.map(b => Buffer.isBuffer(b) ? b : Buffer.from(b, 'utf8')))
+      result = buffers.toBuffer();
     } else {
       result = commandStr
       for (const arg of this.args) {
@@ -330,3 +331,26 @@ Command.setReplyTransformer('hgetall', function (result) {
   }
   return result
 })
+
+class MixedBuffers {
+  length = 0
+  items = []
+
+  public push(x: string | Buffer) {
+    this.length += Buffer.byteLength(x);
+    this.items.push(x)
+  }
+
+  public toBuffer(): Buffer {
+    const result = Buffer.alloc(this.length);
+    let offset = 0;
+    this.items.forEach((b: Buffer|string) => {
+      const length = Buffer.byteLength(b);
+      Buffer.isBuffer(b)
+        ? (b as Buffer).copy(result, offset)
+        : result.write(b, offset, length)
+      offset += length;
+    });
+    return result;
+  }
+}
