@@ -344,13 +344,13 @@ class MixedBuffers {
   public toBuffer(): Buffer {
     const result = Buffer.alloc(this.length);
     let offset = 0;
-    this.items.forEach((b: Buffer|string) => {
-      const length = Buffer.byteLength(b);
-      Buffer.isBuffer(b)
-        ? (b as Buffer).copy(result, offset)
-        : result.write(b, offset, length)
+    for (const item of this.items) {
+      const length = Buffer.byteLength(item);
+      Buffer.isBuffer(item)
+        ? (item as Buffer).copy(result, offset)
+        : result.write(item, offset, length)
       offset += length;
-    });
+    }
     return result;
   }
 }
