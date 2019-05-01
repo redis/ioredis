@@ -342,7 +342,7 @@ class MixedBuffers {
   }
 
   public toBuffer(): Buffer {
-    const result = Buffer.alloc(this.length);
+    const result = Buffer.allocUnsafe(this.length);
     let offset = 0;
     for (const item of this.items) {
       const length = Buffer.byteLength(item);
