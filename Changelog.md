@@ -1,3 +1,10 @@
+## [4.9.2](https://github.com/luin/ioredis/compare/v4.9.1...v4.9.2) (2019-05-03)
+
+
+### Bug Fixes
+
+* removed flexbuffer dependency ([#856](https://github.com/luin/ioredis/issues/856)) ([35e0c5e](https://github.com/luin/ioredis/commit/35e0c5e))
+
 ## [4.9.1](https://github.com/luin/ioredis/compare/v4.9.0...v4.9.1) (2019-03-22)
 
 
