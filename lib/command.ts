@@ -1,4 +1,3 @@
-import * as fbuffer from 'flexbuffer'
 import * as commands from 'redis-commands'
 import * as calculateSlot from 'cluster-key-slot'
 import asCallback from 'standard-as-callback'
@@ -223,22 +222,22 @@ export default class Command {
     let result
     let commandStr = '*' + (this.args.length + 1) + '\r\n$' + this.name.length + '\r\n' + this.name + '\r\n'
     if (bufferMode) {
-      const resultBuffer = new fbuffer.FlexBuffer(0)
-      resultBuffer.write(commandStr)
+      const buffers = new MixedBuffers();
+      buffers.push(commandStr);
       for (const arg of this.args) {
         if (arg instanceof Buffer) {
           if (arg.length === 0) {
-            resultBuffer.write('$0\r\n\r\n')
+            buffers.push('$0\r\n\r\n')
           } else {
-            resultBuffer.write('$' + arg.length + '\r\n')
-            resultBuffer.write(arg)
-            resultBuffer.write('\r\n')
+            buffers.push('$' + arg.length + '\r\n')
+            buffers.push(arg)
+            buffers.push('\r\n')
           }
         } else {
-          resultBuffer.write('$' + Buffer.byteLength(arg as string | Buffer) + '\r\n' + arg + '\r\n')
+          buffers.push('$' + Buffer.byteLength(arg as string | Buffer) + '\r\n' + arg + '\r\n')
         }
       }
-      result = resultBuffer.getBuffer()
+      result = buffers.toBuffer();
     } else {
       result = commandStr
       for (const arg of this.args) {
@@ -332,3 +331,26 @@ Command.setReplyTransformer('hgetall', function (result) {
   }
   return result
 })
+
+class MixedBuffers {
+  length = 0
+  items = []
+
+  public push(x: string | Buffer) {
+    this.length += Buffer.byteLength(x);
+    this.items.push(x)
+  }
+
+  public toBuffer(): Buffer {
+    const result = Buffer.allocUnsafe(this.length);
+    let offset = 0;
+    for (const item of this.items) {
+      const length = Buffer.byteLength(item);
+      Buffer.isBuffer(item)
+        ? (item as Buffer).copy(result, offset)
+        : result.write(item, offset, length)
+      offset += length;
+    }
+    return result;
+  }
+}
