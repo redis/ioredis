@@ -34,6 +34,9 @@ export function addTransactionSupport (redis) {
       const promise = exec.call(pipeline)
       return asCallback(promise.then(function (result) {
         const execResult = result[result.length - 1]
+        if (typeof execResult === 'undefined') {
+          return
+        }
         if (execResult[0]) {
           execResult[0].previousErrors = []
           for (let i = 0; i < result.length - 1; ++i) {
