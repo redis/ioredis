@@ -1,3 +1,10 @@
+## [4.9.3](https://github.com/luin/ioredis/compare/v4.9.2...v4.9.3) (2019-05-07)
+
+
+### Bug Fixes
+
+* more meaningful errors when using pipeline after exec(). ([#858](https://github.com/luin/ioredis/issues/858)) ([0c3ef01](https://github.com/luin/ioredis/commit/0c3ef01))
+
 ## [4.9.2](https://github.com/luin/ioredis/compare/v4.9.1...v4.9.2) (2019-05-03)
 
 
