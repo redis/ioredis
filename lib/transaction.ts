@@ -35,7 +35,7 @@ export function addTransactionSupport (redis) {
       return asCallback(promise.then(function (result) {
         const execResult = result[result.length - 1]
         if (typeof execResult === 'undefined') {
-          return
+          throw new Error('Pipeline cannot be used to send any commands when the `exec()` has been called on it.');
         }
         if (execResult[0]) {
           execResult[0].previousErrors = []
