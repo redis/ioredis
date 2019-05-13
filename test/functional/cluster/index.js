@@ -248,7 +248,7 @@ describe('cluster', function () {
   });
 
   describe('#nodes()', function () {
-    it('should return the corrent nodes', function (done) {
+    it.skip('should return the corrent nodes', function (done) {
       var slotTable = [
         [0, 5460, ['127.0.0.1', 30001], ['127.0.0.1', 30003]],
         [5461, 10922, ['127.0.0.1', 30002]]
