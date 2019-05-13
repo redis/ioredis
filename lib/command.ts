@@ -220,7 +220,7 @@ export default class Command {
     }
 
     let result
-    let commandStr = '*' + (this.args.length + 1) + '\r\n$' + this.name.length + '\r\n' + this.name + '\r\n'
+    let commandStr = '*' + (this.args.length + 1) + '\r\n$' + Buffer.byteLength(this.name) + '\r\n' + this.name + '\r\n'
     if (bufferMode) {
       const buffers = new MixedBuffers();
       buffers.push(commandStr);
