@@ -207,4 +207,17 @@ describe('send command', function () {
       });
     });
   });
+
+  it('throws for invalid command', async () => {
+    const redis = new Redis()
+    const invalidCommand = 'áéűáű'
+    let err
+    try {
+      await redis.call(invalidCommand, [])
+    } catch(e) {
+      err = e.message
+    }
+    expect(err).to.contain('unknown command')
+    expect(err).to.contain(invalidCommand)
+  })
 });
