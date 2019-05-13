@@ -1,3 +1,10 @@
+## [4.9.4](https://github.com/luin/ioredis/compare/v4.9.3...v4.9.4) (2019-05-13)
+
+
+### Bug Fixes
+
+* handle non-utf8 command name ([#866](https://github.com/luin/ioredis/issues/866)) ([9ddb58b](https://github.com/luin/ioredis/commit/9ddb58b)), closes [#862](https://github.com/luin/ioredis/issues/862)
+
 ## [4.9.3](https://github.com/luin/ioredis/compare/v4.9.2...v4.9.3) (2019-05-07)
 
 
