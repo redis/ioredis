@@ -217,6 +217,7 @@ describe('send command', function () {
     } catch(e) {
       err = e.message
     }
-    expect(err).to.contain(`unknown command \`${invalidCommand}\``)
+    expect(err).to.contain('unknown command')
+    expect(err).to.contain(invalidCommand)
   })
 });
