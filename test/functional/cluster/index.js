@@ -104,7 +104,12 @@ describe('cluster', function () {
           return 0;
         }
       });
+      let hasDone = false
       new MockServer(30002, function () {
+        if (hasDone) {
+          return
+        }
+        hasDone = true
         client.disconnect();
         done();
       });
@@ -248,10 +253,10 @@ describe('cluster', function () {
   });
 
   describe('#nodes()', function () {
-    it.skip('should return the corrent nodes', function (done) {
+    it('should return the corrent nodes', function (done) {
       var slotTable = [
-        [0, 5460, ['127.0.0.1', 30001], ['127.0.0.1', 30003]],
-        [5461, 10922, ['127.0.0.1', 30002]]
+        [0, 16381, ['127.0.0.1', 30001], ['127.0.0.1', 30003]],
+        [16382, 16383, ['127.0.0.1', 30002]]
       ];
       var node = new MockServer(30001, function (argv) {
         if (argv[0] === 'cluster' && argv[1] === 'slots') {
@@ -271,7 +276,8 @@ describe('cluster', function () {
       });
 
       var cluster = new Redis.Cluster([{ host: '127.0.0.1', port: '30001' }]);
-      cluster.on('ready', function () {
+      // Make sure 30001 has been connected
+      cluster.get('foo', function () {
         expect(cluster.nodes()).to.have.lengthOf(3);
         expect(cluster.nodes('all')).to.have.lengthOf(3);
         expect(cluster.nodes('master')).to.have.lengthOf(2);

@@ -1,5 +1,5 @@
 describe('cluster:pub/sub', function () {
-  it.skip('should receive messages', function (done) {
+  it('should receive messages', function (done) {
     var handler = function (argv) {
       if (argv[0] === 'cluster' && argv[1] === 'slots') {
         return [

@@ -479,6 +479,7 @@ class Cluster extends EventEmitter {
             }
             _this.connectionPool.findOrCreate(_this.natMapper(key))
             tryConnection()
+            debug('refreshing slot caches... (triggered by MOVED error)')
             _this.refreshSlotsCache()
           },
           ask: function (slot, key) {
@@ -623,7 +624,8 @@ class Cluster extends EventEmitter {
     const duplicatedConnection = redis.duplicate({
       enableOfflineQueue: true,
       enableReadyCheck: false,
-      retryStrategy: null
+      retryStrategy: null,
+      connectionName: 'ioredisClusterRefresher'
     })
     duplicatedConnection.cluster('slots', timeout((err, result) => {
       duplicatedConnection.disconnect()
