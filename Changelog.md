@@ -1,3 +1,10 @@
+## [4.9.5](https://github.com/luin/ioredis/compare/v4.9.4...v4.9.5) (2019-05-15)
+
+
+### Bug Fixes
+
+* **cluster:** make blocking commands works with cluster ([#867](https://github.com/luin/ioredis/issues/867)) ([68db71b](https://github.com/luin/ioredis/commit/68db71b)), closes [#850](https://github.com/luin/ioredis/issues/850) [#850](https://github.com/luin/ioredis/issues/850)
+
 ## [4.9.4](https://github.com/luin/ioredis/compare/v4.9.3...v4.9.4) (2019-05-13)
 
 
