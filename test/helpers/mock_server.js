@@ -130,7 +130,7 @@ MockServer.prototype.write = function (c, data) {
 
 MockServer.prototype.findClientByName = function (name) {
   for (const client of this.clients) {
-    if (client._connectionName === name) {
+    if (client && client._connectionName === name) {
       return client
     }
   }

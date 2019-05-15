@@ -107,13 +107,27 @@ class Cluster extends EventEmitter {
     this.offlineQueue = new Deque()
   }
 
+  clearNodesRefreshInterval() {
+    if (this.slotsTimer) {
+      clearTimeout(this.slotsTimer)
+      this.slotsTimer = null
+    }
+  }
+
   resetNodesRefreshInterval() {
     if (this.slotsTimer) {
       return
     }
-    this.slotsTimer = setInterval(function () {
-      this.refreshSlotsCache()
-    }.bind(this), this.options.slotsRefreshInterval)
+    const nextRound = () => {
+      this.slotsTimer = setTimeout(() => {
+        debug('refreshing slot caches... (triggered by "slotsRefreshInterval" option)')
+        this.refreshSlotsCache(() => {
+          nextRound()
+        })
+      }, this.options.slotsRefreshInterval)
+    }
+
+    nextRound()
   }
 
   /**
@@ -245,10 +259,7 @@ class Cluster extends EventEmitter {
       this.reconnectTimeout = null
       debug('Canceled reconnecting attempts')
     }
-    if (this.slotsTimer) {
-      clearInterval(this.slotsTimer)
-      this.slotsTimer = null
-    }
+    this.clearNodesRefreshInterval()
 
     this.subscriber.stop()
     if (status === 'wait') {
@@ -276,10 +287,7 @@ class Cluster extends EventEmitter {
       clearTimeout(this.reconnectTimeout)
       this.reconnectTimeout = null
     }
-    if (this.slotsTimer) {
-      clearInterval(this.slotsTimer)
-      this.slotsTimer = null
-    }
+    this.clearNodesRefreshInterval()
 
     this.subscriber.stop()
 
@@ -471,6 +479,7 @@ class Cluster extends EventEmitter {
             }
             _this.connectionPool.findOrCreate(_this.natMapper(key))
             tryConnection()
+            debug('refreshing slot caches... (triggered by MOVED error)')
             _this.refreshSlotsCache()
           },
           ask: function (slot, key) {
@@ -608,9 +617,19 @@ class Cluster extends EventEmitter {
     if (!redis) {
       return callback(new Error('Node is disconnected'))
     }
-    redis.cluster('slots', timeout((err, result) => {
+
+    // Use a duplication of the connection to avoid
+    // timeouts when the connection is in the blocking
+    // mode (e.g. waiting for BLPOP).
+    const duplicatedConnection = redis.duplicate({
+      enableOfflineQueue: true,
+      enableReadyCheck: false,
+      retryStrategy: null,
+      connectionName: 'ioredisClusterRefresher'
+    })
+    duplicatedConnection.cluster('slots', timeout((err, result) => {
+      duplicatedConnection.disconnect()
       if (err) {
-        redis.disconnect()
         return callback(err)
       }
       if (this.status === 'disconnecting' || this.status === 'close' || this.status === 'end') {

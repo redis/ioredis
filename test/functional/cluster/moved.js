@@ -30,6 +30,8 @@ describe('cluster:MOVED', function () {
       if (argv[0] === 'get' && argv[1] === 'foo') {
         expect(moved).to.eql(false);
         moved = true;
+        slotTable[0][1] = 16381
+        slotTable[1][0] = 16382
         return new Error('MOVED ' + calculateSlot('foo') + ' 127.0.0.1:30001');
       }
     });
@@ -103,6 +105,8 @@ describe('cluster:MOVED', function () {
       if (argv[0] === 'get' && argv[1] === 'foo') {
         expect(moved).to.eql(false);
         moved = true;
+        slotTable[0][1] = 16381
+        slotTable[1][0] = 16382
         return new Error('MOVED ' + calculateSlot('foo') + ' 127.0.0.1:30001');
       }
     });

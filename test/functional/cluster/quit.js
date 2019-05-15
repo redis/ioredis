@@ -32,8 +32,8 @@ describe('cluster:quit', () => {
   it('failed when quit returns error', function (done) {
     const ERROR_MESSAGE = 'quit random error'
     const slotTable = [
-      [0, 1000, ['127.0.0.1', 30001]],
-      [1001, 16383, ['127.0.0.1', 30002]]
+      [0, 16381, ['127.0.0.1', 30001]],
+      [16382, 16383, ['127.0.0.1', 30002]]
     ]
     new MockServer(30001, function (argv, c) {
       if (argv[0] === 'quit') {
@@ -49,7 +49,7 @@ describe('cluster:quit', () => {
     const cluster = new Redis.Cluster([
       { host: '127.0.0.1', port: '30001' }
     ])
-    cluster.on('ready', () => {
+    cluster.get('foo', () => {
       cluster.quit((err) => {
         expect(err.message).to.eql(ERROR_MESSAGE)
         cluster.disconnect()
