@@ -1,3 +1,10 @@
+# [4.10.0](https://github.com/luin/ioredis/compare/v4.9.5...v4.10.0) (2019-05-23)
+
+
+### Features
+
+* upgrade to redis-commands@1.5.0 for streams support ([644f5cb](https://github.com/luin/ioredis/commit/644f5cb)), closes [#875](https://github.com/luin/ioredis/issues/875)
+
 ## [4.9.5](https://github.com/luin/ioredis/compare/v4.9.4...v4.9.5) (2019-05-15)
 
 
