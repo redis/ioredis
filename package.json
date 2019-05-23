@@ -33,7 +33,7 @@
     "denque": "^1.1.0",
     "lodash.defaults": "^4.2.0",
     "lodash.flatten": "^4.4.0",
-    "redis-commands": "1.4.0",
+    "redis-commands": "1.5.0",
     "redis-errors": "^1.2.0",
     "redis-parser": "^3.0.0",
     "standard-as-callback": "^2.0.1"
