@@ -5,9 +5,7 @@ const {nodeKeyToRedisOptions} = require('../../lib/cluster/util')
 
 describe('cluster', function () {
   beforeEach(function () {
-    stub(Cluster.prototype, 'connect', function () {
-      return Promise.resolve();
-    });
+    stub(Cluster.prototype, 'connect').callsFake(() => Promise.resolve())
   });
 
   afterEach(function () {
