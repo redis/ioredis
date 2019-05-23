@@ -23,6 +23,20 @@ export default class Script {
       options.keyPrefix = this.keyPrefix
     }
 
+    // https://github.com/luin/ioredis/issues/536#issuecomment-346872649
+    if (container.constructor.name === 'Pipeline' && container.isCluster) {
+      const evalCmd = new Command('eval', [this.lua].concat(args), options);
+
+      const result = container.sendCommand(evalCmd);
+      if (isPromise(result)) {
+        return asCallback(result, callback);
+      }
+
+      asCallback(evalCmd.promise, callback);
+
+      return result;
+    }
+
     const evalsha = new Command('evalsha', [this.sha].concat(args), options)
     evalsha.isCustomCommand = true
 
