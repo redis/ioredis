@@ -195,7 +195,7 @@ describe('cluster', function () {
           }
         });
         cluster.on('ready', function () {
-          stub(utils, 'sample')callsFake((array, from) => {
+          stub(utils, 'sample').callsFake((array, from) => {
             expect(array).to.eql(['127.0.0.1:30001', '127.0.0.1:30003', '127.0.0.1:30004']);
             expect(from).to.eql(1);
             return '127.0.0.1:30003';

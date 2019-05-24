@@ -140,7 +140,7 @@ describe('cluster:connect', function () {
     new MockServer(30002, argvHandler);
     new MockServer(30003, argvHandler);
 
-    stub(Redis.Cluster.prototype, 'connect').callsFake(() => Promise.resolve)
+    stub(Redis.Cluster.prototype, 'connect').callsFake(() => Promise.resolve())
     var cluster = new Redis.Cluster([
       { host: '127.0.0.1', port: '30001' }
     ], { lazyConnect: false });
@@ -153,7 +153,7 @@ describe('cluster:connect', function () {
   });
 
   it('should return a promise to be rejected when closed', function (done) {
-    stub(Redis.Cluster.prototype, 'connect').callsFake(() => Promise.resolve)
+    stub(Redis.Cluster.prototype, 'connect').callsFake(() => Promise.resolve())
     var cluster = new Redis.Cluster([
       { host: '127.0.0.1', port: '30001' }
     ], { lazyConnect: false });

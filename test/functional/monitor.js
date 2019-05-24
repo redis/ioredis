@@ -57,14 +57,10 @@ describe('monitor', function () {
   it('should wait for the ready event before monitoring', function (done) {
     var redis = new Redis();
     redis.on('ready', function () {
-      var ready;
-      stub(Redis.prototype, '_readyCheck').callsFake(() => {
-        ready = true;
-        Redis.prototype._readyCheck.restore();
-        Redis.prototype._readyCheck.apply(this, arguments);
-      });
+      const readyCheck = spy(Redis.prototype, '_readyCheck')
       redis.monitor(function (err, monitor) {
-        expect(ready).to.eql(true);
+        expect(readyCheck.callCount).to.eql(1)
+        Redis.prototype._readyCheck.restore();
         redis.disconnect();
         monitor.disconnect();
         done();

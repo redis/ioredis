@@ -47,18 +47,7 @@ describe('*scanStream', function () {
     it('should recognize `COUNT`', function (done) {
       var keys = [];
       var redis = new Redis();
-      stub(Redis.prototype, 'scan', function (args) {
-        var count;
-        for (var i = 0; i < args.length; ++i) {
-          if (typeof args[i] === 'string' && args[i].toUpperCase() === 'COUNT') {
-            count = args[i + 1];
-            break;
-          }
-        }
-        Redis.prototype.scan.restore();
-        Redis.prototype.scan.apply(this, arguments);
-        expect(count).to.eql('2');
-      });
+      spy(Redis.prototype, 'scan')
       redis.mset('foo1', 1, 'foo2', 1, 'foo3', 1, 'foo4', 1, 'foo10', 1, function () {
         var stream = redis.scanStream({
           count: 2
@@ -68,6 +57,15 @@ describe('*scanStream', function () {
         });
         stream.on('end', function () {
           expect(keys.sort()).to.eql(['foo1', 'foo10', 'foo2', 'foo3', 'foo4']);
+          const [args] = Redis.prototype.scan.getCall(0).args
+          let count;
+          for (let i = 0; i < args.length; ++i) {
+            if (typeof args[i] === 'string' && args[i].toUpperCase() === 'COUNT') {
+              count = args[i + 1];
+              break;
+            }
+          }
+          expect(count).to.eql('2')
           redis.disconnect();
           done();
         });

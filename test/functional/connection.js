@@ -23,7 +23,7 @@ describe('connection', function () {
     var redis = new Redis({ password: '123' });
     redis.get('foo');
     var times = 0;
-    stub(redis, 'sendCommand', function (command) {
+    stub(redis, 'sendCommand').callsFake(command => {
       times += 1;
       if (times === 1) {
         expect(command.name).to.eql('auth');
@@ -73,7 +73,7 @@ describe('connection', function () {
       const connectTimeout = 10000
       var redis = new Redis({connectTimeout});
       var set = false
-      stub(Socket.prototype, 'setTimeout', function (timeout) {
+      stub(Socket.prototype, 'setTimeout').callsFake(timeout => {
         if (timeout === connectTimeout) {
           set = true;
           return;
@@ -94,7 +94,7 @@ describe('connection', function () {
       });
       let isReady = false
       let timedoutCalled = false
-      stub(Socket.prototype, 'setTimeout', function (timeout, callback) {
+      stub(Socket.prototype, 'setTimeout').callsFake((timeout, callback) => {
         if (timeout === 0) {
           if (!isReady) {
             isReady = true
@@ -107,7 +107,6 @@ describe('connection', function () {
         setTimeout(() => {
           callback()
           expect(timedoutCalled).to.eql(false)
-          Socket.prototype.setTimeout.restore();
           redis.disconnect();
           done();
         }, timeout)

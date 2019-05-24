@@ -196,10 +196,10 @@ describe('cluster:pipeline', function () {
     var cluster = new Redis.Cluster([
       { host: '127.0.0.1', port: '30001' }
     ], { retryDelayOnFailover: 1 });
-    stub(cluster, 'refreshSlotsCache').callsFake(() => {
+    const refreshSlotsCache = stub(cluster, 'refreshSlotsCache').callsFake((...args) => {
       node2.connect();
-      cluster.refreshSlotsCache.restore();
-      cluster.refreshSlotsCache.apply(cluster, arguments);
+      refreshSlotsCache.restore();
+      cluster.refreshSlotsCache(...args);
     });
     node2.disconnect();
     cluster.pipeline().get('foo').set('foo', 'bar').exec(function (err, result) {
