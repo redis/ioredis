@@ -20,7 +20,7 @@ describe('cluster:tls option', () => {
     new MockServer(30002, argvHandler)
     new MockServer(30003, argvHandler)
 
-    stub(tls, 'connect', (op) => {
+    stub(tls, 'connect').callsFake((op) => {
       expect(op.ca).to.eql('123')
       expect(op.port).to.be.oneOf([30001, 30003, 30003])
       const stream = net.createConnection(op)

@@ -7,10 +7,9 @@
     "built/"
   ],
   "scripts": {
-    "test": "NODE_ENV=test mocha --timeout 8000 -r ts-node/register --exit",
+    "test": "NODE_ENV=test mocha",
     "test:cov": "NODE_ENV=test node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -r ts-node/register -R spec --exit",
     "build": "rm -rf built && tsc",
-    "generate-docs": "jsdoc2md lib/redis.js lib/cluster/index.js lib/commander.js > API.md",
     "prepublishOnly": "npm run build && npm test",
     "bench": "matcha benchmarks/*.js",
     "semantic-release": "semantic-release"
@@ -29,7 +28,7 @@
   "license": "MIT",
   "dependencies": {
     "cluster-key-slot": "^1.0.6",
-    "debug": "^3.1.0",
+    "debug": "^4.1.1",
     "denque": "^1.1.0",
     "lodash.defaults": "^4.2.0",
     "lodash.flatten": "^4.4.0",
@@ -39,21 +38,19 @@
     "standard-as-callback": "^2.0.1"
   },
   "devDependencies": {
-    "@semantic-release/changelog": "^3.0.0",
-    "@semantic-release/git": "^7.0.4",
-    "@types/node": "^10.11.5",
+    "@semantic-release/changelog": "^3.0.4",
+    "@semantic-release/git": "^7.0.12",
+    "@types/node": "^12.0.2",
     "@types/redis-errors": "1.2.0",
-    "bluebird": "^3.5.1",
-    "chai": "^3.5.0",
+    "bluebird": "^3.5.4",
+    "chai": "^4.2.0",
     "cz-conventional-changelog": "^2.0.0",
-    "istanbul": "^0.4.2",
-    "jsdoc": "^3.4.0",
-    "jsdoc-to-markdown": "^4.0.1",
-    "mocha": "^5.2.0",
+    "istanbul": "^0.4.5",
+    "mocha": "^5.0.0",
     "server-destroy": "^1.0.1",
-    "sinon": "^1.17.3",
-    "ts-node": "^7.0.0",
-    "typescript": "^3.1.1"
+    "sinon": "^7.3.2",
+    "ts-node": "^8.1.0",
+    "typescript": "^3.4.5"
   },
   "engines": {
     "node": ">=6"

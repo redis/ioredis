@@ -106,7 +106,7 @@ describe('Redis', function () {
   describe('#end', function () {
     it('should redirect to #disconnect', function (done) {
       var redis = new Redis({ lazyConnect: true });
-      stub(redis, 'disconnect', function () {
+      stub(redis, 'disconnect').callsFake(() => {
         redis.disconnect.restore();
         done();
       });

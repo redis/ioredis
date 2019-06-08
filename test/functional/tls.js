@@ -7,7 +7,7 @@ describe('tls option', () => {
     it('supports tls', (done) => {
       let redis
 
-      stub(tls, 'connect', (op) => {
+      stub(tls, 'connect').callsFake(op => {
         expect(op.ca).to.eql('123')
         expect(op.port).to.eql(6379)
         const stream = net.createConnection(op)
@@ -34,7 +34,7 @@ describe('tls option', () => {
         }
       });
 
-      stub(tls, 'connect', () => {
+      stub(tls, 'connect').callsFake(() => {
         throw new Error('called')
       })
 
@@ -55,7 +55,7 @@ describe('tls option', () => {
 
       let redis
 
-      stub(tls, 'connect', (op) => {
+      stub(tls, 'connect').callsFake(op => {
         expect(op.ca).to.eql('123')
         redis.disconnect()
         tls.connect.restore()
@@ -75,7 +75,7 @@ describe('tls option', () => {
 
       let redis
 
-      stub(tls, 'connect', (op) => {
+      stub(tls, 'connect').callsFake(op => {
         expect(op.ca).to.eql('123')
         expect(op.port).to.eql(27379)
         const stream = net.createConnection(op)

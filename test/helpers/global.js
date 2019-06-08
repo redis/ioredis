@@ -11,6 +11,7 @@ global.Redis = require('../../lib');
 global.MockServer = require('./mock_server');
 
 afterEach(function (done) {
+  sinon.restore()
   new Redis().pipeline().flushall().script('flush').client('kill', 'normal').exec(done);
 });
 
