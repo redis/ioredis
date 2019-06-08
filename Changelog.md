@@ -1,3 +1,10 @@
+## [4.10.1](https://github.com/luin/ioredis/compare/v4.10.0...v4.10.1) (2019-06-08)
+
+
+### Bug Fixes
+
+* upgrade deps to resolve security vulnerabilities warnings ([#885](https://github.com/luin/ioredis/issues/885)) ([98c27cf](https://github.com/luin/ioredis/commit/98c27cf))
+
 # [4.10.0](https://github.com/luin/ioredis/compare/v4.9.5...v4.10.0) (2019-05-23)
 
 
