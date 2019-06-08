@@ -15,10 +15,15 @@ describe('cluster', function () {
   it('should support frozen options', function () {
     var options = Object.freeze({ maxRedirections: 1000 });
     var cluster = new Cluster([{ port: 7777 }], options);
-    expect(cluster.options).to.have.property('showFriendlyErrorStack', false);
+    expect(cluster.options).to.have.property('maxRedirections', 1000);
     expect(cluster.options).to.have.property('showFriendlyErrorStack', false);
     expect(cluster.options).to.have.property('scaleReads', 'master');
   });
+
+  it('should allow overriding Commander options', function () {
+    const cluster = new Cluster([{ port: 7777 }], {showFriendlyErrorStack: true});
+    expect(cluster.options).to.have.property('showFriendlyErrorStack', true);
+  })
 
   it('throws when scaleReads is invalid', function () {
     expect(function () {
