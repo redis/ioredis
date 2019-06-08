@@ -45,8 +45,7 @@
     "bluebird": "^3.5.4",
     "chai": "^4.2.0",
     "cz-conventional-changelog": "^2.0.0",
-    "istanbul": "^0.4.2",
-    "mocha": "^6.1.4",
+    "mocha": "^5.0.0",
     "server-destroy": "^1.0.1",
     "sinon": "^7.3.2",
     "ts-node": "^8.1.0",
@@ -59,14 +58,5 @@
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
     }
-  },
-  "mocha": {
-    "reporter": "spec",
-    "recursive": true,
-    "timeout": 8000,
-    "require": [
-      "ts-node/register"
-    ],
-    "exit": true
   }
 }
