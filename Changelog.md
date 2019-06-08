@@ -1,3 +1,10 @@
+## [4.10.3](https://github.com/luin/ioredis/compare/v4.10.2...v4.10.3) (2019-06-08)
+
+
+### Bug Fixes
+
+* **cluster:** reorder defaults arguments to prioritize user options ([#889](https://github.com/luin/ioredis/issues/889)) ([8da8d78](https://github.com/luin/ioredis/commit/8da8d78))
+
 ## [4.10.2](https://github.com/luin/ioredis/compare/v4.10.1...v4.10.2) (2019-06-08)
 
 
