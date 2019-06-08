@@ -116,15 +116,27 @@ describe('cluster:transaction', function () {
       maxRedirections: 3
     });
 
-    process.on('unhandledRejection', err => {
+    let isDoneCalled = false
+    const wrapDone = function (error) {
+      if (isDoneCalled) {
+        return
+      }
+      isDoneCalled = true
       process.removeAllListeners('unhandledRejection')
-      done(new Error('got unhandledRejection: ' + err.message))
+      done(error)
+    }
+
+    process.on('unhandledRejection', err => {
+      wrapDone(new Error('got unhandledRejection: ' + err.message))
     })
     cluster.multi().get('foo').set('foo', 'bar').exec(function (err) {
       expect(err).to.have.property('message', errorMessage)
+      cluster.on('end', function () {
+        // Wait for the end event to ensure the transaction
+        // promise has been resolved.
+        wrapDone();
+      })
       cluster.disconnect();
-      process.removeAllListeners('unhandledRejection')
-      done();
     });
   });
 });
