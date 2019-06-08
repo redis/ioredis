@@ -36,6 +36,7 @@ describe('cluster:transaction', function () {
     var cluster = new Redis.Cluster([
       { host: '127.0.0.1', port: '30001' }
     ]);
+
     cluster.multi().get('foo').set('foo', 'bar').exec(function (err, result) {
       expect(err).to.eql(null);
       expect(result[0]).to.eql([null, 'bar']);
@@ -94,6 +95,35 @@ describe('cluster:transaction', function () {
       expect(result[0]).to.eql([null, 'bar']);
       expect(result[1]).to.eql([null, 'OK']);
       cluster.disconnect();
+      done();
+    });
+  });
+
+  it('should not print unhandled warnings', function (done) {
+    const errorMessage = 'Connection is closed.'
+    var slotTable = [
+      [0, 16383, ['127.0.0.1', 30001]]
+    ];
+    new MockServer(30001, function (argv) {
+      if (argv[0] === 'exec' || argv[1] === 'foo') {
+        return new Error(errorMessage)
+      }
+    }, slotTable);
+
+    var cluster = new Redis.Cluster([
+      { host: '127.0.0.1', port: '30001' }
+    ], {
+      maxRedirections: 3
+    });
+
+    process.on('unhandledRejection', err => {
+      process.removeAllListeners('unhandledRejection')
+      done(new Error('got unhandledRejection: ' + err.message))
+    })
+    cluster.multi().get('foo').set('foo', 'bar').exec(function (err) {
+      expect(err).to.have.property('message', errorMessage)
+      cluster.disconnect();
+      process.removeAllListeners('unhandledRejection')
       done();
     });
   });
