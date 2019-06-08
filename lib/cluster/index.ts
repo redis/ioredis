@@ -68,6 +68,7 @@ class Cluster extends EventEmitter {
 
     this.startupNodes = startupNodes
     this.options = defaults(this.options, options, DEFAULT_CLUSTER_OPTIONS)
+    this.options = defaults({}, options, DEFAULT_CLUSTER_OPTIONS, this.options)
 
     // validate options
     if (typeof this.options.scaleReads !== 'function' &&
