@@ -31,6 +31,12 @@ export function addTransactionSupport (redis) {
       if (this._transactions > 0) {
         exec.call(pipeline)
       }
+
+      // Returns directly when the pipeline
+      // has been called multiple times (retries).
+      if (this.nodeifiedPromise) {
+        return exec.call(pipeline)
+      }
       const promise = exec.call(pipeline)
       return asCallback(promise.then(function (result) {
         const execResult = result[result.length - 1]
