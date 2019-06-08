@@ -1,3 +1,10 @@
+## [4.10.2](https://github.com/luin/ioredis/compare/v4.10.1...v4.10.2) (2019-06-08)
+
+
+### Bug Fixes
+
+* pipeline with transactions causes unhandled warnings ([#884](https://github.com/luin/ioredis/issues/884)) ([bbfd2fc](https://github.com/luin/ioredis/commit/bbfd2fc)), closes [#883](https://github.com/luin/ioredis/issues/883)
+
 ## [4.10.1](https://github.com/luin/ioredis/compare/v4.10.0...v4.10.1) (2019-06-08)
 
 
