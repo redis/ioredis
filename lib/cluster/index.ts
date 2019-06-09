@@ -67,7 +67,6 @@ class Cluster extends EventEmitter {
     Commander.call(this)
 
     this.startupNodes = startupNodes
-    this.options = defaults(this.options, options, DEFAULT_CLUSTER_OPTIONS)
     this.options = defaults({}, options, DEFAULT_CLUSTER_OPTIONS, this.options)
 
     // validate options
