@@ -124,4 +124,31 @@ describe('NAT', () => {
 
     cluster.get('foo')
   })
+
+  it('keeps options immutable', (done) => {
+    const slotTable = [
+      [0, 16383, ['192.168.1.1', 30001]]
+    ]
+
+    new MockServer(30001, null, slotTable)
+
+    const cluster = new Redis.Cluster([{
+      host: '127.0.0.1',
+      port: 30001
+    }], Object.freeze({
+      natMap: Object.freeze({
+        '192.168.1.1:30001': Object.freeze({host: '127.0.0.1', port: 30001})
+      })
+    }))
+
+    const reset = spy(cluster.connectionPool, 'reset')
+
+    cluster.on('ready', () => {
+      expect(reset.secondCall.args[0]).to.deep.equal([
+        {host: '127.0.0.1', port: 30001, readOnly: false}
+      ])
+      cluster.disconnect()
+      done()
+    })
+  })
 })

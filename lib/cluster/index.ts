@@ -438,7 +438,7 @@ class Cluster extends EventEmitter {
       const mapped = this.options.natMap[key]
       if (mapped) {
         debug('NAT mapping %s -> %O', key, mapped)
-        return mapped
+        return Object.assign({}, mapped)
       }
     }
     return typeof nodeKey === 'string' ? nodeKeyToRedisOptions(nodeKey) : nodeKey
