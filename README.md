@@ -774,6 +774,7 @@ but a few so that if one is unreachable the client will try the next one, and th
         }
         ```
 
+    * `dnsLookup`: Alternative DNS lookup function (`dns.lookup()` is used by default).  It may be useful to override this in special cases, such as when AWS ElastiCache used with TLS enabled.
     * `enableOfflineQueue`: Similar to the `enableOfflineQueue` option of `Redis` class.
     * `enableReadyCheck`: When enabled, "ready" event will only be emitted when `CLUSTER INFO` command
     reporting the cluster is ready for handling commands. Otherwise, it will be emitted immediately after "connect" is emitted.
@@ -929,6 +930,27 @@ var cluster = new Redis.Cluster([
     password: 'fallback-password'
   }
 });
+```
+
+### Special note: AWS ElastiCache Clusters with TLS
+
+AWS ElastiCache for Redis (Clustered Mode) supports TLS encryption.  If you use
+this, you may encounter errors with invalid certificates.  To resolve this
+issue, construct the `Cluster` with the `dnsLookup` option as follows:
+
+```javascript
+var cluster = new Redis.Cluster(
+  [{
+    host: 'clustercfg.myCluster.abcdefg.xyz.cache.amazonaws.com',
+    port: 6379
+  }],
+  {
+    dnsLookup: (address, callback) => callback(null, address),
+    redisOptions: {
+      tls: {}
+    },
+  }
+};
 ```
 
 <hr>
