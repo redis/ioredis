@@ -1,12 +1,13 @@
 import {createConnection, Socket} from 'net'
 import {NatMap} from '../../cluster/ClusterOptions';
-import {CONNECTION_CLOSED_ERROR_MSG, packObject, sample} from '../../utils'
+import {CONNECTION_CLOSED_ERROR_MSG, packObject, sample, Debug} from '../../utils'
 import {connect as createTLSConnection, TLSSocket, SecureContextOptions} from 'tls'
 import {ITcpConnectionOptions, isIIpcConnectionOptions} from '../StandaloneConnector'
 import SentinelIterator from './SentinelIterator'
 import {ISentinelAddress} from './types';
 import AbstractConnector, { ErrorEmitter } from '../AbstractConnector'
-const debug = require('../../utils/debug')('ioredis:SentinelConnector')
+
+const debug = Debug('SentinelConnector')
 
 let Redis
 
