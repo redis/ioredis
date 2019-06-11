@@ -1,3 +1,10 @@
+## [4.10.4](https://github.com/luin/ioredis/compare/v4.10.3...v4.10.4) (2019-06-11)
+
+
+### Bug Fixes
+
+* **cluster:** passing frozen natMap option causes crash ([3bc6165](https://github.com/luin/ioredis/commit/3bc6165)), closes [#887](https://github.com/luin/ioredis/issues/887)
+
 ## [4.10.3](https://github.com/luin/ioredis/compare/v4.10.2...v4.10.3) (2019-06-08)
 
 
