@@ -53,7 +53,7 @@
     "server-destroy": "^1.0.1",
     "sinon": "^7.3.2",
     "ts-node": "^8.1.0",
-    "typescript": "^3.4.5"
+    "typescript": "^3.5.1"
   },
   "engines": {
     "node": ">=6"

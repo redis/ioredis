@@ -5,8 +5,6 @@ describe('reconnectOnError', function () {
     var pending = 2;
     function assert(err) {
       expect(err.name).to.eql('ReplyError');
-      expect(err.command.name).to.eql('set');
-      expect(err.command.args).to.eql(['foo']);
       if (!--pending) {
         done();
       }

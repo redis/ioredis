@@ -1,11 +1,12 @@
-import {createConnection, Socket} from 'net'
+import {createConnection} from 'net'
 import {NatMap} from '../../cluster/ClusterOptions';
 import {CONNECTION_CLOSED_ERROR_MSG, packObject, sample, Debug} from '../../utils'
-import {connect as createTLSConnection, TLSSocket, SecureContextOptions} from 'tls'
+import {connect as createTLSConnection, SecureContextOptions} from 'tls'
 import {ITcpConnectionOptions, isIIpcConnectionOptions} from '../StandaloneConnector'
 import SentinelIterator from './SentinelIterator'
 import {ISentinelAddress} from './types';
 import AbstractConnector, { ErrorEmitter } from '../AbstractConnector'
+import {NetStream} from '../../types'
 
 const debug = Debug('SentinelConnector')
 
@@ -68,7 +69,7 @@ export default class SentinelConnector extends AbstractConnector {
     return roleMatches
   }
 
-  public connect (callback: NodeCallback<Socket | TLSSocket>, eventEmitter: ErrorEmitter): void {
+  public connect (callback: NodeCallback<NetStream>, eventEmitter: ErrorEmitter): void {
     this.connecting = true
     this.retryAttempts = 0
 

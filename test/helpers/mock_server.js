@@ -8,7 +8,7 @@ var enableDestroy = require('server-destroy');
 var Parser = require('redis-parser');
 
 var createdMockServers = [];
-
+var RAW_DATA_KEY = '___IOREDIS_MOCK_ROW_DATA___'
 afterEach(function (done) {
   if (createdMockServers.length === 0) {
     done();
@@ -119,6 +119,8 @@ MockServer.prototype.write = function (c, data) {
       result = ':' + data + '\r\n';
     } else if (data === null) {
       result = '$-1\r\n';
+    } else if (typeof data === 'object' && data[RAW_DATA_KEY]) {
+      result = data[RAW_DATA_KEY]
     } else {
       data = data.toString();
       result = '$' + data.length + '\r\n';
@@ -127,6 +129,12 @@ MockServer.prototype.write = function (c, data) {
     return str + result;
   }
 };
+
+MockServer.raw = function (data) {
+  return {
+    [RAW_DATA_KEY]: data
+  }
+}
 
 MockServer.prototype.findClientByName = function (name) {
   for (const client of this.clients) {

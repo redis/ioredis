@@ -4,7 +4,7 @@ import asCallback from 'standard-as-callback'
 import {convertBufferToString, optimizeErrorStack, toArg, convertMapToArray, convertObjectToArray} from './utils'
 import {flatten} from './utils/lodash'
 import {get as getPromise} from './promiseContainer'
-import {CallbackFunction} from './types'
+import {CallbackFunction, ICommand} from './types'
 
 interface ICommandOptions {
   /**
@@ -47,7 +47,7 @@ type FlagMap = {[flag: string]: {[command: string]: true}}
  * ```
  * @see {@link Redis#sendCommand} which can send a Command instance to Redis
  */
-export default class Command {
+export default class Command implements ICommand {
   public static FLAGS = {
     // Commands that can be processed when client is in the subscriber mode
     VALID_IN_SUBSCRIBER_MODE: ['subscribe', 'psubscribe', 'unsubscribe', 'punsubscribe', 'ping', 'quit'],
@@ -107,7 +107,7 @@ export default class Command {
 
   private replyEncoding: string | null
   private errorStack: string
-  private args: Array<string | Buffer | number>
+  public args: Array<string | Buffer | number>
   private callback: CallbackFunction
   private transformed: boolean = false
   public isCustomCommand: boolean = false
