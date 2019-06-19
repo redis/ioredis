@@ -64,11 +64,10 @@ export default class DataHandler {
   private returnError(err: Error) {
     const item = this.redis.commandQueue.shift();
 
-    // TODO: Document BC
-    // err.command = {
-    //   name: item.command.name,
-    //   args: item.command.args
-    // };
+    (<any>err).command = {
+      name: item.command.name,
+      args: item.command.args
+    };
 
     this.redis.handleReconnection(err, item)
   }

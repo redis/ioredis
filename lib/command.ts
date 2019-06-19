@@ -4,7 +4,7 @@ import asCallback from 'standard-as-callback'
 import {convertBufferToString, optimizeErrorStack, toArg, convertMapToArray, convertObjectToArray} from './utils'
 import {flatten} from './utils/lodash'
 import {get as getPromise} from './promiseContainer'
-import {CallbackFunction, ICommand} from './types'
+import {CallbackFunction, ICommand, CommandParameter} from './types'
 
 interface ICommandOptions {
   /**
@@ -107,7 +107,7 @@ export default class Command implements ICommand {
 
   private replyEncoding: string | null
   private errorStack: string
-  public args: Array<string | Buffer | number>
+  public args: CommandParameter[]
   private callback: CallbackFunction
   private transformed: boolean = false
   public isCustomCommand: boolean = false
