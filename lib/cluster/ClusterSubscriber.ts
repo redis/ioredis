@@ -1,11 +1,11 @@
 import {EventEmitter} from 'events'
 import ConnectionPool from './ConnectionPool'
-import {noop} from '../utils/lodash'
 import {getNodeKey} from './util'
-import {sample} from '../utils'
+import {sample, noop, Debug} from '../utils'
+
+const debug = Debug('cluster:subscriber')
 
 const Redis = require('../redis')
-const debug = require('../utils/debug')('ioredis:cluster:subscriber')
 
 const SUBSCRIBER_CONNECTION_NAME = 'ioredisClusterSubscriber'
 

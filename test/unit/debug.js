@@ -2,7 +2,7 @@
 
 var real_debug = require('debug');
 
-var debug = require('../../lib/utils/debug');
+var {default: debug, getStringValue, MAX_ARGUMENT_LENGTH} = require('../../lib/utils/debug');
 
 describe('utils/debug', function () {
 
@@ -12,28 +12,21 @@ describe('utils/debug', function () {
 
   describe('.exports.getStringValue', function () {
     it('should return a string or undefined', function () {
-      expect(debug.getStringValue(true)).to.be.undefined;
-      expect(debug.getStringValue(undefined)).to.be.undefined;
-      expect(debug.getStringValue(null)).to.be.undefined;
-      expect(debug.getStringValue(false)).to.be.undefined;
-      expect(debug.getStringValue(1)).to.be.undefined;
-      expect(debug.getStringValue(1.1)).to.be.undefined;
-      expect(debug.getStringValue(-1)).to.be.undefined;
-      expect(debug.getStringValue(-1.1)).to.be.undefined;
+      expect(getStringValue(true)).to.be.undefined;
+      expect(getStringValue(undefined)).to.be.undefined;
+      expect(getStringValue(null)).to.be.undefined;
+      expect(getStringValue(false)).to.be.undefined;
+      expect(getStringValue(1)).to.be.undefined;
+      expect(getStringValue(1.1)).to.be.undefined;
+      expect(getStringValue(-1)).to.be.undefined;
+      expect(getStringValue(-1.1)).to.be.undefined;
 
-      expect(debug.getStringValue('abc')).to.be.a('string');
-      expect(debug.getStringValue(Buffer.from ? Buffer.from('abc') : Buffer.from('abc'))).to.be.a('string');
-      expect(debug.getStringValue(new Date())).to.be.a('string');
-      expect(debug.getStringValue({ foo: { bar: 'qux' } })).to.be.a('string');
+      expect(getStringValue('abc')).to.be.a('string');
+      expect(getStringValue(Buffer.from ? Buffer.from('abc') : Buffer.from('abc'))).to.be.a('string');
+      expect(getStringValue(new Date())).to.be.a('string');
+      expect(getStringValue({ foo: { bar: 'qux' } })).to.be.a('string');
     });
   });
-
-  // describe('.exports.genRedactedString', function () {
-  //   it('should return a string, truncated if applicable', function () {
-  //     // TODO: the unit test underneath already tests the actual string truncation logic .
-  //     //       .. so this one is not needed?
-  //   });
-  // });
 
   describe('.exports', function () {
     it('should return a function', function () {
@@ -46,7 +39,7 @@ describe('utils/debug', function () {
       real_debug.enable(dbg_ns);
 
       var logspy = spy();
-      var fn = debug(dbg_ns);
+      var fn = debug('debugtest');
 
       fn.log = logspy;
 
@@ -67,7 +60,7 @@ describe('utils/debug', function () {
       var args = logspy.getCall(0).args;
 
       var wanted_arglen = 30 // " ... <REDACTED full-length="">"
-                        + debug.MAX_ARGUMENT_LENGTH // max-length of redacted string
+                        + MAX_ARGUMENT_LENGTH // max-length of redacted string
                         + datastr.length.toString().length; // length of string of string length (inception much?)
 
       expect(args.length).to.be.above(1);

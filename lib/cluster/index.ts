@@ -1,6 +1,6 @@
 import {EventEmitter} from 'events'
 import ClusterAllFailedError from '../errors/ClusterAllFailedError'
-import {defaults, noop} from '../utils/lodash'
+import {defaults, noop, Debug} from '../utils'
 import ConnectionPool from './ConnectionPool'
 import {NodeKey, IRedisOptions, normalizeNodeOptions, NodeRole, getUniqueHostnamesFromOptions, nodeKeyToRedisOptions} from './util'
 import ClusterSubscriber from './ClusterSubscriber'
@@ -9,15 +9,14 @@ import ScanStream from '../ScanStream'
 import {AbortError, RedisError} from 'redis-errors'
 import asCallback from 'standard-as-callback'
 import * as PromiseContainer from '../promiseContainer'
-import {CallbackFunction} from '../types';
+import {CallbackFunction} from '../types'
 import {IClusterOptions, DEFAULT_CLUSTER_OPTIONS} from './ClusterOptions'
 import {sample, CONNECTION_CLOSED_ERROR_MSG, shuffle, timeout, zipMap} from '../utils'
 import * as commands from 'redis-commands'
 import Command from '../command'
-
 const Deque = require('denque')
 const Redis = require('../redis')
-const debug = require('../utils/debug')('ioredis:cluster')
+const debug = Debug('cluster')
 const Commander = require('../commander')
 
 type ClusterStatus = 'end' | 'close' | 'wait' | 'connecting' | 'connect' | 'ready' | 'reconnecting' | 'disconnecting'

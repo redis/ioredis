@@ -4,7 +4,7 @@ import asCallback from 'standard-as-callback'
 import {convertBufferToString, optimizeErrorStack, toArg, convertMapToArray, convertObjectToArray} from './utils'
 import {flatten} from './utils/lodash'
 import {get as getPromise} from './promiseContainer'
-import {CallbackFunction} from './types'
+import {CallbackFunction, ICommand, CommandParameter} from './types'
 
 interface ICommandOptions {
   /**
@@ -21,6 +21,19 @@ interface ICommandOptions {
 type ArgumentTransformer = (args: any[]) => any[]
 type ReplyTransformer = (reply: any) => any
 type FlagMap = {[flag: string]: {[command: string]: true}}
+
+export type CommandNameFlags = {
+  // Commands that can be processed when client is in the subscriber mode
+  VALID_IN_SUBSCRIBER_MODE: ['subscribe', 'psubscribe', 'unsubscribe', 'punsubscribe', 'ping', 'quit']
+  // Commands that are valid in monitor mode
+  VALID_IN_MONITOR_MODE: ['monitor', 'auth']
+  // Commands that will turn current connection into subscriber mode
+  ENTER_SUBSCRIBER_MODE: ['subscribe', 'psubscribe']
+  // Commands that may make current connection quit subscriber mode
+  EXIT_SUBSCRIBER_MODE: ['unsubscribe', 'punsubscribe']
+  // Commands that will make client disconnect from server TODO shutdown?
+  WILL_DISCONNECT: ['quit']
+}
 
 /**
  * Command instance
@@ -47,17 +60,12 @@ type FlagMap = {[flag: string]: {[command: string]: true}}
  * ```
  * @see {@link Redis#sendCommand} which can send a Command instance to Redis
  */
-export default class Command {
-  public static FLAGS = {
-    // Commands that can be processed when client is in the subscriber mode
+export default class Command implements ICommand {
+  public static FLAGS: {[key in keyof CommandNameFlags]: CommandNameFlags[key]} = {
     VALID_IN_SUBSCRIBER_MODE: ['subscribe', 'psubscribe', 'unsubscribe', 'punsubscribe', 'ping', 'quit'],
-    // Commands that are valid in monitor mode
     VALID_IN_MONITOR_MODE: ['monitor', 'auth'],
-    // Commands that will turn current connection into subscriber mode
     ENTER_SUBSCRIBER_MODE: ['subscribe', 'psubscribe'],
-    // Commands that may make current connection quit subscriber mode
     EXIT_SUBSCRIBER_MODE: ['unsubscribe', 'punsubscribe'],
-    // Commands that will make client disconnect from server TODO shutdown?
     WILL_DISCONNECT: ['quit']
   }
 
@@ -83,7 +91,8 @@ export default class Command {
    * @param {string} commandName
    * @return {boolean}
    */
-  public static checkFlag (flagName: string, commandName: string): boolean {
+  public static checkFlag<T extends keyof CommandNameFlags> (flagName: T, commandName: string):
+    commandName is CommandNameFlags[T][number] {
     return !!this.getFlagMap()[flagName][commandName]
   }
 
@@ -107,7 +116,7 @@ export default class Command {
 
   private replyEncoding: string | null
   private errorStack: string
-  private args: Array<string | Buffer | number>
+  public args: CommandParameter[]
   private callback: CallbackFunction
   private transformed: boolean = false
   public isCustomCommand: boolean = false

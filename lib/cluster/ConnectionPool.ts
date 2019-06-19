@@ -1,10 +1,10 @@
 import {EventEmitter} from 'events'
-import {sample} from '../utils'
-import {noop, defaults} from '../utils/lodash'
+import {sample, Debug, noop, defaults} from '../utils'
 import {IRedisOptions, getNodeKey, NodeKey, NodeRole} from './util'
 
 const Redis = require('../redis')
-const debug = require('../utils/debug')('ioredis:cluster:connectionPool')
+
+const debug = Debug('cluster:connectionPool')
 
 type NODE_TYPE = 'all' | 'master' | 'slave'
 

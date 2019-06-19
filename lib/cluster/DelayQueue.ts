@@ -1,5 +1,7 @@
+import {Debug} from '../utils'
+
 const Deque = require('denque')
-const debug = require('../utils/debug')('ioredis:delayqueue')
+const debug = Debug('delayqueue')
 
 /**
  * Options for DelayQueue

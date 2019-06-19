@@ -40,6 +40,9 @@
   "devDependencies": {
     "@semantic-release/changelog": "^3.0.4",
     "@semantic-release/git": "^7.0.12",
+    "@types/debug": "^4.1.4",
+    "@types/lodash.defaults": "^4.2.6",
+    "@types/lodash.flatten": "^4.4.6",
     "@types/node": "^12.0.2",
     "@types/redis-errors": "1.2.0",
     "bluebird": "^3.5.4",
@@ -50,7 +53,7 @@
     "server-destroy": "^1.0.1",
     "sinon": "^7.3.2",
     "ts-node": "^8.1.0",
-    "typescript": "^3.4.5"
+    "typescript": "^3.5.1"
   },
   "engines": {
     "node": ">=6"
