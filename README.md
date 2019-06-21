@@ -37,20 +37,13 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 * [Migrating from node_redis](https://github.com/luin/ioredis/wiki/Migrating-from-node_redis)
 * [Error Handling](#error-handling)
 
-## Become a Sponsor to Support ioredis's Development
-Open source is hard and time-consuming. If you want to invest in ioredis's future you can become a sponsor and make us spend more time on this library's improvements and new features.
-
-<a href="https://opencollective.com/ioredis"><img src="https://opencollective.com/ioredis/tiers/sponsor.svg?avatarHeight=36"></a>
-
-Thank you for using ioredis :-)
-
 <hr>
-<a href="https://itunes.apple.com/app/medis-gui-for-redis/id1063631769"><img align="right" src="medis.png" alt="Download on the App Store"></a>
+<a href="http://bit.ly/medis-macos"><img align="right" src="resources/medis.png" alt="Download on the App Store"></a>
 
 
-### Advertisement
+### [AD] Medis: Redis GUI for OS X
 
-Looking for a Redis GUI manager for OS X, Windows and Linux? Here's [Medis](https://itunes.apple.com/us/app/medis-gui-for-redis/id1063631769)!
+Looking for a Redis GUI manager for OS X, Windows and Linux? Here's [Medis](http://bit.ly/medis-macos)!
 
 Medis is an open-sourced, beautiful, easy-to-use Redis GUI management application.
 
@@ -63,6 +56,9 @@ Medis starts with all the basic features you need:
 * And other awesome features...
 
 [Medis is open sourced on GitHub](https://github.com/luin/medis)
+
+### [AD] Kuber: Kubernetes Dashboard for iOS
+<a href="http://bit.ly/kuber-ios"><img src="resources/kuber.png" alt="Download on the App Store"></a>
 
 <hr>
 
@@ -1047,21 +1043,18 @@ You can set the `DEBUG` env to `ioredis:*` to print debug info:
 $ DEBUG=ioredis:* node app.js
 ```
 
-# Consolidation: It's time for celebration
-
-Right now there are two great redis clients around and both have some advantages above each other. We speak about [node_redis](https://github.com/NodeRedis/node_redis) and ioredis. So after talking to each other about how we could improve in working together we (that is [@BridgeAR](https://github.com/BridgeAR) and [@luin](https://github.com/luin)) decided to work towards a single library on the long run. But step by step.
-
-First of all, we want to split small parts of our libraries into others so that we're both able to use the same code. Those libraries are going to be maintained under the NodeRedis organization. This is going to reduce the maintance overhead, allows others to use the very same code, if they need it and it's way easier for others to contribute to both libraries.
-
-We're very happy about this step towards working together as we both want to give you the best redis experience possible.
-
-If you want to join our cause by help maintaining something, please don't hesitate to contact either one of us.
-
 # Join in!
 
 I'm happy to receive bug reports, fixes, documentation enhancements, and any other improvements.
 
 And since I'm not a native English speaker, if you find any grammar mistakes in the documentation, please also let me know. :)
+
+# Become a Sponsor
+Open source is hard and time-consuming. If you want to invest in ioredis's future you can become a sponsor and make us spend more time on this library's improvements and new features.
+
+<a href="https://opencollective.com/ioredis"><img src="https://opencollective.com/ioredis/tiers/sponsor.svg?avatarHeight=36"></a>
+
+Thank you for using ioredis :-)
 
 # Contributors
 
