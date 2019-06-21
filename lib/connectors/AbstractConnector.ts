@@ -1,11 +1,10 @@
-import {Socket} from 'net'
-import {TLSSocket} from 'tls'
+import {NetStream} from '../types'
 
 export type ErrorEmitter = (type: string, err: Error) => void
 
 export default abstract class AbstractConnector {
   protected connecting: boolean = false
-  protected stream: Socket | TLSSocket
+  protected stream: NetStream
 
   public check (info: any): boolean {
     return true

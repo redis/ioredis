@@ -1,5 +1,6 @@
 import {parse as urllibParse} from 'url'
-import {defaults} from './lodash'
+import {defaults, noop, flatten} from './lodash'
+import Debug from './debug'
 
 /**
  * Test if two buffers are equal
@@ -332,4 +333,11 @@ export function zipMap<K, V> (keys: K[], values: V[]): Map<K, V> {
     map.set(key, values[index])
   })
   return map
+}
+
+export {
+  Debug,
+  defaults,
+  noop,
+  flatten
 }

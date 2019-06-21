@@ -1,7 +1,8 @@
-import {createConnection, TcpNetConnectOpts, IpcNetConnectOpts, Socket} from 'net'
-import {connect as createTLSConnection, SecureContextOptions, TLSSocket} from 'tls'
+import {createConnection, TcpNetConnectOpts, IpcNetConnectOpts} from 'net'
+import {connect as createTLSConnection, SecureContextOptions} from 'tls'
 import {CONNECTION_CLOSED_ERROR_MSG} from '../utils'
 import AbstractConnector, {ErrorEmitter} from './AbstractConnector'
+import {NetStream} from '../types'
 
 export function isIIpcConnectionOptions (value: any): value is IIpcConnectionOptions {
   return value.path
@@ -52,7 +53,7 @@ export default class StandaloneConnector extends AbstractConnector {
         return
       }
 
-      let stream: Socket | TLSSocket
+      let stream: NetStream
       try {
         if (options.tls) {
           stream = createTLSConnection(connectionOptions)
@@ -63,7 +64,7 @@ export default class StandaloneConnector extends AbstractConnector {
         callback(err)
         return
       }
-  
+
       this.stream = stream
       callback(null, stream)
     })

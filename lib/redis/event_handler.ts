@@ -1,27 +1,26 @@
 'use strict';
 
-var debug = require('../utils/debug')('ioredis:connection');
-var Command = require('../command').default;
-var utils = require('../utils');
-var _ = require('../utils/lodash');
-var {MaxRetriesPerRequestError} = require('../errors')
+import Command from '../command'
+import {MaxRetriesPerRequestError} from '../errors'
+import {Debug, noop, CONNECTION_CLOSED_ERROR_MSG} from '../utils'
+import DataHandler from '../DataHandler'
 
-exports.connectHandler = function (self) {
+const debug = Debug('connection')
+
+export function connectHandler(self) {
   return function () {
     self.setStatus('connect');
 
     self.resetCommandQueue();
 
     // AUTH command should be processed before any other commands
-    var flushed = false;
+    let flushed = false;
     if (self.condition.auth) {
       self.auth(self.condition.auth, function (err) {
         if (err) {
           if (err.message.indexOf('no password is set') === -1) {
             flushed = true;
-            self.flushQueue(err);
-            self.silentEmit('error', err);
-            self.disconnect(true);
+            self.recoverFromFatalError(err, err)
           } else {
             console.warn('[WARN] Redis server does not require a password, but a password was supplied.');
           }
@@ -37,15 +36,21 @@ exports.connectHandler = function (self) {
       exports.readyHandler(self)();
     }
 
-    self.initParser();
+    /*
+      No need to keep the reference of DataHandler here
+      because we don't need to do the cleanup.
+      `Stream#end()` will remove all listeners for us.
+    */
+    new DataHandler(self, {
+      stringNumbers: self.options.stringNumbers,
+      dropBufferSupport: self.options.dropBufferSupport
+    })
 
     if (self.options.enableReadyCheck) {
       self._readyCheck(function (err, info) {
         if (err) {
           if (!flushed) {
-            self.flushQueue(new Error('Ready check failed: ' + err.message));
-            self.silentEmit('error', err);
-            self.disconnect(true);
+            self.recoverFromFatalError(new Error('Ready check failed: ' + err.message), err)
           }
         } else {
           self.serverInfo = info;
@@ -60,7 +65,7 @@ exports.connectHandler = function (self) {
   };
 };
 
-exports.closeHandler = function (self) {
+export function closeHandler(self) {
   return function () {
     self.setStatus('close');
 
@@ -81,7 +86,7 @@ exports.closeHandler = function (self) {
       debug('skip reconnecting because `retryStrategy` is not a function');
       return close();
     }
-    var retryDelay = self.options.retryStrategy(++self.retryAttempts);
+    const retryDelay = self.options.retryStrategy(++self.retryAttempts);
 
     if (typeof retryDelay !== 'number') {
       debug('skip reconnecting because `retryStrategy` doesn\'t return a number');
@@ -93,15 +98,15 @@ exports.closeHandler = function (self) {
     self.setStatus('reconnecting', retryDelay);
     self.reconnectTimeout = setTimeout(function () {
       self.reconnectTimeout = null;
-      self.connect().catch(_.noop);
+      self.connect().catch(noop);
     }, retryDelay);
 
-    var {maxRetriesPerRequest} = self.options;
+    const {maxRetriesPerRequest} = self.options;
     if (typeof maxRetriesPerRequest === 'number') {
       if (maxRetriesPerRequest < 0) {
         debug('maxRetriesPerRequest is negative, ignoring...')
       } else {
-        var remainder = self.retryAttempts % (maxRetriesPerRequest + 1);
+        const remainder = self.retryAttempts % (maxRetriesPerRequest + 1);
         if (remainder === 0) {
           debug('reach maxRetriesPerRequest limitation, flushing command queue...');
           self.flushQueue(
@@ -114,31 +119,25 @@ exports.closeHandler = function (self) {
 
   function close() {
     self.setStatus('end');
-    self.flushQueue(new Error(utils.CONNECTION_CLOSED_ERROR_MSG));
+    self.flushQueue(new Error(CONNECTION_CLOSED_ERROR_MSG));
   }
 };
 
-exports.dataHandler = function (self) {
-  return function (data) {
-    self.replyParser.execute(data);
-  };
-};
-
-exports.errorHandler = function (self) {
+export function errorHandler(self) {
   return function (error) {
     debug('error: %s', error);
     self.silentEmit('error', error);
   };
 };
 
-exports.readyHandler = function (self) {
+export function readyHandler(self) {
   return function () {
     self.setStatus('ready');
     self.retryAttempts = 0;
 
     if (self.options.monitor) {
       self.call('monitor');
-      var sendCommand = self.sendCommand;
+      const {sendCommand} = self
       self.sendCommand = function (command) {
         if (Command.checkFlag('VALID_IN_MONITOR_MODE', command.name)) {
           return sendCommand.call(self, command);
@@ -152,21 +151,20 @@ exports.readyHandler = function (self) {
       self.setStatus('monitoring');
       return;
     }
-    var item;
-    var finalSelect = self.prevCondition ? self.prevCondition.select : self.condition.select;
+    const finalSelect = self.prevCondition ? self.prevCondition.select : self.condition.select;
 
     if (self.options.connectionName) {
       debug('set the connection name [%s]', self.options.connectionName);
-      self.client('setname', self.options.connectionName).catch(_.noop);
+      self.client('setname', self.options.connectionName).catch(noop);
     }
 
     if (self.options.readOnly) {
       debug('set the connection to readonly mode');
-      self.readonly().catch(_.noop);
+      self.readonly().catch(noop);
     }
 
     if (self.prevCondition) {
-      var condition = self.prevCondition;
+      const condition = self.prevCondition;
       self.prevCondition = null;
       if (condition.subscriber && self.options.autoResubscribe) {
         // We re-select the previous db first since
@@ -175,12 +173,12 @@ exports.readyHandler = function (self) {
           debug('connect to db [%d]', finalSelect);
           self.select(finalSelect);
         }
-        var subscribeChannels = condition.subscriber.channels('subscribe');
+        const subscribeChannels = condition.subscriber.channels('subscribe');
         if (subscribeChannels.length) {
           debug('subscribe %d channels', subscribeChannels.length);
           self.subscribe(subscribeChannels);
         }
-        var psubscribeChannels = condition.subscriber.channels('psubscribe');
+        const psubscribeChannels = condition.subscriber.channels('psubscribe');
         if (psubscribeChannels.length) {
           debug('psubscribe %d channels', psubscribeChannels.length);
           self.psubscribe(psubscribeChannels);
@@ -192,7 +190,7 @@ exports.readyHandler = function (self) {
       if (self.options.autoResendUnfulfilledCommands) {
         debug('resend %d unfulfilled commands', self.prevCommandQueue.length);
         while (self.prevCommandQueue.length > 0) {
-          item = self.prevCommandQueue.shift();
+          const item = self.prevCommandQueue.shift();
           if (item.select !== self.condition.select && item.command.name !== 'select') {
             self.select(item.select);
           }
@@ -205,10 +203,10 @@ exports.readyHandler = function (self) {
 
     if (self.offlineQueue.length) {
       debug('send %d commands in offline queue', self.offlineQueue.length);
-      var offlineQueue = self.offlineQueue;
+      const offlineQueue = self.offlineQueue;
       self.resetOfflineQueue();
       while (offlineQueue.length > 0) {
-        item = offlineQueue.shift();
+        const item = offlineQueue.shift();
         if (item.select !== self.condition.select && item.command.name !== 'select') {
           self.select(item.select);
         }

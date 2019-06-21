@@ -1,5 +1,7 @@
-type AddSet = 'subscribe' | 'psubscribe'
-type DelSet = 'unsubscribe' | 'punsubscribe'
+import {CommandNameFlags} from './command';
+
+type AddSet = CommandNameFlags['ENTER_SUBSCRIBER_MODE'][number]
+type DelSet = CommandNameFlags['EXIT_SUBSCRIBER_MODE'][number]
 
 /**
  * Tiny class to simplify dealing with subscription set
