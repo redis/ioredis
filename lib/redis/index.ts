@@ -11,6 +11,7 @@ import {StandaloneConnector, SentinelConnector} from '../connectors';
 import ScanStream from '../ScanStream';
 import * as commands from 'redis-commands';
 import * as PromiseContainer from '../promiseContainer';
+import {addTransactionSupport} from '../transaction';
 import {IRedisOptions, ReconnectOnError, DEFAULT_REDIS_OPTIONS} from './RedisOptions';
 
 var debug = Debug('redis')
@@ -561,7 +562,7 @@ Redis.prototype.monitor = function (callback) {
   );
 };
 
-require('../transaction').addTransactionSupport(Redis.prototype);
+addTransactionSupport(Redis.prototype);
 
 /**
  * Send a command to Redis
