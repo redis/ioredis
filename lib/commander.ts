@@ -1,10 +1,12 @@
-'use strict';
+import {defaults} from './utils/lodash';
+import Command from './command';
+import Script from './script';
+import * as PromiseContainer from './promiseContainer';
+import asCallback from 'standard-as-callback';
 
-var _ = require('./utils/lodash');
-var Command = require('./command').default;
-var Script = require('./script').default;
-var PromiseContainer = require('./promiseContainer');
-var asCallback = require('standard-as-callback').default;
+export interface ICommanderOptions {
+  showFriendlyErrorStack?: boolean
+}
 
 var DROP_BUFFER_SUPPORT_ERROR = '*Buffer methods are not available ' +
   'because "dropBufferSupport" option is enabled.' +
@@ -19,8 +21,8 @@ var DROP_BUFFER_SUPPORT_ERROR = '*Buffer methods are not available ' +
  * Will decrease the performance significantly.
  * @constructor
  */
-function Commander() {
-  this.options = _.defaults({}, this.options || {}, {
+export default function Commander() {
+  this.options = defaults({}, this.options || {}, {
     showFriendlyErrorStack: false
   });
   this.scriptsSet = {};
@@ -89,7 +91,9 @@ Commander.prototype.defineCommand = function (name, definition) {
  */
 Commander.prototype.sendCommand = function () {};
 
-function generateFunction(_commandName, _encoding) {
+function generateFunction(_encoding: string)
+function generateFunction(_commandName: string | void, _encoding: string)
+function generateFunction(_commandName?: string, _encoding?: string) {
   if (typeof _encoding === 'undefined') {
     _encoding = _commandName;
     _commandName = null;
@@ -173,5 +177,3 @@ function generateScriptingFunction(_script, _encoding) {
     return _script.execute(this, args, options, callback);
   };
 }
-
-module.exports = Commander;

@@ -24,17 +24,17 @@ type PreferredSlaves =
   Array<{port: string, ip: string, prio?: number}> |
   {port: string, ip: string, prio?: number}
 
-interface ISentinelConnectionOptions extends ITcpConnectionOptions {
+export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   role: 'master' | 'slave'
   name: 'string'
   sentinelPassword?: 'string'
-  sentinels: Array<ISentinelAddress>
+  sentinels: ISentinelAddress[]
   sentinelRetryStrategy?: (retryAttempts: number) => number
   preferredSlaves?: PreferredSlaves
   connectTimeout?: number
   enableTLSForSentinelMode?: boolean
   sentinelTLS?: SecureContextOptions
-  natMap: NatMap
+  natMap?: NatMap
   updateSentinels?: boolean
 }
 

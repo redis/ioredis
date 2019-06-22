@@ -1,4 +1,4 @@
-exports = module.exports = require('./redis')
+exports = module.exports = require('./redis').default
 
 export {ReplyError} from 'redis-errors'
 exports.Cluster = require('./cluster').default
