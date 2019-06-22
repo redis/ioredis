@@ -1,7 +1,7 @@
 import {defaults, noop} from '../utils/lodash';
 import {inherits} from 'util';
 import {EventEmitter} from 'events';
-import Deque from 'denque';
+import Deque = require('denque');
 import Command from '../command';
 import Commander from '../commander';
 import {isInt, CONNECTION_CLOSED_ERROR_MSG, parseURL, Debug} from '../utils';
@@ -561,7 +561,7 @@ Redis.prototype.monitor = function (callback) {
   );
 };
 
-require('./transaction').addTransactionSupport(Redis.prototype);
+require('../transaction').addTransactionSupport(Redis.prototype);
 
 /**
  * Send a command to Redis

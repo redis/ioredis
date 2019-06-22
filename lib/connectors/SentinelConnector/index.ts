@@ -7,10 +7,9 @@ import SentinelIterator from './SentinelIterator'
 import {ISentinelAddress} from './types';
 import AbstractConnector, { ErrorEmitter } from '../AbstractConnector'
 import {NetStream} from '../../types'
+import Redis from '../../redis'
 
 const debug = Debug('SentinelConnector')
-
-let Redis
 
 interface IAddressFromResponse {
   port: string,
@@ -216,9 +215,6 @@ export default class SentinelConnector extends AbstractConnector {
   }
 
   private resolve (endpoint, callback: NodeCallback<ITcpConnectionOptions>): void {
-    if (typeof Redis === 'undefined') {
-      Redis = require('../../redis')
-    }
     var client = new Redis({
       port: endpoint.port || 26379,
       host: endpoint.host,

@@ -5,7 +5,7 @@ import {exists, hasFlag} from 'redis-commands'
 import {generateMulti} from 'cluster-key-slot'
 import * as PromiseContainer from './promiseContainer'
 import {CallbackFunction} from './types'
-const Commander = require('./commander')
+import Commander from './commander'
 
 export default function Pipeline(redis) {
   Commander.call(this)

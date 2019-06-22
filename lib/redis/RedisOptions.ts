@@ -8,7 +8,7 @@ export interface IRedisOptions extends Partial<ISentinelConnectionOptions>, Part
     retryStrategy?: (times: number) => number,
     keepAlive?: number,
     noDelay?: boolean,
-    connectionName?: null,
+    connectionName?: string,
     password?: string,
     db?: number,
     dropBufferSupport?: boolean,

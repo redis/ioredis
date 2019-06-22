@@ -1,8 +1,7 @@
 import {EventEmitter} from 'events'
 import {sample, Debug, noop, defaults} from '../utils'
 import {IRedisOptions, getNodeKey, NodeKey, NodeRole} from './util'
-
-const Redis = require('../redis')
+import Redis from '../redis';
 
 const debug = Debug('cluster:connectionPool')
 
