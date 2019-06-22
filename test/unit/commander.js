@@ -1,6 +1,6 @@
 'use strict';
 
-var Commander = require('../../lib/commander');
+var Commander = require('../../lib/commander').default;
 
 describe('Commander', function () {
   describe('#getBuiltinCommands()', () => {
