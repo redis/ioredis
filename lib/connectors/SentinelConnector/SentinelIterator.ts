@@ -9,8 +9,8 @@ export default class SentinelIterator implements Iterator<Partial<ISentinelAddre
   private cursor: number = 0
   private sentinels: Partial<ISentinelAddress>[]
 
-  constructor (sentinels: Partial<ISentinelAddress>[]) {
-    this.sentinels = [...sentinels];
+  constructor (sentinels?: Partial<ISentinelAddress>[]) {
+    this.sentinels = sentinels ? [].concat(sentinels) : [];
   }
 
   next () {
@@ -19,15 +19,9 @@ export default class SentinelIterator implements Iterator<Partial<ISentinelAddre
       : { value: undefined, done: true };
   }
 
-  reset (moveCurrentEndpointToFirst: true): SentinelIterator
-  reset (moveCurrentEndpointToFirst?: false): void
   reset (moveCurrentEndpointToFirst?: boolean) {
-    if (moveCurrentEndpointToFirst) {
-      if (this.sentinels.length > 1 && this.cursor !== 1) {
-        this.cursor = 0
-        return this
-      }
-      return new SentinelIterator([...this.sentinels.slice(this.cursor - 1), ...this.sentinels.slice(0, this.cursor - 1)])
+    if (moveCurrentEndpointToFirst && this.sentinels.length > 1 && this.cursor !== 1) {
+      this.sentinels.unshift(...this.sentinels.splice(this.cursor - 1))
     }
     this.cursor = 0
   }

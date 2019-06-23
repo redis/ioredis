@@ -132,7 +132,7 @@ function Redis() {
   this.resetCommandQueue();
   this.resetOfflineQueue();
 
-  if (this.options.sentinels) {
+  if (this.options.sentinels || this.options.floatingSentinels) {
     this.connector = new SentinelConnector(this.options);
   } else {
     this.connector = new StandaloneConnector(this.options);

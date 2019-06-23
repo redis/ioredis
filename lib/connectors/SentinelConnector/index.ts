@@ -11,6 +11,8 @@ import Redis from '../../redis'
 
 const debug = Debug('SentinelConnector')
 
+const EMPTY_SENTINELS_MSG = 'Requires at least one sentinel to connect to.';
+
 interface IAddressFromResponse {
   port: string,
   ip: string,
@@ -18,6 +20,7 @@ interface IAddressFromResponse {
 }
 
 type NodeCallback<T = void> = (err: Error | null, result?: T) => void
+type FloatingSentinels = NodeCallback<Partial<ISentinelAddress>[]>
 type PreferredSlaves =
   ((slaves: Array<IAddressFromResponse>) => IAddressFromResponse | null) |
   Array<{port: string, ip: string, prio?: number}> |
@@ -28,6 +31,7 @@ export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   name: string
   sentinelPassword?: string
   sentinels: Partial<ISentinelAddress>[]
+  floatingSentinels?: (FloatingSentinels) => void
   sentinelRetryStrategy?: (retryAttempts: number) => number
   preferredSlaves?: PreferredSlaves
   connectTimeout?: number
@@ -45,8 +49,8 @@ export default class SentinelConnector extends AbstractConnector {
   constructor (protected options: ISentinelConnectionOptions) {
     super()
 
-    if (this.options.sentinels.length === 0) {
-      throw new Error('Requires at least one sentinel to connect to.')
+    if (!(this.options.sentinels && this.options.sentinels.length || this.options.floatingSentinels)) {
+      throw new Error(EMPTY_SENTINELS_MSG)
     }
     if (!this.options.name) {
       throw new Error('Requires the name of master.')
@@ -73,6 +77,11 @@ export default class SentinelConnector extends AbstractConnector {
     this.connecting = true
     this.retryAttempts = 0
     this.lastError = null
+
+    if (typeof this.options.sentinelRetryStrategy !== 'function') {
+      this.connectToFloat(callback, eventEmitter)
+      return
+    }
 
     this.connectToNext(callback, eventEmitter)
   }
@@ -119,7 +128,7 @@ export default class SentinelConnector extends AbstractConnector {
         } else {
           this.stream = createConnection(resolved)
         }
-        this.sentinelIterator = this.sentinelIterator.reset(true)
+        this.sentinelIterator.reset(true)
         callback(null, this.stream)
       } else {
         const endpointAddress = endpoint.value.host + ':' + endpoint.value.port
@@ -137,6 +146,20 @@ export default class SentinelConnector extends AbstractConnector {
         this.connectToNext(callback, eventEmitter);
       }
     })
+  }
+
+  private connectToFloat(callback: NodeCallback<NetStream>, eventEmitter: ErrorEmitter) {
+    const sentinelCallback: FloatingSentinels = (err, result) => {
+      if (err) {
+        callback(err);
+        return;
+      }
+
+      this.sentinelIterator = new SentinelIterator(result)
+      this.connectToNext(callback, eventEmitter);
+    }
+
+    this.options.floatingSentinels(sentinelCallback);
   }
 
   private updateSentinels (client, callback: NodeCallback): void {
