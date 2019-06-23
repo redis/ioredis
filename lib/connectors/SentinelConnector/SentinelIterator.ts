@@ -7,29 +7,30 @@ function isSentinelEql (a: Partial<ISentinelAddress>, b: Partial<ISentinelAddres
 
 export default class SentinelIterator implements Iterator<Partial<ISentinelAddress>> {
   private cursor: number = 0
-  private sentinels: Partial<ISentinelAddress>[]
 
-  constructor (sentinels?: Partial<ISentinelAddress>[]) {
-    this.sentinels = sentinels ? [].concat(sentinels) : [];
-  }
+  constructor (private sentinels: Partial<ISentinelAddress>[]) {}
 
   next () {
-    return this.cursor < this.sentinels.length
-      ? { value: this.sentinels[this.cursor++], done: false }
-      : { value: undefined, done: true };
+    const done = this.cursor >= this.sentinels.length
+    return { done, value: done ? this.sentinels[this.cursor++] : null }
   }
 
-  reset (moveCurrentEndpointToFirst?: boolean) {
+  reset (moveCurrentEndpointToFirst: boolean): void {
     if (moveCurrentEndpointToFirst && this.sentinels.length > 1 && this.cursor !== 1) {
       this.sentinels.unshift(...this.sentinels.splice(this.cursor - 1))
     }
     this.cursor = 0
   }
 
-  add (sentinel: ISentinelAddress) {
-    return this.sentinels.some(isSentinelEql.bind(null, sentinel))
-      ? null
-      : this.sentinels.push(sentinel);
+  add (sentinel: ISentinelAddress): boolean {
+    for (let i = 0; i < this.sentinels.length; i++) {
+      if (isSentinelEql(sentinel, this.sentinels[i])) {
+        return false
+      }
+    }
+
+    this.sentinels.push(sentinel)
+    return true
   }
 
   toString (): string {

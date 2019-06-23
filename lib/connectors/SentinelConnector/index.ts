@@ -56,7 +56,7 @@ export default class SentinelConnector extends AbstractConnector {
       throw new Error('Requires the name of master.')
     }
 
-    this.sentinelIterator = new SentinelIterator(this.options.sentinels)
+    this.sentinelIterator = new SentinelIterator(this.options.sentinels || [])
   }
 
   public check (info: {role?: string}): boolean {
@@ -184,7 +184,7 @@ export default class SentinelConnector extends AbstractConnector {
         const flags = sentinel.flags ? sentinel.flags.split(',') : []
         if (flags.indexOf('disconnected') === -1 && sentinel.ip && sentinel.port) {
           const endpoint = this.sentinelNatResolve(addressResponseToAddress(sentinel))
-          if (this.sentinelIterator.add(endpoint) != null) {
+          if (this.sentinelIterator.add(endpoint)) {
             debug('adding sentinel %s:%s', endpoint.host, endpoint.port)
           }
         }
