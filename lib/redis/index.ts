@@ -1,20 +1,21 @@
-'use strict';
+import {defaults, noop} from '../utils/lodash';
+import {inherits} from 'util';
+import {EventEmitter} from 'events';
+import Deque = require('denque');
+import Command from '../command';
+import Commander from '../commander';
+import {isInt, CONNECTION_CLOSED_ERROR_MSG, parseURL, Debug} from '../utils';
+import asCallback from 'standard-as-callback';
+import * as eventHandler from './event_handler';
+import {StandaloneConnector, SentinelConnector} from '../connectors';
+import ScanStream from '../ScanStream';
+import * as commands from 'redis-commands';
+import * as PromiseContainer from '../promiseContainer';
+import {addTransactionSupport} from '../transaction';
+import {IRedisOptions, ReconnectOnError, DEFAULT_REDIS_OPTIONS} from './RedisOptions';
 
-var _ = require('./utils/lodash');
-var util = require('util');
-var EventEmitter = require('events').EventEmitter;
-var Deque = require('denque');
-var Command = require('./command').default;
-var Commander = require('./commander');
-var utils = require('./utils');
-var asCallback = require('standard-as-callback').default;
-var eventHandler = require('./redis/event_handler');
-var {StandaloneConnector, SentinelConnector} = require('./connectors');
-var ScanStream = require('./ScanStream').default;
-var commands = require('redis-commands');
-var PromiseContainer = require('./promiseContainer');
+var debug = Debug('redis')
 
-var debug = utils.Debug('redis')
 /**
  * Creates a Redis instance
  *
@@ -108,6 +109,13 @@ var debug = utils.Debug('redis')
  * var authedRedis = new Redis(6380, '192.168.100.1', { password: 'password' });
  * ```
  */
+export default Redis;
+function Redis(port: number, host: string, options: IRedisOptions): void
+function Redis(path: string, options: IRedisOptions): void
+function Redis(port: number, host: string): void
+function Redis(options: IRedisOptions): void
+function Redis(port: number): void
+function Redis(path: string): void
 function Redis() {
   if (!(this instanceof Redis)) {
     console.error(new Error('Calling `Redis()` like a function is deprecated. Using `new Redis()` instead.').stack.replace('Error', 'Warning'));
@@ -134,11 +142,11 @@ function Redis() {
   if (this.options.lazyConnect) {
     this.setStatus('wait');
   } else {
-    this.connect().catch(_.noop);
+    this.connect().catch(noop);
   }
 }
 
-util.inherits(Redis, EventEmitter);
+inherits(Redis, EventEmitter);
 Object.assign(Redis.prototype, Commander.prototype);
 
 /**
@@ -146,7 +154,8 @@ Object.assign(Redis.prototype, Commander.prototype);
  *
  * @deprecated
  */
-Redis.createClient = function (...args) {
+Redis.createClient = function (...args): Redis {
+  // @ts-ignore
   return new Redis(...args);
 };
 
@@ -156,45 +165,7 @@ Redis.createClient = function (...args) {
  * @var defaultOptions
  * @private
  */
-Redis.defaultOptions = {
-  // Connection
-  port: 6379,
-  host: 'localhost',
-  family: 4,
-  connectTimeout: 10000,
-  retryStrategy: function (times) {
-    return Math.min(times * 50, 2000);
-  },
-  keepAlive: 0,
-  noDelay: true,
-  connectionName: null,
-  // Sentinel
-  sentinels: null,
-  name: null,
-  role: 'master',
-  sentinelRetryStrategy: function (times) {
-    return Math.min(times * 10, 1000);
-  },
-  natMap: null,
-  enableTLSForSentinelMode: false,
-  updateSentinels: true,
-  // Status
-  password: null,
-  db: 0,
-  // Others
-  dropBufferSupport: false,
-  enableOfflineQueue: true,
-  enableReadyCheck: true,
-  autoResubscribe: true,
-  autoResendUnfulfilledCommands: true,
-  lazyConnect: false,
-  keyPrefix: '',
-  reconnectOnError: null,
-  readOnly: false,
-  stringNumbers: false,
-  maxRetriesPerRequest: 20,
-  maxLoadingRetryTime: 10000
-};
+Redis.defaultOptions = DEFAULT_REDIS_OPTIONS;
 
 Redis.prototype.resetCommandQueue = function () {
   this.commandQueue = new Deque();
@@ -212,16 +183,16 @@ Redis.prototype.parseOptions = function () {
       continue;
     }
     if (typeof arg === 'object') {
-      _.defaults(this.options, arg);
+      defaults(this.options, arg);
     } else if (typeof arg === 'string') {
-      _.defaults(this.options, utils.parseURL(arg));
+      defaults(this.options, parseURL(arg));
     } else if (typeof arg === 'number') {
       this.options.port = arg;
     } else {
       throw new Error('Invalid argument ' + arg);
     }
   }
-  _.defaults(this.options, Redis.defaultOptions);
+  defaults(this.options, Redis.defaultOptions);
 
   if (typeof this.options.port === 'string') {
     this.options.port = parseInt(this.options.port, 10);
@@ -239,6 +210,7 @@ Redis.prototype.parseOptions = function () {
  * @private
  */
 Redis.prototype.setStatus = function (status, arg) {
+  // @ts-ignore
   if (debug.enabled) {
     debug('status[%s]: %s -> %s', this._getDescription(), this.status || '[empty]', status);
   }
@@ -314,8 +286,11 @@ Redis.prototype.connect = function (callback) {
           stream.destroy();
 
           var err = new Error('connect ETIMEDOUT');
+          // @ts-ignore
           err.errorno = 'ETIMEDOUT';
+          // @ts-ignore
           err.code = 'ETIMEDOUT';
+          // @ts-ignore
           err.syscall = 'connect';
           eventHandler.errorHandler(_this)(err);
         });
@@ -335,7 +310,7 @@ Redis.prototype.connect = function (callback) {
       };
       var connectionCloseHandler = function () {
         _this.removeListener('ready', connectionReadyHandler);
-        reject(new Error(utils.CONNECTION_CLOSED_ERROR_MSG));
+        reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
       };
       _this.once('ready', connectionReadyHandler);
       _this.once('close', connectionCloseHandler);
@@ -400,8 +375,8 @@ Redis.prototype.recoverFromFatalError = function (commandError, err, options) {
   this.disconnect(true);
 }
 
-Redis.prototype.handleReconnection = function (err, item) {
-  var needReconnect = false;
+Redis.prototype.handleReconnection = function handleReconnection(err, item) {
+  var needReconnect: ReturnType<ReconnectOnError> = false;
   if (this.options.reconnectOnError) {
     needReconnect = this.options.reconnectOnError(err);
   }
@@ -436,7 +411,7 @@ Redis.prototype.handleReconnection = function (err, item) {
  * @private
  */
 Redis.prototype.flushQueue = function (error, options) {
-  options = _.defaults({}, options, {
+  options = defaults({}, options, {
     offlineQueue: true,
     commandQueue: true
   });
@@ -479,7 +454,7 @@ Redis.prototype._readyCheck = function (callback) {
       return callback(null, res);
     }
 
-    var info = {};
+    var info: {[key: string]: any} = {};
 
     var lines = res.split('\r\n');
     for (var i = 0; i < lines.length; ++i) {
@@ -523,14 +498,13 @@ Redis.prototype.silentEmit = function (eventName) {
 
     if (this.manuallyClosing) {
       // ignore connection related errors when manually disconnecting
-      if (
-        error instanceof Error &&
-        (
-          error.message === utils.CONNECTION_CLOSED_ERROR_MSG ||
-          error.syscall === 'connect' ||
-          error.syscall === 'read'
-        )
-      ) {
+      if (error instanceof Error && (
+        error.message === CONNECTION_CLOSED_ERROR_MSG ||
+        // @ts-ignore
+        error.syscall === 'connect' ||
+        // @ts-ignore
+        error.syscall === 'read'
+      )){
         return;
       }
     }
@@ -588,7 +562,7 @@ Redis.prototype.monitor = function (callback) {
   );
 };
 
-require('./transaction').addTransactionSupport(Redis.prototype);
+addTransactionSupport(Redis.prototype);
 
 /**
  * Send a command to Redis
@@ -623,10 +597,10 @@ require('./transaction').addTransactionSupport(Redis.prototype);
  */
 Redis.prototype.sendCommand = function (command, stream) {
   if (this.status === 'wait') {
-    this.connect().catch(_.noop);
+    this.connect().catch(noop);
   }
   if (this.status === 'end') {
-    command.reject(new Error(utils.CONNECTION_CLOSED_ERROR_MSG));
+    command.reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
     return command.promise;
   }
   if (this.condition.subscriber && !Command.checkFlag('VALID_IN_SUBSCRIBER_MODE', command.name)) {
@@ -657,6 +631,7 @@ Redis.prototype.sendCommand = function (command, stream) {
   }
 
   if (writable) {
+    // @ts-ignore
     if (debug.enabled) {
       debug('write command[%s]: %d -> %s(%o)', this._getDescription(), this.condition.select, command.name, command.args);
     }
@@ -672,6 +647,7 @@ Redis.prototype.sendCommand = function (command, stream) {
       this.manuallyClosing = true;
     }
   } else if (this.options.enableOfflineQueue) {
+    // @ts-ignore
     if (debug.enabled) {
       debug('queue command[%s]: %d -> %s(%o)', this._getDescription(), this.condition.select, command.name, command.args);
     }
@@ -682,7 +658,7 @@ Redis.prototype.sendCommand = function (command, stream) {
     });
   }
 
-  if (command.name === 'select' && utils.isInt(command.args[0])) {
+  if (command.name === 'select' && isInt(command.args[0])) {
     var db = parseInt(command.args[0], 10);
     if (this.condition.select !== db) {
       this.condition.select = db;
@@ -720,7 +696,7 @@ Redis.prototype._getDescription = function () {
       options = key;
       key = null;
     }
-    return new ScanStream(_.defaults({
+    return new ScanStream(defaults({
       objectMode: true,
       key: key,
       redis: this,
@@ -728,5 +704,3 @@ Redis.prototype._getDescription = function () {
     }, options));
   };
 });
-
-module.exports = Redis;

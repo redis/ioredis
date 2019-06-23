@@ -14,10 +14,11 @@ import {IClusterOptions, DEFAULT_CLUSTER_OPTIONS} from './ClusterOptions'
 import {sample, CONNECTION_CLOSED_ERROR_MSG, shuffle, timeout, zipMap} from '../utils'
 import * as commands from 'redis-commands'
 import Command from '../command'
-const Deque = require('denque')
-const Redis = require('../redis')
+import Redis from '../redis'
+import Commander from '../commander'
+import Deque = require('denque')
+
 const debug = Debug('cluster')
-const Commander = require('../commander')
 
 type ClusterStatus = 'end' | 'close' | 'wait' | 'connecting' | 'connect' | 'ready' | 'reconnecting' | 'disconnecting'
 
