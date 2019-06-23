@@ -7,10 +7,9 @@ import SentinelIterator from './SentinelIterator'
 import {ISentinelAddress} from './types';
 import AbstractConnector, { ErrorEmitter } from '../AbstractConnector'
 import {NetStream} from '../../types'
+import Redis from '../../redis'
 
 const debug = Debug('SentinelConnector')
-
-let Redis
 
 interface IAddressFromResponse {
   port: string,
@@ -20,21 +19,21 @@ interface IAddressFromResponse {
 
 type NodeCallback<T = void> = (err: Error | null, result?: T) => void
 type PreferredSlaves =
-  ((slaves: Array<IAddressFromResponse>) => IAddressFromResponse) |
+  ((slaves: Array<IAddressFromResponse>) => IAddressFromResponse | null) |
   Array<{port: string, ip: string, prio?: number}> |
   {port: string, ip: string, prio?: number}
 
-interface ISentinelConnectionOptions extends ITcpConnectionOptions {
+export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   role: 'master' | 'slave'
-  name: 'string'
-  sentinelPassword?: 'string'
-  sentinels: Array<ISentinelAddress>
+  name: string
+  sentinelPassword?: string
+  sentinels: Partial<ISentinelAddress>[]
   sentinelRetryStrategy?: (retryAttempts: number) => number
   preferredSlaves?: PreferredSlaves
   connectTimeout?: number
   enableTLSForSentinelMode?: boolean
   sentinelTLS?: SecureContextOptions
-  natMap: NatMap
+  natMap?: NatMap
   updateSentinels?: boolean
 }
 
@@ -216,9 +215,6 @@ export default class SentinelConnector extends AbstractConnector {
   }
 
   private resolve (endpoint, callback: NodeCallback<ITcpConnectionOptions>): void {
-    if (typeof Redis === 'undefined') {
-      Redis = require('../../redis')
-    }
     var client = new Redis({
       port: endpoint.port || 26379,
       host: endpoint.host,

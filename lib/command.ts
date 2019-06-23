@@ -137,7 +137,7 @@ export default class Command implements ICommand {
    * If omit, the response will be handled via Promise
    * @memberof Command
    */
-  constructor (public name: string, args: Array<string | Buffer | number> = [], options: ICommandOptions = {}, callback?: CallbackFunction) {
+  constructor (public name: string, args: Array<string | Buffer | number | Array<string | Buffer | number | any[]>> = [], options: ICommandOptions = {}, callback?: CallbackFunction) {
     this.replyEncoding = options.replyEncoding
     this.errorStack = options.errorStack
 
