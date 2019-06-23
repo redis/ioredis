@@ -49,7 +49,7 @@ export default class SentinelConnector extends AbstractConnector {
   constructor (protected options: ISentinelConnectionOptions) {
     super()
 
-    if (!(this.options.sentinels && this.options.sentinels.length || this.options.floatingSentinels)) {
+    if (!(Array.isArray(this.options.sentinels) && this.options.sentinels.length || this.options.floatingSentinels)) {
       throw new Error(EMPTY_SENTINELS_MSG)
     }
     if (!this.options.name) {
@@ -152,6 +152,9 @@ export default class SentinelConnector extends AbstractConnector {
     const sentinelCallback: FloatingSentinels = (err, result) => {
       if (err) {
         callback(err);
+        return;
+      } else if (!(Array.isArray(this.options.sentinels) && this.options.sentinels.length)) {
+        callback(new Error(EMPTY_SENTINELS_MSG));
         return;
       }
 
