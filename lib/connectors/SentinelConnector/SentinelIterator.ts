@@ -5,36 +5,37 @@ function isSentinelEql (a: Partial<ISentinelAddress>, b: Partial<ISentinelAddres
     ((a.port || 26379) === (b.port || 26379))
 }
 
-export default class SentinelIterator {
+export default class SentinelIterator implements Iterator<Partial<ISentinelAddress>> {
   private cursor: number = 0
+  private sentinels: Partial<ISentinelAddress>[]
 
-  constructor (private sentinels: Partial<ISentinelAddress>[]) {}
+  constructor (sentinels: Partial<ISentinelAddress>[]) {
+    this.sentinels = [...sentinels];
+  }
 
-  hasNext (): boolean {
+  next () {
     return this.cursor < this.sentinels.length
+      ? { value: this.sentinels[this.cursor++], done: false }
+      : { value: undefined, done: true };
   }
 
-  next (): Partial<ISentinelAddress> | null {
-    return this.hasNext() ? this.sentinels[this.cursor++] : null
-  }
-
-  reset (moveCurrentEndpointToFirst: boolean): void {
-    if (moveCurrentEndpointToFirst && this.sentinels.length > 1 && this.cursor !== 1) {
-      const remains = this.sentinels.slice(this.cursor - 1)
-      this.sentinels = remains.concat(this.sentinels.slice(0, this.cursor - 1))
+  reset (moveCurrentEndpointToFirst: true): SentinelIterator
+  reset (moveCurrentEndpointToFirst?: false): void
+  reset (moveCurrentEndpointToFirst?: boolean) {
+    if (moveCurrentEndpointToFirst) {
+      if (this.sentinels.length > 1 && this.cursor !== 1) {
+        this.cursor = 0
+        return this
+      }
+      return new SentinelIterator([...this.sentinels.slice(this.cursor - 1), ...this.sentinels.slice(0, this.cursor - 1)])
     }
     this.cursor = 0
   }
 
-  add (sentinel: ISentinelAddress): boolean {
-    for (let i = 0; i < this.sentinels.length; i++) {
-      if (isSentinelEql(sentinel, this.sentinels[i])) {
-        return false
-      }
-    }
-
-    this.sentinels.push(sentinel)
-    return true
+  add (sentinel: ISentinelAddress) {
+    return this.sentinels.some(isSentinelEql.bind(null, sentinel))
+      ? null
+      : this.sentinels.push(sentinel);
   }
 
   toString (): string {

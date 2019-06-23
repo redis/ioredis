@@ -38,6 +38,7 @@ export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
 }
 
 export default class SentinelConnector extends AbstractConnector {
+  private lastError: Error
   private retryAttempts: number
   private sentinelIterator: SentinelIterator
 
@@ -71,71 +72,71 @@ export default class SentinelConnector extends AbstractConnector {
   public connect (callback: NodeCallback<NetStream>, eventEmitter: ErrorEmitter): void {
     this.connecting = true
     this.retryAttempts = 0
+    this.lastError = null
 
-    let lastError
-    const _this = this
-    connectToNext()
+    this.connectToNext(callback, eventEmitter)
+  }
 
-    function connectToNext() {
-      if (!_this.sentinelIterator.hasNext()) {
-        _this.sentinelIterator.reset(false)
-        const retryDelay = typeof _this.options.sentinelRetryStrategy === 'function'
-          ? _this.options.sentinelRetryStrategy(++_this.retryAttempts)
-          : null
+  private connectToNext(callback: NodeCallback<NetStream>, eventEmitter: ErrorEmitter) {
+    const endpoint = this.sentinelIterator.next();
 
-        let errorMsg = typeof retryDelay !== 'number'
-          ? 'All sentinels are unreachable and retry is disabled.'
-          : `All sentinels are unreachable. Retrying from scratch after ${retryDelay}ms.`
+    if (endpoint.done) {
+      this.sentinelIterator.reset(false)
+      const retryDelay = typeof this.options.sentinelRetryStrategy === 'function'
+        ? this.options.sentinelRetryStrategy(++this.retryAttempts)
+        : null
 
-        if (lastError) {
-          errorMsg += ` Last error: ${lastError.message}`
+      let errorMsg = typeof retryDelay !== 'number'
+        ? 'All sentinels are unreachable and retry is disabled.'
+        : `All sentinels are unreachable. Retrying from scratch after ${retryDelay}ms.`
+
+      if (this.lastError) {
+        errorMsg += ` Last error: ${this.lastError.message}`
+      }
+
+      debug(errorMsg)
+
+      const error = new Error(errorMsg)
+      if (typeof retryDelay === 'number') {
+        setTimeout(this.connectToNext.bind(this, callback, eventEmitter), retryDelay)
+        eventEmitter('error', error)
+      } else {
+        callback(error)
+      }
+      return
+    }
+
+    this.resolve(endpoint.value, function (err, resolved) {
+      if (!this.connecting) {
+        callback(new Error(CONNECTION_CLOSED_ERROR_MSG))
+        return
+      }
+      if (resolved) {
+        debug('resolved: %s:%s', resolved.host, resolved.port)
+        if (this.options.enableTLSForSentinelMode && this.options.tls) {
+          Object.assign(resolved, this.options.tls)
+          this.stream = createTLSConnection(resolved)
+        } else {
+          this.stream = createConnection(resolved)
         }
+        this.sentinelIterator = this.sentinelIterator.reset(true)
+        callback(null, this.stream)
+      } else {
+        const endpointAddress = endpoint.value.host + ':' + endpoint.value.port
+        const errorMsg = err
+          ? 'failed to connect to sentinel ' + endpointAddress + ' because ' + err.message
+          : 'connected to sentinel ' + endpointAddress + ' successfully, but got an invalid reply: ' + resolved
 
         debug(errorMsg)
 
-        const error = new Error(errorMsg)
-        if (typeof retryDelay === 'number') {
-          setTimeout(connectToNext, retryDelay)
-          eventEmitter('error', error)
-        } else {
-          callback(error)
+        eventEmitter('sentinelError', new Error(errorMsg))
+
+        if (err) {
+          this.lastError = err
         }
-        return
+        this.connectToNext(callback, eventEmitter);
       }
-
-      const endpoint = _this.sentinelIterator.next()
-      _this.resolve(endpoint, function (err, resolved) {
-        if (!_this.connecting) {
-          callback(new Error(CONNECTION_CLOSED_ERROR_MSG))
-          return
-        }
-        if (resolved) {
-          debug('resolved: %s:%s', resolved.host, resolved.port)
-          if (_this.options.enableTLSForSentinelMode && _this.options.tls) {
-            Object.assign(resolved, _this.options.tls)
-            _this.stream = createTLSConnection(resolved)
-          } else {
-            _this.stream = createConnection(resolved)
-          }
-          _this.sentinelIterator.reset(true)
-          callback(null, _this.stream)
-        } else {
-          const endpointAddress = endpoint.host + ':' + endpoint.port
-          const errorMsg = err
-            ? 'failed to connect to sentinel ' + endpointAddress + ' because ' + err.message
-            : 'connected to sentinel ' + endpointAddress + ' successfully, but got an invalid reply: ' + resolved
-
-          debug(errorMsg)
-
-          eventEmitter('sentinelError', new Error(errorMsg))
-
-          if (err) {
-            lastError = err
-          }
-          connectToNext()
-        }
-      })
-    }
+    })
   }
 
   private updateSentinels (client, callback: NodeCallback): void {
@@ -157,7 +158,7 @@ export default class SentinelConnector extends AbstractConnector {
         const flags = sentinel.flags ? sentinel.flags.split(',') : []
         if (flags.indexOf('disconnected') === -1 && sentinel.ip && sentinel.port) {
           const endpoint = this.sentinelNatResolve(addressResponseToAddress(sentinel))
-          if (this.sentinelIterator.add(endpoint)) {
+          if (this.sentinelIterator.add(endpoint) != null) {
             debug('adding sentinel %s:%s', endpoint.host, endpoint.port)
           }
         }
