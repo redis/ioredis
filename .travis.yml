@@ -49,11 +49,3 @@ deploy:
       tags: false
       all_branches: true
       node: '10'
-
-  # when master is merged to release, promote "next" to "latest"
-  - provider: script
-    script: npm ci && node bin/promote-next.js
-    skip_cleanup: true
-    on:
-      branch: release
-      node: '10'

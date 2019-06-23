@@ -7,8 +7,8 @@
     "built/"
   ],
   "scripts": {
-    "test": "NODE_ENV=test mocha",
-    "test:cov": "NODE_ENV=test node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -r ts-node/register -R spec --exit",
+    "test": "NODE_ENV=test mocha test/**/*.ts",
+    "test:cov": "NODE_ENV=test node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -r ts-node/register -R spec --exit test/**/*.ts",
     "build": "rm -rf built && tsc",
     "prepublishOnly": "npm run build && npm test",
     "bench": "matcha benchmarks/*.js",
@@ -40,11 +40,14 @@
   "devDependencies": {
     "@semantic-release/changelog": "^3.0.4",
     "@semantic-release/git": "^7.0.12",
+    "@types/bluebird": "^3.5.27",
     "@types/debug": "^4.1.4",
     "@types/lodash.defaults": "^4.2.6",
     "@types/lodash.flatten": "^4.4.6",
+    "@types/mocha": "^5.2.7",
     "@types/node": "^12.0.2",
     "@types/redis-errors": "1.2.0",
+    "@types/sinon": "^7.0.13",
     "bluebird": "^3.5.4",
     "chai": "^4.2.0",
     "cz-conventional-changelog": "^2.0.0",

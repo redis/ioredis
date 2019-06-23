@@ -41,7 +41,7 @@ export function bufferEqual (a: Buffer, b: Buffer): boolean {
  * ```
  * @private
  */
-export function convertBufferToString (value, encoding) {
+export function convertBufferToString (value: any, encoding?: string) {
   if (value instanceof Buffer) {
     return value.toString(encoding)
   }
@@ -189,9 +189,9 @@ export function convertObjectToArray (obj) {
  * [1, '2']
  * ```
  */
-export function convertMapToArray (map) {
-  var result = []
-  var pos = 0
+export function convertMapToArray<K, V>(map: Map<K, V>): Array<K | V> {
+  const result = []
+  let pos = 0
   map.forEach(function (value, key) {
     result[pos] = key
     result[pos + 1] = value

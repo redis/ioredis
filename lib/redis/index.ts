@@ -112,10 +112,12 @@ var debug = Debug('redis')
 export default Redis;
 function Redis(port: number, host: string, options: IRedisOptions): void
 function Redis(path: string, options: IRedisOptions): void
+function Redis(port: number, options: IRedisOptions): void
 function Redis(port: number, host: string): void
 function Redis(options: IRedisOptions): void
 function Redis(port: number): void
 function Redis(path: string): void
+function Redis(): void
 function Redis() {
   if (!(this instanceof Redis)) {
     console.error(new Error('Calling `Redis()` like a function is deprecated. Using `new Redis()` instead.').stack.replace('Error', 'Warning'));

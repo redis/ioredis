@@ -5,7 +5,7 @@ import {ICommanderOptions} from '../commander';
 export type ReconnectOnError = (err: Error) => boolean | 1 | 2;
 
 export interface IRedisOptions extends Partial<ISentinelConnectionOptions>, Partial<ICommanderOptions>, Partial<IClusterOptions> {
-    retryStrategy?: (times: number) => number,
+    retryStrategy?: (times: number) => number | void | null,
     keepAlive?: number,
     noDelay?: boolean,
     connectionName?: string,
