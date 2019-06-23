@@ -12,7 +12,7 @@ export default class SentinelIterator implements Iterator<Partial<ISentinelAddre
 
   next () {
     const done = this.cursor >= this.sentinels.length
-    return { done, value: done ? this.sentinels[this.cursor++] : null }
+    return { done, value: done ? undefined : this.sentinels[this.cursor++] }
   }
 
   reset (moveCurrentEndpointToFirst: boolean): void {
