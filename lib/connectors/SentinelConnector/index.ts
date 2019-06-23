@@ -78,7 +78,7 @@ export default class SentinelConnector extends AbstractConnector {
     this.retryAttempts = 0
     this.lastError = null
 
-    if (typeof this.options.sentinelRetryStrategy !== 'function') {
+    if (typeof this.options.floatingSentinels === 'function') {
       this.connectToFloat(callback, eventEmitter)
       return
     }
