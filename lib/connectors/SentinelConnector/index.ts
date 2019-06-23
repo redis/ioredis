@@ -115,7 +115,7 @@ export default class SentinelConnector extends AbstractConnector {
       return
     }
 
-    this.resolve(endpoint.value, function (err, resolved) {
+    this.resolve(endpoint.value, (err, resolved) => {
       if (!this.connecting) {
         callback(new Error(CONNECTION_CLOSED_ERROR_MSG))
         return
