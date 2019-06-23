@@ -1,10 +1,10 @@
 exports = module.exports = require('./redis').default
 
 export {ReplyError} from 'redis-errors'
-exports.Cluster = require('./cluster').default
-exports.Command = require('./command').default
-exports.ScanStream = require('./ScanStream').default
-exports.Pipeline = require('./pipeline').default
+export const Cluster = require('./cluster').default
+export const Command = require('./command').default
+export const ScanStream = require('./ScanStream').default
+export const Pipeline = require('./pipeline').default
 
 const PromiseContainer = require('./promiseContainer')
 Object.defineProperty(exports, 'Promise', {
@@ -16,7 +16,7 @@ Object.defineProperty(exports, 'Promise', {
   }
 })
 
-exports.print = function (err, reply) {
+export function print(err: Error | null, reply?: any) {
   if (err) {
     console.log('Error: ' + err)
   } else {

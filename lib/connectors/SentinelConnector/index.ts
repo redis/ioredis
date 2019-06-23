@@ -19,15 +19,15 @@ interface IAddressFromResponse {
 
 type NodeCallback<T = void> = (err: Error | null, result?: T) => void
 type PreferredSlaves =
-  ((slaves: Array<IAddressFromResponse>) => IAddressFromResponse) |
+  ((slaves: Array<IAddressFromResponse>) => IAddressFromResponse | null) |
   Array<{port: string, ip: string, prio?: number}> |
   {port: string, ip: string, prio?: number}
 
 export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   role: 'master' | 'slave'
-  name: 'string'
-  sentinelPassword?: 'string'
-  sentinels: ISentinelAddress[]
+  name: string
+  sentinelPassword?: string
+  sentinels: Partial<ISentinelAddress>[]
   sentinelRetryStrategy?: (retryAttempts: number) => number
   preferredSlaves?: PreferredSlaves
   connectTimeout?: number

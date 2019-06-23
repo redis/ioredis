@@ -1,6 +1,6 @@
 import {ISentinelAddress} from './types'
 
-function isSentinelEql (a: ISentinelAddress, b: ISentinelAddress): boolean {
+function isSentinelEql (a: Partial<ISentinelAddress>, b: Partial<ISentinelAddress>): boolean {
   return ((a.host || '127.0.0.1') === (b.host || '127.0.0.1')) &&
     ((a.port || 26379) === (b.port || 26379))
 }
@@ -8,13 +8,13 @@ function isSentinelEql (a: ISentinelAddress, b: ISentinelAddress): boolean {
 export default class SentinelIterator {
   private cursor: number = 0
 
-  constructor (private sentinels: ISentinelAddress[]) {}
+  constructor (private sentinels: Partial<ISentinelAddress>[]) {}
 
   hasNext (): boolean {
     return this.cursor < this.sentinels.length
   }
 
-  next (): ISentinelAddress | null {
+  next (): Partial<ISentinelAddress> | null {
     return this.hasNext() ? this.sentinels[this.cursor++] : null
   }
 
