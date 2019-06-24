@@ -80,23 +80,23 @@ export default class SentinelConnector extends AbstractConnector {
 
     const connectToNext = () => {
       const endpoint = this.sentinelIterator.next();
-  
+
       if (endpoint.done) {
         this.sentinelIterator.reset(false)
         const retryDelay = typeof this.options.sentinelRetryStrategy === 'function'
           ? this.options.sentinelRetryStrategy(++this.retryAttempts)
           : null
-  
+
         let errorMsg = typeof retryDelay !== 'number'
           ? 'All sentinels are unreachable and retry is disabled.'
           : `All sentinels are unreachable. Retrying from scratch after ${retryDelay}ms.`
-  
+
         if (lastError) {
           errorMsg += ` Last error: ${lastError.message}`
         }
-  
+
         debug(errorMsg)
-  
+
         const error = new Error(errorMsg)
         if (typeof retryDelay === 'number') {
           setTimeout(connectToNext, retryDelay)
@@ -106,7 +106,7 @@ export default class SentinelConnector extends AbstractConnector {
         }
         return
       }
-  
+
       this.resolve(endpoint.value, (err, resolved) => {
         if (!this.connecting) {
           callback(new Error(CONNECTION_CLOSED_ERROR_MSG))
@@ -127,15 +127,15 @@ export default class SentinelConnector extends AbstractConnector {
           const errorMsg = err
             ? 'failed to connect to sentinel ' + endpointAddress + ' because ' + err.message
             : 'connected to sentinel ' + endpointAddress + ' successfully, but got an invalid reply: ' + resolved
-  
+
           debug(errorMsg)
-  
+
           eventEmitter('sentinelError', new Error(errorMsg))
-  
+
           if (err) {
             lastError = err
           }
-          connectToNext();
+          connectToNext()
         }
       })
     }
