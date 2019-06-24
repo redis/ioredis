@@ -1,10 +1,19 @@
 exports = module.exports = require('./redis').default
 
-export {ReplyError} from 'redis-errors'
-export const Cluster = require('./cluster').default
-export const Command = require('./command').default
-export const ScanStream = require('./ScanStream').default
-export const Pipeline = require('./pipeline').default
+export {default} from './redis';
+export {default as Cluster} from './cluster'
+export {default as Command} from './command'
+export {default as ScanStream} from './ScanStream'
+export {default as Pipeline} from './pipeline'
+export {default as AbstractConnector} from './connectors/AbstractConnector'
+export {default as SentinelConnector} from './connectors/SentinelConnector'
+export {default as AsyncSentinelConnector} from './connectors/AsyncSentinelConnector'
+
+// Type Exports
+export {IRedisOptions} from './redis/RedisOptions';
+
+// No TS typings
+export const ReplyError = require('redis-errors').ReplyError
 
 const PromiseContainer = require('./promiseContainer')
 Object.defineProperty(exports, 'Promise', {
