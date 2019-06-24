@@ -318,6 +318,8 @@ Redis.prototype.connect = function (callback) {
       this.setStatus('end');
       throw err;
     });
+
+    resolve(connectPromise);
   })
 
   return asCallback(promise, callback)
