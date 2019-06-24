@@ -276,7 +276,7 @@ Redis.prototype.connect = function (callback) {
          * See https://github.com/electron/electron/issues/14915
          */
         var connectTimeoutCleared = false;
-        stream.setTimeout(options.connectTimeout, function () {
+        stream.setTimeout(options.connectTimeout, () => {
           if (connectTimeoutCleared) {
             return;
           }
@@ -292,7 +292,7 @@ Redis.prototype.connect = function (callback) {
           err.syscall = 'connect';
           eventHandler.errorHandler(this)(err);
         });
-        stream.once(CONNECT_EVENT, function () {
+        stream.once(CONNECT_EVENT, () => {
           connectTimeoutCleared = true;
           stream.setTimeout(0);
         });
@@ -302,11 +302,11 @@ Redis.prototype.connect = function (callback) {
         stream.setNoDelay(true);
       }
 
-      var connectionReadyHandler = function () {
+      var connectionReadyHandler = () => {
         this.removeListener('close', connectionCloseHandler);
         resolve();
       };
-      var connectionCloseHandler = function () {
+      var connectionCloseHandler = () => {
         this.removeListener('ready', connectionReadyHandler);
         reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
       };
