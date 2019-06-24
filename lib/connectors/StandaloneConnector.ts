@@ -22,7 +22,7 @@ export default class StandaloneConnector extends AbstractConnector {
     super()
   }
 
-  public connect (_: ErrorEmitter): Promise<NetStream> {
+  public connect (_: ErrorEmitter) {
     const {options} = this
     this.connecting = true
 
@@ -49,7 +49,7 @@ export default class StandaloneConnector extends AbstractConnector {
     }
     
     const _Promise = PromiseContainer.get();
-    return new _Promise((resolve, reject) => {
+    return new _Promise<NetStream>((resolve, reject) => {
       process.nextTick(() => {
         if (!this.connecting) {
           reject(new Error(CONNECTION_CLOSED_ERROR_MSG))
