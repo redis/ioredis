@@ -13,7 +13,6 @@ import * as commands from 'redis-commands';
 import * as PromiseContainer from '../promiseContainer';
 import {addTransactionSupport} from '../transaction';
 import {IRedisOptions, ReconnectOnError, DEFAULT_REDIS_OPTIONS} from './RedisOptions';
-import { NetStream } from '../types';
 
 var debug = Debug('redis')
 
@@ -251,21 +250,30 @@ Redis.prototype.connect = function (callback) {
       subscriber: false
     };
 
-    const connectPromise = options.connector.connect(this.silentEmit.bind(this)).then((stream: NetStream) => {
-      
+    var _this = this;
+    asCallback(options.connector.connect(function (type, err) {
+      _this.silentEmit(type, err);
+    }), function (err, stream) {
+      if (err) {
+        _this.flushQueue(err);
+        _this.silentEmit('error', err);
+        reject(err);
+        _this.setStatus('end');
+        return;
+      }
       var CONNECT_EVENT = options.tls ? 'secureConnect' : 'connect';
       if (options.sentinels && !options.enableTLSForSentinelMode) {
         CONNECT_EVENT = 'connect';
       }
 
-      this.stream = stream;
+      _this.stream = stream;
       if (typeof options.keepAlive === 'number') {
         stream.setKeepAlive(true, options.keepAlive);
       }
 
-      stream.once(CONNECT_EVENT, eventHandler.connectHandler(this));
-      stream.once('error', eventHandler.errorHandler(this));
-      stream.once('close', eventHandler.closeHandler(this));
+      stream.once(CONNECT_EVENT, eventHandler.connectHandler(_this));
+      stream.once('error', eventHandler.errorHandler(_this));
+      stream.once('close', eventHandler.closeHandler(_this));
 
       if (options.connectTimeout) {
         /*
@@ -276,7 +284,7 @@ Redis.prototype.connect = function (callback) {
          * See https://github.com/electron/electron/issues/14915
          */
         var connectTimeoutCleared = false;
-        stream.setTimeout(options.connectTimeout, () => {
+        stream.setTimeout(options.connectTimeout, function () {
           if (connectTimeoutCleared) {
             return;
           }
@@ -290,9 +298,9 @@ Redis.prototype.connect = function (callback) {
           err.code = 'ETIMEDOUT';
           // @ts-ignore
           err.syscall = 'connect';
-          eventHandler.errorHandler(this)(err);
+          eventHandler.errorHandler(_this)(err);
         });
-        stream.once(CONNECT_EVENT, () => {
+        stream.once(CONNECT_EVENT, function () {
           connectTimeoutCleared = true;
           stream.setTimeout(0);
         });
@@ -302,26 +310,17 @@ Redis.prototype.connect = function (callback) {
         stream.setNoDelay(true);
       }
 
-      return new _Promise((_reject, _resolve) => {
-        var connectionReadyHandler = () => {
-          this.removeListener('close', connectionCloseHandler);
-          _resolve();
-        };
-        var connectionCloseHandler = () => {
-          this.removeListener('ready', connectionReadyHandler);
-          _reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
-        };
-        this.once('ready', connectionReadyHandler);
-        this.once('close', connectionCloseHandler);
-      });
-    }).catch(err => {
-      this.flushQueue(err);
-      this.silentEmit('error', err);
-      this.setStatus('end');
-      throw err;
+      var connectionReadyHandler = function () {
+        _this.removeListener('close', connectionCloseHandler);
+        resolve();
+      };
+      var connectionCloseHandler = function () {
+        _this.removeListener('ready', connectionReadyHandler);
+        reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
+      };
+      _this.once('ready', connectionReadyHandler);
+      _this.once('close', connectionCloseHandler);
     });
-
-    resolve(connectPromise);
   })
 
   return asCallback(promise, callback)
