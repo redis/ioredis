@@ -250,7 +250,7 @@ Redis.prototype.connect = function (callback) {
       subscriber: false
     };
 
-    var _this = this;
+    var _this: Redis = this;
     this.options.connector.connect(function (err, stream) {
       if (err) {
         _this.flushQueue(err);
