@@ -2,6 +2,7 @@ import {createConnection, TcpNetConnectOpts, IpcNetConnectOpts} from 'net'
 import {connect as createTLSConnection, SecureContextOptions} from 'tls'
 import {CONNECTION_CLOSED_ERROR_MSG} from '../utils'
 import AbstractConnector, {ErrorEmitter} from './AbstractConnector'
+import * as PromiseContainer from '../promiseContainer';
 import {NetStream} from '../types'
 
 export function isIIpcConnectionOptions (value: any): value is IIpcConnectionOptions {
@@ -21,7 +22,7 @@ export default class StandaloneConnector extends AbstractConnector {
     super()
   }
 
-  public connect (callback: Function, _: ErrorEmitter) {
+  public connect (_: ErrorEmitter): Promise<NetStream> {
     const {options} = this
     this.connecting = true
 
@@ -46,27 +47,30 @@ export default class StandaloneConnector extends AbstractConnector {
     if (options.tls) {
       Object.assign(connectionOptions, options.tls)
     }
-
-    process.nextTick(() => {
-      if (!this.connecting) {
-        callback(new Error(CONNECTION_CLOSED_ERROR_MSG))
-        return
-      }
-
-      let stream: NetStream
-      try {
-        if (options.tls) {
-          stream = createTLSConnection(connectionOptions)
-        } else {
-          stream = createConnection(connectionOptions)
+    
+    const _Promise = PromiseContainer.get();
+    return new _Promise((resolve, reject) => {
+      process.nextTick(() => {
+        if (!this.connecting) {
+          reject(new Error(CONNECTION_CLOSED_ERROR_MSG))
+          return
         }
-      } catch (err) {
-        callback(err)
-        return
-      }
-
-      this.stream = stream
-      callback(null, stream)
+  
+        let stream: NetStream
+        try {
+          if (options.tls) {
+            stream = createTLSConnection(connectionOptions)
+          } else {
+            stream = createConnection(connectionOptions)
+          }
+        } catch (err) {
+          reject(err)
+          return
+        }
+  
+        this.stream = stream
+        resolve(stream)
+      })
     })
   }
 }

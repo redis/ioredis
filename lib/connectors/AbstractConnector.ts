@@ -17,5 +17,5 @@ export default abstract class AbstractConnector {
     }
   }
 
-  public abstract connect (callback: Function, _: ErrorEmitter)
+  public abstract connect (_: ErrorEmitter): Promise<NetStream>
 }
