@@ -12,8 +12,6 @@ import Redis from '../../redis'
 
 const debug = Debug('SentinelConnector')
 
-export const EMPTY_SENTINELS_MSG = 'Requires at least one sentinel to connect to.';
-
 interface IAddressFromResponse {
   port: string,
   ip: string,
@@ -49,7 +47,7 @@ export default class SentinelConnector extends AbstractConnector {
     super()
 
     if (!this.options.sentinels.length) {
-      throw new Error(EMPTY_SENTINELS_MSG)
+      throw new Error('Requires at least one sentinel to connect to.')
     }
     if (!this.options.name) {
       throw new Error('Requires the name of master.')

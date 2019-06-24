@@ -6,8 +6,7 @@ export {default as Command} from './command'
 export {default as ScanStream} from './ScanStream'
 export {default as Pipeline} from './pipeline'
 export {default as AbstractConnector} from './connectors/AbstractConnector'
-export {default as SentinelConnector} from './connectors/SentinelConnector'
-export {default as AsyncSentinelConnector} from './connectors/AsyncSentinelConnector'
+export {default as SentinelConnector, SentinelIterator} from './connectors/SentinelConnector'
 
 // Type Exports
 export {ISentinelAddress} from './connectors/SentinelConnector'
