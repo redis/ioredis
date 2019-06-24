@@ -55,21 +55,19 @@ export default class StandaloneConnector extends AbstractConnector {
           reject(new Error(CONNECTION_CLOSED_ERROR_MSG))
           return
         }
-  
-        let stream: NetStream
+
         try {
           if (options.tls) {
-            stream = createTLSConnection(connectionOptions)
+            this.stream = createTLSConnection(connectionOptions)
           } else {
-            stream = createConnection(connectionOptions)
+            this.stream = createConnection(connectionOptions)
           }
         } catch (err) {
           reject(err)
           return
         }
-  
-        this.stream = stream
-        resolve(stream)
+
+        resolve(this.stream)
       })
     })
   }

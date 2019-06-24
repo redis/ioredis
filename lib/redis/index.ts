@@ -251,7 +251,7 @@ Redis.prototype.connect = function (callback) {
       subscriber: false
     };
 
-    const connectPromise = this.options.connector.connect(this.silentEmit.bind(this)).then((stream: NetStream) => {
+    const connectPromise = options.connector.connect(this.silentEmit.bind(this)).then((stream: NetStream) => {
       
       var CONNECT_EVENT = options.tls ? 'secureConnect' : 'connect';
       if (options.sentinels && !options.enableTLSForSentinelMode) {
@@ -302,16 +302,18 @@ Redis.prototype.connect = function (callback) {
         stream.setNoDelay(true);
       }
 
-      var connectionReadyHandler = () => {
-        this.removeListener('close', connectionCloseHandler);
-        resolve();
-      };
-      var connectionCloseHandler = () => {
-        this.removeListener('ready', connectionReadyHandler);
-        reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
-      };
-      this.once('ready', connectionReadyHandler);
-      this.once('close', connectionCloseHandler);
+      return new _Promise((_reject, _resolve) => {
+        var connectionReadyHandler = () => {
+          this.removeListener('close', connectionCloseHandler);
+          _resolve();
+        };
+        var connectionCloseHandler = () => {
+          this.removeListener('ready', connectionReadyHandler);
+          _reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
+        };
+        this.once('ready', connectionReadyHandler);
+        this.once('close', connectionCloseHandler);
+      });
     }).catch(err => {
       this.flushQueue(err);
       this.silentEmit('error', err);
