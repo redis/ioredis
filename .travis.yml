@@ -12,6 +12,7 @@ services:
 - redis-server
 
 script:
+- npm run build
 - npm run test:cov || npm run test:cov || npm run test:cov
 
 env:
