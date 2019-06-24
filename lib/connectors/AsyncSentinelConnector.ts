@@ -3,12 +3,12 @@ import { ErrorEmitter } from './AbstractConnector';
 import { NetStream } from '../types';
 import { NodeCallback } from './types';
 
-export type FloatingSentinels = (err: Error, sentinels: Partial<ISentinelAddress>[]) => void
+export type AsyncSentinelFetch = () => Promise<Partial<ISentinelAddress>[]>
 
 export default class AsyncSentinelConnector extends SentinelConnector {
-    private fetch: (FloatingSentinels) => void
+    private fetch: AsyncSentinelFetch
 
-    constructor(options: ISentinelConnectionOptions, fetch: (FloatingSentinels) => void) {
+    constructor(options: ISentinelConnectionOptions, fetch: AsyncSentinelFetch) {
         options.sentinels = options.sentinels || [{host: 'localhost', port: 6379}] // Placeholder
         super(options)
 
@@ -16,21 +16,15 @@ export default class AsyncSentinelConnector extends SentinelConnector {
     }
 
     public connect(callback: NodeCallback<NetStream>, eventEmitter: ErrorEmitter) {
-        const sentinelCallback: FloatingSentinels = (err, result) => {
-            if (err) {
-                callback(err);
-                return;
-            } else if (!result.length) {
-                callback(new Error(EMPTY_SENTINELS_MSG));
-                return;
-            }
+        this.fetch()
+            .then(sentinels => {
+                if (!sentinels.length) throw new Error(EMPTY_SENTINELS_MSG);
 
-            this.options.sentinels = result;
-            this.sentinelIterator = new SentinelIterator(result)
-            super.connect(callback, eventEmitter);
-        }
-
-        this.fetch(sentinelCallback);
+                this.options.sentinels = sentinels;
+                this.sentinelIterator = new SentinelIterator(sentinels)
+                return super.connect(callback, eventEmitter);
+            })
+            .catch(callback);
     }
 
 }

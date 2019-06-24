@@ -10,7 +10,8 @@ export {default as SentinelConnector} from './connectors/SentinelConnector'
 export {default as AsyncSentinelConnector} from './connectors/AsyncSentinelConnector'
 
 // Type Exports
-export {IRedisOptions} from './redis/RedisOptions';
+export {ISentinelAddress} from './connectors/SentinelConnector'
+export {IRedisOptions} from './redis/RedisOptions'
 
 // No TS typings
 export const ReplyError = require('redis-errors').ReplyError
