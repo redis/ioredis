@@ -31,7 +31,7 @@ export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   role: 'master' | 'slave'
   name: string
   sentinelPassword?: string
-  sentinels: Partial<ISentinelAddress>[]
+  sentinels?: Partial<ISentinelAddress>[]
   sentinelRetryStrategy?: (retryAttempts: number) => number
   preferredSlaves?: PreferredSlaves
   connectTimeout?: number
@@ -41,11 +41,15 @@ export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   updateSentinels?: boolean
 }
 
+export interface ISentinelConnectorOptions extends ISentinelConnectionOptions {
+  sentinels: Partial<ISentinelAddress>[]
+}
+
 export default class SentinelConnector extends AbstractConnector {
   private retryAttempts: number
   protected sentinelIterator: SentinelIterator
 
-  constructor (protected options: ISentinelConnectionOptions) {
+  constructor (protected options: ISentinelConnectorOptions) {
     super()
 
     if (!this.options.sentinels.length) {

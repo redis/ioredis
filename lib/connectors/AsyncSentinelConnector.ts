@@ -1,4 +1,9 @@
-import SentinelConnector, { ISentinelConnectionOptions, ISentinelAddress, SentinelIterator, EMPTY_SENTINELS_MSG } from './SentinelConnector';
+import SentinelConnector, {
+    ISentinelConnectionOptions,
+    ISentinelConnectorOptions,
+    ISentinelAddress,
+    SentinelIterator,
+    EMPTY_SENTINELS_MSG } from './SentinelConnector';
 import { ErrorEmitter } from './AbstractConnector';
 import { NetStream } from '../types';
 import { NodeCallback } from './types';
@@ -10,7 +15,7 @@ export default class AsyncSentinelConnector extends SentinelConnector {
 
     constructor(options: ISentinelConnectionOptions, fetch: AsyncSentinelFetch) {
         options.sentinels = options.sentinels || [{host: 'localhost', port: 6379}] // Placeholder
-        super(options)
+        super(options as ISentinelConnectorOptions)
 
         this.fetch = fetch;
     }
