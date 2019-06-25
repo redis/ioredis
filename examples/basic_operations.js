@@ -27,6 +27,4 @@ redis.sadd('set', [1, 3, 5, 7]);
 redis.set('key', 100, 'EX', 10);
 
 // Change the server configuration
-redis.config('set', 'notify-keyspace-events', 'KEA')
-
-
+redis.config('set', 'notify-keyspace-events', 'KEA');

@@ -132,10 +132,12 @@ function Redis() {
   this.resetCommandQueue();
   this.resetOfflineQueue();
 
-  if (this.options.sentinels) {
-    this.connector = new SentinelConnector(this.options);
-  } else {
-    this.connector = new StandaloneConnector(this.options);
+  if (!this.options.connector) {
+    if (this.options.sentinels) {
+      this.options.connector = new SentinelConnector(this.options);
+    } else {
+      this.options.connector = new StandaloneConnector(this.options);
+    }
   }
 
   this.retryAttempts = 0;
@@ -232,8 +234,8 @@ Redis.prototype.setStatus = function (status, arg) {
  * @public
  */
 Redis.prototype.connect = function (callback) {
-  var Promise = PromiseContainer.get();
-  var promise = new Promise(function (resolve, reject) {
+  var _Promise = PromiseContainer.get();
+  var promise = new _Promise((resolve, reject) => {
     if (this.status === 'connecting' || this.status === 'connect' || this.status === 'ready') {
       reject(new Error('Redis is already connecting/connected'));
       return;
@@ -249,7 +251,9 @@ Redis.prototype.connect = function (callback) {
     };
 
     var _this = this;
-    this.connector.connect(function (err, stream) {
+    asCallback(options.connector.connect(function (type, err) {
+      _this.silentEmit(type, err);
+    }), function (err, stream) {
       if (err) {
         _this.flushQueue(err);
         _this.silentEmit('error', err);
@@ -316,10 +320,8 @@ Redis.prototype.connect = function (callback) {
       };
       _this.once('ready', connectionReadyHandler);
       _this.once('close', connectionCloseHandler);
-    }, function (type, err) {
-      _this.silentEmit(type, err);
     });
-  }.bind(this))
+  })
 
   return asCallback(promise, callback)
 };
@@ -343,7 +345,7 @@ Redis.prototype.disconnect = function (reconnect) {
   if (this.status === 'wait') {
     eventHandler.closeHandler(this)();
   } else {
-    this.connector.disconnect();
+    this.options.connector.disconnect();
   }
 };
 

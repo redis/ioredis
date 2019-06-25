@@ -6,7 +6,8 @@ import {ITcpConnectionOptions, isIIpcConnectionOptions} from '../StandaloneConne
 import SentinelIterator from './SentinelIterator'
 import {ISentinelAddress} from './types';
 import AbstractConnector, { ErrorEmitter } from '../AbstractConnector'
-import {NetStream} from '../../types'
+import {NetStream, CallbackFunction} from '../../types';
+import * as PromiseContainer from '../../promiseContainer';
 import Redis from '../../redis'
 
 const debug = Debug('SentinelConnector')
@@ -17,11 +18,12 @@ interface IAddressFromResponse {
   flags?: string
 }
 
-type NodeCallback<T = void> = (err: Error | null, result?: T) => void
 type PreferredSlaves =
   ((slaves: Array<IAddressFromResponse>) => IAddressFromResponse | null) |
   Array<{port: string, ip: string, prio?: number}> |
   {port: string, ip: string, prio?: number}
+
+export { ISentinelAddress, SentinelIterator };
 
 export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   role: 'master' | 'slave'
@@ -39,12 +41,12 @@ export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
 
 export default class SentinelConnector extends AbstractConnector {
   private retryAttempts: number
-  private sentinelIterator: SentinelIterator
+  protected sentinelIterator: SentinelIterator
 
   constructor (protected options: ISentinelConnectionOptions) {
     super()
 
-    if (this.options.sentinels.length === 0) {
+    if (!this.options.sentinels.length) {
       throw new Error('Requires at least one sentinel to connect to.')
     }
     if (!this.options.name) {
@@ -68,19 +70,20 @@ export default class SentinelConnector extends AbstractConnector {
     return roleMatches
   }
 
-  public connect (callback: NodeCallback<NetStream>, eventEmitter: ErrorEmitter): void {
+  public connect (eventEmitter: ErrorEmitter): Promise<NetStream> {
     this.connecting = true
     this.retryAttempts = 0
 
     let lastError
-    const _this = this
-    connectToNext()
+    const _Promise = PromiseContainer.get();
 
-    function connectToNext() {
-      if (!_this.sentinelIterator.hasNext()) {
-        _this.sentinelIterator.reset(false)
-        const retryDelay = typeof _this.options.sentinelRetryStrategy === 'function'
-          ? _this.options.sentinelRetryStrategy(++_this.retryAttempts)
+    const connectToNext = () => new _Promise<NetStream>((resolve, reject) => {
+      const endpoint = this.sentinelIterator.next();
+
+      if (endpoint.done) {
+        this.sentinelIterator.reset(false)
+        const retryDelay = typeof this.options.sentinelRetryStrategy === 'function'
+          ? this.options.sentinelRetryStrategy(++this.retryAttempts)
           : null
 
         let errorMsg = typeof retryDelay !== 'number'
@@ -95,32 +98,33 @@ export default class SentinelConnector extends AbstractConnector {
 
         const error = new Error(errorMsg)
         if (typeof retryDelay === 'number') {
-          setTimeout(connectToNext, retryDelay)
+          setTimeout(() => {
+            resolve(connectToNext());
+          }, retryDelay)
           eventEmitter('error', error)
         } else {
-          callback(error)
+          reject(error)
         }
         return
       }
 
-      const endpoint = _this.sentinelIterator.next()
-      _this.resolve(endpoint, function (err, resolved) {
-        if (!_this.connecting) {
-          callback(new Error(CONNECTION_CLOSED_ERROR_MSG))
+      this.resolve(endpoint.value, (err, resolved) => {
+        if (!this.connecting) {
+          reject(new Error(CONNECTION_CLOSED_ERROR_MSG))
           return
         }
         if (resolved) {
           debug('resolved: %s:%s', resolved.host, resolved.port)
-          if (_this.options.enableTLSForSentinelMode && _this.options.tls) {
-            Object.assign(resolved, _this.options.tls)
-            _this.stream = createTLSConnection(resolved)
+          if (this.options.enableTLSForSentinelMode && this.options.tls) {
+            Object.assign(resolved, this.options.tls)
+            this.stream = createTLSConnection(resolved)
           } else {
-            _this.stream = createConnection(resolved)
+            this.stream = createConnection(resolved)
           }
-          _this.sentinelIterator.reset(true)
-          callback(null, _this.stream)
+          this.sentinelIterator.reset(true)
+          resolve(this.stream)
         } else {
-          const endpointAddress = endpoint.host + ':' + endpoint.port
+          const endpointAddress = endpoint.value.host + ':' + endpoint.value.port
           const errorMsg = err
             ? 'failed to connect to sentinel ' + endpointAddress + ' because ' + err.message
             : 'connected to sentinel ' + endpointAddress + ' successfully, but got an invalid reply: ' + resolved
@@ -132,13 +136,15 @@ export default class SentinelConnector extends AbstractConnector {
           if (err) {
             lastError = err
           }
-          connectToNext()
+          resolve(connectToNext())
         }
       })
-    }
+    });
+
+    return connectToNext();
   }
 
-  private updateSentinels (client, callback: NodeCallback): void {
+  private updateSentinels (client, callback: CallbackFunction): void {
 
     if (!this.options.updateSentinels) {
       return callback(null)
@@ -167,7 +173,7 @@ export default class SentinelConnector extends AbstractConnector {
     })
   }
 
-  private resolveMaster (client, callback: NodeCallback<ITcpConnectionOptions>): void {
+  private resolveMaster (client, callback: CallbackFunction<ITcpConnectionOptions>): void {
     client.sentinel('get-master-addr-by-name', this.options.name, (err, result) => {
       if (err) {
         client.disconnect()
@@ -186,7 +192,7 @@ export default class SentinelConnector extends AbstractConnector {
     })
   }
 
-  private resolveSlave (client, callback: NodeCallback<ITcpConnectionOptions | null>): void {
+  private resolveSlave (client, callback: CallbackFunction<ITcpConnectionOptions | null>): void {
     client.sentinel('slaves', this.options.name, (err, result) => {
       client.disconnect()
       if (err) {
@@ -214,7 +220,7 @@ export default class SentinelConnector extends AbstractConnector {
     return this.options.natMap[`${item.host}:${item.port}`] || item
   }
 
-  private resolve (endpoint, callback: NodeCallback<ITcpConnectionOptions>): void {
+  private resolve (endpoint, callback: CallbackFunction<ITcpConnectionOptions>): void {
     var client = new Redis({
       port: endpoint.port || 26379,
       host: endpoint.host,
