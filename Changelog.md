@@ -1,3 +1,10 @@
+# [4.11.0](https://github.com/luin/ioredis/compare/v4.10.4...v4.11.0) (2019-06-25)
+
+
+### Features
+
+* support custom connectors ([#906](https://github.com/luin/ioredis/issues/906)) ([bf3fe29](https://github.com/luin/ioredis/commit/bf3fe29))
+
 ## [4.10.4](https://github.com/luin/ioredis/compare/v4.10.3...v4.10.4) (2019-06-11)
 
 
