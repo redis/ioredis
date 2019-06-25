@@ -23,7 +23,7 @@ class AsyncSentinelConnector extends Redis.SentinelConnector {
 }
 
 const redis = new Redis({
-  connector: new AsyncSentinelConnector()
+  Connector: AsyncSentinelConnector
 });
 
 // ioredis supports all Redis commands:
