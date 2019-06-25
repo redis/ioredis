@@ -1,9 +1,6 @@
-import defaults = require('lodash.defaults')
-import flatten = require('lodash.flatten')
+import defaults = require("lodash.defaults");
+import flatten = require("lodash.flatten");
 
 export function noop() {}
 
-export {
-  defaults,
-  flatten
-}
+export { defaults, flatten };

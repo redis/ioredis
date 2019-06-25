@@ -1,0 +1,6 @@
+extends:
+  - plugin:@typescript-eslint/recommended
+  - prettier/@typescript-eslint
+
+env:
+  mocha: true

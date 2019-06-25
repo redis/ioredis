@@ -1,4 +1,4 @@
 export interface ISentinelAddress {
-  port: number
-  host: string
+  port: number;
+  host: string;
 }

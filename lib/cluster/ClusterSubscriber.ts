@@ -1,60 +1,67 @@
-import {EventEmitter} from 'events'
-import ConnectionPool from './ConnectionPool'
-import {getNodeKey} from './util'
-import {sample, noop, Debug} from '../utils'
-import Redis from '../redis';
-import {IRedisOptions} from '../redis/RedisOptions';
+import { EventEmitter } from "events";
+import ConnectionPool from "./ConnectionPool";
+import { getNodeKey } from "./util";
+import { sample, noop, Debug } from "../utils";
+import Redis from "../redis";
+import { IRedisOptions } from "../redis/RedisOptions";
 
-const debug = Debug('cluster:subscriber')
+const debug = Debug("cluster:subscriber");
 
-const SUBSCRIBER_CONNECTION_NAME = 'ioredisClusterSubscriber'
+const SUBSCRIBER_CONNECTION_NAME = "ioredisClusterSubscriber";
 
 export default class ClusterSubscriber {
-  private started: boolean = false
-  private subscriber: any = null
-  private lastActiveSubscriber: any
+  private started: boolean = false;
+  private subscriber: any = null;
+  private lastActiveSubscriber: any;
 
-  constructor (private connectionPool: ConnectionPool, private emitter: EventEmitter) {
-    this.connectionPool.on('-node', (_, key: string) => {
+  constructor(
+    private connectionPool: ConnectionPool,
+    private emitter: EventEmitter
+  ) {
+    this.connectionPool.on("-node", (_, key: string) => {
       if (!this.started || !this.subscriber) {
-        return
+        return;
       }
       if (getNodeKey(this.subscriber.options) === key) {
-        debug('subscriber has left, selecting a new one...')
-        this.selectSubscriber()
+        debug("subscriber has left, selecting a new one...");
+        this.selectSubscriber();
       }
-    })
-    this.connectionPool.on('+node', () => {
+    });
+    this.connectionPool.on("+node", () => {
       if (!this.started || this.subscriber) {
-        return
+        return;
       }
-      debug('a new node is discovered and there is no subscriber, selecting a new one...')
-      this.selectSubscriber()
-    })
+      debug(
+        "a new node is discovered and there is no subscriber, selecting a new one..."
+      );
+      this.selectSubscriber();
+    });
   }
 
-  getInstance (): any {
-    return this.subscriber
+  getInstance(): any {
+    return this.subscriber;
   }
 
-  private selectSubscriber () {
-    const lastActiveSubscriber = this.lastActiveSubscriber
+  private selectSubscriber() {
+    const lastActiveSubscriber = this.lastActiveSubscriber;
 
     // Disconnect the previous subscriber even if there
     // will not be a new one.
     if (lastActiveSubscriber) {
-      lastActiveSubscriber.disconnect()
+      lastActiveSubscriber.disconnect();
     }
 
-    const sampleNode = sample(this.connectionPool.getNodes())
+    const sampleNode = sample(this.connectionPool.getNodes());
     if (!sampleNode) {
-      debug('selecting subscriber failed since there is no node discovered in the cluster yet')
-      this.subscriber = null
-      return
+      debug(
+        "selecting subscriber failed since there is no node discovered in the cluster yet"
+      );
+      this.subscriber = null;
+      return;
     }
 
-    const {options} = sampleNode
-    debug('selected a subscriber %s:%s', options.host, options.port)
+    const { options } = sampleNode;
+    debug("selected a subscriber %s:%s", options.host, options.port);
 
     /*
      * Create a specialized Redis connection for the subscription.
@@ -73,61 +80,69 @@ export default class ClusterSubscriber {
       connectionName: SUBSCRIBER_CONNECTION_NAME,
       lazyConnect: true,
       tls: options.tls
-    })
+    });
 
     // Ignore the errors since they're handled in the connection pool.
-    this.subscriber.on('error', noop)
+    this.subscriber.on("error", noop);
 
     // Re-subscribe previous channels
-    var previousChannels = { subscribe: [], psubscribe: [] }
+    var previousChannels = { subscribe: [], psubscribe: [] };
     if (lastActiveSubscriber) {
-      const condition = lastActiveSubscriber.condition || lastActiveSubscriber.prevCondition
+      const condition =
+        lastActiveSubscriber.condition || lastActiveSubscriber.prevCondition;
       if (condition && condition.subscriber) {
-        previousChannels.subscribe = condition.subscriber.channels('subscribe')
-        previousChannels.psubscribe = condition.subscriber.channels('psubscribe')
+        previousChannels.subscribe = condition.subscriber.channels("subscribe");
+        previousChannels.psubscribe = condition.subscriber.channels(
+          "psubscribe"
+        );
       }
     }
-    if (previousChannels.subscribe.length || previousChannels.psubscribe.length) {
-      var pending = 0
-      for (const type of ['subscribe', 'psubscribe']) {
-        var channels = previousChannels[type]
+    if (
+      previousChannels.subscribe.length ||
+      previousChannels.psubscribe.length
+    ) {
+      var pending = 0;
+      for (const type of ["subscribe", "psubscribe"]) {
+        var channels = previousChannels[type];
         if (channels.length) {
-          pending += 1
-          debug('%s %d channels', type, channels.length)
-          this.subscriber[type](channels).then(() => {
-            if (!--pending) {
-              this.lastActiveSubscriber = this.subscriber
-            }
-          }).catch(noop)
+          pending += 1;
+          debug("%s %d channels", type, channels.length);
+          this.subscriber[type](channels)
+            .then(() => {
+              if (!--pending) {
+                this.lastActiveSubscriber = this.subscriber;
+              }
+            })
+            .catch(noop);
         }
       }
     } else {
-      this.lastActiveSubscriber = this.subscriber
+      this.lastActiveSubscriber = this.subscriber;
     }
-    for (const event of ['message', 'messageBuffer']) {
+    for (const event of ["message", "messageBuffer"]) {
       this.subscriber.on(event, (arg1, arg2) => {
-        this.emitter.emit(event, arg1, arg2)
-      })
+        this.emitter.emit(event, arg1, arg2);
+      });
     }
-    for (const event of ['pmessage', 'pmessageBuffer']) {
+    for (const event of ["pmessage", "pmessageBuffer"]) {
       this.subscriber.on(event, (arg1, arg2, arg3) => {
-        this.emitter.emit(event, arg1, arg2, arg3)
-      })
+        this.emitter.emit(event, arg1, arg2, arg3);
+      });
     }
   }
 
-  start (): void {
-    this.started = true
-    this.selectSubscriber()
-    debug('started')
+  start(): void {
+    this.started = true;
+    this.selectSubscriber();
+    debug("started");
   }
 
-  stop (): void {
-    this.started = false
+  stop(): void {
+    this.started = false;
     if (this.subscriber) {
-      this.subscriber.disconnect()
-      this.subscriber = null
+      this.subscriber.disconnect();
+      this.subscriber = null;
     }
-    debug('stopped')
+    debug("stopped");
   }
 }

@@ -1,0 +1,17 @@
+extends:
+  - eslint:recommended
+  - prettier
+
+env:
+  node: true
+  es6: true
+
+overrides:
+  - files: ["src/**/*"]
+    parser: "@typescript-eslint/parser"
+    plugins:
+      - "@typescript-eslint"
+
+  - files: ["*.spec.js"]
+    env:
+      jest: true
