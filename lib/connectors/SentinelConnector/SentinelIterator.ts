@@ -14,7 +14,7 @@ export default class SentinelIterator
   implements Iterator<Partial<ISentinelAddress>> {
   private cursor: number = 0;
 
-  constructor(private sentinels: Partial<ISentinelAddress>[]) {}
+  constructor(private sentinels: Array<Partial<ISentinelAddress>>) {}
 
   next() {
     const done = this.cursor >= this.sentinels.length;

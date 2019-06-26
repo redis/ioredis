@@ -5,7 +5,7 @@ import MockServer from "../helpers/mock_server";
 describe("fatal_error", function() {
   it("should handle fatal error of parser", function(done) {
     var recovered = false;
-    const server = new MockServer(30000, argv => {
+    new MockServer(30000, argv => {
       if (recovered) {
         return;
       }

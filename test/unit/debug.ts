@@ -1,4 +1,4 @@
-import real_debug = require("debug");
+import rDebug = require("debug");
 import * as sinon from "sinon";
 import { expect } from "chai";
 import debug, {
@@ -8,7 +8,7 @@ import debug, {
 
 describe("utils/debug", function() {
   afterEach(function() {
-    real_debug.enable(process.env.DEBUG || "");
+    rDebug.enable(process.env.DEBUG || "");
   });
 
   describe(".exports.getStringValue", function() {
@@ -37,9 +37,9 @@ describe("utils/debug", function() {
     });
 
     it("should output to console if DEBUG is set", function() {
-      var dbg_ns = "ioredis:debugtest";
+      var dbgNS = "ioredis:debugtest";
 
-      real_debug.enable(dbg_ns);
+      rDebug.enable(dbgNS);
 
       var logspy = sinon.spy();
       var fn = debug("debugtest");
@@ -50,7 +50,7 @@ describe("utils/debug", function() {
       // @ts-ignore
       expect(fn.enabled).to.equal(true);
       // @ts-ignore
-      expect(fn.namespace).to.equal(dbg_ns);
+      expect(fn.namespace).to.equal(dbgNS);
 
       var data = [],
         i = 0;
@@ -67,14 +67,14 @@ describe("utils/debug", function() {
 
       var args = logspy.getCall(0).args;
 
-      var wanted_arglen =
+      var wantedArglen =
         30 + // " ... <REDACTED full-length="">"
         MAX_ARGUMENT_LENGTH + // max-length of redacted string
         datastr.length.toString().length; // length of string of string length (inception much?)
 
       expect(args.length).to.be.above(1);
       expect(args[1]).to.be.a("string");
-      expect(args[1].length).to.equal(wanted_arglen);
+      expect(args[1].length).to.equal(wantedArglen);
     });
   });
 });

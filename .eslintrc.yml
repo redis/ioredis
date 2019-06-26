@@ -13,15 +13,25 @@ env:
   node: true
   es6: true
 
+rules:
+  no-console: 0
+  "@typescript-eslint/no-var-requires": 0
+  "@typescript-eslint/explicit-function-return-type": 0
+  "@typescript-eslint/no-explicit-any": 0
+  "@typescript-eslint/explicit-member-accessibility": 0
+  "@typescript-eslint/no-parameter-properties": 0
+  "@typescript-eslint/no-use-before-define": 0
+  "@typescript-eslint/array-type":
+    - error
+    - array-simple
+  "@typescript-eslint/no-unused-vars":
+    - warn
+    - args: none
+  "@typescript-eslint/interface-name-prefix":
+    - error
+    - "always"
+
 overrides:
-  - files: ["test/**/*"]
+  - files: ["{test,benchmarks}/**/*"]
     env:
       mocha: true
-
-  - files: ["{benchmarks,examples}/**/*"]
-    rules:
-      no-console: 0
-
-  - files: ["examples/**/*"]
-    rules:
-      "@typescript-eslint/no-var-requires": 0

@@ -8,7 +8,7 @@ import SubscriptionSet from "./SubscriptionSet";
 
 const debug = Debug("dataHandler");
 
-type ReplyData = string | Buffer | number | (string | Buffer | number)[];
+type ReplyData = string | Buffer | number | Array<string | Buffer | number>;
 
 export interface IDataHandlerOptions {
   stringNumbers: boolean;
@@ -69,7 +69,7 @@ export default class DataHandler {
       return;
     }
 
-    (<any>err).command = {
+    (err as any).command = {
       name: item.command.name,
       args: item.command.args
     };
@@ -228,10 +228,10 @@ export default class DataHandler {
 
 function fillSubCommand(command: ICommand, count: number) {
   // TODO: use WeakMap here
-  if (typeof (<any>command).remainReplies === "undefined") {
-    (<any>command).remainReplies = command.args.length;
+  if (typeof (command as any).remainReplies === "undefined") {
+    (command as any).remainReplies = command.args.length;
   }
-  if (--(<any>command).remainReplies === 0) {
+  if (--(command as any).remainReplies === 0) {
     command.resolve(count);
     return true;
   }

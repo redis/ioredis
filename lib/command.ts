@@ -26,9 +26,11 @@ interface ICommandOptions {
 
 type ArgumentTransformer = (args: any[]) => any[];
 type ReplyTransformer = (reply: any) => any;
-type FlagMap = { [flag: string]: { [command: string]: true } };
+interface IFlagMap {
+  [flag: string]: { [command: string]: true };
+}
 
-export type CommandNameFlags = {
+export interface ICommandNameFlags {
   // Commands that can be processed when client is in the subscriber mode
   VALID_IN_SUBSCRIBER_MODE: [
     "subscribe",
@@ -46,7 +48,7 @@ export type CommandNameFlags = {
   EXIT_SUBSCRIBER_MODE: ["unsubscribe", "punsubscribe"];
   // Commands that will make client disconnect from server TODO shutdown?
   WILL_DISCONNECT: ["quit"];
-};
+}
 
 /**
  * Command instance
@@ -75,7 +77,7 @@ export type CommandNameFlags = {
  */
 export default class Command implements ICommand {
   public static FLAGS: {
-    [key in keyof CommandNameFlags]: CommandNameFlags[key];
+    [key in keyof ICommandNameFlags]: ICommandNameFlags[key];
   } = {
     VALID_IN_SUBSCRIBER_MODE: [
       "subscribe",
@@ -91,9 +93,9 @@ export default class Command implements ICommand {
     WILL_DISCONNECT: ["quit"]
   };
 
-  private static flagMap?: FlagMap;
+  private static flagMap?: IFlagMap;
 
-  private static getFlagMap(): FlagMap {
+  private static getFlagMap(): IFlagMap {
     if (!this.flagMap) {
       this.flagMap = Object.keys(Command.FLAGS).reduce((map, flagName) => {
         map[flagName] = {};
@@ -113,10 +115,10 @@ export default class Command implements ICommand {
    * @param {string} commandName
    * @return {boolean}
    */
-  public static checkFlag<T extends keyof CommandNameFlags>(
+  public static checkFlag<T extends keyof ICommandNameFlags>(
     flagName: T,
     commandName: string
-  ): commandName is CommandNameFlags[T][number] {
+  ): commandName is ICommandNameFlags[T][number] {
     return !!this.getFlagMap()[flagName][commandName];
   }
 

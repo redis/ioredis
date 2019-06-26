@@ -1,5 +1,3 @@
-import { nodeKeyToRedisOptions } from "../../lib/cluster/util";
-import { Cluster } from "../../lib";
 import * as sinon from "sinon";
 import { expect } from "chai";
 import * as utils from "../../lib/utils";
@@ -252,6 +250,7 @@ describe("utils", function() {
       const arr = [1, 2, 3, 4];
       const copy = arr.slice(0);
       while (true) {
+        // eslint-disable-line
         utils.shuffle(copy);
         for (let i = 0; i < copy.length; i++) {
           if (arr[i] !== copy[i]) {

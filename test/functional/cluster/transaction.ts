@@ -2,7 +2,6 @@ import calculateSlot from "cluster-key-slot";
 import MockServer from "../../helpers/mock_server";
 import { expect } from "chai";
 import { Cluster } from "../../../lib";
-import * as sinon from "sinon";
 
 describe("cluster:transaction", function() {
   it("should auto redirect commands on MOVED", function(done) {
@@ -139,7 +138,7 @@ describe("cluster:transaction", function() {
     };
 
     process.on("unhandledRejection", err => {
-      wrapDone(new Error("got unhandledRejection: " + (<Error>err).message));
+      wrapDone(new Error("got unhandledRejection: " + (err as Error).message));
     });
     cluster
       .multi()

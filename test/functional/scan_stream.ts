@@ -229,9 +229,9 @@ describe("*scanStream", function() {
           return [String(cursor + 1), [serverKeys[cursor]]];
         }
       };
-      var node1 = new MockServer(30001, argvHandler);
-      var node2 = new MockServer(30002, argvHandler);
-      var node3 = new MockServer(30003, argvHandler);
+      new MockServer(30001, argvHandler);
+      new MockServer(30002, argvHandler);
+      new MockServer(30003, argvHandler);
 
       var cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
 
