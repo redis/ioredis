@@ -1,3 +1,10 @@
+## [4.11.1](https://github.com/luin/ioredis/compare/v4.11.0...v4.11.1) (2019-06-26)
+
+
+### Bug Fixes
+
+* use connector as class not value ([#909](https://github.com/luin/ioredis/issues/909)) ([3fb2552](https://github.com/luin/ioredis/commit/3fb2552))
+
 # [4.11.0](https://github.com/luin/ioredis/compare/v4.10.4...v4.11.0) (2019-06-25)
 
 
