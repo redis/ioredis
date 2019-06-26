@@ -249,8 +249,8 @@ describe("utils", function() {
     it("shuffles the array", () => {
       const arr = [1, 2, 3, 4];
       const copy = arr.slice(0);
+      // eslint-disable-next-line no-constant-condition
       while (true) {
-        // eslint-disable-line
         utils.shuffle(copy);
         for (let i = 0; i < copy.length; i++) {
           if (arr[i] !== copy[i]) {
