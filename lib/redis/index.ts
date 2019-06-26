@@ -132,12 +132,12 @@ function Redis() {
   this.resetCommandQueue();
   this.resetOfflineQueue();
 
-  if (!this.options.connector) {
-    if (this.options.sentinels) {
-      this.options.connector = new SentinelConnector(this.options);
-    } else {
-      this.options.connector = new StandaloneConnector(this.options);
-    }
+  if (this.options.Connector) {
+    this.connector = new this.options.Connector(this.options);
+  } else if (this.options.sentinels) {
+    this.connector = new SentinelConnector(this.options);
+  } else {
+    this.connector = new StandaloneConnector(this.options);
   }
 
   this.retryAttempts = 0;
@@ -251,7 +251,7 @@ Redis.prototype.connect = function (callback) {
     };
 
     var _this = this;
-    asCallback(options.connector.connect(function (type, err) {
+    asCallback(this.connector.connect(function (type, err) {
       _this.silentEmit(type, err);
     }), function (err, stream) {
       if (err) {
@@ -345,7 +345,7 @@ Redis.prototype.disconnect = function (reconnect) {
   if (this.status === 'wait') {
     eventHandler.closeHandler(this)();
   } else {
-    this.options.connector.disconnect();
+    this.connector.disconnect();
   }
 };
 
