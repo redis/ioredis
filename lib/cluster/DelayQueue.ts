@@ -1,7 +1,7 @@
-import {Debug} from '../utils'
-import Deque = require('denque')
+import { Debug } from "../utils";
+import Deque = require("denque");
 
-const debug = Debug('delayqueue')
+const debug = Debug("delayqueue");
 
 /**
  * Options for DelayQueue
@@ -10,8 +10,8 @@ const debug = Debug('delayqueue')
  * @interface IDelayQueueOptions
  */
 export interface IDelayQueueOptions {
-  callback?: Function
-  timeout: number
+  callback?: Function;
+  timeout: number;
 }
 
 /**
@@ -21,8 +21,8 @@ export interface IDelayQueueOptions {
  * @class DelayQueue
  */
 export default class DelayQueue {
-  private queues: {[key: string]: any | null} = {}
-  private timeouts: {[key: string]: NodeJS.Timer} = {}
+  private queues: { [key: string]: any | null } = {};
+  private timeouts: { [key: string]: NodeJS.Timer } = {};
 
   /**
    * Add a new item to the queue
@@ -32,39 +32,43 @@ export default class DelayQueue {
    * @param {IDelayQueueOptions} options
    * @memberof DelayQueue
    */
-  public push (bucket: string, item: Function, options: IDelayQueueOptions): void {
-    const callback = options.callback || process.nextTick
+  public push(
+    bucket: string,
+    item: Function,
+    options: IDelayQueueOptions
+  ): void {
+    const callback = options.callback || process.nextTick;
     if (!this.queues[bucket]) {
-      this.queues[bucket] = new Deque()
+      this.queues[bucket] = new Deque();
     }
 
-    const queue = this.queues[bucket]
-    queue.push(item)
+    const queue = this.queues[bucket];
+    queue.push(item);
 
     if (!this.timeouts[bucket]) {
       this.timeouts[bucket] = setTimeout(() => {
         callback(() => {
-          this.timeouts[bucket] = null
-          this.execute(bucket)
-        })
-      }, options.timeout)
+          this.timeouts[bucket] = null;
+          this.execute(bucket);
+        });
+      }, options.timeout);
     }
   }
 
-  private execute (bucket: string): void {
-    const queue = this.queues[bucket]
+  private execute(bucket: string): void {
+    const queue = this.queues[bucket];
     if (!queue) {
-      return
+      return;
     }
-    const {length} = queue
+    const { length } = queue;
     if (!length) {
-      return
+      return;
     }
-    debug('send %d commands in %s queue', length, bucket)
+    debug("send %d commands in %s queue", length, bucket);
 
-    this.queues[bucket] = null
+    this.queues[bucket] = null;
     while (queue.length > 0) {
-      queue.shift()()
+      queue.shift()();
     }
   }
 }

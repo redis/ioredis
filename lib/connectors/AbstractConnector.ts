@@ -1,21 +1,21 @@
-import {NetStream} from '../types'
+import { NetStream } from "../types";
 
-export type ErrorEmitter = (type: string, err: Error) => void
+export type ErrorEmitter = (type: string, err: Error) => void;
 
 export default abstract class AbstractConnector {
-  protected connecting: boolean = false
-  protected stream: NetStream
+  protected connecting: boolean = false;
+  protected stream: NetStream;
 
-  public check (info: any): boolean {
-    return true
+  public check(info: any): boolean {
+    return true;
   }
 
-  public disconnect (): void {
-    this.connecting = false
+  public disconnect(): void {
+    this.connecting = false;
     if (this.stream) {
-      this.stream.end()
+      this.stream.end();
     }
   }
 
-  public abstract connect (_: ErrorEmitter): Promise<NetStream>
+  public abstract connect(_: ErrorEmitter): Promise<NetStream>;
 }

@@ -1,0 +1,27 @@
+extends:
+  - eslint:recommended
+  - plugin:@typescript-eslint/recommended
+  - prettier/@typescript-eslint
+  - prettier
+
+parser: "@typescript-eslint/parser"
+
+plugins:
+  - "@typescript-eslint"
+
+env:
+  node: true
+  es6: true
+
+overrides:
+  - files: ["test/**/*"]
+    env:
+      mocha: true
+
+  - files: ["{benchmarks,examples}/**/*"]
+    rules:
+      no-console: 0
+
+  - files: ["examples/**/*"]
+    rules:
+      "@typescript-eslint/no-var-requires": 0

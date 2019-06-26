@@ -1,6 +1,6 @@
-import {parse as urllibParse} from 'url'
-import {defaults, noop, flatten} from './lodash'
-import Debug from './debug'
+import { parse as urllibParse } from "url";
+import { defaults, noop, flatten } from "./lodash";
+import Debug from "./debug";
 
 /**
  * Test if two buffers are equal
@@ -10,21 +10,21 @@ import Debug from './debug'
  * @param {Buffer} b
  * @returns {boolean} Whether the two buffers are equal
  */
-export function bufferEqual (a: Buffer, b: Buffer): boolean {
-  if (typeof a.equals === 'function') {
-    return a.equals(b)
+export function bufferEqual(a: Buffer, b: Buffer): boolean {
+  if (typeof a.equals === "function") {
+    return a.equals(b);
   }
 
   if (a.length !== b.length) {
-    return false
+    return false;
   }
 
   for (var i = 0; i < a.length; ++i) {
     if (a[i] !== b[i]) {
-      return false
+      return false;
     }
   }
-  return true
+  return true;
 }
 
 /**
@@ -41,21 +41,22 @@ export function bufferEqual (a: Buffer, b: Buffer): boolean {
  * ```
  * @private
  */
-export function convertBufferToString (value: any, encoding?: string) {
+export function convertBufferToString(value: any, encoding?: string) {
   if (value instanceof Buffer) {
-    return value.toString(encoding)
+    return value.toString(encoding);
   }
   if (Array.isArray(value)) {
-    var length = value.length
-    var res = Array(length)
+    var length = value.length;
+    var res = Array(length);
     for (var i = 0; i < length; ++i) {
-      res[i] = value[i] instanceof Buffer && encoding === 'utf8'
-        ? value[i].toString()
-        : convertBufferToString(value[i], encoding)
+      res[i] =
+        value[i] instanceof Buffer && encoding === "utf8"
+          ? value[i].toString()
+          : convertBufferToString(value[i], encoding);
     }
-    return res
+    return res;
   }
-  return value
+  return value;
 }
 
 /**
@@ -71,23 +72,23 @@ export function convertBufferToString (value: any, encoding?: string) {
  * ```
  * @private
  */
-export function wrapMultiResult (arr) {
+export function wrapMultiResult(arr) {
   // When using WATCH/EXEC transactions, the EXEC will return
   // a null instead of an array
   if (!arr) {
-    return null
+    return null;
   }
-  var result = []
-  var length = arr.length
+  var result = [];
+  var length = arr.length;
   for (var i = 0; i < length; ++i) {
-    var item = arr[i]
+    var item = arr[i];
     if (item instanceof Error) {
-      result.push([item])
+      result.push([item]);
     } else {
-      result.push([null, item])
+      result.push([null, item]);
     }
   }
-  return result
+  return result;
 }
 
 /**
@@ -110,9 +111,9 @@ export function wrapMultiResult (arr) {
  * ```
  * @private
  */
-export function isInt (value) {
-  var x = parseFloat(value)
-  return !isNaN(value) && (x | 0) === x
+export function isInt(value) {
+  var x = parseFloat(value);
+  return !isNaN(value) && (x | 0) === x;
 }
 
 /**
@@ -126,15 +127,15 @@ export function isInt (value) {
  * { a: 'b', c: 'd' }
  * ```
  */
-export function packObject (array) {
-  var result = {}
-  var length = array.length
+export function packObject(array) {
+  var result = {};
+  var length = array.length;
 
   for (var i = 1; i < length; i += 2) {
-    result[array[i - 1]] = array[i]
+    result[array[i - 1]] = array[i];
   }
 
-  return result
+  return result;
 }
 
 /**
@@ -144,17 +145,17 @@ export function packObject (array) {
  * @param {number} timeout
  * @return {function}
  */
-export function timeout (callback, timeout) {
-  var timer
-  var run = function () {
+export function timeout(callback, timeout) {
+  var timer;
+  var run = function() {
     if (timer) {
-      clearTimeout(timer)
-      timer = null
-      callback.apply(this, arguments)
+      clearTimeout(timer);
+      timer = null;
+      callback.apply(this, arguments);
     }
-  }
-  timer = setTimeout(run, timeout, new Error('timeout'))
-  return run
+  };
+  timer = setTimeout(run, timeout, new Error("timeout"));
+  return run;
 }
 
 /**
@@ -168,14 +169,14 @@ export function timeout (callback, timeout) {
  * ['a', '1']
  * ```
  */
-export function convertObjectToArray (obj) {
-  var result = []
-  var keys = Object.keys(obj)
+export function convertObjectToArray(obj) {
+  var result = [];
+  var keys = Object.keys(obj);
 
   for (var i = 0, l = keys.length; i < l; i++) {
-    result.push(keys[i], obj[keys[i]])
+    result.push(keys[i], obj[keys[i]]);
   }
-  return result
+  return result;
 }
 
 /**
@@ -190,14 +191,14 @@ export function convertObjectToArray (obj) {
  * ```
  */
 export function convertMapToArray<K, V>(map: Map<K, V>): Array<K | V> {
-  const result = []
-  let pos = 0
-  map.forEach(function (value, key) {
-    result[pos] = key
-    result[pos + 1] = value
-    pos += 2
-  })
-  return result
+  const result = [];
+  let pos = 0;
+  map.forEach(function(value, key) {
+    result[pos] = key;
+    result[pos + 1] = value;
+    pos += 2;
+  });
+  return result;
 }
 
 /**
@@ -206,11 +207,11 @@ export function convertMapToArray<K, V>(map: Map<K, V>): Array<K | V> {
  * @param {*} arg
  * @return {string}
  */
-export function toArg (arg) {
-  if (arg === null || typeof arg === 'undefined') {
-    return ''
+export function toArg(arg) {
+  if (arg === null || typeof arg === "undefined") {
+    return "";
   }
-  return String(arg)
+  return String(arg);
 }
 
 /**
@@ -220,21 +221,21 @@ export function toArg (arg) {
  * @param {string} friendlyStack - the stack that more meaningful
  * @param {string} filterPath - only show stacks with the specified path
  */
-export function optimizeErrorStack (error, friendlyStack, filterPath) {
-  var stacks = friendlyStack.split('\n')
-  var lines = ''
-  var i
+export function optimizeErrorStack(error, friendlyStack, filterPath) {
+  var stacks = friendlyStack.split("\n");
+  var lines = "";
+  var i;
   for (i = 1; i < stacks.length; ++i) {
     if (stacks[i].indexOf(filterPath) === -1) {
-      break
+      break;
     }
   }
   for (var j = i; j < stacks.length; ++j) {
-    lines += '\n' + stacks[j]
+    lines += "\n" + stacks[j];
   }
-  var pos = error.stack.indexOf('\n')
-  error.stack = error.stack.slice(0, pos) + lines
-  return error
+  var pos = error.stack.indexOf("\n");
+  error.stack = error.stack.slice(0, pos) + lines;
+  return error;
 }
 
 /**
@@ -243,39 +244,39 @@ export function optimizeErrorStack (error, friendlyStack, filterPath) {
  * @param {string} url - the redis protocol url
  * @return {Object}
  */
-export function parseURL (url) {
+export function parseURL(url) {
   if (isInt(url)) {
-    return { port: url }
+    return { port: url };
   }
-  var parsed = urllibParse(url, true, true)
+  var parsed = urllibParse(url, true, true);
 
-  if (!parsed.slashes && url[0] !== '/') {
-    url = '//' + url
-    parsed = urllibParse(url, true, true)
+  if (!parsed.slashes && url[0] !== "/") {
+    url = "//" + url;
+    parsed = urllibParse(url, true, true);
   }
 
-  var result: any = {}
+  var result: any = {};
   if (parsed.auth) {
-    result.password = parsed.auth.split(':')[1]
+    result.password = parsed.auth.split(":")[1];
   }
   if (parsed.pathname) {
-    if (parsed.protocol === 'redis:') {
+    if (parsed.protocol === "redis:") {
       if (parsed.pathname.length > 1) {
-        result.db = parsed.pathname.slice(1)
+        result.db = parsed.pathname.slice(1);
       }
     } else {
-      result.path = parsed.pathname
+      result.path = parsed.pathname;
     }
   }
   if (parsed.host) {
-    result.host = parsed.hostname
+    result.host = parsed.hostname;
   }
   if (parsed.port) {
-    result.port = parsed.port
+    result.port = parsed.port;
   }
-  defaults(result, parsed.query)
+  defaults(result, parsed.query);
 
-  return result
+  return result;
 }
 
 /**
@@ -287,12 +288,12 @@ export function parseURL (url) {
  * @param {number} [from=0] start index
  * @returns {T}
  */
-export function sample<T> (array: T[], from: number = 0): T {
-  const length = array.length
+export function sample<T>(array: T[], from: number = 0): T {
+  const length = array.length;
   if (from >= length) {
-    return
+    return;
   }
-  return array[from + Math.floor(Math.random() * (length - from))]
+  return array[from + Math.floor(Math.random() * (length - from))];
 }
 /**
  * Shuffle the array using the Fisher-Yates Shuffle.
@@ -303,41 +304,35 @@ export function sample<T> (array: T[], from: number = 0): T {
  * @param {T[]} array
  * @returns {T[]}
  */
-export function shuffle<T> (array: T[]): T[] {
-  let counter = array.length
+export function shuffle<T>(array: T[]): T[] {
+  let counter = array.length;
 
   // While there are elements in the array
   while (counter > 0) {
     // Pick a random index
-    const index = Math.floor(Math.random() * counter)
+    const index = Math.floor(Math.random() * counter);
 
     // Decrease counter by 1
-    counter--
+    counter--;
 
     // And swap the last element with it
-    [array[counter], array[index]] = [array[index], array[counter]]
+    [array[counter], array[index]] = [array[index], array[counter]];
   }
 
-  return array
+  return array;
 }
-
 
 /**
  * Error message for connection being disconnected
  */
-export const CONNECTION_CLOSED_ERROR_MSG = 'Connection is closed.'
+export const CONNECTION_CLOSED_ERROR_MSG = "Connection is closed.";
 
-export function zipMap<K, V> (keys: K[], values: V[]): Map<K, V> {
-  const map = new Map<K, V>()
+export function zipMap<K, V>(keys: K[], values: V[]): Map<K, V> {
+  const map = new Map<K, V>();
   keys.forEach((key, index) => {
-    map.set(key, values[index])
-  })
-  return map
+    map.set(key, values[index]);
+  });
+  return map;
 }
 
-export {
-  Debug,
-  defaults,
-  noop,
-  flatten
-}
+export { Debug, defaults, noop, flatten };

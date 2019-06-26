@@ -1,5 +1,3 @@
-import MaxRetriesPerRequestError from './MaxRetriesPerRequestError'
+import MaxRetriesPerRequestError from "./MaxRetriesPerRequestError";
 
-export {
-  MaxRetriesPerRequestError
-}
+export { MaxRetriesPerRequestError };

@@ -1,10 +1,16 @@
-import * as commands from 'redis-commands'
-import * as calculateSlot from 'cluster-key-slot'
-import asCallback from 'standard-as-callback'
-import {convertBufferToString, optimizeErrorStack, toArg, convertMapToArray, convertObjectToArray} from './utils'
-import {flatten} from './utils/lodash'
-import {get as getPromise} from './promiseContainer'
-import {CallbackFunction, ICommand, CommandParameter} from './types'
+import * as commands from "redis-commands";
+import * as calculateSlot from "cluster-key-slot";
+import asCallback from "standard-as-callback";
+import {
+  convertBufferToString,
+  optimizeErrorStack,
+  toArg,
+  convertMapToArray,
+  convertObjectToArray
+} from "./utils";
+import { flatten } from "./utils/lodash";
+import { get as getPromise } from "./promiseContainer";
+import { CallbackFunction, ICommand, CommandParameter } from "./types";
 
 interface ICommandOptions {
   /**
@@ -13,27 +19,34 @@ interface ICommandOptions {
    * @type {(string | null)}
    * @memberof ICommandOptions
    */
-  replyEncoding?: string | null,
-  errorStack?: string,
-  keyPrefix?: string
+  replyEncoding?: string | null;
+  errorStack?: string;
+  keyPrefix?: string;
 }
 
-type ArgumentTransformer = (args: any[]) => any[]
-type ReplyTransformer = (reply: any) => any
-type FlagMap = {[flag: string]: {[command: string]: true}}
+type ArgumentTransformer = (args: any[]) => any[];
+type ReplyTransformer = (reply: any) => any;
+type FlagMap = { [flag: string]: { [command: string]: true } };
 
 export type CommandNameFlags = {
   // Commands that can be processed when client is in the subscriber mode
-  VALID_IN_SUBSCRIBER_MODE: ['subscribe', 'psubscribe', 'unsubscribe', 'punsubscribe', 'ping', 'quit']
+  VALID_IN_SUBSCRIBER_MODE: [
+    "subscribe",
+    "psubscribe",
+    "unsubscribe",
+    "punsubscribe",
+    "ping",
+    "quit"
+  ];
   // Commands that are valid in monitor mode
-  VALID_IN_MONITOR_MODE: ['monitor', 'auth']
+  VALID_IN_MONITOR_MODE: ["monitor", "auth"];
   // Commands that will turn current connection into subscriber mode
-  ENTER_SUBSCRIBER_MODE: ['subscribe', 'psubscribe']
+  ENTER_SUBSCRIBER_MODE: ["subscribe", "psubscribe"];
   // Commands that may make current connection quit subscriber mode
-  EXIT_SUBSCRIBER_MODE: ['unsubscribe', 'punsubscribe']
+  EXIT_SUBSCRIBER_MODE: ["unsubscribe", "punsubscribe"];
   // Commands that will make client disconnect from server TODO shutdown?
-  WILL_DISCONNECT: ['quit']
-}
+  WILL_DISCONNECT: ["quit"];
+};
 
 /**
  * Command instance
@@ -61,27 +74,36 @@ export type CommandNameFlags = {
  * @see {@link Redis#sendCommand} which can send a Command instance to Redis
  */
 export default class Command implements ICommand {
-  public static FLAGS: {[key in keyof CommandNameFlags]: CommandNameFlags[key]} = {
-    VALID_IN_SUBSCRIBER_MODE: ['subscribe', 'psubscribe', 'unsubscribe', 'punsubscribe', 'ping', 'quit'],
-    VALID_IN_MONITOR_MODE: ['monitor', 'auth'],
-    ENTER_SUBSCRIBER_MODE: ['subscribe', 'psubscribe'],
-    EXIT_SUBSCRIBER_MODE: ['unsubscribe', 'punsubscribe'],
-    WILL_DISCONNECT: ['quit']
-  }
+  public static FLAGS: {
+    [key in keyof CommandNameFlags]: CommandNameFlags[key];
+  } = {
+    VALID_IN_SUBSCRIBER_MODE: [
+      "subscribe",
+      "psubscribe",
+      "unsubscribe",
+      "punsubscribe",
+      "ping",
+      "quit"
+    ],
+    VALID_IN_MONITOR_MODE: ["monitor", "auth"],
+    ENTER_SUBSCRIBER_MODE: ["subscribe", "psubscribe"],
+    EXIT_SUBSCRIBER_MODE: ["unsubscribe", "punsubscribe"],
+    WILL_DISCONNECT: ["quit"]
+  };
 
-  private static flagMap?: FlagMap
+  private static flagMap?: FlagMap;
 
-  private static getFlagMap (): FlagMap {
+  private static getFlagMap(): FlagMap {
     if (!this.flagMap) {
       this.flagMap = Object.keys(Command.FLAGS).reduce((map, flagName) => {
-        map[flagName] = {}
-        Command.FLAGS[flagName].forEach((commandName) => {
-          map[flagName][commandName] = true
-        })
-        return map
-      }, {})
+        map[flagName] = {};
+        Command.FLAGS[flagName].forEach(commandName => {
+          map[flagName][commandName] = true;
+        });
+        return map;
+      }, {});
     }
-    return this.flagMap
+    return this.flagMap;
   }
 
   /**
@@ -91,42 +113,47 @@ export default class Command implements ICommand {
    * @param {string} commandName
    * @return {boolean}
    */
-  public static checkFlag<T extends keyof CommandNameFlags> (flagName: T, commandName: string):
-    commandName is CommandNameFlags[T][number] {
-    return !!this.getFlagMap()[flagName][commandName]
+  public static checkFlag<T extends keyof CommandNameFlags>(
+    flagName: T,
+    commandName: string
+  ): commandName is CommandNameFlags[T][number] {
+    return !!this.getFlagMap()[flagName][commandName];
   }
 
   private static _transformer: {
-    argument: {[command: string]: ArgumentTransformer},
-    reply: {[command: string]: ReplyTransformer}
+    argument: { [command: string]: ArgumentTransformer };
+    reply: { [command: string]: ReplyTransformer };
   } = {
     argument: {},
     reply: {}
   };
 
-  public static setArgumentTransformer (name: string, func: ArgumentTransformer) {
-    this._transformer.argument[name] = func
+  public static setArgumentTransformer(
+    name: string,
+    func: ArgumentTransformer
+  ) {
+    this._transformer.argument[name] = func;
   }
 
-  public static setReplyTransformer (name: string, func: ReplyTransformer) {
-    this._transformer.reply[name] = func
+  public static setReplyTransformer(name: string, func: ReplyTransformer) {
+    this._transformer.reply[name] = func;
   }
 
-  public ignore?: boolean
+  public ignore?: boolean;
 
-  private replyEncoding: string | null
-  private errorStack: string
-  public args: CommandParameter[]
-  private callback: CallbackFunction
-  private transformed: boolean = false
-  public isCustomCommand: boolean = false
+  private replyEncoding: string | null;
+  private errorStack: string;
+  public args: CommandParameter[];
+  private callback: CallbackFunction;
+  private transformed: boolean = false;
+  public isCustomCommand: boolean = false;
 
-  private slot?: number | null
-  private keys?: Array<string | Buffer>
+  private slot?: number | null;
+  private keys?: Array<string | Buffer>;
 
-  public reject: (err: Error) => void
-  public resolve: (result: any) => void
-  public promise: Promise<any>
+  public reject: (err: Error) => void;
+  public resolve: (result: any) => void;
+  public promise: Promise<any>;
 
   /**
    * Creates an instance of Command.
@@ -137,57 +164,62 @@ export default class Command implements ICommand {
    * If omit, the response will be handled via Promise
    * @memberof Command
    */
-  constructor (public name: string, args: Array<string | Buffer | number | Array<string | Buffer | number | any[]>> = [], options: ICommandOptions = {}, callback?: CallbackFunction) {
-    this.replyEncoding = options.replyEncoding
-    this.errorStack = options.errorStack
+  constructor(
+    public name: string,
+    args: Array<
+      string | Buffer | number | Array<string | Buffer | number | any[]>
+    > = [],
+    options: ICommandOptions = {},
+    callback?: CallbackFunction
+  ) {
+    this.replyEncoding = options.replyEncoding;
+    this.errorStack = options.errorStack;
 
-    this.args = flatten(args)
-    this.callback = callback
+    this.args = flatten(args);
+    this.callback = callback;
 
-    this.initPromise()
+    this.initPromise();
 
     if (options.keyPrefix) {
-      this._iterateKeys((key) => (
-        options.keyPrefix + key
-      ))
+      this._iterateKeys(key => options.keyPrefix + key);
     }
   }
 
-  private initPromise () {
-    const Promise = getPromise()
+  private initPromise() {
+    const Promise = getPromise();
     const promise = new Promise((resolve, reject) => {
       if (!this.transformed) {
-        this.transformed = true
-        const transformer = Command._transformer.argument[this.name]
+        this.transformed = true;
+        const transformer = Command._transformer.argument[this.name];
         if (transformer) {
-          this.args = transformer(this.args)
+          this.args = transformer(this.args);
         }
-        this.stringifyArguments()
+        this.stringifyArguments();
       }
 
-      this.resolve = this._convertValue(resolve)
+      this.resolve = this._convertValue(resolve);
       if (this.errorStack) {
-        this.reject = (err) => {
-          reject(optimizeErrorStack(err, this.errorStack, __dirname))
-        }
+        this.reject = err => {
+          reject(optimizeErrorStack(err, this.errorStack, __dirname));
+        };
       } else {
-        this.reject = reject
+        this.reject = reject;
       }
-    })
+    });
 
-    this.promise = asCallback(promise, this.callback)
+    this.promise = asCallback(promise, this.callback);
   }
 
-  public getSlot () {
-    if (typeof this.slot === 'undefined') {
-      const key = this.getKeys()[0]
-      this.slot = key == null ? null : calculateSlot(key)
+  public getSlot() {
+    if (typeof this.slot === "undefined") {
+      const key = this.getKeys()[0];
+      this.slot = key == null ? null : calculateSlot(key);
     }
-    return this.slot
+    return this.slot;
   }
 
-  public getKeys (): Array<string | Buffer> {
-    return this._iterateKeys()
+  public getKeys(): Array<string | Buffer> {
+    return this._iterateKeys();
   }
 
   /**
@@ -198,18 +230,20 @@ export default class Command implements ICommand {
    * @returns {string[]} The keys of the command.
    * @memberof Command
    */
-  private _iterateKeys (transform: Function = (key) => key): Array<string | Buffer> {
-    if (typeof this.keys === 'undefined') {
-      this.keys = []
+  private _iterateKeys(
+    transform: Function = key => key
+  ): Array<string | Buffer> {
+    if (typeof this.keys === "undefined") {
+      this.keys = [];
       if (commands.exists(this.name)) {
-        const keyIndexes = commands.getKeyIndexes(this.name, this.args)
+        const keyIndexes = commands.getKeyIndexes(this.name, this.args);
         for (const index of keyIndexes) {
-          this.args[index] = transform(this.args[index])
-          this.keys.push(this.args[index] as string | Buffer)
+          this.args[index] = transform(this.args[index]);
+          this.keys.push(this.args[index] as string | Buffer);
         }
       }
     }
-    return this.keys
+    return this.keys;
   }
 
   /**
@@ -219,7 +253,7 @@ export default class Command implements ICommand {
    * @see {@link Redis#sendCommand}
    * @public
    */
-  public toWritable (): string | Buffer {
+  public toWritable(): string | Buffer {
     let bufferMode = false;
     for (const arg of this.args) {
       if (arg instanceof Buffer) {
@@ -228,39 +262,57 @@ export default class Command implements ICommand {
       }
     }
 
-    let result
-    let commandStr = '*' + (this.args.length + 1) + '\r\n$' + Buffer.byteLength(this.name) + '\r\n' + this.name + '\r\n'
+    let result;
+    let commandStr =
+      "*" +
+      (this.args.length + 1) +
+      "\r\n$" +
+      Buffer.byteLength(this.name) +
+      "\r\n" +
+      this.name +
+      "\r\n";
     if (bufferMode) {
       const buffers = new MixedBuffers();
       buffers.push(commandStr);
       for (const arg of this.args) {
         if (arg instanceof Buffer) {
           if (arg.length === 0) {
-            buffers.push('$0\r\n\r\n')
+            buffers.push("$0\r\n\r\n");
           } else {
-            buffers.push('$' + arg.length + '\r\n')
-            buffers.push(arg)
-            buffers.push('\r\n')
+            buffers.push("$" + arg.length + "\r\n");
+            buffers.push(arg);
+            buffers.push("\r\n");
           }
         } else {
-          buffers.push('$' + Buffer.byteLength(arg as string | Buffer) + '\r\n' + arg + '\r\n')
+          buffers.push(
+            "$" +
+              Buffer.byteLength(arg as string | Buffer) +
+              "\r\n" +
+              arg +
+              "\r\n"
+          );
         }
       }
       result = buffers.toBuffer();
     } else {
-      result = commandStr
+      result = commandStr;
       for (const arg of this.args) {
-        result += '$' + Buffer.byteLength(arg as string | Buffer) + '\r\n' + arg + '\r\n'
+        result +=
+          "$" +
+          Buffer.byteLength(arg as string | Buffer) +
+          "\r\n" +
+          arg +
+          "\r\n";
       }
     }
-    return result
+    return result;
   }
 
-  stringifyArguments (): void {
+  stringifyArguments(): void {
     for (let i = 0; i < this.args.length; ++i) {
-      const arg = this.args[i]
-      if (!(arg instanceof Buffer) && typeof arg !== 'string') {
-        this.args[i] = toArg(arg)
+      const arg = this.args[i];
+      if (!(arg instanceof Buffer) && typeof arg !== "string") {
+        this.args[i] = toArg(arg);
       }
     }
   }
@@ -273,15 +325,15 @@ export default class Command implements ICommand {
    * @returns {Function} A funtion to transform and resolve a value
    * @memberof Command
    */
-  private _convertValue (resolve: Function): (result: any) => void {
-    return (value) => {
+  private _convertValue(resolve: Function): (result: any) => void {
+    return value => {
       try {
-        resolve(this.transformReply(value))
+        resolve(this.transformReply(value));
       } catch (err) {
-        this.reject(err)
+        this.reject(err);
       }
-      return this.promise
-    }
+      return this.promise;
+    };
   }
 
   /**
@@ -290,64 +342,66 @@ export default class Command implements ICommand {
    *
    * @memberof Command
    */
-  public transformReply (result: Buffer | Buffer[]): string | string[] | Buffer | Buffer[] {
+  public transformReply(
+    result: Buffer | Buffer[]
+  ): string | string[] | Buffer | Buffer[] {
     if (this.replyEncoding) {
-      result = convertBufferToString(result, this.replyEncoding)
+      result = convertBufferToString(result, this.replyEncoding);
     }
-    const transformer = Command._transformer.reply[this.name]
+    const transformer = Command._transformer.reply[this.name];
     if (transformer) {
-      result = transformer(result)
+      result = transformer(result);
     }
 
-    return result
+    return result;
   }
 }
 
-const msetArgumentTransformer = function (args) {
+const msetArgumentTransformer = function(args) {
   if (args.length === 1) {
-    if (typeof Map !== 'undefined' && args[0] instanceof Map) {
+    if (typeof Map !== "undefined" && args[0] instanceof Map) {
       return convertMapToArray(args[0]);
     }
-    if (typeof args[0] === 'object' && args[0] !== null) {
+    if (typeof args[0] === "object" && args[0] !== null) {
       return convertObjectToArray(args[0]);
     }
   }
   return args;
 };
 
-Command.setArgumentTransformer('mset', msetArgumentTransformer)
-Command.setArgumentTransformer('msetnx', msetArgumentTransformer)
+Command.setArgumentTransformer("mset", msetArgumentTransformer);
+Command.setArgumentTransformer("msetnx", msetArgumentTransformer);
 
-Command.setArgumentTransformer('hmset', function (args) {
+Command.setArgumentTransformer("hmset", function(args) {
   if (args.length === 2) {
-    if (typeof Map !== 'undefined' && args[1] instanceof Map) {
-      return [args[0]].concat(convertMapToArray(args[1]))
+    if (typeof Map !== "undefined" && args[1] instanceof Map) {
+      return [args[0]].concat(convertMapToArray(args[1]));
     }
-    if (typeof args[1] === 'object' && args[1] !== null) {
-      return [args[0]].concat(convertObjectToArray(args[1]))
+    if (typeof args[1] === "object" && args[1] !== null) {
+      return [args[0]].concat(convertObjectToArray(args[1]));
     }
   }
-  return args
-})
+  return args;
+});
 
-Command.setReplyTransformer('hgetall', function (result) {
+Command.setReplyTransformer("hgetall", function(result) {
   if (Array.isArray(result)) {
-    var obj = {}
+    var obj = {};
     for (var i = 0; i < result.length; i += 2) {
-      obj[result[i]] = result[i + 1]
+      obj[result[i]] = result[i + 1];
     }
-    return obj
+    return obj;
   }
-  return result
-})
+  return result;
+});
 
 class MixedBuffers {
-  length = 0
-  items = []
+  length = 0;
+  items = [];
 
   public push(x: string | Buffer) {
     this.length += Buffer.byteLength(x);
-    this.items.push(x)
+    this.items.push(x);
   }
 
   public toBuffer(): Buffer {
@@ -357,7 +411,7 @@ class MixedBuffers {
       const length = Buffer.byteLength(item);
       Buffer.isBuffer(item)
         ? (item as Buffer).copy(result, offset)
-        : result.write(item, offset, length)
+        : result.write(item, offset, length);
       offset += length;
     }
     return result;

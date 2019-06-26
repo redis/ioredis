@@ -1,16 +1,17 @@
-import {defaults} from './utils/lodash';
-import Command from './command';
-import Script from './script';
-import * as PromiseContainer from './promiseContainer';
-import asCallback from 'standard-as-callback';
+import { defaults } from "./utils/lodash";
+import Command from "./command";
+import Script from "./script";
+import * as PromiseContainer from "./promiseContainer";
+import asCallback from "standard-as-callback";
 
 export interface ICommanderOptions {
-  showFriendlyErrorStack?: boolean
+  showFriendlyErrorStack?: boolean;
 }
 
-var DROP_BUFFER_SUPPORT_ERROR = '*Buffer methods are not available ' +
+var DROP_BUFFER_SUPPORT_ERROR =
+  "*Buffer methods are not available " +
   'because "dropBufferSupport" option is enabled.' +
-  'Refer to https://github.com/luin/ioredis/wiki/Improve-Performance for more details.';
+  "Refer to https://github.com/luin/ioredis/wiki/Improve-Performance for more details.";
 
 /**
  * Commander
@@ -28,10 +29,10 @@ export default function Commander() {
   this.scriptsSet = {};
 }
 
-var commands = require('redis-commands').list.filter(function (command) {
-  return command !== 'monitor'
-})
-commands.push('sentinel');
+var commands = require("redis-commands").list.filter(function(command) {
+  return command !== "monitor";
+});
+commands.push("sentinel");
 
 /**
  * Return supported builtin commands
@@ -39,7 +40,7 @@ commands.push('sentinel');
  * @return {string[]} command list
  * @public
  */
-Commander.prototype.getBuiltinCommands = function () {
+Commander.prototype.getBuiltinCommands = function() {
   return commands.slice(0);
 };
 
@@ -50,19 +51,22 @@ Commander.prototype.getBuiltinCommands = function () {
  * @return {object} functions
  * @public
  */
-Commander.prototype.createBuiltinCommand = function (commandName) {
+Commander.prototype.createBuiltinCommand = function(commandName) {
   return {
-    string: generateFunction(commandName, 'utf8'),
+    string: generateFunction(commandName, "utf8"),
     buffer: generateFunction(commandName, null)
   };
 };
 
-commands.forEach(function (commandName) {
-  Commander.prototype[commandName] = generateFunction(commandName, 'utf8');
-  Commander.prototype[commandName + 'Buffer'] = generateFunction(commandName, null);
+commands.forEach(function(commandName) {
+  Commander.prototype[commandName] = generateFunction(commandName, "utf8");
+  Commander.prototype[commandName + "Buffer"] = generateFunction(
+    commandName,
+    null
+  );
 });
 
-Commander.prototype.call = generateFunction('utf8');
+Commander.prototype.call = generateFunction("utf8");
 Commander.prototype.callBuffer = generateFunction(null);
 Commander.prototype.send_command = Commander.prototype.call;
 
@@ -75,12 +79,15 @@ Commander.prototype.send_command = Commander.prototype.call;
  * @param {number} [definition.numberOfKeys=null] - the number of keys.
  * If omit, you have to pass the number of keys as the first argument every time you invoke the command
  */
-Commander.prototype.defineCommand = function (name, definition) {
-  var script = new Script(definition.lua, definition.numberOfKeys,
-                          this.options.keyPrefix);
+Commander.prototype.defineCommand = function(name, definition) {
+  var script = new Script(
+    definition.lua,
+    definition.numberOfKeys,
+    this.options.keyPrefix
+  );
   this.scriptsSet[name] = script;
-  this[name] = generateScriptingFunction(script, 'utf8');
-  this[name + 'Buffer'] = generateScriptingFunction(script, null);
+  this[name] = generateScriptingFunction(script, "utf8");
+  this[name + "Buffer"] = generateScriptingFunction(script, null);
 };
 
 /**
@@ -89,16 +96,16 @@ Commander.prototype.defineCommand = function (name, definition) {
  * @abstract
  * @public
  */
-Commander.prototype.sendCommand = function () {};
+Commander.prototype.sendCommand = function() {};
 
-function generateFunction(_encoding: string)
-function generateFunction(_commandName: string | void, _encoding: string)
+function generateFunction(_encoding: string);
+function generateFunction(_commandName: string | void, _encoding: string);
 function generateFunction(_commandName?: string, _encoding?: string) {
-  if (typeof _encoding === 'undefined') {
+  if (typeof _encoding === "undefined") {
     _encoding = _commandName;
     _commandName = null;
   }
-  return function () {
+  return function() {
     var firstArgIndex = 0;
     var commandName = _commandName;
     if (commandName === null) {
@@ -108,7 +115,7 @@ function generateFunction(_commandName?: string, _encoding?: string) {
     var length = arguments.length;
     var lastArgIndex = length - 1;
     var callback = arguments[lastArgIndex];
-    if (typeof callback !== 'function') {
+    if (typeof callback !== "function") {
       callback = undefined;
     } else {
       length = lastArgIndex;
@@ -124,7 +131,7 @@ function generateFunction(_commandName?: string, _encoding?: string) {
         return asCallback(
           PromiseContainer.get().reject(new Error(DROP_BUFFER_SUPPORT_ERROR)),
           callback
-        )
+        );
       }
       options = { replyEncoding: null };
     } else {
@@ -143,11 +150,11 @@ function generateFunction(_commandName?: string, _encoding?: string) {
 }
 
 function generateScriptingFunction(_script, _encoding) {
-  return function () {
+  return function() {
     var length = arguments.length;
     var lastArgIndex = length - 1;
     var callback = arguments[lastArgIndex];
-    if (typeof callback !== 'function') {
+    if (typeof callback !== "function") {
       callback = undefined;
     } else {
       length = lastArgIndex;
@@ -163,7 +170,7 @@ function generateScriptingFunction(_script, _encoding) {
         return asCallback(
           PromiseContainer.get().reject(new Error(DROP_BUFFER_SUPPORT_ERROR)),
           callback
-        )
+        );
       }
       options = { replyEncoding: null };
     } else {

@@ -1,8 +1,15 @@
-import {NodeRole} from './util'
-import {lookup} from 'dns'
+import { NodeRole } from "./util";
+import { lookup } from "dns";
 
-export type DNSLookupFunction = (hostname: string, callback: (err: NodeJS.ErrnoException, address: string, family: number) => void) => void
-export type NatMap = {[key: string]: {host: string, port: number}}
+export type DNSLookupFunction = (
+  hostname: string,
+  callback: (
+    err: NodeJS.ErrnoException,
+    address: string,
+    family: number
+  ) => void
+) => void;
+export type NatMap = { [key: string]: { host: string; port: number } };
 
 /**
  * Options for Cluster constructor
@@ -16,14 +23,17 @@ export interface IClusterOptions {
    *
    * @default (times) => Math.min(100 + times * 2, 2000)
    */
-  clusterRetryStrategy?: (times: number, reason?: Error) => number | void | null
+  clusterRetryStrategy?: (
+    times: number,
+    reason?: Error
+  ) => number | void | null;
 
   /**
    * See Redis class.
    *
    * @default true
    */
-  enableOfflineQueue?: boolean
+  enableOfflineQueue?: boolean;
 
   /**
    * When enabled, ioredis only emits "ready" event when `CLUSTER INFO`
@@ -31,14 +41,14 @@ export interface IClusterOptions {
    *
    * @default true
    */
-  enableReadyCheck?: boolean
+  enableReadyCheck?: boolean;
 
   /**
    * Scale reads to the node with the specified role.
    *
    * @default "master"
    */
-  scaleReads?: NodeRole | Function
+  scaleReads?: NodeRole | Function;
 
   /**
    * When a MOVED or ASK error is received, client will redirect the
@@ -47,7 +57,7 @@ export interface IClusterOptions {
    *
    * @default 16
    */
-  maxRedirections?: number
+  maxRedirections?: number;
 
   /**
    * When an error is received when sending a command (e.g.
@@ -56,7 +66,7 @@ export interface IClusterOptions {
    *
    * @default 100
    */
-  retryDelayOnFailover?: number
+  retryDelayOnFailover?: number;
 
   /**
    * When a CLUSTERDOWN error is received, client will retry
@@ -64,7 +74,7 @@ export interface IClusterOptions {
    *
    * @default 100
    */
-  retryDelayOnClusterDown?: number
+  retryDelayOnClusterDown?: number;
 
   /**
    * When a TRYAGAIN error is received, client will retry
@@ -72,7 +82,7 @@ export interface IClusterOptions {
    *
    * @default 100
    */
-  retryDelayOnTryAgain?: number
+  retryDelayOnTryAgain?: number;
 
   /**
    * The milliseconds before a timeout occurs while refreshing
@@ -80,21 +90,21 @@ export interface IClusterOptions {
    *
    * @default 1000
    */
-  slotsRefreshTimeout?: number
+  slotsRefreshTimeout?: number;
 
   /**
    * The milliseconds between every automatic slots refresh.
    *
    * @default 5000
    */
-  slotsRefreshInterval?: number
+  slotsRefreshInterval?: number;
 
   /**
    * Passed to the constructor of `Redis`
    *
    * @default null
    */
-  redisOptions?: any
+  redisOptions?: any;
 
   /**
    * By default, When a new Cluster instance is created,
@@ -104,7 +114,7 @@ export interface IClusterOptions {
    *
    * @default false
    */
-  lazyConnect?: boolean
+  lazyConnect?: boolean;
 
   /**
    * Hostnames will be resolved to IP addresses via this function.
@@ -116,15 +126,15 @@ export interface IClusterOptions {
    *
    * @default require('dns').lookup
    */
-  dnsLookup?: DNSLookupFunction
-  natMap?: NatMap
+  dnsLookup?: DNSLookupFunction;
+  natMap?: NatMap;
 }
 
 export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {
-  clusterRetryStrategy: (times) => Math.min(100 + times * 2, 2000),
+  clusterRetryStrategy: times => Math.min(100 + times * 2, 2000),
   enableOfflineQueue: true,
   enableReadyCheck: true,
-  scaleReads: 'master',
+  scaleReads: "master",
   maxRedirections: 16,
   retryDelayOnFailover: 100,
   retryDelayOnClusterDown: 100,
@@ -132,4 +142,4 @@ export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {
   slotsRefreshTimeout: 1000,
   slotsRefreshInterval: 5000,
   dnsLookup: lookup
-}
+};
