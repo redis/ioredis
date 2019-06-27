@@ -9,7 +9,9 @@ export type DNSLookupFunction = (
     family: number
   ) => void
 ) => void;
-export type NatMap = { [key: string]: { host: string; port: number } };
+export interface INatMap {
+  [key: string]: { host: string; port: number };
+}
 
 /**
  * Options for Cluster constructor
@@ -127,7 +129,7 @@ export interface IClusterOptions {
    * @default require('dns').lookup
    */
   dnsLookup?: DNSLookupFunction;
-  natMap?: NatMap;
+  natMap?: INatMap;
 }
 
 export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {

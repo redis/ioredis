@@ -1,5 +1,5 @@
 import { createConnection } from "net";
-import { NatMap } from "../../cluster/ClusterOptions";
+import { INatMap } from "../../cluster/ClusterOptions";
 import {
   CONNECTION_CLOSED_ERROR_MSG,
   packObject,
@@ -27,7 +27,7 @@ interface IAddressFromResponse {
 }
 
 type PreferredSlaves =
-  | ((slaves: Array<IAddressFromResponse>) => IAddressFromResponse | null)
+  | ((slaves: IAddressFromResponse[]) => IAddressFromResponse | null)
   | Array<{ port: string; ip: string; prio?: number }>
   | { port: string; ip: string; prio?: number };
 
@@ -37,13 +37,13 @@ export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   role: "master" | "slave";
   name: string;
   sentinelPassword?: string;
-  sentinels: Partial<ISentinelAddress>[];
+  sentinels: Array<Partial<ISentinelAddress>>;
   sentinelRetryStrategy?: (retryAttempts: number) => number;
   preferredSlaves?: PreferredSlaves;
   connectTimeout?: number;
   enableTLSForSentinelMode?: boolean;
   sentinelTLS?: SecureContextOptions;
-  natMap?: NatMap;
+  natMap?: INatMap;
   updateSentinels?: boolean;
 }
 

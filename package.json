@@ -9,7 +9,7 @@
   "scripts": {
     "test": "TS_NODE_LOG_ERROR=true NODE_ENV=test mocha test/**/*.ts",
     "test:cov": "TS_NODE_LOG_ERROR=true NODE_ENV=test node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -r ts-node/register -R spec --exit test/**/*.ts",
-    "lint": "eslint .",
+    "lint": "eslint --ext .js,.ts .",
     "format": "prettier --write \"{,!(node_modules)/**/}*.{js,ts}\"",
     "format-check": "prettier --check \"{,!(node_modules)/**/}*.{js,ts}\"",
     "build": "rm -rf built && tsc",

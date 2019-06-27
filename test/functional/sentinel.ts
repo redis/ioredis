@@ -364,7 +364,6 @@ describe("sentinel", function() {
         role: "slave",
         // for code coverage (sorting, etc), use multiple valid values that resolve to prio 1
         preferredSlaves: [
-          ,
           { ip: "127.0.0.1", port: "11111", prio: 100 },
           { ip: "127.0.0.1", port: "17381", prio: 1 },
           { ip: "127.0.0.1", port: "22222", prio: 100 },

@@ -53,7 +53,7 @@ class Cluster extends EventEmitter {
   private options: IClusterOptions;
   private startupNodes: Array<string | number | object>;
   private connectionPool: ConnectionPool;
-  private slots: Array<NodeKey[]> = [];
+  private slots: NodeKey[][] = [];
   private manuallyClosing: boolean;
   private retryAttempts: number = 0;
   private delayQueue: DelayQueue = new DelayQueue();
@@ -542,6 +542,7 @@ class Cluster extends EventEmitter {
     const ttl = {};
     const _this = this;
     if (!node && !command.__is_reject_overwritten) {
+      // eslint-disable-next-line @typescript-eslint/camelcase
       command.__is_reject_overwritten = true;
       const reject = command.reject;
       command.reject = function(err) {

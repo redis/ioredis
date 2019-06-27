@@ -1,3 +1,4 @@
+/* global suite set bench after */
 import { execSync } from "child_process";
 import Redis from "../lib/redis";
 

@@ -43,7 +43,7 @@ describe("auth", function() {
   });
 
   it('should not emit "error" when the server doesn\'t need auth', function(done) {
-    var server = new MockServer(17379, function(argv) {
+    new MockServer(17379, function(argv) {
       if (argv[0] === "auth" && argv[1] === "pass") {
         return new Error("ERR Client sent AUTH, but no password is set");
       }
