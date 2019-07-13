@@ -2,7 +2,6 @@ import { createConnection, TcpNetConnectOpts, IpcNetConnectOpts } from "net";
 import { connect as createTLSConnection, SecureContextOptions } from "tls";
 import { CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import AbstractConnector, { ErrorEmitter } from "./AbstractConnector";
-import * as PromiseContainer from "../promiseContainer";
 import { NetStream } from "../types";
 
 export function isIIpcConnectionOptions(
@@ -52,27 +51,31 @@ export default class StandaloneConnector extends AbstractConnector {
       Object.assign(connectionOptions, options.tls);
     }
 
-    const _Promise = PromiseContainer.get();
-    return new _Promise<NetStream>((resolve, reject) => {
-      process.nextTick(() => {
-        if (!this.connecting) {
-          reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
-          return;
-        }
+    // TODO:
+    // We use native Promise here since other Promise
+    // implementation may use different schedulers that
+    // cause issue when the stream is resolved in the
+    // next tick.
+    // Should use the provided promise in the next major
+    // version and do not connect before resolved.
+    return new Promise<NetStream>((resolve, reject) => {
+      if (!this.connecting) {
+        reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
+        return;
+      }
 
-        try {
-          if (options.tls) {
-            this.stream = createTLSConnection(connectionOptions);
-          } else {
-            this.stream = createConnection(connectionOptions);
-          }
-        } catch (err) {
-          reject(err);
-          return;
+      try {
+        if (options.tls) {
+          this.stream = createTLSConnection(connectionOptions);
+        } else {
+          this.stream = createConnection(connectionOptions);
         }
+      } catch (err) {
+        reject(err);
+        return;
+      }
 
-        resolve(this.stream);
-      });
+      resolve(this.stream);
     });
   }
 }
