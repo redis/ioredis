@@ -1,8 +1,9 @@
-import { Socket } from "net";
+import * as net from "net";
 import Redis from "../../lib/redis";
 import * as sinon from "sinon";
 import { expect } from "chai";
 import MockServer from "../helpers/mock_server";
+import * as Bluebird from "bluebird";
 
 describe("connection", function() {
   it('should emit "connect" when connected', function(done) {
@@ -77,9 +78,9 @@ describe("connection", function() {
       var set = false;
 
       // TODO: use spy
-      // @ts-ignore
       const stub = sinon
-        .stub(Socket.prototype, "setTimeout")
+        .stub(net.Socket.prototype, "setTimeout")
+        // @ts-ignore
         .callsFake(timeout => {
           if (timeout === connectTimeout) {
             set = true;
@@ -103,9 +104,9 @@ describe("connection", function() {
       let timedoutCalled = false;
 
       // TODO: use spy
-      // @ts-ignore
       sinon
-        .stub(Socket.prototype, "setTimeout")
+        .stub(net.Socket.prototype, "setTimeout")
+        // @ts-ignore
         .callsFake((timeout, callback) => {
           if (timeout === 0) {
             if (!isReady) {
@@ -380,6 +381,20 @@ describe("connection", function() {
             });
           });
         });
+      });
+    });
+  });
+
+  describe("sync connection", () => {
+    it("works with synchronous connection", done => {
+      // @ts-ignore
+      Redis.Promise = Bluebird;
+      const redis = new Redis("/data");
+      redis.on("error", () => {
+        // @ts-ignore
+        Redis.Promise = Promise;
+        redis.disconnect();
+        done();
       });
     });
   });

@@ -15,7 +15,6 @@ import SentinelIterator from "./SentinelIterator";
 import { ISentinelAddress } from "./types";
 import AbstractConnector, { ErrorEmitter } from "../AbstractConnector";
 import { NetStream, CallbackFunction } from "../../types";
-import * as PromiseContainer from "../../promiseContainer";
 import Redis from "../../redis";
 
 const debug = Debug("SentinelConnector");
@@ -87,10 +86,9 @@ export default class SentinelConnector extends AbstractConnector {
     this.retryAttempts = 0;
 
     let lastError;
-    const _Promise = PromiseContainer.get();
 
     const connectToNext = () =>
-      new _Promise<NetStream>((resolve, reject) => {
+      new Promise<NetStream>((resolve, reject) => {
         const endpoint = this.sentinelIterator.next();
 
         if (endpoint.done) {
