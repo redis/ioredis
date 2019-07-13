@@ -1,3 +1,10 @@
+## [4.11.2](https://github.com/luin/ioredis/compare/v4.11.1...v4.11.2) (2019-07-13)
+
+
+### Bug Fixes
+
+* ETIMEDOUT error with Bluebird when connecting. ([#925](https://github.com/luin/ioredis/issues/925)) ([4bce38b](https://github.com/luin/ioredis/commit/4bce38b)), closes [#918](https://github.com/luin/ioredis/issues/918)
+
 ## [4.11.1](https://github.com/luin/ioredis/compare/v4.11.0...v4.11.1) (2019-06-26)
 
 
