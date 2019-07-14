@@ -9,29 +9,35 @@ import { expect } from "chai";
 describe("StandaloneConnector", () => {
   describe("connect()", () => {
     it("first tries path", async () => {
-      const stub = sinon.stub(net, "createConnection");
+      const spy = sinon.spy(net, "createConnection");
       const connector = new StandaloneConnector({ port: 6379, path: "/tmp" });
-      await connector.connect(() => {});
-      expect(stub.calledOnce).to.eql(true);
+      try {
+        const stream = await connector.connect(() => {});
+        stream.on('error', () => {})
+      } catch (err) {}
+      expect(spy.calledOnce).to.eql(true);
+      connector.disconnect()
     });
 
     it("ignore path when port is set and path is null", async () => {
-      const stub = sinon.stub(net, "createConnection");
+      const spy = sinon.stub(net, "createConnection");
       const connector = new StandaloneConnector({ port: 6379, path: null });
       await connector.connect(() => {});
-      expect(stub.calledOnce).to.eql(true);
-      expect(stub.firstCall.args[0]).to.eql({ port: 6379 });
+      expect(spy.calledOnce).to.eql(true);
+      expect(spy.firstCall.args[0]).to.eql({ port: 6379 });
+      connector.disconnect()
     });
 
     it("supports tls", async () => {
-      const stub = sinon.stub(tls, "connect");
+      const spy = sinon.stub(tls, "connect");
       const connector = new StandaloneConnector({
         port: 6379,
         tls: { ca: "on" }
       });
       connector.connect(() => {});
-      expect(stub.calledOnce).to.eql(true);
-      expect(stub.firstCall.args[0]).to.eql({ port: 6379, ca: "on" });
+      expect(spy.calledOnce).to.eql(true);
+      expect(spy.firstCall.args[0]).to.eql({ port: 6379, ca: "on" });
+      connector.disconnect()
     });
   });
 });
