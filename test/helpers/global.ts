@@ -1,5 +1,3 @@
-"use strict";
-
 import * as sinon from "sinon";
 import Redis from "../../lib/redis";
 

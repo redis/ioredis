@@ -1,5 +1,3 @@
-"use strict";
-
 import Redis from "../../lib/redis";
 import { expect } from "chai";
 import Command from "../../lib/command";

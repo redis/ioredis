@@ -1,5 +1,3 @@
-"use strict";
-
 import * as net from "net";
 import * as tls from "tls";
 import { StandaloneConnector } from "../../../lib/connectors";
@@ -13,10 +11,12 @@ describe("StandaloneConnector", () => {
       const connector = new StandaloneConnector({ port: 6379, path: "/tmp" });
       try {
         const stream = await connector.connect(() => {});
-        stream.on('error', () => {})
-      } catch (err) {}
+        stream.on("error", () => {});
+      } catch (err) {
+        // ignore errors
+      }
       expect(spy.calledOnce).to.eql(true);
-      connector.disconnect()
+      connector.disconnect();
     });
 
     it("ignore path when port is set and path is null", async () => {
@@ -25,7 +25,7 @@ describe("StandaloneConnector", () => {
       await connector.connect(() => {});
       expect(spy.calledOnce).to.eql(true);
       expect(spy.firstCall.args[0]).to.eql({ port: 6379 });
-      connector.disconnect()
+      connector.disconnect();
     });
 
     it("supports tls", async () => {
@@ -37,7 +37,7 @@ describe("StandaloneConnector", () => {
       connector.connect(() => {});
       expect(spy.calledOnce).to.eql(true);
       expect(spy.firstCall.args[0]).to.eql({ port: 6379, ca: "on" });
-      connector.disconnect()
+      connector.disconnect();
     });
   });
 });
