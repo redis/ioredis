@@ -236,7 +236,9 @@ describe("*scanStream", function() {
       var cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
 
       var keys = [];
+      // @ts-ignore
       cluster.sadd("set", serverKeys, function() {
+        // @ts-ignore
         var stream = cluster.sscanStream("set");
         stream.on("data", function(data) {
           keys = keys.concat(data);
