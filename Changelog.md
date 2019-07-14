@@ -1,3 +1,10 @@
+# [4.12.0](https://github.com/luin/ioredis/compare/v4.11.2...v4.12.0) (2019-07-14)
+
+
+### Features
+
+* **cluster:** add #duplicate() method ([#926](https://github.com/luin/ioredis/issues/926)) ([8b150c2](https://github.com/luin/ioredis/commit/8b150c2))
+
 ## [4.11.2](https://github.com/luin/ioredis/compare/v4.11.1...v4.11.2) (2019-07-13)
 
 
