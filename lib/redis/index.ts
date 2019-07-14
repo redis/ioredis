@@ -140,6 +140,8 @@ function Redis() {
   this.resetCommandQueue();
   this.resetOfflineQueue();
 
+  this.connectionEpoch = 0;
+
   if (this.options.Connector) {
     this.connector = new this.options.Connector(this.options);
   } else if (this.options.sentinels) {
@@ -259,6 +261,7 @@ Redis.prototype.connect = function(callback) {
       reject(new Error("Redis is already connecting/connected"));
       return;
     }
+    this.connectionEpoch += 1;
     this.setStatus("connecting");
 
     const { options } = this;
