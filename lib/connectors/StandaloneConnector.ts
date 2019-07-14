@@ -77,7 +77,7 @@ export default class StandaloneConnector extends AbstractConnector {
         }
 
         resolve(this.stream);
-      })
+      });
     });
   }
 }
