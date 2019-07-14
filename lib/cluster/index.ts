@@ -386,6 +386,29 @@ class Cluster extends EventEmitter {
   }
 
   /**
+   * Create a new instance with the same startup nodes and options as the current one.
+   *
+   * @example
+   * ```js
+   * var cluster = new Redis.Cluster([{ host: "127.0.0.1", port: "30001" }]);
+   * var anotherCluster = cluster.duplicate();
+   * ```
+   *
+   * @public
+   * @param {(Array<string | number | object>)} [overrideStartupNodes=[]]
+   * @param {IClusterOptions} [overrideOptions={}]
+   * @memberof Cluster
+   */
+  public duplicate(overrideStartupNodes = [], overrideOptions = {}) {
+    const startupNodes =
+      overrideStartupNodes.length > 0
+        ? overrideStartupNodes
+        : this.startupNodes.slice(0);
+    const options = Object.assign({}, this.options, overrideOptions);
+    return new Cluster(startupNodes, options);
+  }
+
+  /**
    * Get nodes with the specified role
    *
    * @param {NodeRole} [role='all']
