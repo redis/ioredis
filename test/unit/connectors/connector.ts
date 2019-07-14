@@ -11,7 +11,7 @@ describe("StandaloneConnector", () => {
     it("first tries path", async () => {
       const stub = sinon.stub(net, "createConnection");
       const connector = new StandaloneConnector({ port: 6379, path: "/tmp" });
-      await connector.connect(() => {})
+      await connector.connect(() => {});
       expect(stub.calledOnce).to.eql(true);
     });
 
