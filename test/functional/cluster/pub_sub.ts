@@ -1,4 +1,4 @@
-import MockServer from "../../helpers/mock_server";
+import MockServer, { getConnectionName } from "../../helpers/mock_server";
 import { expect } from "chai";
 import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
@@ -58,7 +58,7 @@ describe("cluster:pub/sub", function() {
       }
       if (argv[0] === "subscribe") {
         expect(c.password).to.eql("abc");
-        expect(c.getConnectionName()).to.eql("ioredisClusterSubscriber");
+        expect(getConnectionName(c)).to.eql("ioredisClusterSubscriber");
       }
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return [[0, 16383, ["127.0.0.1", 30001]]];
