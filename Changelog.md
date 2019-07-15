@@ -1,3 +1,10 @@
+## [4.12.1](https://github.com/luin/ioredis/compare/v4.12.0...v4.12.1) (2019-07-15)
+
+
+### Bug Fixes
+
+* handle connecting immediately after "end" event ([#929](https://github.com/luin/ioredis/issues/929)) ([7bcd8a8](https://github.com/luin/ioredis/commit/7bcd8a8)), closes [#928](https://github.com/luin/ioredis/issues/928)
+
 # [4.12.0](https://github.com/luin/ioredis/compare/v4.11.2...v4.12.0) (2019-07-14)
 
 
