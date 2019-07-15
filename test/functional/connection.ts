@@ -50,6 +50,29 @@ describe("connection", function() {
     });
   });
 
+  it("connects successfully immediately after end", done => {
+    const redis = new Redis();
+    redis.once("end", async () => {
+      await redis.connect();
+      done();
+    });
+
+    redis.quit();
+  });
+
+  it("connects successfully immediately after quit", done => {
+    const redis = new Redis();
+    redis.once("end", async () => {
+      await redis.connect();
+      done();
+    });
+
+    // process.nextTick ensures the connection is being made.
+    process.nextTick(() => {
+      redis.quit();
+    });
+  });
+
   describe("connectTimeout", () => {
     it("should close the connection when timeout", function(done) {
       var redis = new Redis(6379, "192.0.0.0", {

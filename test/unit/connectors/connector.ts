@@ -34,7 +34,7 @@ describe("StandaloneConnector", () => {
         port: 6379,
         tls: { ca: "on" }
       });
-      connector.connect(() => {});
+      await connector.connect(() => {});
       expect(spy.calledOnce).to.eql(true);
       expect(spy.firstCall.args[0]).to.eql({ port: 6379, ca: "on" });
       connector.disconnect();

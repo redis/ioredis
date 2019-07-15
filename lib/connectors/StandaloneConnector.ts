@@ -59,23 +59,25 @@ export default class StandaloneConnector extends AbstractConnector {
     // Should use the provided promise in the next major
     // version and do not connect before resolved.
     return new Promise<NetStream>((resolve, reject) => {
-      if (!this.connecting) {
-        reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
-        return;
-      }
-
-      try {
-        if (options.tls) {
-          this.stream = createTLSConnection(connectionOptions);
-        } else {
-          this.stream = createConnection(connectionOptions);
+      process.nextTick(() => {
+        if (!this.connecting) {
+          reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
+          return;
         }
-      } catch (err) {
-        reject(err);
-        return;
-      }
 
-      resolve(this.stream);
+        try {
+          if (options.tls) {
+            this.stream = createTLSConnection(connectionOptions);
+          } else {
+            this.stream = createConnection(connectionOptions);
+          }
+        } catch (err) {
+          reject(err);
+          return;
+        }
+
+        resolve(this.stream);
+      });
     });
   }
 }

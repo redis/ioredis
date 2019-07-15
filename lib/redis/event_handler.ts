@@ -15,8 +15,12 @@ export function connectHandler(self) {
 
     // AUTH command should be processed before any other commands
     let flushed = false;
+    const { connectionEpoch } = self;
     if (self.condition.auth) {
       self.auth(self.condition.auth, function(err) {
+        if (connectionEpoch !== self.connectionEpoch) {
+          return;
+        }
         if (err) {
           if (err.message.indexOf("no password is set") === -1) {
             flushed = true;
@@ -50,6 +54,9 @@ export function connectHandler(self) {
 
     if (self.options.enableReadyCheck) {
       self._readyCheck(function(err, info) {
+        if (connectionEpoch !== self.connectionEpoch) {
+          return;
+        }
         if (err) {
           if (!flushed) {
             self.recoverFromFatalError(
