@@ -1,5 +1,5 @@
-import { nodeKeyToRedisOptions } from "../../lib/cluster/util";
-import { Cluster } from "../../lib";
+import { nodeKeyToRedisOptions } from "../../../lib/cluster/util";
+import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
 import { expect } from "chai";
 

@@ -123,7 +123,13 @@ export default class ConnectionPool extends EventEmitter {
     debug("Reset with %O", nodes);
     const newNodes = {};
     nodes.forEach(node => {
-      newNodes[getNodeKey(node)] = node;
+      const key = getNodeKey(node);
+
+      // Don't override the existing (master) node
+      // when the current one is slave.
+      if (!(node.readOnly && newNodes[key])) {
+        newNodes[key] = node;
+      }
     });
 
     Object.keys(this.nodes.all).forEach(key => {
