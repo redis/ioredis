@@ -1,3 +1,11 @@
+## [4.12.2](https://github.com/luin/ioredis/compare/v4.12.1...v4.12.2) (2019-07-16)
+
+
+### Bug Fixes
+
+* **cluster:** prefer master when there're two same node for a slot ([8fb9f97](https://github.com/luin/ioredis/commit/8fb9f97))
+* **cluster:** remove node immediately when slots are redistributed ([ecc13ad](https://github.com/luin/ioredis/commit/ecc13ad)), closes [#930](https://github.com/luin/ioredis/issues/930)
+
 ## [4.12.1](https://github.com/luin/ioredis/compare/v4.12.0...v4.12.1) (2019-07-15)
 
 
