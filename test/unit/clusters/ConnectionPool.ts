@@ -24,5 +24,14 @@ describe("ConnectionPool", () => {
       expect(stub.callCount).to.eql(2);
       expect(stub.firstCall.args[1]).to.eql(false);
     });
+
+    it("remove the node immediately instead of waiting for 'end' event", () => {
+      const pool = new ConnectionPool({});
+      pool.reset([{ host: "127.0.0.1", port: 300001 }]);
+      expect(pool.getNodes().length).to.eql(1);
+
+      pool.reset([]);
+      expect(pool.getNodes().length).to.eql(0);
+    });
   });
 });
