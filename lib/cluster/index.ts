@@ -740,6 +740,11 @@ class Cluster extends EventEmitter {
       retryStrategy: null,
       connectionName: "ioredisClusterRefresher"
     });
+
+    // Ignore error events since we will handle
+    // exceptions for the CLUSTER SLOTS command.
+    duplicatedConnection.on("error", noop);
+
     duplicatedConnection.cluster(
       "slots",
       timeout((err, result) => {
