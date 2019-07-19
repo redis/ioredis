@@ -1,3 +1,15 @@
+# [4.13.0](https://github.com/luin/ioredis/compare/v4.12.2...v4.13.0) (2019-07-19)
+
+
+### Bug Fixes
+
+* **cluster:** suppress errors emitted from internal clients ([9a113ca](https://github.com/luin/ioredis/commit/9a113ca)), closes [#896](https://github.com/luin/ioredis/issues/896) [#899](https://github.com/luin/ioredis/issues/899)
+
+
+### Features
+
+* **cluster:** support binary keys ([b414ed9](https://github.com/luin/ioredis/commit/b414ed9)), closes [#637](https://github.com/luin/ioredis/issues/637)
+
 ## [4.12.2](https://github.com/luin/ioredis/compare/v4.12.1...v4.12.2) (2019-07-16)
 
 
