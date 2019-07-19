@@ -130,6 +130,10 @@ describe("Command", function() {
   });
 
   describe("#getSlot()", function() {
+    function expectSlot(key: any, slot: number) {
+      expect(new Command("get", [key]).getSlot()).to.eql(slot);
+    }
+
     it("should return correctly", function() {
       expectSlot("123", 5970);
       expectSlot(123, 5970);
@@ -144,10 +148,10 @@ describe("Command", function() {
       expectSlot("", 0);
       expectSlot(null, 0);
       expectSlot(undefined, 0);
+    });
 
-      function expectSlot(key, slot) {
-        expect(new Command("get", [key]).getSlot()).to.eql(slot);
-      }
+    it("supports buffers", () => {
+      expectSlot(Buffer.from("encoding"), 3060);
     });
   });
 
