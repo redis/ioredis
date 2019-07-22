@@ -1,3 +1,10 @@
+## [4.13.1](https://github.com/luin/ioredis/compare/v4.13.0...v4.13.1) (2019-07-22)
+
+
+### Bug Fixes
+
+* keep sentinels of options immutable ([bacb7e1](https://github.com/luin/ioredis/commit/bacb7e1)), closes [#936](https://github.com/luin/ioredis/issues/936)
+
 # [4.13.0](https://github.com/luin/ioredis/compare/v4.12.2...v4.13.0) (2019-07-19)
 
 
