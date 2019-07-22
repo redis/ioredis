@@ -1,6 +1,7 @@
 import Redis from "../../lib/redis";
 import MockServer from "../helpers/mock_server";
 import { expect } from "chai";
+import * as sinon from "sinon";
 
 describe("sentinel", function() {
   describe("connect", function() {
@@ -121,6 +122,12 @@ describe("sentinel", function() {
 
     it("should add additionally discovered sentinels when resolving successfully", function(done) {
       var sentinels = [{ host: "127.0.0.1", port: 27379 }];
+      var cloned;
+
+      sinon.stub(sentinels, "slice").callsFake((start, end) => {
+        cloned = [].slice.call(sentinels, start, end);
+        return cloned;
+      });
 
       var sentinel = new MockServer(27379, function(argv) {
         if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
@@ -136,7 +143,7 @@ describe("sentinel", function() {
       sentinel.once("disconnect", function() {
         redis.disconnect();
         master.disconnect(function() {
-          expect(sentinels.length).to.eql(2);
+          expect(cloned.length).to.eql(2);
           sentinel.disconnect(done);
         });
       });
