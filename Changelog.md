@@ -1,3 +1,10 @@
+# [4.14.0](https://github.com/luin/ioredis/compare/v4.13.1...v4.14.0) (2019-07-31)
+
+
+### Features
+
+* support rediss:// URL ([371bb9c](https://github.com/luin/ioredis/commit/371bb9c))
+
 ## [4.13.1](https://github.com/luin/ioredis/compare/v4.13.0...v4.13.1) (2019-07-22)
 
 
