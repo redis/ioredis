@@ -260,7 +260,7 @@ export function parseURL(url) {
     result.password = parsed.auth.split(":")[1];
   }
   if (parsed.pathname) {
-    if (parsed.protocol === "redis:") {
+    if (parsed.protocol === "redis:" || parsed.protocol === "rediss:") {
       if (parsed.pathname.length > 1) {
         result.db = parsed.pathname.slice(1);
       }
@@ -273,6 +273,9 @@ export function parseURL(url) {
   }
   if (parsed.port) {
     result.port = parsed.port;
+  }
+  if (parsed.protocol === "rediss:") {
+    result.tls = true;
   }
   defaults(result, parsed.query);
 

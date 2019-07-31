@@ -110,6 +110,7 @@ var debug = Debug("redis");
  * var unixSocketRedis2 = new Redis('/tmp/echo.sock');
  * var urlRedis = new Redis('redis://user:password@redis-service.com:6379/');
  * var urlRedis2 = new Redis('//localhost:6379');
+ * var urlRedisTls = new Redis('rediss://user:password@redis-service.com:6379/');
  * var authedRedis = new Redis(6380, '192.168.100.1', { password: 'password' });
  * ```
  */
