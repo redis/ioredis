@@ -1,5 +1,6 @@
 import { parse as urllibParse } from "url";
 import { defaults, noop, flatten } from "./lodash";
+import { parse as parseQuery } from "qs";
 import Debug from "./debug";
 
 /**
@@ -248,11 +249,11 @@ export function parseURL(url) {
   if (isInt(url)) {
     return { port: url };
   }
-  var parsed = urllibParse(url, true, true);
+  var parsed = urllibParse(url, false, true);
 
   if (!parsed.slashes && url[0] !== "/") {
     url = "//" + url;
-    parsed = urllibParse(url, true, true);
+    parsed = urllibParse(url, false, true);
   }
 
   var result: any = {};
@@ -274,10 +275,12 @@ export function parseURL(url) {
   if (parsed.port) {
     result.port = parsed.port;
   }
-  if (parsed.protocol === "rediss:") {
+
+  defaults(result, parseQuery(parsed.query));
+
+  if (parsed.protocol === "rediss:" && !result.tls) {
     result.tls = true;
   }
-  defaults(result, parsed.query);
 
   return result;
 }

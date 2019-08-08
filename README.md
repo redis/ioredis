@@ -21,17 +21,17 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 
 0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](http://redis.io/topics/sentinel), [Pipelining](http://redis.io/topics/pipelining) and of course [Lua scripting](http://redis.io/commands/eval) & [Pub/Sub](http://redis.io/topics/pubsub) (with the support of binary messages).
 1. High performance.
-2. Delightful API. It works with Node callbacks and Native promises.
-3. Transformation of command arguments and replies.
-4. Transparent key prefixing.
-5. Abstraction for Lua scripting, allowing you to define custom commands.
-6. Support for binary data.
-7. Support for TLS.
-8. Support for offline queue and ready checking.
-9. Support for ES6 types, such as `Map` and `Set`.
-10. Support for GEO commands (Redis 3.2 Unstable).
-11. Sophisticated error handling strategy.
-12. Support for NAT mapping.
+1. Delightful API. It works with Node callbacks and Native promises.
+1. Transformation of command arguments and replies.
+1. Transparent key prefixing.
+1. Abstraction for Lua scripting, allowing you to define custom commands.
+1. Support for binary data.
+1. Support for TLS.
+1. Support for offline queue and ready checking.
+1. Support for ES6 types, such as `Map` and `Set`.
+1. Support for GEO commands (Redis 3.2 Unstable).
+1. Sophisticated error handling strategy.
+1. Support for NAT mapping.
 
 # Links
 
@@ -125,6 +125,19 @@ You can also specify connection options as a [`redis://` URL](http://www.iana.or
 ```javascript
 // Connect to 127.0.0.1:6380, db 4, using password "authpassword":
 new Redis("redis://:authpassword@127.0.0.1:6380/4");
+
+// Options can be passed via url query. Nesting support is provided.
+// The following two are equal:
+new Redis("redis://:authpassword@127.0.0.1:6380/4?tls[ca]=aW9yZWRpcwo%3D");
+new Redis({
+  host: "127.0.0.1",
+  port: 6380,
+  password: "authpassword",
+  db: 4,
+  tls: {
+    ca: "aW9yZWRpcwo="
+  }
+});
 ```
 
 See [API Documentation](API.md#new_Redis) for all available options.
@@ -948,7 +961,7 @@ However there are some differences when using transaction and pipeline in Cluste
 
 0. All keys in a pipeline should belong to the same slot since ioredis sends all commands in a pipeline to the same node.
 1. You can't use `multi` without pipeline (aka `cluster.multi({ pipeline: false })`). This is because when you call `cluster.multi({ pipeline: false })`, ioredis doesn't know which node the `multi` command should be sent to.
-2. Chaining custom commands in the pipeline is not supported in Cluster mode.
+1. Chaining custom commands in the pipeline is not supported in Cluster mode.
 
 When any commands in a pipeline receives a `MOVED` or `ASK` error, ioredis will resend the whole pipeline to the specified node automatically if all of the following conditions are satisfied:
 
