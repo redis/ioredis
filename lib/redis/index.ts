@@ -202,8 +202,8 @@ Redis.prototype.parseOptions = function() {
       defaults(this.options, arg);
     } else if (typeof arg === "string") {
       defaults(this.options, parseURL(arg));
-      if (arg.startsWith('rediss://')) {
-        isTls = true
+      if (arg.startsWith("rediss://")) {
+        isTls = true;
       }
     } else if (typeof arg === "number") {
       this.options.port = arg;
@@ -212,7 +212,7 @@ Redis.prototype.parseOptions = function() {
     }
   }
   if (isTls) {
-    defaults(this.options, {tls: true})
+    defaults(this.options, { tls: { servername: this.options.host } });
   }
   defaults(this.options, Redis.defaultOptions);
 

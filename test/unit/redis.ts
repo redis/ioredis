@@ -81,11 +81,13 @@ describe("Redis", function() {
         });
         expect(option).to.have.property("port", 6380);
 
-        option = getOption("rediss://host")
-        expect(option).to.have.property("tls", true)
+        option = getOption("rediss://host.test");
+        expect(option.tls).to.deep.equal({ servername: "host.test" });
 
-        option = getOption("rediss://example.test", { tls: { hostname: "example.test" } });
-        expect(option.tls).to.deep.equal({hostname: "example.test"})
+        option = getOption("rediss://example.test", {
+          tls: { rejectUnauthorized: false }
+        });
+        expect(option.tls).to.deep.equal({ rejectUnauthorized: false });
       } catch (err) {
         stub.restore();
         throw err;
