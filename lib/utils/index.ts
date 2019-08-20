@@ -274,9 +274,6 @@ export function parseURL(url) {
   if (parsed.port) {
     result.port = parsed.port;
   }
-  if (parsed.protocol === "rediss:") {
-    result.tls = true;
-  }
   defaults(result, parsed.query);
 
   return result;

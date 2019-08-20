@@ -80,6 +80,14 @@ describe("Redis", function() {
           host: "192.168.1.1"
         });
         expect(option).to.have.property("port", 6380);
+
+        option = getOption("rediss://host");
+        expect(option).to.have.property("tls", true);
+
+        option = getOption("rediss://example.test", {
+          tls: { hostname: "example.test" }
+        });
+        expect(option.tls).to.deep.equal({ hostname: "example.test" });
       } catch (err) {
         stub.restore();
         throw err;
