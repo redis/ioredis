@@ -192,6 +192,7 @@ Redis.prototype.resetOfflineQueue = function() {
 
 Redis.prototype.parseOptions = function() {
   this.options = {};
+  let isTls = false;
   for (var i = 0; i < arguments.length; ++i) {
     var arg = arguments[i];
     if (arg === null || typeof arg === "undefined") {
@@ -201,11 +202,17 @@ Redis.prototype.parseOptions = function() {
       defaults(this.options, arg);
     } else if (typeof arg === "string") {
       defaults(this.options, parseURL(arg));
+      if (arg.startsWith('rediss://')) {
+        isTls = true
+      }
     } else if (typeof arg === "number") {
       this.options.port = arg;
     } else {
       throw new Error("Invalid argument " + arg);
     }
+  }
+  if (isTls) {
+    defaults(this.options, {tls: true})
   }
   defaults(this.options, Redis.defaultOptions);
 
