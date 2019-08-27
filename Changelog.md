@@ -1,3 +1,10 @@
+## [4.14.1](https://github.com/luin/ioredis/compare/v4.14.0...v4.14.1) (2019-08-27)
+
+
+### Bug Fixes
+
+* don’t clobber passed-in tls options with rediss:/ URLs ([#949](https://github.com/luin/ioredis/issues/949)) ([ceefcfa](https://github.com/luin/ioredis/commit/ceefcfa)), closes [#942](https://github.com/luin/ioredis/issues/942) [#940](https://github.com/luin/ioredis/issues/940) [#950](https://github.com/luin/ioredis/issues/950) [#948](https://github.com/luin/ioredis/issues/948)
+
 # [4.14.0](https://github.com/luin/ioredis/compare/v4.13.1...v4.14.0) (2019-07-31)
 
 
