@@ -352,7 +352,7 @@ redis
 ioredis supports all of the scripting commands such as `EVAL`, `EVALSHA` and `SCRIPT`.
 However, it's tedious to use in real world scenarios since developers have to take
 care of script caching and to detect when to use `EVAL` and when to use `EVALSHA`.
-ioredis expose a `defineCommand` method to make scripting much easier to use:
+ioredis exposes a `defineCommand` method to make scripting much easier to use:
 
 ```javascript
 var redis = new Redis();
