@@ -525,7 +525,15 @@ redis.monitor(function(err, monitor) {
   monitor.on("monitor", function(time, args, source, database) {});
 });
 ```
-
+Here is another example illustrating an `async` function and `monitor.disconnect()`:
+```javascript
+async () => {
+  const monitor = await redis.monitor()
+  monitor.on('monitor', console.log)
+  // Any other tasks
+  monitor.disconnect()
+}
+```
 ## Streamify Scanning
 
 Redis 2.8 added the `SCAN` command to incrementally iterate through the keys in the database. It's different from `KEYS` in that
