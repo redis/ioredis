@@ -169,6 +169,7 @@ Object.assign(Redis.prototype, Commander.prototype);
  *
  * @deprecated
  */
+// @ts-ignore
 Redis.createClient = function(...args): Redis {
   // @ts-ignore
   return new Redis(...args);
