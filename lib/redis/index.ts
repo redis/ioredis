@@ -305,7 +305,7 @@ Redis.prototype.connect = function(callback) {
         }
 
         stream.once(CONNECT_EVENT, eventHandler.connectHandler(_this));
-        stream.once("error", eventHandler.errorHandler(_this));
+        stream.on("error", eventHandler.errorHandler(_this));
         stream.once("close", eventHandler.closeHandler(_this));
 
         if (options.connectTimeout) {
