@@ -30,6 +30,37 @@ describe("tls option", () => {
         redis.on("end", () => done());
       });
     });
+    it("handles multiple tls errors", () => {
+      let redis;
+      const fs = require("fs");
+      let stream;
+      // @ts-ignore
+      const stub = sinon.stub(tls, "connect").callsFake(op => {
+        // @ts-ignore
+        expect(op.ca).to.eql("123");
+        // @ts-ignore
+        expect(op.port).to.eql(6379);
+        stream = net.createConnection(op);
+
+        stream.on("connect", data => {
+          stream.emit("secureConnect", data);
+        });
+        return stream;
+      });
+      let errorTimes = 0;
+      redis = new Redis({ tls: { ca: "123" } });
+      redis.on("ready", () => {
+        stream.emit("error", "ssl handshake");
+        stream.emit("error", "socket hangup");
+      });
+      redis.on("error", () => {
+        errorTimes++;
+        if (errorTimes === 2) {
+          redis.disconnect();
+        }
+      });
+      redis.on("end", () => expect(errorTimes).to.equal(2));
+    });
   });
 
   describe("Sentinel", () => {
