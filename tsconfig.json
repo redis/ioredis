@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "outDir": "./built",
-    "allowJs": true,
+    "allowJs": false,
     "target": "es6",
     "lib": ["es6"],
     "moduleResolution": "node",
@@ -9,8 +9,5 @@
     "typeRoots": ["node_modules/@types"],
     "module": "commonjs"
   },
-  "include": [
-    "./lib/**/*"
-    ]
+  "include": ["./lib/**/*"]
 }
-
