@@ -303,6 +303,7 @@ Pipeline.prototype.exec = function(callback: CallbackFunction) {
 
   function execPipeline() {
     let data: Buffer | string = "";
+    let buffers: Buffer[];
     let writePending: number = (_this.replyPending = _this._queue.length);
 
     let node;
@@ -319,16 +320,25 @@ Pipeline.prototype.exec = function(callback: CallbackFunction) {
           bufferMode = true;
         }
         if (bufferMode) {
-          data = Buffer.concat([
-            typeof data === "string" ? Buffer.from(data, "utf8") : data,
+          if (!buffers) {
+            buffers = [];
+          }
+          if (typeof data === "string") {
+            buffers.push(Buffer.from(data, "utf8"));
+            data = undefined;
+          }
+          buffers.push(
             typeof writable === "string"
               ? Buffer.from(writable, "utf8")
               : writable
-          ]);
+          );
         } else {
           data += writable;
         }
         if (!--writePending) {
+          if (buffers) {
+            data = Buffer.concat(buffers);
+          }
           if (_this.isCluster) {
             node.redis.stream.write(data);
           } else {
