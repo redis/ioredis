@@ -302,7 +302,7 @@ Pipeline.prototype.exec = function(callback: CallbackFunction) {
     .then(execPipeline);
 
   function execPipeline() {
-    let data: Buffer | string = "";
+    let data = "";
     let buffers: Buffer[];
     let writePending: number = (_this.replyPending = _this._queue.length);
 
@@ -336,18 +336,22 @@ Pipeline.prototype.exec = function(callback: CallbackFunction) {
           data += writable;
         }
         if (!--writePending) {
+          let sendData: Buffer | string;
           if (buffers) {
-            data = Buffer.concat(buffers);
+            sendData = Buffer.concat(buffers);
+          } else {
+            sendData = data;
           }
           if (_this.isCluster) {
-            node.redis.stream.write(data);
+            node.redis.stream.write(sendData);
           } else {
-            _this.redis.stream.write(data);
+            _this.redis.stream.write(sendData);
           }
 
           // Reset writePending for resending
           writePending = _this._queue.length;
           data = "";
+          buffers = undefined;
           bufferMode = false;
         }
       }
