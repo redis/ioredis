@@ -42,6 +42,14 @@ describe("Redis", function() {
         expect(option).to.have.property("password", "authpassword");
         expect(option).to.have.property("db", 4);
 
+        option = getOption("redis://:1+1@127.0.0.1:6380");
+        expect(option).to.have.property("password", "1+1");
+
+        option = getOption(
+          `redis://127.0.0.1:6380/?password=${encodeURIComponent("1+1")}`
+        );
+        expect(option).to.have.property("password", "1+1");
+
         option = getOption("redis://127.0.0.1/");
         expect(option).to.have.property("db", 0);
 
