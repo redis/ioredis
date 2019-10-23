@@ -1,3 +1,10 @@
+## [4.14.2](https://github.com/luin/ioredis/compare/v4.14.1...v4.14.2) (2019-10-23)
+
+
+### Bug Fixes
+
+* security deps updates [skip ci] ([a7095d7](https://github.com/luin/ioredis/commit/a7095d7ab66d9791c3c9a73ea3673c54dce5959d))
+
 ## [4.14.1](https://github.com/luin/ioredis/compare/v4.14.0...v4.14.1) (2019-08-27)
 
 
