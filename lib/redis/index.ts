@@ -303,12 +303,22 @@ Redis.prototype.connect = function(callback) {
         if (typeof options.keepAlive === "number") {
           stream.setKeepAlive(true, options.keepAlive);
         }
+        /*
+         * There is a race here. In rare circumstances, the stream can
+         * arrive here already connected. In that case, we just call
+         * the connectHandler directly on the next tick.
+         */
+        const connectHandler = eventHandler.connectHandler(_this);
+        if (stream.connecting) {
+          stream.once(CONNECT_EVENT, connectHandler);
+        } else {
+          process.nextTick(connectHandler);
+        }
 
-        stream.once(CONNECT_EVENT, eventHandler.connectHandler(_this));
         stream.once("error", eventHandler.errorHandler(_this));
         stream.once("close", eventHandler.closeHandler(_this));
 
-        if (options.connectTimeout) {
+        if (options.connectTimeout && stream.connecting) {
           /*
            * Typically, Socket#setTimeout(0) will clear the timer
            * set before. However, in some platforms (Electron 3.x~4.x),
