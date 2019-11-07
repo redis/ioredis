@@ -1,3 +1,10 @@
+## [4.14.3](https://github.com/luin/ioredis/compare/v4.14.2...v4.14.3) (2019-11-07)
+
+
+### Bug Fixes
+
+* update funding information ([c83cb05](https://github.com/luin/ioredis/commit/c83cb0524258e8090d0ae487c5d13cc873af2e27))
+
 ## [4.14.2](https://github.com/luin/ioredis/compare/v4.14.1...v4.14.2) (2019-10-23)
 
 
