@@ -29,6 +29,10 @@
   ],
   "author": "luin <i@zihua.li> (http://zihua.li)",
   "license": "MIT",
+  "funding": {
+    "type": "opencollective",
+    "url": "https://opencollective.com/ioredis"
+  },
   "dependencies": {
     "cluster-key-slot": "^1.1.0",
     "debug": "^4.1.1",
