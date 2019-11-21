@@ -832,21 +832,21 @@ cluster.get("foo", function(err, res) {
       ioredis will try to reconnect to the startup nodes from scratch after the specified delay (in ms). Otherwise, an error of "None of startup nodes is available" will be returned.
       The default value of this option is:
 
-          ```javascript
-          function (times) {
-            var delay = Math.min(100 + times * 2, 2000);
-            return delay;
-          }
-          ```
+```javascript
+function (times) {
+  var delay = Math.min(100 + times * 2, 2000);
+  return delay;
+}
+```
 
-          It's possible to modify the `startupNodes` property in order to switch to another set of nodes here:
+It's possible to modify the `startupNodes` property in order to switch to another set of nodes here:
 
-          ```javascript
-          function (times) {
-            this.startupNodes = [{ port: 6790, host: '127.0.0.1' }];
-            return Math.min(100 + times * 2, 2000);
-          }
-          ```
+```javascript
+function (times) {
+  this.startupNodes = [{ port: 6790, host: '127.0.0.1' }];
+  return Math.min(100 + times * 2, 2000);
+}
+```
 
     - `dnsLookup`: Alternative DNS lookup function (`dns.lookup()` is used by default). It may be useful to override this in special cases, such as when AWS ElastiCache used with TLS enabled.
     - `enableOfflineQueue`: Similar to the `enableOfflineQueue` option of `Redis` class.
