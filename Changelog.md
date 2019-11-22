@@ -1,3 +1,10 @@
+## [4.14.4](https://github.com/luin/ioredis/compare/v4.14.3...v4.14.4) (2019-11-22)
+
+
+### Bug Fixes
+
+* improved performance of Pipeline.exec ([#991](https://github.com/luin/ioredis/issues/991)) ([86470a8](https://github.com/luin/ioredis/commit/86470a8912bff3907ab80e1b404dfcfa4fc7f24a))
+
 ## [4.14.3](https://github.com/luin/ioredis/compare/v4.14.2...v4.14.3) (2019-11-07)
 
 
