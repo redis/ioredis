@@ -1,5 +1,6 @@
 import Redis from "../../lib/redis";
 import { expect } from "chai";
+import * as sinon from "sinon";
 
 describe("reconnectOnError", function() {
   it("should pass the error as the first param", function(done) {
@@ -106,6 +107,40 @@ describe("reconnectOnError", function() {
       .sadd("foo", "a")
       .exec(function(err, res) {
         expect(res).to.eql([[null, "bar"], [null, 1]]);
+        done();
+      });
+  });
+
+  it("should work with pipelined multi", function(done) {
+    var redis = new Redis({
+      reconnectOnError: function() {
+        // deleting foo allows sadd below to succeed on the second try
+        redis.del("foo");
+        return 2;
+      }
+    });
+    var delSpy = sinon.spy(redis, "del");
+
+    redis.set("foo", "bar");
+    redis.set("i", 1);
+    redis
+      .pipeline()
+      .sadd("foo", "a") // trigger a WRONGTYPE error
+      .multi()
+      .get("foo")
+      .incr("i")
+      .exec()
+      .exec(function(err, res) {
+        expect(delSpy.calledOnce).to.eql(true);
+        expect(delSpy.firstCall.args[0]).to.eql("foo");
+        expect(err).to.be.null;
+        expect(res).to.eql([
+          [null, 1],
+          [null, "OK"],
+          [null, "QUEUED"],
+          [null, "QUEUED"],
+          [null, ["bar", 2]]
+        ]);
         done();
       });
   });

@@ -1,7 +1,10 @@
 "use strict";
 
+import Deque = require("denque");
+import { AbortError } from "redis-errors";
 import Command from "../command";
 import { MaxRetriesPerRequestError } from "../errors";
+import { ICommandItem, ICommand } from "../types";
 import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import DataHandler from "../DataHandler";
 
@@ -77,6 +80,61 @@ export function connectHandler(self) {
   };
 }
 
+function abortError(command: ICommand) {
+  const err = new AbortError("Command aborted due to connection close");
+  (err as any).command = {
+    name: command.name,
+    args: command.args
+  };
+  return err;
+}
+
+// If a contiguous set of pipeline commands starts from index zero then they
+// can be safely reattempted. If however we have a chain of pipelined commands
+// starting at index 1 or more it means we received a partial response before
+// the connection close and those pipelined commands must be aborted. For
+// example, if the queue looks like this: [2, 3, 4, 0, 1, 2] then after
+// aborting and purging we'll have a queue that looks like this: [0, 1, 2]
+function abortIncompletePipelines(commandQueue: Deque<ICommandItem>) {
+  let expectedIndex = 0;
+  for (let i = 0; i < commandQueue.length; ) {
+    const command = commandQueue.peekAt(i).command as Command;
+    const pipelineIndex = command.pipelineIndex;
+    if (pipelineIndex === undefined || pipelineIndex === 0) {
+      expectedIndex = 0;
+    }
+    if (pipelineIndex !== undefined && pipelineIndex !== expectedIndex++) {
+      commandQueue.remove(i, 1);
+      command.reject(abortError(command));
+      continue;
+    }
+    i++;
+  }
+}
+
+// If only a partial transaction result was received before connection close,
+// we have to abort any transaction fragments that may have ended up in the
+// offline queue
+function abortTransactionFragments(commandQueue: Deque<ICommandItem>) {
+  for (let i = 0; i < commandQueue.length; ) {
+    const command = commandQueue.peekAt(i).command as Command;
+    if (command.name === "multi") {
+      break;
+    }
+    if (command.name === "exec") {
+      commandQueue.remove(i, 1);
+      command.reject(abortError(command));
+      break;
+    }
+    if ((command as Command).inTransaction) {
+      commandQueue.remove(i, 1);
+      command.reject(abortError(command));
+    } else {
+      i++;
+    }
+  }
+}
+
 export function closeHandler(self) {
   return function() {
     self.setStatus("close");
@@ -85,7 +143,11 @@ export function closeHandler(self) {
       self.prevCondition = self.condition;
     }
     if (self.commandQueue.length) {
+      abortIncompletePipelines(self.commandQueue);
       self.prevCommandQueue = self.commandQueue;
+    }
+    if (self.offlineQueue.length) {
+      abortTransactionFragments(self.offlineQueue);
     }
 
     if (self.manuallyClosing) {
