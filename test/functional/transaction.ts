@@ -1,6 +1,32 @@
 import Redis from "../../lib/redis";
+import { ReplyError } from "../../lib";
 import { expect } from "chai";
 import Command from "../../lib/command";
+import MockServer from "../helpers/mock_server";
+
+const READONLY_ERROR = "READONLY You can't write against a read only replica.";
+
+function simulateReadOnlyReplica() {
+  let pendingResults = [];
+  let execResults = [];
+  new MockServer(30000, argv => {
+    switch (argv[0]) {
+      case "get":
+        pendingResults.push("bar");
+        return MockServer.raw("+QUEUED\r\n");
+      case "set":
+        return new Error(READONLY_ERROR);
+      case "exec":
+        execResults = pendingResults;
+        pendingResults = [];
+        return execResults;
+    }
+  });
+
+  return new Redis({
+    port: 30000
+  });
+}
 
 describe("transaction", function() {
   it("should works like pipeline by default", function(done) {
@@ -45,6 +71,37 @@ describe("transaction", function() {
         );
         done();
       });
+  });
+
+  it("should handle readonly errors correctly", async function() {
+    const redis = simulateReadOnlyReplica();
+
+    const result = await redis
+      .multi()
+      .set("foo", "bar")
+      .exec();
+    expect(result.length).to.eql(1);
+    expect(result[0][0]).to.be.instanceof(ReplyError);
+    expect(result[0][0].toString()).to.eql(`ReplyError: ${READONLY_ERROR}`);
+  });
+
+  it("should reassemble partially failed results in the correct order", async function() {
+    const redis = simulateReadOnlyReplica();
+
+    const result = await redis
+      .multi()
+      .get("foo")
+      .set("foo", "bar")
+      .get("foo")
+      .set("foo", "bar")
+      .exec();
+    expect(result.length).to.eql(4);
+    expect(result[0]).to.eql([null, "bar"]);
+    expect(result[1][0]).to.be.instanceof(ReplyError);
+    expect(result[1][0].toString()).to.eql(`ReplyError: ${READONLY_ERROR}`);
+    expect(result[2]).to.eql([null, "bar"]);
+    expect(result[3][0]).to.be.instanceof(ReplyError);
+    expect(result[3][0].toString()).to.eql(`ReplyError: ${READONLY_ERROR}`);
   });
 
   it("should also support command callbacks", function(done) {

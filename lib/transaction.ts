@@ -55,6 +55,22 @@ export function addTransactionSupport(redis) {
             }
             throw execResult[0];
           }
+          // Minus two to exclude the multi and exec responses
+          const commandCount = result.length - 2;
+          if (execResult[1] !== null && execResult[1].length !== commandCount) {
+            // Some commands failed and the errors are not included in execResult[1]
+            // Merge in those failures in the correct order
+            const mergedResult = [];
+            let execResultIndex = 0;
+            for (let i = 1; i < result.length - 1; ++i) {
+              if (result[i][0]) {
+                mergedResult.push(result[i][0]);
+              } else {
+                mergedResult.push(execResult[1][execResultIndex++]);
+              }
+            }
+            return wrapMultiResult(mergedResult);
+          }
           return wrapMultiResult(execResult[1]);
         }),
         callback
