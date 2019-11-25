@@ -37,7 +37,10 @@ describe("transaction", function() {
       .get("foo")
       .exec(function(err, result) {
         expect(err).to.eql(null);
-        expect(result).to.eql([[null, "OK"], [null, "transaction"]]);
+        expect(result).to.eql([
+          [null, "OK"],
+          [null, "transaction"]
+        ]);
         done();
       });
   });
@@ -116,7 +119,10 @@ describe("transaction", function() {
       })
       .exec(function(err, result) {
         expect(pending).to.eql(0);
-        expect(result).to.eql([[null, "OK"], [null, "bar"]]);
+        expect(result).to.eql([
+          [null, "OK"],
+          [null, "bar"]
+        ]);
         done();
       });
   });
@@ -146,7 +152,10 @@ describe("transaction", function() {
     redis.set("foo", "bar");
     redis.get("foo");
     redis.exec(function(err, results) {
-      expect(results).to.eql([[null, "OK"], [null, "bar"]]);
+      expect(results).to.eql([
+        [null, "OK"],
+        [null, "bar"]
+      ]);
       done();
     });
   });

@@ -8,7 +8,10 @@ describe("cluster:pub/sub", function() {
   it("should receive messages", function(done) {
     var handler = function(argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
-        return [[0, 1, ["127.0.0.1", 30001]], [2, 16383, ["127.0.0.1", 30002]]];
+        return [
+          [0, 1, ["127.0.0.1", 30001]],
+          [2, 16383, ["127.0.0.1", 30002]]
+        ];
       }
     };
     var node1 = new MockServer(30001, handler);

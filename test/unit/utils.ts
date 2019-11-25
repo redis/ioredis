@@ -60,7 +60,10 @@ describe("utils", function() {
   describe(".wrapMultiResult", function() {
     it("should return correctly", function() {
       expect(utils.wrapMultiResult(null)).to.eql(null);
-      expect(utils.wrapMultiResult([1, 2])).to.eql([[null, 1], [null, 2]]);
+      expect(utils.wrapMultiResult([1, 2])).to.eql([
+        [null, 1],
+        [null, 2]
+      ]);
 
       var error = new Error("2");
       expect(utils.wrapMultiResult([1, 2, error])).to.eql([
@@ -137,7 +140,10 @@ describe("utils", function() {
         expect(utils.convertMapToArray(new Map([[1, 2]]))).to.eql([1, 2]);
         expect(
           utils.convertMapToArray(
-            new Map<number | string, string>([[1, "2"], ["abc", "def"]])
+            new Map<number | string, string>([
+              [1, "2"],
+              ["abc", "def"]
+            ])
           )
         ).to.eql([1, "2", "abc", "def"]);
       }

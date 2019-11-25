@@ -105,7 +105,10 @@ describe("reconnectOnError", function() {
       .get("foo")
       .sadd("foo", "a")
       .exec(function(err, res) {
-        expect(res).to.eql([[null, "bar"], [null, 1]]);
+        expect(res).to.eql([
+          [null, "bar"],
+          [null, 1]
+        ]);
         done();
       });
   });

@@ -179,9 +179,9 @@ export default class SentinelConnector extends AbstractConnector {
       }
 
       result
-        .map<IAddressFromResponse>(packObject as (
-          value: any
-        ) => IAddressFromResponse)
+        .map<IAddressFromResponse>(
+          packObject as (value: any) => IAddressFromResponse
+        )
         .forEach(sentinel => {
           const flags = sentinel.flags ? sentinel.flags.split(",") : [];
           if (
@@ -248,9 +248,9 @@ export default class SentinelConnector extends AbstractConnector {
       }
 
       const availableSlaves = result
-        .map<IAddressFromResponse>(packObject as (
-          value: any
-        ) => IAddressFromResponse)
+        .map<IAddressFromResponse>(
+          packObject as (value: any) => IAddressFromResponse
+        )
         .filter(
           slave =>
             slave.flags && !slave.flags.match(/(disconnected|s_down|o_down)/)

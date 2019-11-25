@@ -8,7 +8,10 @@ describe("cluster:maxRedirections", function() {
     var redirectTimes = 0;
     var argvHandler = function(argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
-        return [[0, 1, ["127.0.0.1", 30001]], [2, 16383, ["127.0.0.1", 30002]]];
+        return [
+          [0, 1, ["127.0.0.1", 30001]],
+          [2, 16383, ["127.0.0.1", 30002]]
+        ];
       } else if (argv[0] === "get" && argv[1] === "foo") {
         redirectTimes += 1;
         return new Error("ASK " + calculateSlot("foo") + " 127.0.0.1:30001");

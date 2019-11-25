@@ -66,7 +66,7 @@
     "husky": "^2.5.0",
     "istanbul": "^0.4.5",
     "mocha": "^5.0.0",
-    "prettier": "^1.18.2",
+    "prettier": "^1.19.1",
     "pretty-quick": "^1.11.1",
     "server-destroy": "^1.0.1",
     "sinon": "^7.3.2",

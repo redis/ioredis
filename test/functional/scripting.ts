@@ -96,7 +96,10 @@ describe("scripting", function() {
       .set("test", "pipeline")
       .test("test")
       .exec(function(err, results) {
-        expect(results).to.eql([[null, "OK"], [null, "pipeline"]]);
+        expect(results).to.eql([
+          [null, "OK"],
+          [null, "pipeline"]
+        ]);
         redis.disconnect();
         done();
       });

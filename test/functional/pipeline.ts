@@ -319,7 +319,10 @@ describe("pipeline", function() {
         .exec();
       expect(pipeline1.length).to.eql(4);
 
-      var pipeline2 = redis.pipeline([["set", "foo", "bar"], ["get", "foo"]]);
+      var pipeline2 = redis.pipeline([
+        ["set", "foo", "bar"],
+        ["get", "foo"]
+      ]);
       expect(pipeline2.length).to.eql(2);
       redis.disconnect();
     });

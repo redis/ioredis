@@ -29,7 +29,10 @@ describe("cluster", function() {
   it("should get value successfully", function(done) {
     new MockServer(30001, function(argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
-        return [[0, 1, ["127.0.0.1", 30001]], [2, 16383, ["127.0.0.1", 30002]]];
+        return [
+          [0, 1, ["127.0.0.1", 30001]],
+          [2, 16383, ["127.0.0.1", 30002]]
+        ];
       }
     });
     new MockServer(30002, function(argv) {
