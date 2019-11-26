@@ -161,5 +161,46 @@ describe("transformer", function() {
         });
       });
     });
+
+    describe("hset", function() {
+      it("should support object", function(done) {
+        const RedisMock = require("redis-mock");
+        console.log(RedisMock);
+        var redismock = new RedisMock();
+        redismock.hset("foo", { a: 1, b: "2" }, function(err, result) {
+          expect(result).to.eql("OK");
+          redismock.hget("foo", "b", function(err, result) {
+            expect(result).to.eql("2");
+            done();
+          });
+        });
+      });
+      it("should support Map", function(done) {
+        if (typeof Map === "undefined") {
+          return done();
+        }
+        var redis = new Redis();
+        var map = new Map();
+        map.set("a", 1);
+        map.set("b", "2");
+        redis.hset("foo", map, function(err, result) {
+          expect(result).to.eql("OK");
+          redis.hget("foo", "b", function(err, result) {
+            expect(result).to.eql("2");
+            done();
+          });
+        });
+      });
+      it("should affect the old way", function(done) {
+        var redis = new Redis();
+        redis.hset("foo", "a", 1, "b", "2", function(err, result) {
+          expect(result).to.eql("OK");
+          redis.hget("foo", "b", function(err, result) {
+            expect(result).to.eql("2");
+            done();
+          });
+        });
+      });
+    });
   });
 });
