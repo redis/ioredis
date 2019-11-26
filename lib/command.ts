@@ -397,6 +397,18 @@ Command.setReplyTransformer("hgetall", function(result) {
   return result;
 });
 
+Command.setArgumentTransformer("hset", function(args) {
+  if (args.length === 2) {
+    if (typeof Map !== "undefined" && args[1] instanceof Map) {
+      return [args[0]].concat(convertMapToArray(args[1]));
+    }
+    if (typeof args[1] === "object" && args[1] !== null) {
+      return [args[0]].concat(convertObjectToArray(args[1]));
+    }
+  }
+  return args;
+});
+
 class MixedBuffers {
   length = 0;
   items = [];
