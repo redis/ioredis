@@ -37,7 +37,7 @@ export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   name: string;
   sentinelPassword?: string;
   sentinels: Array<Partial<ISentinelAddress>>;
-  sentinelRetryStrategy?: (retryAttempts: number) => number;
+  sentinelRetryStrategy?: (retryAttempts: number) => number | void | null;
   preferredSlaves?: PreferredSlaves;
   connectTimeout?: number;
   enableTLSForSentinelMode?: boolean;
