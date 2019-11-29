@@ -398,13 +398,11 @@ Command.setReplyTransformer("hgetall", function(result) {
 });
 
 Command.setArgumentTransformer("hset", function(args) {
-  console.log(args.length, args);
   if (args.length === 2) {
     if (typeof Map !== "undefined" && args[1] instanceof Map) {
       return [args[0]].concat(convertMapToArray(args[1]));
     }
     if (typeof args[1] === "object" && args[1] !== null) {
-      console.log([args[0]].concat(convertObjectToArray(args[1])));
       return [args[0]].concat(convertObjectToArray(args[1]));
     }
   }
