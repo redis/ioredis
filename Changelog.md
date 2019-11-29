@@ -1,3 +1,10 @@
+# [4.15.0](https://github.com/luin/ioredis/compare/v4.14.4...v4.15.0) (2019-11-29)
+
+
+### Features
+
+* support multiple fields for hset ([51b1478](https://github.com/luin/ioredis/commit/51b14786eef4c627c178de4967434e8d4a51ebe0))
+
 ## [4.14.4](https://github.com/luin/ioredis/compare/v4.14.3...v4.14.4) (2019-11-22)
 
 
