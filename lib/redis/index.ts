@@ -663,6 +663,7 @@ Redis.prototype.sendCommand = function(command, stream) {
     this.status === "ready" ||
     (!stream &&
       this.status === "connect" &&
+      commands.exists(command.name) &&
       commands.hasFlag(command.name, "loading"));
   if (!this.stream) {
     writable = false;
