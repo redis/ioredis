@@ -776,6 +776,9 @@ class Cluster extends EventEmitter {
 
           const keys = [];
           for (let j = 2; j < items.length; j++) {
+            if (!items[j][0]) {
+              continue;
+            }
             items[j] = this.natMapper({ host: items[j][0], port: items[j][1] });
             items[j].readOnly = j !== 2;
             nodes.push(items[j]);
