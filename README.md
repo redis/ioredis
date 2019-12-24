@@ -1047,7 +1047,7 @@ var cluster = new Redis.Cluster(
       tls: {}
     },
   }
-};
+);
 ```
 
 <hr>
