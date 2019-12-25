@@ -1,3 +1,11 @@
+## [4.15.1](https://github.com/luin/ioredis/compare/v4.15.0...v4.15.1) (2019-12-25)
+
+
+### Bug Fixes
+
+* ignore empty hosts returned by CLUSTER SLOTS ([#1025](https://github.com/luin/ioredis/issues/1025)) ([d79a8ef](https://github.com/luin/ioredis/commit/d79a8ef40f5670af6962b598752dc5a7aa96722c))
+* prevent exception when send custom command ([04cad7f](https://github.com/luin/ioredis/commit/04cad7fbf2db5e14a478e2eb1dc825346abe41dd))
+
 # [4.15.0](https://github.com/luin/ioredis/compare/v4.14.4...v4.15.0) (2019-11-29)
 
 
