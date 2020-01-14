@@ -4,7 +4,7 @@ const Redis = require("ioredis");
 const redis = new Redis(process.env.redisPort, process.env.redisEndpoint, {password: process.env.redisPW});
 
 // ioredis supports all Redis commands:
-redis.set("foo", "bar"); // returns promise which resolves to string, "Ok"
+redis.set("foo", "bar"); // returns promise which resolves to string, "OK"
 
 // the format is: redis[SOME_REDIS_COMMAND_IN_LOWERCASE](ARGUMENTS_ARE_JOINED_INTO_COMMAND_STRING)
 // the js: ` redis.set("mykey", "Hello") ` is equivalent to the cli: ` redis> SET mykey "Hello" `
@@ -32,7 +32,7 @@ redis.spop("set"); // Promise resolves to "5" or another item in the set
 
 // Most responses are strings, or arrays of strings
 redis.zadd("sortedSet", 1, "one", 2, "dos", 4, "quatro", 3, "three")
-console.log(redis.zrange("sortedSet", 0, 2, "WITHSCORES")); // Promise resolves to ["one", "1", "dos", "2", "three", "3"] as if the command was ` redis> ZRANGE sortedSet 0 2 WITHSCORES `
+redis.zrange("sortedSet", 0, 2, "WITHSCORES").then(res => console.log(res)); // Promise resolves to ["one", "1", "dos", "2", "three", "3"] as if the command was ` redis> ZRANGE sortedSet 0 2 WITHSCORES `
 
 // Some responses have transformers to JS values
 redis.hset("myhash", "field1", "Hello");
