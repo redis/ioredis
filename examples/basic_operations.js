@@ -1,7 +1,9 @@
-"use strict";
-
 const Redis = require("ioredis");
-const redis = new Redis(process.env.redisPort, process.env.redisEndpoint, {password: process.env.redisPW});
+const redis = new Redis({
+  port: process.env.redisPort,
+  host: process.env.redisEndpoint,
+  password: process.env.redisPW
+});
 
 // ioredis supports all Redis commands:
 redis.set("foo", "bar"); // returns promise which resolves to string, "OK"
