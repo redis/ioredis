@@ -20,12 +20,12 @@ redis.get("foo", function(err, result) {
   }
 });
 
-redis.del("foo");
-
 // Or ioredis returns a promise if the last argument isn't a function
 redis.get("foo").then(function(result) {
   console.log(result);
 });
+
+redis.del("foo");
 
 // Arguments to commands are flattened, so the following are the same:
 redis.sadd("set", 1, 3, 5, 7);
@@ -41,7 +41,7 @@ redis.hset("myhash", "field1", "Hello");
 redis.hgetall("myhash").then(res => console.log(res)); // Promise resolves to Object {field1: "Hello"} rather than a string, or array of strings
 
 // All arguments are passed directly to the redis server:
-redis.set("key", 100, "EX", 10);
+redis.set("key", 100, "EX", 10); // set's key to value 100 and expires it after 10 seconds
 
 // Change the server configuration
 redis.config("set", "notify-keyspace-events", "KEA");
