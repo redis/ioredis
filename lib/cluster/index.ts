@@ -554,8 +554,9 @@ class Cluster extends EventEmitter {
     let to = this.options.scaleReads;
     if (to !== "master") {
       const isCommandReadOnly =
-        commands.exists(command.name) &&
-        commands.hasFlag(command.name, "readonly");
+        command.isReadOnly ||
+        (commands.exists(command.name) &&
+          commands.hasFlag(command.name, "readonly"));
       if (!isCommandReadOnly) {
         to = "master";
       }

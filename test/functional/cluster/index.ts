@@ -1,6 +1,6 @@
 import MockServer from "../../helpers/mock_server";
 import { expect } from "chai";
-import { Cluster } from "../../../lib";
+import { Cluster, default as Redis } from "../../../lib";
 import * as utils from "../../../lib/utils";
 import * as sinon from "sinon";
 
@@ -188,6 +188,30 @@ describe("cluster", function() {
           cluster.set("foo", "bar", function(err, res) {
             stub.restore();
             expect(res).to.eql(30001);
+            cluster.disconnect();
+            done();
+          });
+        });
+      });
+
+      it("should send custom readOnly scripts to a slave", function(done) {
+        var cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+          scaleReads: "slave"
+        });
+        cluster.on("ready", function() {
+          const redis: Redis = cluster;
+          redis.defineCommand("test", {
+            numberOfKeys: 1,
+            lua: "return {KEYS[1],ARGV[1],ARGV[2]}",
+            readOnly: true
+          });
+
+          const stub = sinon.stub(utils, "sample").returns("127.0.0.1:30003");
+          redis.test("k1", "a1", "a2", function(err, result) {
+            stub.restore();
+            expect(stub.callCount).to.eql(1);
+            // because of the beforeEach handler this will be the port of the slave called
+            expect(result).to.eql(30003);
             cluster.disconnect();
             done();
           });

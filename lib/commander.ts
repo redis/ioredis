@@ -78,13 +78,15 @@ Commander.prototype.send_command = Commander.prototype.call;
  * @param {object} definition
  * @param {string} definition.lua - the lua code
  * @param {number} [definition.numberOfKeys=null] - the number of keys.
+ * @param {boolean} [definition.readOnly=false] - force this script to be readonly so it executes on slaves as well.
  * If omit, you have to pass the number of keys as the first argument every time you invoke the command
  */
 Commander.prototype.defineCommand = function(name, definition) {
   var script = new Script(
     definition.lua,
     definition.numberOfKeys,
-    this.options.keyPrefix
+    this.options.keyPrefix,
+    definition.readOnly
   );
   this.scriptsSet[name] = script;
   this[name] = generateScriptingFunction(script, "utf8");

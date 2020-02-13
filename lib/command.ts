@@ -22,6 +22,10 @@ interface ICommandOptions {
   replyEncoding?: string | null;
   errorStack?: string;
   keyPrefix?: string;
+  /**
+   * Force the command to be readOnly so it will also execute on slaves
+   */
+  readOnly?: boolean;
 }
 
 type ArgumentTransformer = (args: any[]) => any[];
@@ -142,6 +146,7 @@ export default class Command implements ICommand {
   }
 
   public ignore?: boolean;
+  public isReadOnly?: boolean;
 
   private replyEncoding: string | null;
   private errorStack: string;
@@ -184,6 +189,10 @@ export default class Command implements ICommand {
 
     if (options.keyPrefix) {
       this._iterateKeys(key => options.keyPrefix + key);
+    }
+
+    if (options.readOnly) {
+      this.isReadOnly = true;
     }
   }
 
