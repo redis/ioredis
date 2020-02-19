@@ -1,3 +1,10 @@
+# [4.16.0](https://github.com/luin/ioredis/compare/v4.15.1...v4.16.0) (2020-02-19)
+
+
+### Features
+
+* ability force custom scripts to be readOnly and execute on slaves ([#1057](https://github.com/luin/ioredis/issues/1057)) ([a24c3ab](https://github.com/luin/ioredis/commit/a24c3abcf4013e74e25424d2f6b91a2ae0de12b5))
+
 ## [4.15.1](https://github.com/luin/ioredis/compare/v4.15.0...v4.15.1) (2019-12-25)
 
 
