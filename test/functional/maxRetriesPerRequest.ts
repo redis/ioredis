@@ -5,6 +5,7 @@ import { MaxRetriesPerRequestError } from "../../lib/errors";
 describe("maxRetriesPerRequest", function() {
   it("throw the correct error when reached the limit", function(done) {
     var redis = new Redis(9999, {
+      connectTimeout: 1,
       retryStrategy() {
         return 1;
       }

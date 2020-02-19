@@ -10,7 +10,8 @@ export default class Script {
   constructor(
     private lua: string,
     private numberOfKeys: number = null,
-    private keyPrefix: string = ""
+    private keyPrefix: string = "",
+    private readOnly: boolean = false
   ) {
     this.sha = createHash("sha1")
       .update(lua)
@@ -28,6 +29,9 @@ export default class Script {
     }
     if (this.keyPrefix) {
       options.keyPrefix = this.keyPrefix;
+    }
+    if (this.readOnly) {
+      options.readOnly = true;
     }
 
     const evalsha = new Command("evalsha", [this.sha].concat(args), options);
