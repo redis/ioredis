@@ -32,7 +32,14 @@ export function getConnectionName(socket: Socket): string | undefined {
   return connectionNameMap.get(socket);
 }
 
-export type MockServerHandler = (reply: any, socket: Socket) => any;
+interface IFlags {
+  disconnect?: boolean;
+}
+export type MockServerHandler = (
+  reply: any,
+  socket: Socket,
+  flags: IFlags
+) => any;
 
 export default class MockServer extends EventEmitter {
   static REDIS_OK = "+OK";
@@ -84,7 +91,12 @@ export default class MockServer extends EventEmitter {
             this.write(c, this.slotTable);
             return;
           }
-          this.write(c, this.handler && this.handler(reply, c));
+          let flags: Flags = {};
+          let handlerResult = this.handler && this.handler(reply, c, flags);
+          this.write(c, handlerResult);
+          if (flags.disconnect) {
+            this.disconnect();
+          }
         },
         returnError: function() {}
       });

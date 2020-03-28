@@ -65,15 +65,9 @@ Pipeline.prototype.fillResult = function(value, position) {
   if (this.isCluster) {
     let retriable = true;
     let commonError: { name: string; message: string };
-    let inTransaction: boolean;
     for (let i = 0; i < this._result.length; ++i) {
       var error = this._result[i][0];
       var command = this._queue[i];
-      if (command.name === "multi") {
-        inTransaction = true;
-      } else if (command.name === "exec") {
-        inTransaction = false;
-      }
       if (error) {
         if (
           command.name === "exec" &&
@@ -94,7 +88,7 @@ Pipeline.prototype.fillResult = function(value, position) {
           retriable = false;
           break;
         }
-      } else if (!inTransaction) {
+      } else if (!command.inTransaction) {
         var isReadOnly =
           exists(command.name) && hasFlag(command.name, "readonly");
         if (!isReadOnly) {
@@ -107,7 +101,7 @@ Pipeline.prototype.fillResult = function(value, position) {
       var _this = this;
       var errv = commonError.message.split(" ");
       var queue = this._queue;
-      inTransaction = false;
+      let inTransaction = false;
       this._queue = [];
       for (let i = 0; i < queue.length; ++i) {
         if (
@@ -122,11 +116,7 @@ Pipeline.prototype.fillResult = function(value, position) {
         }
         queue[i].initPromise();
         this.sendCommand(queue[i]);
-        if (queue[i].name === "multi") {
-          inTransaction = true;
-        } else if (queue[i].name === "exec") {
-          inTransaction = false;
-        }
+        inTransaction = queue[i].inTransaction;
       }
 
       let matched = true;
@@ -174,7 +164,12 @@ Pipeline.prototype.fillResult = function(value, position) {
 };
 
 Pipeline.prototype.sendCommand = function(command) {
+  if (this._transactions > 0) {
+    command.inTransaction = true;
+  }
+
   const position = this._queue.length;
+  command.pipelineIndex = position;
 
   command.promise
     .then(result => {
