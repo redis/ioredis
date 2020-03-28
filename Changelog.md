@@ -1,3 +1,10 @@
+## [4.16.1](https://github.com/luin/ioredis/compare/v4.16.0...v4.16.1) (2020-03-28)
+
+
+### Bug Fixes
+
+* abort incomplete pipelines upon reconnect ([#1084](https://github.com/luin/ioredis/issues/1084)) ([0013991](https://github.com/luin/ioredis/commit/0013991b7fbf239ffd74311266bb9e63e22b46cb)), closes [#965](https://github.com/luin/ioredis/issues/965)
+
 # [4.16.0](https://github.com/luin/ioredis/compare/v4.15.1...v4.16.0) (2020-02-19)
 
 
