@@ -661,8 +661,8 @@ Besides auto-reconnect when the connection is closed, ioredis supports reconnect
 var redis = new Redis({
   reconnectOnError: function(err) {
     var targetError = "READONLY";
-    if (err.message.slice(0, targetError.length) === targetError) {
-      // Only reconnect when the error starts with "READONLY"
+    if (err.message.includes(targetError)) {
+      // Only reconnect when the error contains "READONLY"
       return true; // or `return 1;`
     }
   }
