@@ -4,6 +4,7 @@ import * as sinon from "sinon";
 import { expect } from "chai";
 import MockServer from "../helpers/mock_server";
 import * as Bluebird from "bluebird";
+import { StandaloneConnector } from "../../lib/connectors";
 
 describe("connection", function () {
   it('should emit "connect" when connected', function (done) {
@@ -421,6 +422,14 @@ describe("connection", function () {
         Redis.Promise = Promise;
         redis.disconnect();
         done();
+      });
+    });
+
+    it("works when connection established before promise is resolved", (done) => {
+      const socket = new net.Socket();
+      sinon.stub(StandaloneConnector.prototype, "connect").resolves(socket);
+      socket.connect(6379, "127.0.0.1").on("connect", () => {
+        new Redis().on("connect", () => done());
       });
     });
   });
