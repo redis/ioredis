@@ -19,7 +19,7 @@ export function bufferEqual(a: Buffer, b: Buffer): boolean {
     return false;
   }
 
-  for (var i = 0; i < a.length; ++i) {
+  for (let i = 0; i < a.length; ++i) {
     if (a[i] !== b[i]) {
       return false;
     }
@@ -46,9 +46,9 @@ export function convertBufferToString(value: any, encoding?: string) {
     return value.toString(encoding);
   }
   if (Array.isArray(value)) {
-    var length = value.length;
-    var res = Array(length);
-    for (var i = 0; i < length; ++i) {
+    const length = value.length;
+    const res = Array(length);
+    for (let i = 0; i < length; ++i) {
       res[i] =
         value[i] instanceof Buffer && encoding === "utf8"
           ? value[i].toString()
@@ -78,10 +78,10 @@ export function wrapMultiResult(arr) {
   if (!arr) {
     return null;
   }
-  var result = [];
-  var length = arr.length;
-  for (var i = 0; i < length; ++i) {
-    var item = arr[i];
+  const result = [];
+  const length = arr.length;
+  for (let i = 0; i < length; ++i) {
+    const item = arr[i];
     if (item instanceof Error) {
       result.push([item]);
     } else {
@@ -112,7 +112,7 @@ export function wrapMultiResult(arr) {
  * @private
  */
 export function isInt(value) {
-  var x = parseFloat(value);
+  const x = parseFloat(value);
   return !isNaN(value) && (x | 0) === x;
 }
 
@@ -128,10 +128,10 @@ export function isInt(value) {
  * ```
  */
 export function packObject(array) {
-  var result = {};
-  var length = array.length;
+  const result = {};
+  const length = array.length;
 
-  for (var i = 1; i < length; i += 2) {
+  for (let i = 1; i < length; i += 2) {
     result[array[i - 1]] = array[i];
   }
 
@@ -146,8 +146,8 @@ export function packObject(array) {
  * @return {function}
  */
 export function timeout(callback, timeout) {
-  var timer;
-  var run = function() {
+  let timer;
+  const run = function () {
     if (timer) {
       clearTimeout(timer);
       timer = null;
@@ -170,10 +170,10 @@ export function timeout(callback, timeout) {
  * ```
  */
 export function convertObjectToArray(obj) {
-  var result = [];
-  var keys = Object.keys(obj);
+  const result = [];
+  const keys = Object.keys(obj);
 
-  for (var i = 0, l = keys.length; i < l; i++) {
+  for (let i = 0, l = keys.length; i < l; i++) {
     result.push(keys[i], obj[keys[i]]);
   }
   return result;
@@ -193,7 +193,7 @@ export function convertObjectToArray(obj) {
 export function convertMapToArray<K, V>(map: Map<K, V>): Array<K | V> {
   const result = [];
   let pos = 0;
-  map.forEach(function(value, key) {
+  map.forEach(function (value, key) {
     result[pos] = key;
     result[pos + 1] = value;
     pos += 2;
@@ -222,18 +222,18 @@ export function toArg(arg) {
  * @param {string} filterPath - only show stacks with the specified path
  */
 export function optimizeErrorStack(error, friendlyStack, filterPath) {
-  var stacks = friendlyStack.split("\n");
-  var lines = "";
-  var i;
+  const stacks = friendlyStack.split("\n");
+  let lines = "";
+  let i;
   for (i = 1; i < stacks.length; ++i) {
     if (stacks[i].indexOf(filterPath) === -1) {
       break;
     }
   }
-  for (var j = i; j < stacks.length; ++j) {
+  for (let j = i; j < stacks.length; ++j) {
     lines += "\n" + stacks[j];
   }
-  var pos = error.stack.indexOf("\n");
+  const pos = error.stack.indexOf("\n");
   error.stack = error.stack.slice(0, pos) + lines;
   return error;
 }
@@ -248,14 +248,14 @@ export function parseURL(url) {
   if (isInt(url)) {
     return { port: url };
   }
-  var parsed = urllibParse(url, true, true);
+  let parsed = urllibParse(url, true, true);
 
   if (!parsed.slashes && url[0] !== "/") {
     url = "//" + url;
     parsed = urllibParse(url, true, true);
   }
 
-  var result: any = {};
+  const result: any = {};
   if (parsed.auth) {
     result.password = parsed.auth.split(":")[1];
   }
@@ -288,7 +288,7 @@ export function parseURL(url) {
  * @param {number} [from=0] start index
  * @returns {T}
  */
-export function sample<T>(array: T[], from: number = 0): T {
+export function sample<T>(array: T[], from = 0): T {
   const length = array.length;
   if (from >= length) {
     return;

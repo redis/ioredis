@@ -15,10 +15,10 @@ import { addTransactionSupport } from "../transaction";
 import {
   IRedisOptions,
   ReconnectOnError,
-  DEFAULT_REDIS_OPTIONS
+  DEFAULT_REDIS_OPTIONS,
 } from "./RedisOptions";
 
-var debug = Debug("redis");
+const debug = Debug("redis");
 
 /**
  * Creates a Redis instance
@@ -170,7 +170,7 @@ Object.assign(Redis.prototype, Commander.prototype);
  * @deprecated
  */
 // @ts-ignore
-Redis.createClient = function(...args): Redis {
+Redis.createClient = function (...args): Redis {
   // @ts-ignore
   return new Redis(...args);
 };
@@ -183,19 +183,19 @@ Redis.createClient = function(...args): Redis {
  */
 Redis.defaultOptions = DEFAULT_REDIS_OPTIONS;
 
-Redis.prototype.resetCommandQueue = function() {
+Redis.prototype.resetCommandQueue = function () {
   this.commandQueue = new Deque();
 };
 
-Redis.prototype.resetOfflineQueue = function() {
+Redis.prototype.resetOfflineQueue = function () {
   this.offlineQueue = new Deque();
 };
 
-Redis.prototype.parseOptions = function() {
+Redis.prototype.parseOptions = function () {
   this.options = {};
   let isTls = false;
-  for (var i = 0; i < arguments.length; ++i) {
-    var arg = arguments[i];
+  for (let i = 0; i < arguments.length; ++i) {
+    const arg = arguments[i];
     if (arg === null || typeof arg === "undefined") {
       continue;
     }
@@ -234,7 +234,7 @@ Redis.prototype.parseOptions = function() {
  * Change instance's status
  * @private
  */
-Redis.prototype.setStatus = function(status, arg) {
+Redis.prototype.setStatus = function (status, arg) {
   // @ts-ignore
   if (debug.enabled) {
     debug(
@@ -259,9 +259,9 @@ Redis.prototype.setStatus = function(status, arg) {
  * @return {Promise<void>}
  * @public
  */
-Redis.prototype.connect = function(callback) {
-  var _Promise = PromiseContainer.get();
-  var promise = new _Promise((resolve, reject) => {
+Redis.prototype.connect = function (callback) {
+  const _Promise = PromiseContainer.get();
+  const promise = new _Promise((resolve, reject) => {
     if (
       this.status === "connecting" ||
       this.status === "connect" ||
@@ -278,15 +278,15 @@ Redis.prototype.connect = function(callback) {
     this.condition = {
       select: options.db,
       auth: options.password,
-      subscriber: false
+      subscriber: false,
     };
 
-    var _this = this;
+    const _this = this;
     asCallback(
-      this.connector.connect(function(type, err) {
+      this.connector.connect(function (type, err) {
         _this.silentEmit(type, err);
       }),
-      function(err, stream) {
+      function (err, stream) {
         if (err) {
           _this.flushQueue(err);
           _this.silentEmit("error", err);
@@ -294,7 +294,7 @@ Redis.prototype.connect = function(callback) {
           _this.setStatus("end");
           return;
         }
-        var CONNECT_EVENT = options.tls ? "secureConnect" : "connect";
+        let CONNECT_EVENT = options.tls ? "secureConnect" : "connect";
         if (options.sentinels && !options.enableTLSForSentinelMode) {
           CONNECT_EVENT = "connect";
         }
@@ -316,15 +316,15 @@ Redis.prototype.connect = function(callback) {
            *
            * See https://github.com/electron/electron/issues/14915
            */
-          var connectTimeoutCleared = false;
-          stream.setTimeout(options.connectTimeout, function() {
+          let connectTimeoutCleared = false;
+          stream.setTimeout(options.connectTimeout, function () {
             if (connectTimeoutCleared) {
               return;
             }
             stream.setTimeout(0);
             stream.destroy();
 
-            var err = new Error("connect ETIMEDOUT");
+            const err = new Error("connect ETIMEDOUT");
             // @ts-ignore
             err.errorno = "ETIMEDOUT";
             // @ts-ignore
@@ -333,7 +333,7 @@ Redis.prototype.connect = function(callback) {
             err.syscall = "connect";
             eventHandler.errorHandler(_this)(err);
           });
-          stream.once(CONNECT_EVENT, function() {
+          stream.once(CONNECT_EVENT, function () {
             connectTimeoutCleared = true;
             stream.setTimeout(0);
           });
@@ -343,11 +343,11 @@ Redis.prototype.connect = function(callback) {
           stream.setNoDelay(true);
         }
 
-        var connectionReadyHandler = function() {
+        const connectionReadyHandler = function () {
           _this.removeListener("close", connectionCloseHandler);
           resolve();
         };
-        var connectionCloseHandler = function() {
+        var connectionCloseHandler = function () {
           _this.removeListener("ready", connectionReadyHandler);
           reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
         };
@@ -368,7 +368,7 @@ Redis.prototype.connect = function(callback) {
  * If you want to wait for the pending replies, use Redis#quit instead.
  * @public
  */
-Redis.prototype.disconnect = function(reconnect) {
+Redis.prototype.disconnect = function (reconnect) {
   if (!reconnect) {
     this.manuallyClosing = true;
   }
@@ -388,7 +388,7 @@ Redis.prototype.disconnect = function(reconnect) {
  *
  * @deprecated
  */
-Redis.prototype.end = function() {
+Redis.prototype.end = function () {
   this.disconnect();
 };
 
@@ -403,18 +403,18 @@ Redis.prototype.end = function() {
  *
  * @public
  */
-Redis.prototype.duplicate = function(override) {
+Redis.prototype.duplicate = function (override) {
   return new Redis(Object.assign({}, this.options, override || {}));
 };
 
-Redis.prototype.recoverFromFatalError = function(commandError, err, options) {
+Redis.prototype.recoverFromFatalError = function (commandError, err, options) {
   this.flushQueue(err, options);
   this.silentEmit("error", err);
   this.disconnect(true);
 };
 
 Redis.prototype.handleReconnection = function handleReconnection(err, item) {
-  var needReconnect: ReturnType<ReconnectOnError> = false;
+  let needReconnect: ReturnType<ReconnectOnError> = false;
   if (this.options.reconnectOnError) {
     needReconnect = this.options.reconnectOnError(err);
   }
@@ -451,13 +451,13 @@ Redis.prototype.handleReconnection = function handleReconnection(err, item) {
  * @param {object} options
  * @private
  */
-Redis.prototype.flushQueue = function(error, options) {
+Redis.prototype.flushQueue = function (error, options) {
   options = defaults({}, options, {
     offlineQueue: true,
-    commandQueue: true
+    commandQueue: true,
   });
 
-  var item;
+  let item;
   if (options.offlineQueue) {
     while (this.offlineQueue.length > 0) {
       item = this.offlineQueue.shift();
@@ -485,9 +485,9 @@ Redis.prototype.flushQueue = function(error, options) {
  * @param {Function} callback
  * @private
  */
-Redis.prototype._readyCheck = function(callback) {
-  var _this = this;
-  this.info(function(err, res) {
+Redis.prototype._readyCheck = function (callback) {
+  const _this = this;
+  this.info(function (err, res) {
     if (err) {
       return callback(err);
     }
@@ -495,11 +495,11 @@ Redis.prototype._readyCheck = function(callback) {
       return callback(null, res);
     }
 
-    var info: { [key: string]: any } = {};
+    const info: { [key: string]: any } = {};
 
-    var lines = res.split("\r\n");
-    for (var i = 0; i < lines.length; ++i) {
-      var parts = lines[i].split(":");
+    const lines = res.split("\r\n");
+    for (let i = 0; i < lines.length; ++i) {
+      const parts = lines[i].split(":");
       if (parts[1]) {
         info[parts[0]] = parts[1];
       }
@@ -508,14 +508,14 @@ Redis.prototype._readyCheck = function(callback) {
     if (!info.loading || info.loading === "0") {
       callback(null, info);
     } else {
-      var loadingEtaMs = (info.loading_eta_seconds || 1) * 1000;
-      var retryTime =
+      const loadingEtaMs = (info.loading_eta_seconds || 1) * 1000;
+      const retryTime =
         _this.options.maxLoadingRetryTime &&
         _this.options.maxLoadingRetryTime < loadingEtaMs
           ? _this.options.maxLoadingRetryTime
           : loadingEtaMs;
       debug("Redis server still loading, trying again in " + retryTime + "ms");
-      setTimeout(function() {
+      setTimeout(function () {
         _this._readyCheck(callback);
       }, retryTime);
     }
@@ -530,8 +530,8 @@ Redis.prototype._readyCheck = function(callback) {
  * @return {boolean} Returns true if event had listeners, false otherwise.
  * @private
  */
-Redis.prototype.silentEmit = function(eventName) {
-  var error;
+Redis.prototype.silentEmit = function (eventName) {
+  let error;
   if (eventName === "error") {
     error = arguments[1];
 
@@ -589,16 +589,16 @@ Redis.prototype.silentEmit = function(eventName) {
  * ```
  * @public
  */
-Redis.prototype.monitor = function(callback) {
-  var monitorInstance = this.duplicate({
+Redis.prototype.monitor = function (callback) {
+  const monitorInstance = this.duplicate({
     monitor: true,
-    lazyConnect: false
+    lazyConnect: false,
   });
 
-  var Promise = PromiseContainer.get();
+  const Promise = PromiseContainer.get();
   return asCallback(
-    new Promise(function(resolve) {
-      monitorInstance.once("monitoring", function() {
+    new Promise(function (resolve) {
+      monitorInstance.once("monitoring", function () {
         resolve(monitorInstance);
       });
     }),
@@ -639,7 +639,7 @@ addTransactionSupport(Redis.prototype);
  * ```
  * @private
  */
-Redis.prototype.sendCommand = function(command, stream) {
+Redis.prototype.sendCommand = function (command, stream) {
   if (this.status === "wait") {
     this.connect().catch(noop);
   }
@@ -659,7 +659,7 @@ Redis.prototype.sendCommand = function(command, stream) {
     return command.promise;
   }
 
-  var writable =
+  let writable =
     this.status === "ready" ||
     (!stream &&
       this.status === "connect" &&
@@ -705,7 +705,7 @@ Redis.prototype.sendCommand = function(command, stream) {
     this.commandQueue.push({
       command: command,
       stream: stream,
-      select: this.condition.select
+      select: this.condition.select,
     });
 
     if (Command.checkFlag("WILL_DISCONNECT", command.name)) {
@@ -725,12 +725,12 @@ Redis.prototype.sendCommand = function(command, stream) {
     this.offlineQueue.push({
       command: command,
       stream: stream,
-      select: this.condition.select
+      select: this.condition.select,
     });
   }
 
   if (command.name === "select" && isInt(command.args[0])) {
-    var db = parseInt(command.args[0], 10);
+    const db = parseInt(command.args[0], 10);
     if (this.condition.select !== db) {
       this.condition.select = db;
       this.emit("select", db);
@@ -745,7 +745,7 @@ Redis.prototype.sendCommand = function(command, stream) {
  * Get description of the connection. Used for debugging.
  * @private
  */
-Redis.prototype._getDescription = function() {
+Redis.prototype._getDescription = function () {
   let description;
   if (this.options.path) {
     description = this.options.path;
@@ -772,9 +772,9 @@ Redis.prototype._getDescription = function() {
   "scanBuffer",
   "sscanBuffer",
   "hscanBuffer",
-  "zscanBuffer"
-].forEach(function(command) {
-  Redis.prototype[command + "Stream"] = function(key, options) {
+  "zscanBuffer",
+].forEach(function (command) {
+  Redis.prototype[command + "Stream"] = function (key, options) {
     if (command === "scan" || command === "scanBuffer") {
       options = key;
       key = null;
@@ -785,7 +785,7 @@ Redis.prototype._getDescription = function() {
           objectMode: true,
           key: key,
           redis: this,
-          command: command
+          command: command,
         },
         options
       )

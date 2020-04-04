@@ -32,7 +32,7 @@ describe("StandaloneConnector", () => {
       const spy = sinon.stub(tls, "connect");
       const connector = new StandaloneConnector({
         port: 6379,
-        tls: { ca: "on" }
+        tls: { ca: "on" },
       });
       await connector.connect(() => {});
       expect(spy.calledOnce).to.eql(true);

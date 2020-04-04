@@ -77,17 +77,17 @@ export default function genDebugFunction(
     namespace: {
       get() {
         return fn.namespace;
-      }
+      },
     },
     enabled: {
       get() {
         return fn.enabled;
-      }
+      },
     },
     destroy: {
       get() {
         return fn.destroy;
-      }
+      },
     },
     log: {
       get() {
@@ -95,8 +95,8 @@ export default function genDebugFunction(
       },
       set(l) {
         fn.log = l;
-      }
-    }
+      },
+    },
   });
   return wrappedDebug;
 }

@@ -9,7 +9,7 @@ const debug = Debug("cluster:subscriber");
 const SUBSCRIBER_CONNECTION_NAME = "ioredisClusterSubscriber";
 
 export default class ClusterSubscriber {
-  private started: boolean = false;
+  private started = false;
   private subscriber: any = null;
   private lastActiveSubscriber: any;
 
@@ -78,14 +78,14 @@ export default class ClusterSubscriber {
       enableReadyCheck: true,
       connectionName: SUBSCRIBER_CONNECTION_NAME,
       lazyConnect: true,
-      tls: options.tls
+      tls: options.tls,
     });
 
     // Ignore the errors since they're handled in the connection pool.
     this.subscriber.on("error", noop);
 
     // Re-subscribe previous channels
-    var previousChannels = { subscribe: [], psubscribe: [] };
+    const previousChannels = { subscribe: [], psubscribe: [] };
     if (lastActiveSubscriber) {
       const condition =
         lastActiveSubscriber.condition || lastActiveSubscriber.prevCondition;
@@ -100,9 +100,9 @@ export default class ClusterSubscriber {
       previousChannels.subscribe.length ||
       previousChannels.psubscribe.length
     ) {
-      var pending = 0;
+      let pending = 0;
       for (const type of ["subscribe", "psubscribe"]) {
-        var channels = previousChannels[type];
+        const channels = previousChannels[type];
         if (channels.length) {
           pending += 1;
           debug("%s %d channels", type, channels.length);

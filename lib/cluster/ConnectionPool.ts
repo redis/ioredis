@@ -12,7 +12,7 @@ export default class ConnectionPool extends EventEmitter {
   private nodes: { [key in NODE_TYPE]: { [key: string]: any } } = {
     all: {},
     master: {},
-    slave: {}
+    slave: {},
   };
 
   private specifiedOptions: { [key: string]: any } = {};
@@ -23,7 +23,7 @@ export default class ConnectionPool extends EventEmitter {
 
   public getNodes(role: NodeRole = "all"): any[] {
     const nodes = this.nodes[role];
-    return Object.keys(nodes).map(key => nodes[key]);
+    return Object.keys(nodes).map((key) => nodes[key]);
   }
 
   public getInstanceByKey(key: NodeKey): any {
@@ -44,7 +44,7 @@ export default class ConnectionPool extends EventEmitter {
    * @returns {*}
    * @memberof ConnectionPool
    */
-  public findOrCreate(node: IRedisOptions, readOnly: boolean = false): any {
+  public findOrCreate(node: IRedisOptions, readOnly = false): any {
     const key = getNodeKey(node);
     readOnly = Boolean(readOnly);
 
@@ -82,7 +82,7 @@ export default class ConnectionPool extends EventEmitter {
             // we don't need to wait for the `ready` event
             // before sending commands to the node.
             enableOfflineQueue: true,
-            readOnly: readOnly
+            readOnly: readOnly,
           },
           node,
           this.redisOptions,
@@ -102,7 +102,7 @@ export default class ConnectionPool extends EventEmitter {
 
       this.emit("+node", redis, key);
 
-      redis.on("error", function(error) {
+      redis.on("error", function (error) {
         this.emit("nodeError", error, key);
       });
     }
@@ -133,7 +133,7 @@ export default class ConnectionPool extends EventEmitter {
   public reset(nodes: IRedisOptions[]): void {
     debug("Reset with %O", nodes);
     const newNodes = {};
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
       const key = getNodeKey(node);
 
       // Don't override the existing (master) node
@@ -143,14 +143,14 @@ export default class ConnectionPool extends EventEmitter {
       }
     });
 
-    Object.keys(this.nodes.all).forEach(key => {
+    Object.keys(this.nodes.all).forEach((key) => {
       if (!newNodes[key]) {
         debug("Disconnect %s because the node does not hold any slot", key);
         this.nodes.all[key].disconnect();
         this.removeNode(key);
       }
     });
-    Object.keys(newNodes).forEach(key => {
+    Object.keys(newNodes).forEach((key) => {
       const node = newNodes[key];
       this.findOrCreate(node, node.readOnly);
     });

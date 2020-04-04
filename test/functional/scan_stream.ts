@@ -5,17 +5,17 @@ import * as sinon from "sinon";
 import MockServer from "../helpers/mock_server";
 import { Cluster } from "../../lib";
 
-describe("*scanStream", function() {
-  describe("scanStream", function() {
-    it("should return a readable stream", function() {
-      var redis = new Redis();
-      var stream = redis.scanStream();
+describe("*scanStream", function () {
+  describe("scanStream", function () {
+    it("should return a readable stream", function () {
+      const redis = new Redis();
+      const stream = redis.scanStream();
       expect(stream instanceof Readable).to.eql(true);
     });
 
-    it("should iterate all keys", function(done) {
-      var keys = [];
-      var redis = new Redis();
+    it("should iterate all keys", function (done) {
+      let keys = [];
+      const redis = new Redis();
       redis.mset(
         "foo1",
         1,
@@ -27,18 +27,18 @@ describe("*scanStream", function() {
         1,
         "foo10",
         1,
-        function() {
-          var stream = redis.scanStream();
-          stream.on("data", function(data) {
+        function () {
+          const stream = redis.scanStream();
+          stream.on("data", function (data) {
             keys = keys.concat(data);
           });
-          stream.on("end", function() {
+          stream.on("end", function () {
             expect(keys.sort()).to.eql([
               "foo1",
               "foo10",
               "foo2",
               "foo3",
-              "foo4"
+              "foo4",
             ]);
             redis.disconnect();
             done();
@@ -47,9 +47,9 @@ describe("*scanStream", function() {
       );
     });
 
-    it("should recognize `MATCH`", function(done) {
-      var keys = [];
-      var redis = new Redis();
+    it("should recognize `MATCH`", function (done) {
+      let keys = [];
+      const redis = new Redis();
       redis.mset(
         "foo1",
         1,
@@ -61,14 +61,14 @@ describe("*scanStream", function() {
         1,
         "foo10",
         1,
-        function() {
-          var stream = redis.scanStream({
-            match: "foo??"
+        function () {
+          const stream = redis.scanStream({
+            match: "foo??",
           });
-          stream.on("data", function(data) {
+          stream.on("data", function (data) {
             keys = keys.concat(data);
           });
-          stream.on("end", function() {
+          stream.on("end", function () {
             expect(keys).to.eql(["foo10"]);
             redis.disconnect();
             done();
@@ -77,9 +77,9 @@ describe("*scanStream", function() {
       );
     });
 
-    it("should recognize `COUNT`", function(done) {
-      var keys = [];
-      var redis = new Redis();
+    it("should recognize `COUNT`", function (done) {
+      let keys = [];
+      const redis = new Redis();
       sinon.spy(Redis.prototype, "scan");
       redis.mset(
         "foo1",
@@ -92,20 +92,20 @@ describe("*scanStream", function() {
         1,
         "foo10",
         1,
-        function() {
-          var stream = redis.scanStream({
-            count: 2
+        function () {
+          const stream = redis.scanStream({
+            count: 2,
           });
-          stream.on("data", function(data) {
+          stream.on("data", function (data) {
             keys = keys.concat(data);
           });
-          stream.on("end", function() {
+          stream.on("end", function () {
             expect(keys.sort()).to.eql([
               "foo1",
               "foo10",
               "foo2",
               "foo3",
-              "foo4"
+              "foo4",
             ]);
             const [args] = Redis.prototype.scan.getCall(0).args;
             let count;
@@ -126,9 +126,9 @@ describe("*scanStream", function() {
       );
     });
 
-    it("should emit an error when connection is down", function(done) {
-      var keys = [];
-      var redis = new Redis();
+    it("should emit an error when connection is down", function (done) {
+      let keys = [];
+      const redis = new Redis();
       redis.mset(
         "foo1",
         1,
@@ -140,13 +140,13 @@ describe("*scanStream", function() {
         1,
         "foo10",
         1,
-        function() {
+        function () {
           redis.disconnect();
-          var stream = redis.scanStream({ count: 1 });
-          stream.on("data", function(data) {
+          const stream = redis.scanStream({ count: 1 });
+          stream.on("data", function (data) {
             keys = keys.concat(data);
           });
-          stream.on("error", function(err) {
+          stream.on("error", function (err) {
             expect(err.message).to.eql("Connection is closed.");
             done();
           });
@@ -155,10 +155,10 @@ describe("*scanStream", function() {
     });
   });
 
-  describe("scanBufferStream", function() {
-    it("should return buffer", function(done) {
-      var keys = [];
-      var redis = new Redis();
+  describe("scanBufferStream", function () {
+    it("should return buffer", function (done) {
+      let keys = [];
+      const redis = new Redis();
       redis.mset(
         "foo1",
         1,
@@ -170,18 +170,18 @@ describe("*scanStream", function() {
         1,
         "foo10",
         1,
-        function() {
-          var stream = redis.scanBufferStream();
-          stream.on("data", function(data) {
+        function () {
+          const stream = redis.scanBufferStream();
+          stream.on("data", function (data) {
             keys = keys.concat(data);
           });
-          stream.on("end", function() {
+          stream.on("end", function () {
             expect(keys.sort()).to.eql([
               Buffer.from("foo1"),
               Buffer.from("foo10"),
               Buffer.from("foo2"),
               Buffer.from("foo3"),
-              Buffer.from("foo4")
+              Buffer.from("foo4"),
             ]);
             redis.disconnect();
             done();
@@ -191,16 +191,16 @@ describe("*scanStream", function() {
     });
   });
 
-  describe("sscanStream", function() {
-    it("should iterate all values in the set", function(done) {
-      var keys = [];
-      var redis = new Redis();
-      redis.sadd("set", "foo1", "foo2", "foo3", "foo4", "foo10", function() {
-        var stream = redis.sscanStream("set", { match: "foo??" });
-        stream.on("data", function(data) {
+  describe("sscanStream", function () {
+    it("should iterate all values in the set", function (done) {
+      let keys = [];
+      const redis = new Redis();
+      redis.sadd("set", "foo1", "foo2", "foo3", "foo4", "foo10", function () {
+        const stream = redis.sscanStream("set", { match: "foo??" });
+        stream.on("data", function (data) {
           keys = keys.concat(data);
         });
-        stream.on("end", function() {
+        stream.on("end", function () {
           expect(keys).to.eql(["foo10"]);
           redis.disconnect();
           done();
@@ -209,20 +209,20 @@ describe("*scanStream", function() {
     });
   });
 
-  describe("Cluster", function() {
-    it("should work in cluster mode", function(done) {
-      var slotTable = [
+  describe("Cluster", function () {
+    it("should work in cluster mode", function (done) {
+      const slotTable = [
         [0, 5460, ["127.0.0.1", 30001]],
         [5461, 10922, ["127.0.0.1", 30002]],
-        [10923, 16383, ["127.0.0.1", 30003]]
+        [10923, 16383, ["127.0.0.1", 30003]],
       ];
-      var serverKeys = ["foo1", "foo2", "foo3", "foo4", "foo10"];
-      var argvHandler = function(argv) {
+      const serverKeys = ["foo1", "foo2", "foo3", "foo4", "foo10"];
+      const argvHandler = function (argv) {
         if (argv[0] === "cluster" && argv[1] === "slots") {
           return slotTable;
         }
         if (argv[0] === "sscan" && argv[1] === "set") {
-          var cursor = Number(argv[2]);
+          const cursor = Number(argv[2]);
           if (cursor >= serverKeys.length) {
             return ["0", []];
           }
@@ -233,17 +233,17 @@ describe("*scanStream", function() {
       new MockServer(30002, argvHandler);
       new MockServer(30003, argvHandler);
 
-      var cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
 
-      var keys = [];
+      let keys = [];
       // @ts-ignore
-      cluster.sadd("set", serverKeys, function() {
+      cluster.sadd("set", serverKeys, function () {
         // @ts-ignore
-        var stream = cluster.sscanStream("set");
-        stream.on("data", function(data) {
+        const stream = cluster.sscanStream("set");
+        stream.on("data", function (data) {
           keys = keys.concat(data);
         });
-        stream.on("end", function() {
+        stream.on("end", function () {
           expect(keys).to.eql(serverKeys);
           cluster.disconnect();
           done();

@@ -11,7 +11,7 @@ import DataHandler from "../DataHandler";
 const debug = Debug("connection");
 
 export function connectHandler(self) {
-  return function() {
+  return function () {
     self.setStatus("connect");
 
     self.resetCommandQueue();
@@ -20,7 +20,7 @@ export function connectHandler(self) {
     let flushed = false;
     const { connectionEpoch } = self;
     if (self.condition.auth) {
-      self.auth(self.condition.auth, function(err) {
+      self.auth(self.condition.auth, function (err) {
         if (connectionEpoch !== self.connectionEpoch) {
           return;
         }
@@ -52,11 +52,11 @@ export function connectHandler(self) {
     */
     new DataHandler(self, {
       stringNumbers: self.options.stringNumbers,
-      dropBufferSupport: self.options.dropBufferSupport
+      dropBufferSupport: self.options.dropBufferSupport,
     });
 
     if (self.options.enableReadyCheck) {
-      self._readyCheck(function(err, info) {
+      self._readyCheck(function (err, info) {
         if (connectionEpoch !== self.connectionEpoch) {
           return;
         }
@@ -84,7 +84,7 @@ function abortError(command: ICommand) {
   const err = new AbortError("Command aborted due to connection close");
   (err as any).command = {
     name: command.name,
-    args: command.args
+    args: command.args,
   };
   return err;
 }
@@ -136,7 +136,7 @@ function abortTransactionFragments(commandQueue: Deque<ICommandItem>) {
 }
 
 export function closeHandler(self) {
-  return function() {
+  return function () {
     self.setStatus("close");
 
     if (!self.prevCondition) {
@@ -172,7 +172,7 @@ export function closeHandler(self) {
     debug("reconnect in %sms", retryDelay);
 
     self.setStatus("reconnecting", retryDelay);
-    self.reconnectTimeout = setTimeout(function() {
+    self.reconnectTimeout = setTimeout(function () {
       self.reconnectTimeout = null;
       self.connect().catch(noop);
     }, retryDelay);
@@ -200,21 +200,21 @@ export function closeHandler(self) {
 }
 
 export function errorHandler(self) {
-  return function(error) {
+  return function (error) {
     debug("error: %s", error);
     self.silentEmit("error", error);
   };
 }
 
 export function readyHandler(self) {
-  return function() {
+  return function () {
     self.setStatus("ready");
     self.retryAttempts = 0;
 
     if (self.options.monitor) {
       self.call("monitor");
       const { sendCommand } = self;
-      self.sendCommand = function(command) {
+      self.sendCommand = function (command) {
         if (Command.checkFlag("VALID_IN_MONITOR_MODE", command.name)) {
           return sendCommand.call(self, command);
         }
@@ -223,7 +223,7 @@ export function readyHandler(self) {
         );
         return command.promise;
       };
-      self.once("close", function() {
+      self.once("close", function () {
         delete self.sendCommand;
       });
       self.setStatus("monitoring");

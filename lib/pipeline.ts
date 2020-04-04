@@ -18,7 +18,7 @@ export default function Pipeline(redis) {
   this._transactions = 0;
   this._shaToScript = {};
 
-  Object.keys(redis.scriptsSet).forEach(name => {
+  Object.keys(redis.scriptsSet).forEach((name) => {
     const script = redis.scriptsSet[name];
     this._shaToScript[script.sha] = script;
     this[name] = redis[name];
@@ -33,17 +33,17 @@ export default function Pipeline(redis) {
 
   const _this = this;
   Object.defineProperty(this, "length", {
-    get: function() {
+    get: function () {
       return _this._queue.length;
-    }
+    },
   });
 }
 
 Object.assign(Pipeline.prototype, Commander.prototype);
 
-Pipeline.prototype.fillResult = function(value, position) {
+Pipeline.prototype.fillResult = function (value, position) {
   if (this._queue[position].name === "exec" && Array.isArray(value[1])) {
-    var execLength = value[1].length;
+    const execLength = value[1].length;
     for (let i = 0; i < execLength; i++) {
       if (value[1][i] instanceof Error) {
         continue;
@@ -66,8 +66,8 @@ Pipeline.prototype.fillResult = function(value, position) {
     let retriable = true;
     let commonError: { name: string; message: string };
     for (let i = 0; i < this._result.length; ++i) {
-      var error = this._result[i][0];
-      var command = this._queue[i];
+      const error = this._result[i][0];
+      const command = this._queue[i];
       if (error) {
         if (
           command.name === "exec" &&
@@ -79,7 +79,7 @@ Pipeline.prototype.fillResult = function(value, position) {
         if (!commonError) {
           commonError = {
             name: error.name,
-            message: error.message
+            message: error.message,
           };
         } else if (
           commonError.name !== error.name ||
@@ -89,7 +89,7 @@ Pipeline.prototype.fillResult = function(value, position) {
           break;
         }
       } else if (!command.inTransaction) {
-        var isReadOnly =
+        const isReadOnly =
           exists(command.name) && hasFlag(command.name, "readonly");
         if (!isReadOnly) {
           retriable = false;
@@ -98,9 +98,9 @@ Pipeline.prototype.fillResult = function(value, position) {
       }
     }
     if (commonError && retriable) {
-      var _this = this;
-      var errv = commonError.message.split(" ");
-      var queue = this._queue;
+      const _this = this;
+      const errv = commonError.message.split(" ");
+      const queue = this._queue;
       let inTransaction = false;
       this._queue = [];
       for (let i = 0; i < queue.length; ++i) {
@@ -110,7 +110,7 @@ Pipeline.prototype.fillResult = function(value, position) {
           queue[i].name !== "asking" &&
           (!queue[i - 1] || queue[i - 1].name !== "asking")
         ) {
-          var asking = new Command("asking");
+          const asking = new Command("asking");
           asking.ignore = true;
           this.sendCommand(asking);
         }
@@ -123,17 +123,17 @@ Pipeline.prototype.fillResult = function(value, position) {
       if (typeof this.leftRedirections === "undefined") {
         this.leftRedirections = {};
       }
-      const exec = function() {
+      const exec = function () {
         _this.exec();
       };
       this.redis.handleError(commonError, this.leftRedirections, {
-        moved: function(slot, key) {
+        moved: function (slot, key) {
           _this.preferKey = key;
           _this.redis.slots[errv[1]] = [key];
           _this.redis.refreshSlotsCache();
           _this.exec();
         },
-        ask: function(slot, key) {
+        ask: function (slot, key) {
           _this.preferKey = key;
           _this.exec();
         },
@@ -145,7 +145,7 @@ Pipeline.prototype.fillResult = function(value, position) {
         },
         defaults: () => {
           matched = false;
-        }
+        },
       });
       if (matched) {
         return;
@@ -163,7 +163,7 @@ Pipeline.prototype.fillResult = function(value, position) {
   this.resolve(this._result.slice(0, this._result.length - ignoredCount));
 };
 
-Pipeline.prototype.sendCommand = function(command) {
+Pipeline.prototype.sendCommand = function (command) {
   if (this._transactions > 0) {
     command.inTransaction = true;
   }
@@ -172,10 +172,10 @@ Pipeline.prototype.sendCommand = function(command) {
   command.pipelineIndex = position;
 
   command.promise
-    .then(result => {
+    .then((result) => {
       this.fillResult([null, result], position);
     })
-    .catch(error => {
+    .catch((error) => {
       this.fillResult([error], position);
     });
 
@@ -184,7 +184,7 @@ Pipeline.prototype.sendCommand = function(command) {
   return this;
 };
 
-Pipeline.prototype.addBatch = function(commands) {
+Pipeline.prototype.addBatch = function (commands) {
   let command, commandName, args;
   for (let i = 0; i < commands.length; ++i) {
     command = commands[i];
@@ -197,21 +197,21 @@ Pipeline.prototype.addBatch = function(commands) {
 };
 
 const multi = Pipeline.prototype.multi;
-Pipeline.prototype.multi = function() {
+Pipeline.prototype.multi = function () {
   this._transactions += 1;
   return multi.apply(this, arguments);
 };
 
 const execBuffer = Pipeline.prototype.execBuffer;
 const exec = Pipeline.prototype.exec;
-Pipeline.prototype.execBuffer = deprecate(function() {
+Pipeline.prototype.execBuffer = deprecate(function () {
   if (this._transactions > 0) {
     this._transactions -= 1;
   }
   return execBuffer.apply(this, arguments);
 }, "Pipeline#execBuffer: Use Pipeline#exec instead");
 
-Pipeline.prototype.exec = function(callback: CallbackFunction) {
+Pipeline.prototype.exec = function (callback: CallbackFunction) {
   if (this._transactions > 0) {
     this._transactions -= 1;
     return (this.options.dropBufferSupport ? exec : execBuffer).apply(
@@ -231,7 +231,7 @@ Pipeline.prototype.exec = function(callback: CallbackFunction) {
     // List of the first key for each command
     const sampleKeys: string[] = [];
     for (let i = 0; i < this._queue.length; i++) {
-      var keys = this._queue[i].getKeys();
+      const keys = this._queue[i].getKeys();
       if (keys.length) {
         sampleKeys.push(keys[0]);
       }
@@ -254,7 +254,7 @@ Pipeline.prototype.exec = function(callback: CallbackFunction) {
   // Check whether scripts exists
   const scripts = [];
   for (let i = 0; i < this._queue.length; ++i) {
-    var item = this._queue[i];
+    const item = this._queue[i];
     if (this.isCluster && item.isCustomCommand) {
       this.reject(
         new Error(
@@ -273,23 +273,23 @@ Pipeline.prototype.exec = function(callback: CallbackFunction) {
     scripts.push(script);
   }
 
-  var _this = this;
+  const _this = this;
   if (!scripts.length) {
     return execPipeline();
   }
 
   return this.redis
     .script("exists", Array.from(new Set(scripts.map(({ sha }) => sha))))
-    .then(function(results) {
-      var pending = [];
-      for (var i = 0; i < results.length; ++i) {
+    .then(function (results) {
+      const pending = [];
+      for (let i = 0; i < results.length; ++i) {
         if (!results[i]) {
           pending.push(scripts[i]);
         }
       }
-      var Promise = PromiseContainer.get();
+      const Promise = PromiseContainer.get();
       return Promise.all(
-        pending.map(function(script) {
+        pending.map(function (script) {
           return _this.redis.script("load", script.lua);
         })
       );
@@ -305,12 +305,12 @@ Pipeline.prototype.exec = function(callback: CallbackFunction) {
     if (_this.isCluster) {
       node = {
         slot: pipelineSlot,
-        redis: _this.redis.connectionPool.nodes.all[_this.preferKey]
+        redis: _this.redis.connectionPool.nodes.all[_this.preferKey],
       };
     }
     let bufferMode = false;
     const stream = {
-      write: function(writable) {
+      write: function (writable) {
         if (writable instanceof Buffer) {
           bufferMode = true;
         }
@@ -349,7 +349,7 @@ Pipeline.prototype.exec = function(callback: CallbackFunction) {
           buffers = undefined;
           bufferMode = false;
         }
-      }
+      },
     };
 
     for (let i = 0; i < _this._queue.length; ++i) {

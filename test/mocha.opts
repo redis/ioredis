@@ -1,5 +1,0 @@
---reporter spec
---recursive
---timeout 8000
---require ts-node/register
---exit

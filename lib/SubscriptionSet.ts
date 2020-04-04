@@ -12,7 +12,7 @@ type DelSet = ICommandNameFlags["EXIT_SUBSCRIBER_MODE"][number];
 export default class SubscriptionSet {
   private set: { [key: string]: { [channel: string]: boolean } } = {
     subscribe: {},
-    psubscribe: {}
+    psubscribe: {},
   };
 
   add(set: AddSet, channel: string) {

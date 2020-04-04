@@ -31,7 +31,7 @@ function simulateElasticache(options: {
       // bring the mock server back up
       mockServer.connect();
       return options.reconnectOnErrorValue;
-    }
+    },
   });
 }
 
@@ -46,30 +46,30 @@ function expectAbortError(err) {
   expect(err.message).to.eql("Command aborted due to connection close");
 }
 
-describe("elasticache", function() {
-  it("should abort a failed transaction when connection is lost", function(done) {
+describe("elasticache", function () {
+  it("should abort a failed transaction when connection is lost", function (done) {
     const redis = simulateElasticache({ reconnectOnErrorValue: true });
 
     redis
       .multi()
       .del("foo")
       .del("bar")
-      .exec(err => {
+      .exec((err) => {
         expectAbortError(err);
         expect(err.command).to.eql({
           name: "exec",
-          args: []
+          args: [],
         });
         expect(err.previousErrors).to.have.lengthOf(2);
         expectReplyError(err.previousErrors[0]);
         expect(err.previousErrors[0].command).to.eql({
           name: "del",
-          args: ["foo"]
+          args: ["foo"],
         });
         expectAbortError(err.previousErrors[1]);
         expect(err.previousErrors[1].command).to.eql({
           name: "del",
-          args: ["bar"]
+          args: ["bar"],
         });
 
         // ensure we've recovered into a healthy state
@@ -80,28 +80,28 @@ describe("elasticache", function() {
       });
   });
 
-  it("should not resend failed transaction commands", function(done) {
+  it("should not resend failed transaction commands", function (done) {
     const redis = simulateElasticache({ reconnectOnErrorValue: 2 });
     redis
       .multi()
       .del("foo")
       .get("bar")
-      .exec(err => {
+      .exec((err) => {
         expectAbortError(err);
         expect(err.command).to.eql({
           name: "exec",
-          args: []
+          args: [],
         });
         expect(err.previousErrors).to.have.lengthOf(2);
         expectAbortError(err.previousErrors[0]);
         expect(err.previousErrors[0].command).to.eql({
           name: "del",
-          args: ["foo"]
+          args: ["foo"],
         });
         expectAbortError(err.previousErrors[1]);
         expect(err.previousErrors[1].command).to.eql({
           name: "get",
-          args: ["bar"]
+          args: ["bar"],
         });
 
         // ensure we've recovered into a healthy state
@@ -112,7 +112,7 @@ describe("elasticache", function() {
       });
   });
 
-  it("should resend intact pipelines", function(done) {
+  it("should resend intact pipelines", function (done) {
     const redis = simulateElasticache({ reconnectOnErrorValue: true });
 
     let p1Result;
@@ -134,12 +134,12 @@ describe("elasticache", function() {
         expectReplyError(p1Result[0][0]);
         expect(p1Result[0][0].command).to.eql({
           name: "del",
-          args: ["foo"]
+          args: ["foo"],
         });
         expectAbortError(p1Result[1][0]);
         expect(p1Result[1][0].command).to.eql({
           name: "get",
-          args: ["bar"]
+          args: ["bar"],
         });
 
         // Second pipeline was intact and should have been retried successfully

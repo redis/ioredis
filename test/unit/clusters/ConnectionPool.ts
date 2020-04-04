@@ -10,7 +10,7 @@ describe("ConnectionPool", () => {
 
       pool.reset([
         { host: "127.0.0.1", port: 30001, readOnly: true },
-        { host: "127.0.0.1", port: 30001, readOnly: false }
+        { host: "127.0.0.1", port: 30001, readOnly: false },
       ]);
 
       expect(stub.callCount).to.eql(1);
@@ -18,7 +18,7 @@ describe("ConnectionPool", () => {
 
       pool.reset([
         { host: "127.0.0.1", port: 30001, readOnly: false },
-        { host: "127.0.0.1", port: 30001, readOnly: true }
+        { host: "127.0.0.1", port: 30001, readOnly: true },
       ]);
 
       expect(stub.callCount).to.eql(2);

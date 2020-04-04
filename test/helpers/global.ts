@@ -1,7 +1,7 @@
 import * as sinon from "sinon";
 import Redis from "../../lib/redis";
 
-afterEach(function(done) {
+afterEach(function (done) {
   sinon.restore();
   new Redis()
     .pipeline()
@@ -11,4 +11,4 @@ afterEach(function(done) {
     .exec(done);
 });
 
-console.error = function() {};
+console.error = function () {};

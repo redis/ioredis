@@ -7,12 +7,12 @@ import Parser = require("redis-parser");
 let createdMockServers: MockServer[] = [];
 const RAW_DATA_KEY = "___IOREDIS_MOCK_ROW_DATA___";
 
-afterEach(function(done) {
+afterEach(function (done) {
   if (createdMockServers.length === 0) {
     done();
     return;
   }
-  var pending = 0;
+  let pending = 0;
   for (const server of createdMockServers) {
     pending += 1;
     server.disconnect(check);
@@ -46,7 +46,7 @@ export default class MockServer extends EventEmitter {
 
   static raw<T>(data: T): { [RAW_DATA_KEY]: T } {
     return {
-      [RAW_DATA_KEY]: data
+      [RAW_DATA_KEY]: data,
     };
   }
 
@@ -64,13 +64,13 @@ export default class MockServer extends EventEmitter {
   }
 
   connect() {
-    this.socket = createServer(c => {
-      var clientIndex = this.clients.push(c) - 1;
+    this.socket = createServer((c) => {
+      const clientIndex = this.clients.push(c) - 1;
       process.nextTick(() => {
         this.emit("connect", c);
       });
 
-      var parser = new Parser({
+      const parser = new Parser({
         returnBuffers: true,
         stringNumbers: false,
         returnReply: (reply: any) => {
@@ -91,14 +91,14 @@ export default class MockServer extends EventEmitter {
             this.write(c, this.slotTable);
             return;
           }
-          let flags: Flags = {};
-          let handlerResult = this.handler && this.handler(reply, c, flags);
+          const flags: Flags = {};
+          const handlerResult = this.handler && this.handler(reply, c, flags);
           this.write(c, handlerResult);
           if (flags.disconnect) {
             this.disconnect();
           }
         },
-        returnError: function() {}
+        returnError: function () {},
       });
 
       c.on("end", () => {
@@ -106,7 +106,7 @@ export default class MockServer extends EventEmitter {
         this.emit("disconnect", c);
       });
 
-      c.on("data", data => {
+      c.on("data", (data) => {
         // @ts-ignore
         parser.execute(data);
       });
@@ -123,8 +123,8 @@ export default class MockServer extends EventEmitter {
 
   broadcast(data: any) {
     this.clients
-      .filter(c => c)
-      .forEach(client => {
+      .filter((c) => c)
+      .forEach((client) => {
         this.write(client, data);
       });
   }
@@ -145,7 +145,7 @@ export default class MockServer extends EventEmitter {
         result = "-" + data.message + "\r\n";
       } else if (Array.isArray(data)) {
         result = "*" + data.length + "\r\n";
-        data.forEach(function(item) {
+        data.forEach(function (item) {
           result += convert(str, item);
         });
       } else if (typeof data === "number") {
@@ -165,8 +165,8 @@ export default class MockServer extends EventEmitter {
 
   findClientByName(name: string): Socket | undefined {
     return this.clients
-      .filter(c => c)
-      .find(client => {
+      .filter((c) => c)
+      .find((client) => {
         return getConnectionName(client) === name;
       });
   }

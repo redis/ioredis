@@ -8,7 +8,7 @@ export interface ICommanderOptions {
   showFriendlyErrorStack?: boolean;
 }
 
-var DROP_BUFFER_SUPPORT_ERROR =
+const DROP_BUFFER_SUPPORT_ERROR =
   "*Buffer methods are not available " +
   'because "dropBufferSupport" option is enabled.' +
   "Refer to https://github.com/luin/ioredis/wiki/Improve-Performance for more details.";
@@ -24,12 +24,12 @@ var DROP_BUFFER_SUPPORT_ERROR =
  */
 export default function Commander() {
   this.options = defaults({}, this.options || {}, {
-    showFriendlyErrorStack: false
+    showFriendlyErrorStack: false,
   });
   this.scriptsSet = {};
 }
 
-var commands = require("redis-commands").list.filter(function(command) {
+const commands = require("redis-commands").list.filter(function (command) {
   return command !== "monitor";
 });
 commands.push("sentinel");
@@ -40,7 +40,7 @@ commands.push("sentinel");
  * @return {string[]} command list
  * @public
  */
-Commander.prototype.getBuiltinCommands = function() {
+Commander.prototype.getBuiltinCommands = function () {
   return commands.slice(0);
 };
 
@@ -51,14 +51,14 @@ Commander.prototype.getBuiltinCommands = function() {
  * @return {object} functions
  * @public
  */
-Commander.prototype.createBuiltinCommand = function(commandName) {
+Commander.prototype.createBuiltinCommand = function (commandName) {
   return {
     string: generateFunction(commandName, "utf8"),
-    buffer: generateFunction(commandName, null)
+    buffer: generateFunction(commandName, null),
   };
 };
 
-commands.forEach(function(commandName) {
+commands.forEach(function (commandName) {
   Commander.prototype[commandName] = generateFunction(commandName, "utf8");
   Commander.prototype[commandName + "Buffer"] = generateFunction(
     commandName,
@@ -81,8 +81,8 @@ Commander.prototype.send_command = Commander.prototype.call;
  * @param {boolean} [definition.readOnly=false] - force this script to be readonly so it executes on slaves as well.
  * If omit, you have to pass the number of keys as the first argument every time you invoke the command
  */
-Commander.prototype.defineCommand = function(name, definition) {
-  var script = new Script(
+Commander.prototype.defineCommand = function (name, definition) {
+  const script = new Script(
     definition.lua,
     definition.numberOfKeys,
     this.options.keyPrefix,
@@ -99,7 +99,7 @@ Commander.prototype.defineCommand = function(name, definition) {
  * @abstract
  * @public
  */
-Commander.prototype.sendCommand = function() {};
+Commander.prototype.sendCommand = function () {};
 
 function generateFunction(_encoding: string);
 function generateFunction(_commandName: string | void, _encoding: string);
@@ -108,27 +108,27 @@ function generateFunction(_commandName?: string, _encoding?: string) {
     _encoding = _commandName;
     _commandName = null;
   }
-  return function() {
-    var firstArgIndex = 0;
-    var commandName = _commandName;
+  return function () {
+    let firstArgIndex = 0;
+    let commandName = _commandName;
     if (commandName === null) {
       commandName = arguments[0];
       firstArgIndex = 1;
     }
-    var length = arguments.length;
-    var lastArgIndex = length - 1;
-    var callback = arguments[lastArgIndex];
+    let length = arguments.length;
+    const lastArgIndex = length - 1;
+    let callback = arguments[lastArgIndex];
     if (typeof callback !== "function") {
       callback = undefined;
     } else {
       length = lastArgIndex;
     }
-    var args = new Array(length - firstArgIndex);
-    for (var i = firstArgIndex; i < length; ++i) {
+    const args = new Array(length - firstArgIndex);
+    for (let i = firstArgIndex; i < length; ++i) {
       args[i - firstArgIndex] = arguments[i];
     }
 
-    var options;
+    let options;
     if (this.options.dropBufferSupport) {
       if (!_encoding) {
         return asCallback(
@@ -153,21 +153,21 @@ function generateFunction(_commandName?: string, _encoding?: string) {
 }
 
 function generateScriptingFunction(_script, _encoding) {
-  return function() {
-    var length = arguments.length;
-    var lastArgIndex = length - 1;
-    var callback = arguments[lastArgIndex];
+  return function () {
+    let length = arguments.length;
+    const lastArgIndex = length - 1;
+    let callback = arguments[lastArgIndex];
     if (typeof callback !== "function") {
       callback = undefined;
     } else {
       length = lastArgIndex;
     }
-    var args = new Array(length);
-    for (var i = 0; i < length; i++) {
+    const args = new Array(length);
+    for (let i = 0; i < length; i++) {
       args[i] = arguments[i];
     }
 
-    var options;
+    let options;
     if (this.options.dropBufferSupport) {
       if (!_encoding) {
         return asCallback(

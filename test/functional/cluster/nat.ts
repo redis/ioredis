@@ -5,10 +5,10 @@ import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
 
 describe("NAT", () => {
-  it("works for normal case", done => {
+  it("works for normal case", (done) => {
     const slotTable = [
       [0, 1, ["192.168.1.1", 30001]],
-      [2, 16383, ["192.168.1.2", 30001]]
+      [2, 16383, ["192.168.1.2", 30001]],
     ];
 
     let cluster;
@@ -28,24 +28,24 @@ describe("NAT", () => {
       [
         {
           host: "127.0.0.1",
-          port: 30001
-        }
+          port: 30001,
+        },
       ],
       {
         natMap: {
           "192.168.1.1:30001": { host: "127.0.0.1", port: 30001 },
-          "192.168.1.2:30001": { host: "127.0.0.1", port: 30002 }
-        }
+          "192.168.1.2:30001": { host: "127.0.0.1", port: 30002 },
+        },
       }
     );
 
     cluster.get("foo");
   });
 
-  it("works if natMap does not match all the cases", done => {
+  it("works if natMap does not match all the cases", (done) => {
     const slotTable = [
       [0, 1, ["192.168.1.1", 30001]],
-      [2, 16383, ["127.0.0.1", 30002]]
+      [2, 16383, ["127.0.0.1", 30002]],
     ];
 
     let cluster;
@@ -65,20 +65,20 @@ describe("NAT", () => {
       [
         {
           host: "127.0.0.1",
-          port: 30001
-        }
+          port: 30001,
+        },
       ],
       {
         natMap: {
-          "192.168.1.1:30001": { host: "127.0.0.1", port: 30001 }
-        }
+          "192.168.1.1:30001": { host: "127.0.0.1", port: 30001 },
+        },
       }
     );
 
     cluster.get("foo");
   });
 
-  it("works for moved", done => {
+  it("works for moved", (done) => {
     const slotTable = [[0, 16383, ["192.168.1.1", 30001]]];
 
     let cluster;
@@ -108,21 +108,21 @@ describe("NAT", () => {
       [
         {
           host: "127.0.0.1",
-          port: 30001
-        }
+          port: 30001,
+        },
       ],
       {
         natMap: {
           "192.168.1.1:30001": { host: "127.0.0.1", port: 30001 },
-          "192.168.1.2:30001": { host: "127.0.0.1", port: 30002 }
-        }
+          "192.168.1.2:30001": { host: "127.0.0.1", port: 30002 },
+        },
       }
     );
 
     cluster.get("foo");
   });
 
-  it("works for ask", done => {
+  it("works for ask", (done) => {
     const slotTable = [[0, 16383, ["192.168.1.1", 30001]]];
 
     let cluster;
@@ -159,21 +159,21 @@ describe("NAT", () => {
       [
         {
           host: "127.0.0.1",
-          port: 30001
-        }
+          port: 30001,
+        },
       ],
       {
         natMap: {
           "192.168.1.1:30001": { host: "127.0.0.1", port: 30001 },
-          "192.168.1.2:30001": { host: "127.0.0.1", port: 30002 }
-        }
+          "192.168.1.2:30001": { host: "127.0.0.1", port: 30002 },
+        },
       }
     );
 
     cluster.get("foo");
   });
 
-  it("keeps options immutable", done => {
+  it("keeps options immutable", (done) => {
     const slotTable = [[0, 16383, ["192.168.1.1", 30001]]];
 
     new MockServer(30001, null, slotTable);
@@ -182,13 +182,16 @@ describe("NAT", () => {
       [
         {
           host: "127.0.0.1",
-          port: 30001
-        }
+          port: 30001,
+        },
       ],
       Object.freeze({
         natMap: Object.freeze({
-          "192.168.1.1:30001": Object.freeze({ host: "127.0.0.1", port: 30001 })
-        })
+          "192.168.1.1:30001": Object.freeze({
+            host: "127.0.0.1",
+            port: 30001,
+          }),
+        }),
       })
     );
 
@@ -196,7 +199,7 @@ describe("NAT", () => {
 
     cluster.on("ready", () => {
       expect(reset.secondCall.args[0]).to.deep.equal([
-        { host: "127.0.0.1", port: 30001, readOnly: false }
+        { host: "127.0.0.1", port: 30001, readOnly: false },
       ]);
       cluster.disconnect();
       done();

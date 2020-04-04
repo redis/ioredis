@@ -8,7 +8,6 @@
   ],
   "scripts": {
     "test": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_LOG_ERROR=true NODE_ENV=test mocha \"test/**/*.ts\"",
-    "test:cov": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_LOG_ERROR=true NODE_ENV=test node ./node_modules/istanbul/lib/cli.js cover --preserve-comments ./node_modules/mocha/bin/_mocha -- -r ts-node/register -R spec --exit \"test/**/*.ts\"",
     "lint": "eslint --ext .js,.ts .",
     "format": "prettier --write \"{,!(node_modules)/**/}*.{js,ts}\"",
     "format-check": "prettier --check \"{,!(node_modules)/**/}*.{js,ts}\"",
@@ -45,33 +44,32 @@
     "standard-as-callback": "^2.0.1"
   },
   "devDependencies": {
-    "@semantic-release/changelog": "^3.0.4",
-    "@semantic-release/git": "^7.0.12",
-    "@types/bluebird": "^3.5.27",
-    "@types/chai": "^4.1.7",
-    "@types/debug": "^4.1.4",
+    "@semantic-release/changelog": "^5.0.1",
+    "@semantic-release/git": "^9.0.0",
+    "@types/bluebird": "^3.5.30",
+    "@types/chai": "^4.2.11",
+    "@types/debug": "^4.1.5",
     "@types/lodash.defaults": "^4.2.6",
     "@types/lodash.flatten": "^4.4.6",
-    "@types/mocha": "^5.2.7",
-    "@types/node": "^12.0.2",
+    "@types/mocha": "^7.0.2",
+    "@types/node": "^13.11.0",
     "@types/redis-errors": "1.2.0",
-    "@types/sinon": "^7.0.13",
-    "@typescript-eslint/eslint-plugin": "^1.11.0",
-    "@typescript-eslint/parser": "^1.11.0",
-    "bluebird": "^3.5.4",
+    "@types/sinon": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^2.26.0",
+    "@typescript-eslint/parser": "^2.26.0",
+    "bluebird": "^3.7.2",
     "chai": "^4.2.0",
-    "cz-conventional-changelog": "^2.0.0",
-    "eslint": "^5.16.0",
-    "eslint-config-prettier": "^5.1.0",
-    "husky": "^2.5.0",
-    "istanbul": "^0.4.5",
-    "mocha": "^5.0.0",
-    "prettier": "^1.18.2",
-    "pretty-quick": "^1.11.1",
+    "cz-conventional-changelog": "^3.1.0",
+    "eslint": "^6.8.0",
+    "eslint-config-prettier": "^6.10.1",
+    "husky": "^4.2.3",
+    "mocha": "^7.1.1",
+    "prettier": "^2.0.2",
+    "pretty-quick": "^2.0.1",
     "server-destroy": "^1.0.1",
-    "sinon": "^7.3.2",
-    "ts-node": "^8.1.0",
-    "typescript": "^3.5.1"
+    "sinon": "^9.0.1",
+    "ts-node": "^8.8.1",
+    "typescript": "^3.8.3"
   },
   "engines": {
     "node": ">=6"
@@ -85,5 +83,11 @@
     "hooks": {
       "pre-commit": "pretty-quick --staged"
     }
+  },
+  "mocha": {
+    "exit": true,
+    "timeout": 8000,
+    "recursive": true,
+    "require": "ts-node/register"
   }
 }

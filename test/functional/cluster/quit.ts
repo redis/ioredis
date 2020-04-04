@@ -3,10 +3,10 @@ import { expect } from "chai";
 import { Cluster } from "../../../lib";
 
 describe("cluster:quit", () => {
-  it("quit successfully when server is disconnecting", done => {
+  it("quit successfully when server is disconnecting", (done) => {
     const slotTable = [
       [0, 1000, ["127.0.0.1", 30001]],
-      [1001, 16383, ["127.0.0.1", 30002]]
+      [1001, 16383, ["127.0.0.1", 30002]],
     ];
     const server = new MockServer(
       30001,
@@ -39,15 +39,15 @@ describe("cluster:quit", () => {
     });
   });
 
-  it("failed when quit returns error", function(done) {
+  it("failed when quit returns error", function (done) {
     const ERROR_MESSAGE = "quit random error";
     const slotTable = [
       [0, 16381, ["127.0.0.1", 30001]],
-      [16382, 16383, ["127.0.0.1", 30002]]
+      [16382, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(
       30001,
-      function(argv, c) {
+      function (argv, c) {
         if (argv[0] === "quit") {
           return new Error(ERROR_MESSAGE);
         }
@@ -56,7 +56,7 @@ describe("cluster:quit", () => {
     );
     new MockServer(
       30002,
-      function(argv, c) {
+      function (argv, c) {
         if (argv[0] === "quit") {
           c.destroy();
         }
@@ -66,7 +66,7 @@ describe("cluster:quit", () => {
 
     const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
     cluster.get("foo", () => {
-      cluster.quit(err => {
+      cluster.quit((err) => {
         expect(err.message).to.eql(ERROR_MESSAGE);
         cluster.disconnect();
         done();
