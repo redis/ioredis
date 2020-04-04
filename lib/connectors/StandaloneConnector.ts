@@ -32,7 +32,7 @@ export default class StandaloneConnector extends AbstractConnector {
     let connectionOptions: any;
     if (isIIpcConnectionOptions(options)) {
       connectionOptions = {
-        path: options.path
+        path: options.path,
       };
     } else {
       connectionOptions = {};

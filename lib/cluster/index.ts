@@ -8,7 +8,7 @@ import {
   normalizeNodeOptions,
   NodeRole,
   getUniqueHostnamesFromOptions,
-  nodeKeyToRedisOptions
+  nodeKeyToRedisOptions,
 } from "./util";
 import ClusterSubscriber from "./ClusterSubscriber";
 import DelayQueue from "./DelayQueue";
@@ -23,7 +23,7 @@ import {
   CONNECTION_CLOSED_ERROR_MSG,
   shuffle,
   timeout,
-  zipMap
+  zipMap,
 } from "../utils";
 import * as commands from "redis-commands";
 import Command from "../command";
@@ -51,18 +51,18 @@ type ClusterStatus =
  */
 class Cluster extends EventEmitter {
   private options: IClusterOptions;
-  private startupNodes: Array<string | number | object>;
+  private startupNodes: (string | number | object)[];
   private connectionPool: ConnectionPool;
   private slots: NodeKey[][] = [];
   private manuallyClosing: boolean;
-  private retryAttempts: number = 0;
+  private retryAttempts = 0;
   private delayQueue: DelayQueue = new DelayQueue();
   private offlineQueue = new Deque();
   private subscriber: ClusterSubscriber;
   private slotsTimer: NodeJS.Timer;
   private reconnectTimeout: NodeJS.Timer;
   private status: ClusterStatus;
-  private isRefreshing: boolean = false;
+  private isRefreshing = false;
 
   /**
    * Every time Cluster#connect() is called, this value will be
@@ -74,17 +74,17 @@ class Cluster extends EventEmitter {
    * @type {number}
    * @memberof Cluster
    */
-  private connectionEpoch: number = 0;
+  private connectionEpoch = 0;
 
   /**
    * Creates an instance of Cluster.
    *
-   * @param {(Array<string | number | object>)} startupNodes
+   * @param {((string | number | object)[])} startupNodes
    * @param {IClusterOptions} [options={}]
    * @memberof Cluster
    */
   constructor(
-    startupNodes: Array<string | number | object>,
+    startupNodes: (string | number | object)[],
     options: IClusterOptions = {}
   ) {
     super();
@@ -110,7 +110,7 @@ class Cluster extends EventEmitter {
     this.connectionPool.on("-node", (redis, key) => {
       this.emit("-node", redis);
     });
-    this.connectionPool.on("+node", redis => {
+    this.connectionPool.on("+node", (redis) => {
       this.emit("+node", redis);
     });
     this.connectionPool.on("drain", () => {
@@ -125,7 +125,7 @@ class Cluster extends EventEmitter {
     if (this.options.lazyConnect) {
       this.setStatus("wait");
     } else {
-      this.connect().catch(err => {
+      this.connect().catch((err) => {
         debug("connecting failed: %s", err);
       });
     }
@@ -181,7 +181,7 @@ class Cluster extends EventEmitter {
       this.setStatus("connecting");
 
       this.resolveStartupNodeHostnames()
-        .then(nodes => {
+        .then((nodes) => {
           if (this.connectionEpoch !== epoch) {
             debug(
               "discard connecting after resolving startup nodes because epoch not match: %d != %d",
@@ -213,7 +213,7 @@ class Cluster extends EventEmitter {
             resolve();
           }
 
-          let closeListener: () => void;
+          let closeListener: () => void = undefined;
           const refreshListener = () => {
             this.removeListener("close", closeListener);
             this.manuallyClosing = false;
@@ -237,7 +237,7 @@ class Cluster extends EventEmitter {
             }
           };
 
-          closeListener = function() {
+          closeListener = function () {
             this.removeListener("refresh", refreshListener);
             reject(new Error("None of startup nodes is available"));
           };
@@ -247,7 +247,7 @@ class Cluster extends EventEmitter {
           this.once("close", this.handleCloseEvent.bind(this));
 
           this.refreshSlotsCache(
-            function(err) {
+            function (err) {
               if (err && err.message === "Failed to refresh slots cache.") {
                 Redis.prototype.silentEmit.call(this, "error", err);
                 this.connectionPool.reset([]);
@@ -256,7 +256,7 @@ class Cluster extends EventEmitter {
           );
           this.subscriber.start();
         })
-        .catch(err => {
+        .catch((err) => {
           this.setStatus("close");
           this.handleCloseEvent(err);
           reject(err);
@@ -288,10 +288,10 @@ class Cluster extends EventEmitter {
     if (typeof retryDelay === "number") {
       this.setStatus("reconnecting");
       this.reconnectTimeout = setTimeout(
-        function() {
+        function () {
           this.reconnectTimeout = null;
           debug("Cluster is disconnected. Retrying after %dms", retryDelay);
-          this.connect().catch(function(err) {
+          this.connect().catch(function (err) {
             debug("Got error %s when reconnecting. Ignoring...", err);
           });
         }.bind(this),
@@ -309,7 +309,7 @@ class Cluster extends EventEmitter {
    * @param {boolean} [reconnect=false]
    * @memberof Cluster
    */
-  public disconnect(reconnect: boolean = false) {
+  public disconnect(reconnect = false) {
     const status = this.status;
     this.setStatus("disconnecting");
 
@@ -360,7 +360,7 @@ class Cluster extends EventEmitter {
       // use setImmediate to make sure "close" event
       // being emitted after quit() is returned
       setImmediate(
-        function() {
+        function () {
           this.setStatus("close");
           this.handleCloseEvent();
         }.bind(this)
@@ -370,8 +370,8 @@ class Cluster extends EventEmitter {
     }
     return asCallback(
       Promise.all(
-        this.nodes().map(node =>
-          node.quit().catch(err => {
+        this.nodes().map((node) =>
+          node.quit().catch((err) => {
             // Ignore the error caused by disconnecting since
             // we're disconnecting...
             if (err.message === CONNECTION_CLOSED_ERROR_MSG) {
@@ -395,7 +395,7 @@ class Cluster extends EventEmitter {
    * ```
    *
    * @public
-   * @param {(Array<string | number | object>)} [overrideStartupNodes=[]]
+   * @param {((string | number | object)[])} [overrideStartupNodes=[]]
    * @param {IClusterOptions} [overrideOptions={}]
    * @memberof Cluster
    */
@@ -456,7 +456,7 @@ class Cluster extends EventEmitter {
     this.isRefreshing = true;
 
     const _this = this;
-    const wrapper = function(error?: Error) {
+    const wrapper = function (error?: Error) {
       _this.isRefreshing = false;
       if (typeof callback === "function") {
         callback(error);
@@ -478,7 +478,7 @@ class Cluster extends EventEmitter {
       const node = nodes[index];
       const key = `${node.options.host}:${node.options.port}`;
       debug("getting slot cache from %s", key);
-      _this.getInfoFromNode(node, function(err) {
+      _this.getInfoFromNode(node, function (err) {
         switch (_this.status) {
           case "close":
           case "end":
@@ -569,10 +569,10 @@ class Cluster extends EventEmitter {
       // eslint-disable-next-line @typescript-eslint/camelcase
       command.__is_reject_overwritten = true;
       const reject = command.reject;
-      command.reject = function(err) {
+      command.reject = function (err) {
         const partialTry = tryConnection.bind(null, true);
         _this.handleError(err, ttl, {
-          moved: function(slot, key) {
+          moved: function (slot, key) {
             debug("command %s is moved to %s", command.name, key);
             targetSlot = Number(slot);
             if (_this.slots[slot]) {
@@ -585,7 +585,7 @@ class Cluster extends EventEmitter {
             debug("refreshing slot caches... (triggered by MOVED error)");
             _this.refreshSlotsCache();
           },
-          ask: function(slot, key) {
+          ask: function (slot, key) {
             debug("command %s is required to ask %s:%s", command.name, key);
             const mapped = _this.natMapper(key);
             _this.connectionPool.findOrCreate(mapped);
@@ -594,12 +594,12 @@ class Cluster extends EventEmitter {
           tryagain: partialTry,
           clusterDown: partialTry,
           connectionClosed: partialTry,
-          maxRedirections: function(redirectionError) {
+          maxRedirections: function (redirectionError) {
             reject.call(command, redirectionError);
           },
-          defaults: function() {
+          defaults: function () {
             reject.call(command, err);
-          }
+          },
         });
       };
     }
@@ -628,7 +628,7 @@ class Cluster extends EventEmitter {
             if (typeof targetSlot === "number" && _this.slots[targetSlot]) {
               const nodeKeys = _this.slots[targetSlot];
               if (typeof to === "function") {
-                const nodes = nodeKeys.map(function(key) {
+                const nodes = nodeKeys.map(function (key) {
                   return _this.connectionPool.getInstanceByKey(key);
                 });
                 redis = to(nodes, command);
@@ -673,7 +673,7 @@ class Cluster extends EventEmitter {
         _this.offlineQueue.push({
           command: command,
           stream: stream,
-          node: node
+          node: node,
         });
       } else {
         command.reject(
@@ -703,7 +703,7 @@ class Cluster extends EventEmitter {
       handlers[errv[0] === "MOVED" ? "moved" : "ask"](errv[1], errv[2]);
     } else if (errv[0] === "TRYAGAIN") {
       this.delayQueue.push("tryagain", handlers.tryagain, {
-        timeout: this.options.retryDelayOnTryAgain
+        timeout: this.options.retryDelayOnTryAgain,
       });
     } else if (
       errv[0] === "CLUSTERDOWN" &&
@@ -711,7 +711,7 @@ class Cluster extends EventEmitter {
     ) {
       this.delayQueue.push("clusterdown", handlers.connectionClosed, {
         timeout: this.options.retryDelayOnClusterDown,
-        callback: this.refreshSlotsCache.bind(this)
+        callback: this.refreshSlotsCache.bind(this),
       });
     } else if (
       error.message === CONNECTION_CLOSED_ERROR_MSG &&
@@ -720,7 +720,7 @@ class Cluster extends EventEmitter {
     ) {
       this.delayQueue.push("failover", handlers.connectionClosed, {
         timeout: this.options.retryDelayOnFailover,
-        callback: this.refreshSlotsCache.bind(this)
+        callback: this.refreshSlotsCache.bind(this),
       });
     } else {
       handlers.defaults();
@@ -739,7 +739,7 @@ class Cluster extends EventEmitter {
       enableOfflineQueue: true,
       enableReadyCheck: false,
       retryStrategy: null,
-      connectionName: "ioredisClusterRefresher"
+      connectionName: "ioredisClusterRefresher",
     });
 
     // Ignore error events since we will handle
@@ -812,7 +812,7 @@ class Cluster extends EventEmitter {
    * @private
    */
   private readyCheck(callback: CallbackFunction<void | "fail">): void {
-    (this as any).cluster("info", function(err, res) {
+    (this as any).cluster("info", function (err, res) {
       if (err) {
         return callback(err);
       }
@@ -880,11 +880,11 @@ class Cluster extends EventEmitter {
     }
 
     return Promise.all(
-      hostnames.map(hostname => this.dnsLookup(hostname))
-    ).then(ips => {
+      hostnames.map((hostname) => this.dnsLookup(hostname))
+    ).then((ips) => {
       const hostnameToIP = zipMap(hostnames, ips);
 
-      return startupNodes.map(node =>
+      return startupNodes.map((node) =>
         hostnameToIP.has(node.host)
           ? Object.assign({}, node, { host: hostnameToIP.get(node.host) })
           : node
@@ -893,7 +893,7 @@ class Cluster extends EventEmitter {
   }
 }
 
-Object.getOwnPropertyNames(Commander.prototype).forEach(name => {
+Object.getOwnPropertyNames(Commander.prototype).forEach((name) => {
   if (!Cluster.prototype.hasOwnProperty(name)) {
     Cluster.prototype[name] = Commander.prototype[name];
   }
@@ -905,17 +905,17 @@ const scanCommands = [
   "zscan",
   "sscanBuffer",
   "hscanBuffer",
-  "zscanBuffer"
+  "zscanBuffer",
 ];
-scanCommands.forEach(command => {
-  Cluster.prototype[command + "Stream"] = function(key, options) {
+scanCommands.forEach((command) => {
+  Cluster.prototype[command + "Stream"] = function (key, options) {
     return new ScanStream(
       defaults(
         {
           objectMode: true,
           key: key,
           redis: this,
-          command: command
+          command: command,
         },
         options
       )

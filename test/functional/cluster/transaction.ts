@@ -3,15 +3,15 @@ import MockServer from "../../helpers/mock_server";
 import { expect } from "chai";
 import { Cluster } from "../../../lib";
 
-describe("cluster:transaction", function() {
-  it("should auto redirect commands on MOVED", function(done) {
-    var moved = false;
-    var slotTable = [
+describe("cluster:transaction", function () {
+  it("should auto redirect commands on MOVED", function (done) {
+    let moved = false;
+    const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
       [12182, 12183, ["127.0.0.1", 30002]],
-      [12184, 16383, ["127.0.0.1", 30001]]
+      [12184, 16383, ["127.0.0.1", 30001]],
     ];
-    new MockServer(30001, function(argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -23,7 +23,7 @@ describe("cluster:transaction", function() {
         return ["bar", "OK"];
       }
     });
-    new MockServer(30002, function(argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -38,13 +38,13 @@ describe("cluster:transaction", function() {
       }
     });
 
-    var cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
 
     cluster
       .multi()
       .get("foo")
       .set("foo", "bar")
-      .exec(function(err, result) {
+      .exec(function (err, result) {
         expect(err).to.eql(null);
         expect(result[0]).to.eql([null, "bar"]);
         expect(result[1]).to.eql([null, "OK"]);
@@ -53,14 +53,14 @@ describe("cluster:transaction", function() {
       });
   });
 
-  it("should auto redirect commands on ASK", function(done) {
-    var asked = false;
-    var slotTable = [
+  it("should auto redirect commands on ASK", function (done) {
+    let asked = false;
+    const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
       [12182, 12183, ["127.0.0.1", 30002]],
-      [12184, 16383, ["127.0.0.1", 30001]]
+      [12184, 16383, ["127.0.0.1", 30001]],
     ];
-    new MockServer(30001, function(argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -82,7 +82,7 @@ describe("cluster:transaction", function() {
         asked = false;
       }
     });
-    new MockServer(30002, function(argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -96,12 +96,12 @@ describe("cluster:transaction", function() {
       }
     });
 
-    var cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
     cluster
       .multi()
       .get("foo")
       .set("foo", "bar")
-      .exec(function(err, result) {
+      .exec(function (err, result) {
         expect(err).to.eql(null);
         expect(result[0]).to.eql([null, "bar"]);
         expect(result[1]).to.eql([null, "OK"]);
@@ -110,12 +110,12 @@ describe("cluster:transaction", function() {
       });
   });
 
-  it("should not print unhandled warnings", function(done) {
+  it("should not print unhandled warnings", function (done) {
     const errorMessage = "Connection is closed.";
-    var slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
+    const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
     new MockServer(
       30001,
-      function(argv) {
+      function (argv) {
         if (argv[0] === "exec" || argv[1] === "foo") {
           return new Error(errorMessage);
         }
@@ -123,12 +123,12 @@ describe("cluster:transaction", function() {
       slotTable
     );
 
-    var cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
-      maxRedirections: 3
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      maxRedirections: 3,
     });
 
     let isDoneCalled = false;
-    const wrapDone = function(error?: Error) {
+    const wrapDone = function (error?: Error) {
       if (isDoneCalled) {
         return;
       }
@@ -137,16 +137,16 @@ describe("cluster:transaction", function() {
       done(error);
     };
 
-    process.on("unhandledRejection", err => {
+    process.on("unhandledRejection", (err) => {
       wrapDone(new Error("got unhandledRejection: " + (err as Error).message));
     });
     cluster
       .multi()
       .get("foo")
       .set("foo", "bar")
-      .exec(function(err) {
+      .exec(function (err) {
         expect(err).to.have.property("message", errorMessage);
-        cluster.on("end", function() {
+        cluster.on("end", function () {
           // Wait for the end event to ensure the transaction
           // promise has been resolved.
           wrapDone();

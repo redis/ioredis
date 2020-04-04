@@ -50,10 +50,10 @@ export default class DataHandler {
       },
       returnReply: (reply: any) => {
         this.returnReply(reply);
-      }
+      },
     });
 
-    redis.stream.on("data", data => {
+    redis.stream.on("data", (data) => {
       parser.execute(data);
     });
   }
@@ -71,7 +71,7 @@ export default class DataHandler {
 
     (err as any).command = {
       name: item.command.name,
-      args: item.command.args
+      args: item.command.args,
     };
 
     this.redis.handleReconnection(err, item);
@@ -202,7 +202,7 @@ export default class DataHandler {
     const args = replyStr
       .slice(argindex + 1, -1)
       .split('" "')
-      .map(elem => elem.replace(/\\"/g, '"'));
+      .map((elem) => elem.replace(/\\"/g, '"'));
     const dbAndSource = replyStr.slice(len + 2, argindex - 2).split(" ");
     this.redis.emit("monitor", timestamp, args, dbAndSource[1], dbAndSource[0]);
     return true;

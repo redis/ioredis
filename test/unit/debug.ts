@@ -3,16 +3,16 @@ import * as sinon from "sinon";
 import { expect } from "chai";
 import debug, {
   getStringValue,
-  MAX_ARGUMENT_LENGTH
+  MAX_ARGUMENT_LENGTH,
 } from "../../lib/utils/debug";
 
-describe("utils/debug", function() {
-  afterEach(function() {
+describe("utils/debug", function () {
+  afterEach(function () {
     rDebug.enable(process.env.DEBUG || "");
   });
 
-  describe(".exports.getStringValue", function() {
-    it("should return a string or undefined", function() {
+  describe(".exports.getStringValue", function () {
+    it("should return a string or undefined", function () {
       expect(getStringValue(true)).to.be.undefined;
       expect(getStringValue(undefined)).to.be.undefined;
       expect(getStringValue(null)).to.be.undefined;
@@ -31,18 +31,18 @@ describe("utils/debug", function() {
     });
   });
 
-  describe(".exports", function() {
-    it("should return a function", function() {
+  describe(".exports", function () {
+    it("should return a function", function () {
       expect(debug("test")).to.be.a("function");
     });
 
-    it("should output to console if DEBUG is set", function() {
-      var dbgNS = "ioredis:debugtest";
+    it("should output to console if DEBUG is set", function () {
+      const dbgNS = "ioredis:debugtest";
 
       rDebug.enable(dbgNS);
 
-      var logspy = sinon.spy();
-      var fn = debug("debugtest");
+      const logspy = sinon.spy();
+      const fn = debug("debugtest");
 
       // @ts-ignore
       fn.log = logspy;
@@ -52,7 +52,7 @@ describe("utils/debug", function() {
       // @ts-ignore
       expect(fn.namespace).to.equal(dbgNS);
 
-      var data = [],
+      let data = [],
         i = 0;
 
       while (i < 1000) {
@@ -60,14 +60,14 @@ describe("utils/debug", function() {
         i += 1;
       }
 
-      var datastr = JSON.stringify(data);
+      const datastr = JSON.stringify(data);
 
       fn("my message %s", { json: data });
       expect(logspy.called).to.equal(true);
 
-      var args = logspy.getCall(0).args;
+      const args = logspy.getCall(0).args;
 
-      var wantedArglen =
+      const wantedArglen =
         30 + // " ... <REDACTED full-length="">"
         MAX_ARGUMENT_LENGTH + // max-length of redacted string
         datastr.length.toString().length; // length of string of string length (inception much?)

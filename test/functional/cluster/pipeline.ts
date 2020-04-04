@@ -4,31 +4,31 @@ import { expect } from "chai";
 import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
 
-describe("cluster:pipeline", function() {
-  it("should throw when not all keys belong to the same slot", function(done) {
-    var slotTable = [
+describe("cluster:pipeline", function () {
+  it("should throw when not all keys belong to the same slot", function (done) {
+    const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
       [12182, 12183, ["127.0.0.1", 30002]],
-      [12184, 16383, ["127.0.0.1", 30001]]
+      [12184, 16383, ["127.0.0.1", 30001]],
     ];
-    new MockServer(30001, function(argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
     });
-    new MockServer(30002, function(argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
     });
 
-    var cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
     cluster
       .pipeline()
       .set("foo", "bar")
       .get("foo2")
       .exec()
-      .catch(function(err) {
+      .catch(function (err) {
         expect(err.message).to.match(
           /All keys in the pipeline should belong to the same slot/
         );
@@ -37,14 +37,14 @@ describe("cluster:pipeline", function() {
       });
   });
 
-  it("should auto redirect commands on MOVED", function(done) {
-    var moved = false;
-    var slotTable = [
+  it("should auto redirect commands on MOVED", function (done) {
+    let moved = false;
+    const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
       [12182, 12183, ["127.0.0.1", 30002]],
-      [12184, 16383, ["127.0.0.1", 30001]]
+      [12184, 16383, ["127.0.0.1", 30001]],
     ];
-    new MockServer(30001, function(argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -52,7 +52,7 @@ describe("cluster:pipeline", function() {
         return "bar";
       }
     });
-    new MockServer(30002, function(argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -65,12 +65,12 @@ describe("cluster:pipeline", function() {
       }
     });
 
-    var cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
     cluster
       .pipeline()
       .get("foo")
       .set("foo", "bar")
-      .exec(function(err, result) {
+      .exec(function (err, result) {
         expect(err).to.eql(null);
         expect(result[0]).to.eql([null, "bar"]);
         expect(result[1]).to.eql([null, "OK"]);
@@ -79,14 +79,14 @@ describe("cluster:pipeline", function() {
       });
   });
 
-  it("should auto redirect commands on ASK", function(done) {
-    var asked = false;
-    var slotTable = [
+  it("should auto redirect commands on ASK", function (done) {
+    let asked = false;
+    const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
       [12182, 12183, ["127.0.0.1", 30002]],
-      [12184, 16383, ["127.0.0.1", 30001]]
+      [12184, 16383, ["127.0.0.1", 30001]],
     ];
-    new MockServer(30001, function(argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -101,7 +101,7 @@ describe("cluster:pipeline", function() {
         asked = false;
       }
     });
-    new MockServer(30002, function(argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -110,12 +110,12 @@ describe("cluster:pipeline", function() {
       }
     });
 
-    var cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
     cluster
       .pipeline()
       .get("foo")
       .set("foo", "bar")
-      .exec(function(err, result) {
+      .exec(function (err, result) {
         expect(err).to.eql(null);
         expect(result[0]).to.eql([null, "bar"]);
         expect(result[1]).to.eql([null, "OK"]);
@@ -124,10 +124,10 @@ describe("cluster:pipeline", function() {
       });
   });
 
-  it("should retry the command on TRYAGAIN", function(done) {
-    var times = 0;
-    var slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
-    new MockServer(30001, function(argv) {
+  it("should retry the command on TRYAGAIN", function (done) {
+    let times = 0;
+    const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
+    new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -140,14 +140,14 @@ describe("cluster:pipeline", function() {
       }
     });
 
-    var cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
-      retryDelayOnTryAgain: 1
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      retryDelayOnTryAgain: 1,
     });
     cluster
       .pipeline()
       .get("foo")
       .set("foo", "bar")
-      .exec(function(err, result) {
+      .exec(function (err, result) {
         expect(result[0][1]).to.eql("OK");
         expect(result[1][1]).to.eql("OK");
         cluster.disconnect();
@@ -155,13 +155,13 @@ describe("cluster:pipeline", function() {
       });
   });
 
-  it("should not redirect commands on a non-readonly command is successful", function(done) {
-    var slotTable = [
+  it("should not redirect commands on a non-readonly command is successful", function (done) {
+    const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
       [12182, 12183, ["127.0.0.1", 30002]],
-      [12184, 16383, ["127.0.0.1", 30001]]
+      [12184, 16383, ["127.0.0.1", 30001]],
     ];
-    new MockServer(30001, function(argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -169,7 +169,7 @@ describe("cluster:pipeline", function() {
         return "bar";
       }
     });
-    new MockServer(30002, function(argv) {
+    new MockServer(30002, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -178,12 +178,12 @@ describe("cluster:pipeline", function() {
       }
     });
 
-    var cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
     cluster
       .pipeline()
       .get("foo")
       .set("foo", "bar")
-      .exec(function(err, result) {
+      .exec(function (err, result) {
         expect(err).to.eql(null);
         expect(result[0][0].message).to.match(/MOVED/);
         expect(result[1]).to.eql([null, "OK"]);
@@ -192,18 +192,18 @@ describe("cluster:pipeline", function() {
       });
   });
 
-  it("should retry when redis is down", function(done) {
-    var slotTable = [
+  it("should retry when redis is down", function (done) {
+    const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
       [12182, 12183, ["127.0.0.1", 30002]],
-      [12184, 16383, ["127.0.0.1", 30001]]
+      [12184, 16383, ["127.0.0.1", 30001]],
     ];
-    new MockServer(30001, function(argv) {
+    new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
     });
-    var node2 = new MockServer(30002, function(argv) {
+    const node2 = new MockServer(30002, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -212,8 +212,8 @@ describe("cluster:pipeline", function() {
       }
     });
 
-    var cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
-      retryDelayOnFailover: 1
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      retryDelayOnFailover: 1,
     });
     const stub = sinon
       .stub(cluster, "refreshSlotsCache")
@@ -227,7 +227,7 @@ describe("cluster:pipeline", function() {
       .pipeline()
       .get("foo")
       .set("foo", "bar")
-      .exec(function(err, result) {
+      .exec(function (err, result) {
         expect(err).to.eql(null);
         expect(result[0]).to.eql([null, "bar"]);
         expect(result[1]).to.eql([null, "OK"]);

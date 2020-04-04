@@ -4,7 +4,7 @@ import Pipeline from "./pipeline";
 import { CallbackFunction } from "./types";
 
 export function addTransactionSupport(redis) {
-  redis.pipeline = function(commands) {
+  redis.pipeline = function (commands) {
     const pipeline = new Pipeline(this);
     if (Array.isArray(commands)) {
       pipeline.addBatch(commands);
@@ -13,7 +13,7 @@ export function addTransactionSupport(redis) {
   };
 
   const { multi } = redis;
-  redis.multi = function(commands, options) {
+  redis.multi = function (commands, options) {
     if (typeof options === "undefined" && !Array.isArray(commands)) {
       options = commands;
       commands = null;
@@ -27,7 +27,7 @@ export function addTransactionSupport(redis) {
       pipeline.addBatch(commands);
     }
     const exec = pipeline.exec;
-    pipeline.exec = function(callback: CallbackFunction) {
+    pipeline.exec = function (callback: CallbackFunction) {
       if (this._transactions > 0) {
         exec.call(pipeline);
       }
@@ -39,7 +39,7 @@ export function addTransactionSupport(redis) {
       }
       const promise = exec.call(pipeline);
       return asCallback(
-        promise.then(function(result) {
+        promise.then(function (result) {
           const execResult = result[result.length - 1];
           if (typeof execResult === "undefined") {
             throw new Error(
@@ -62,7 +62,7 @@ export function addTransactionSupport(redis) {
     };
 
     const { execBuffer } = pipeline;
-    pipeline.execBuffer = function(callback) {
+    pipeline.execBuffer = function (callback) {
       if (this._transactions > 0) {
         execBuffer.call(pipeline);
       }
@@ -72,9 +72,9 @@ export function addTransactionSupport(redis) {
   };
 
   const { exec } = redis;
-  redis.exec = function(callback: CallbackFunction) {
+  redis.exec = function (callback: CallbackFunction) {
     return asCallback(
-      exec.call(this).then(function(results) {
+      exec.call(this).then(function (results) {
         if (Array.isArray(results)) {
           results = wrapMultiResult(results);
         }

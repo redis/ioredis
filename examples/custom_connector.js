@@ -8,7 +8,7 @@ class AsyncSentinelConnector extends Redis.SentinelConnector {
   constructor(options = {}) {
     // Placeholder
     options.sentinels = options.sentinels || [
-      { host: "localhost", port: 6379 }
+      { host: "localhost", port: 6379 },
     ];
 
     // SentinelConnector saves options as its property
@@ -16,7 +16,7 @@ class AsyncSentinelConnector extends Redis.SentinelConnector {
   }
 
   connect(eventEmitter) {
-    return MyService.getSentinels().then(sentinels => {
+    return MyService.getSentinels().then((sentinels) => {
       this.options.sentinels = sentinels;
       this.sentinelIterator = new Redis.SentinelIterator(sentinels);
       return Redis.SentinelConnector.prototype.connect.call(this, eventEmitter);
@@ -25,12 +25,12 @@ class AsyncSentinelConnector extends Redis.SentinelConnector {
 }
 
 const redis = new Redis({
-  Connector: AsyncSentinelConnector
+  Connector: AsyncSentinelConnector,
 });
 
 // ioredis supports all Redis commands:
 redis.set("foo", "bar");
-redis.get("foo", function(err, result) {
+redis.get("foo", function (err, result) {
   if (err) {
     console.error(err);
   } else {
@@ -40,7 +40,7 @@ redis.get("foo", function(err, result) {
 redis.del("foo");
 
 // Or using a promise if the last argument isn't a function
-redis.get("foo").then(function(result) {
+redis.get("foo").then(function (result) {
   console.log(result);
 });
 

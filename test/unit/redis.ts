@@ -2,14 +2,14 @@ import * as sinon from "sinon";
 import { expect } from "chai";
 import Redis from "../../lib/redis";
 
-describe("Redis", function() {
-  describe("constructor", function() {
-    it("should parse options correctly", function() {
+describe("Redis", function () {
+  describe("constructor", function () {
+    it("should parse options correctly", function () {
       const stub = sinon
         .stub(Redis.prototype, "connect")
         .returns(Promise.resolve());
 
-      var option;
+      let option;
       try {
         option = getOption();
         expect(option).to.have.property("port", 6379);
@@ -29,7 +29,7 @@ describe("Redis", function() {
 
         option = getOption(6381, "192.168.1.1", {
           password: "123",
-          db: 2
+          db: 2,
         });
         expect(option).to.have.property("port", 6381);
         expect(option).to.have.property("host", "192.168.1.1");
@@ -58,34 +58,34 @@ describe("Redis", function() {
 
         option = getOption({
           port: 6380,
-          host: "192.168.1.1"
+          host: "192.168.1.1",
         });
         expect(option).to.have.property("port", 6380);
         expect(option).to.have.property("host", "192.168.1.1");
 
         option = getOption({
-          path: "/tmp/redis.sock"
+          path: "/tmp/redis.sock",
         });
         expect(option).to.have.property("path", "/tmp/redis.sock");
 
         option = getOption({
-          port: "6380"
+          port: "6380",
         });
         expect(option).to.have.property("port", 6380);
 
         option = getOption({
-          showFriendlyErrorStack: true
+          showFriendlyErrorStack: true,
         });
         expect(option).to.have.property("showFriendlyErrorStack", true);
 
         option = getOption(6380, {
-          host: "192.168.1.1"
+          host: "192.168.1.1",
         });
         expect(option).to.have.property("port", 6380);
         expect(option).to.have.property("host", "192.168.1.1");
 
         option = getOption("6380", {
-          host: "192.168.1.1"
+          host: "192.168.1.1",
         });
         expect(option).to.have.property("port", 6380);
 
@@ -93,7 +93,7 @@ describe("Redis", function() {
         expect(option).to.have.property("tls", true);
 
         option = getOption("rediss://example.test", {
-          tls: { hostname: "example.test" }
+          tls: { hostname: "example.test" },
         });
         expect(option.tls).to.deep.equal({ hostname: "example.test" });
       } catch (err) {
@@ -104,30 +104,30 @@ describe("Redis", function() {
 
       function getOption(...args) {
         // @ts-ignore
-        var redis = new Redis(...args);
+        const redis = new Redis(...args);
         return redis.options;
       }
     });
 
-    it("should throw when arguments is invalid", function() {
-      expect(function() {
+    it("should throw when arguments is invalid", function () {
+      expect(function () {
         // @ts-ignore
-        new Redis(function() {});
+        new Redis(function () {});
       }).to.throw(Error);
     });
   });
 
-  describe(".createClient", function() {
-    it("should redirect to constructor", function() {
-      var redis = Redis.createClient({ name: "pass", lazyConnect: true });
+  describe(".createClient", function () {
+    it("should redirect to constructor", function () {
+      const redis = Redis.createClient({ name: "pass", lazyConnect: true });
       expect(redis.options).to.have.property("name", "pass");
       expect(redis.options).to.have.property("lazyConnect", true);
     });
   });
 
-  describe("#end", function() {
-    it("should redirect to #disconnect", function(done) {
-      var redis = new Redis({ lazyConnect: true });
+  describe("#end", function () {
+    it("should redirect to #disconnect", function (done) {
+      const redis = new Redis({ lazyConnect: true });
       const stub = sinon.stub(redis, "disconnect").callsFake(() => {
         stub.restore();
         done();
@@ -136,15 +136,15 @@ describe("Redis", function() {
     });
   });
 
-  describe("#flushQueue", function() {
-    it("should flush all queues by default", function() {
-      var flushQueue = Redis.prototype.flushQueue;
-      var redis = {
-        offlineQueue: [{ command: { reject: function() {} } }],
-        commandQueue: [{ command: { reject: function() {} } }]
+  describe("#flushQueue", function () {
+    it("should flush all queues by default", function () {
+      const flushQueue = Redis.prototype.flushQueue;
+      const redis = {
+        offlineQueue: [{ command: { reject: function () {} } }],
+        commandQueue: [{ command: { reject: function () {} } }],
       };
-      var offline = sinon.mock(redis.offlineQueue[0].command);
-      var command = sinon.mock(redis.commandQueue[0].command);
+      const offline = sinon.mock(redis.offlineQueue[0].command);
+      const command = sinon.mock(redis.commandQueue[0].command);
       offline.expects("reject").once();
       command.expects("reject").once();
       flushQueue.call(redis);
@@ -152,14 +152,14 @@ describe("Redis", function() {
       command.verify();
     });
 
-    it("should be able to ignore a queue", function() {
-      var flushQueue = Redis.prototype.flushQueue;
-      var redis = {
-        offlineQueue: [{ command: { reject: function() {} } }],
-        commandQueue: [{ command: { reject: function() {} } }]
+    it("should be able to ignore a queue", function () {
+      const flushQueue = Redis.prototype.flushQueue;
+      const redis = {
+        offlineQueue: [{ command: { reject: function () {} } }],
+        commandQueue: [{ command: { reject: function () {} } }],
       };
-      var offline = sinon.mock(redis.offlineQueue[0].command);
-      var command = sinon.mock(redis.commandQueue[0].command);
+      const offline = sinon.mock(redis.offlineQueue[0].command);
+      const command = sinon.mock(redis.commandQueue[0].command);
       offline.expects("reject").once();
       command.expects("reject").never();
       flushQueue.call(redis, new Error(), { commandQueue: false });

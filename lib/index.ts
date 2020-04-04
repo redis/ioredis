@@ -8,7 +8,7 @@ export { default as Pipeline } from "./pipeline";
 export { default as AbstractConnector } from "./connectors/AbstractConnector";
 export {
   default as SentinelConnector,
-  SentinelIterator
+  SentinelIterator,
 } from "./connectors/SentinelConnector";
 
 // Type Exports
@@ -25,7 +25,7 @@ Object.defineProperty(exports, "Promise", {
   },
   set(lib) {
     PromiseContainer.set(lib);
-  }
+  },
 });
 
 export function print(err: Error | null, reply?: any) {

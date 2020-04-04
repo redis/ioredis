@@ -7,17 +7,17 @@ import MockServer from "../helpers/mock_server";
 
 describe("tls option", () => {
   describe("Standalone", () => {
-    it("supports tls", done => {
+    it("supports tls", (done) => {
       let redis;
 
       // @ts-ignore
-      const stub = sinon.stub(tls, "connect").callsFake(op => {
+      const stub = sinon.stub(tls, "connect").callsFake((op) => {
         // @ts-ignore
         expect(op.ca).to.eql("123");
         // @ts-ignore
         expect(op.port).to.eql(6379);
         const stream = net.createConnection(op);
-        stream.on("connect", data => {
+        stream.on("connect", (data) => {
           stream.emit("secureConnect", data);
         });
         return stream;
@@ -33,8 +33,8 @@ describe("tls option", () => {
   });
 
   describe("Sentinel", () => {
-    it("does not use tls option by default", done => {
-      new MockServer(27379, function(argv) {
+    it("does not use tls option by default", (done) => {
+      new MockServer(27379, function (argv) {
         if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
           return ["127.0.0.1", "6379"];
         }
@@ -47,7 +47,7 @@ describe("tls option", () => {
       const redis = new Redis({
         sentinels: [{ port: 27379 }],
         name: "my",
-        tls: { ca: "123" }
+        tls: { ca: "123" },
       });
       redis.on("ready", () => {
         redis.disconnect();
@@ -56,8 +56,8 @@ describe("tls option", () => {
       });
     });
 
-    it("can be enabled by `enableTLSForSentinelMode`", done => {
-      new MockServer(27379, function(argv) {
+    it("can be enabled by `enableTLSForSentinelMode`", (done) => {
+      new MockServer(27379, function (argv) {
         if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
           return ["127.0.0.1", "6379"];
         }
@@ -65,7 +65,7 @@ describe("tls option", () => {
 
       let redis;
 
-      const stub = sinon.stub(tls, "connect").callsFake(op => {
+      const stub = sinon.stub(tls, "connect").callsFake((op) => {
         // @ts-ignore
         expect(op.ca).to.eql("123");
         redis.disconnect();
@@ -78,12 +78,12 @@ describe("tls option", () => {
         sentinels: [{ port: 27379 }],
         name: "my",
         tls: { ca: "123" },
-        enableTLSForSentinelMode: true
+        enableTLSForSentinelMode: true,
       });
     });
 
-    it("supports sentinelTLS", done => {
-      new MockServer(27379, function(argv) {
+    it("supports sentinelTLS", (done) => {
+      new MockServer(27379, function (argv) {
         if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
           return ["127.0.0.1", "6379"];
         }
@@ -92,13 +92,13 @@ describe("tls option", () => {
       let redis;
 
       // @ts-ignore
-      const stub = sinon.stub(tls, "connect").callsFake(op => {
+      const stub = sinon.stub(tls, "connect").callsFake((op) => {
         // @ts-ignore
         expect(op.ca).to.eql("123");
         // @ts-ignore
         expect(op.port).to.eql(27379);
         const stream = net.createConnection(op);
-        stream.on("connect", data => {
+        stream.on("connect", (data) => {
           stream.emit("secureConnect", data);
         });
         return stream;
@@ -107,7 +107,7 @@ describe("tls option", () => {
       redis = new Redis({
         sentinels: [{ port: 27379 }],
         name: "my",
-        sentinelTLS: { ca: "123" }
+        sentinelTLS: { ca: "123" },
       });
       redis.on("ready", () => {
         redis.disconnect();

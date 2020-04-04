@@ -133,7 +133,7 @@ export interface IClusterOptions {
 }
 
 export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {
-  clusterRetryStrategy: times => Math.min(100 + times * 2, 2000),
+  clusterRetryStrategy: (times) => Math.min(100 + times * 2, 2000),
   enableOfflineQueue: true,
   enableReadyCheck: true,
   scaleReads: "master",
@@ -143,5 +143,5 @@ export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {
   retryDelayOnTryAgain: 100,
   slotsRefreshTimeout: 1000,
   slotsRefreshInterval: 5000,
-  dnsLookup: lookup
+  dnsLookup: lookup,
 };

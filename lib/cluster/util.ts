@@ -24,14 +24,14 @@ export function nodeKeyToRedisOptions(nodeKey: NodeKey): IRedisOptions {
   }
   return {
     host: nodeKey.slice(0, portIndex),
-    port: Number(nodeKey.slice(portIndex + 1))
+    port: Number(nodeKey.slice(portIndex + 1)),
   };
 }
 
 export function normalizeNodeOptions(
   nodes: Array<string | number | object>
 ): IRedisOptions[] {
-  return nodes.map(node => {
+  return nodes.map((node) => {
     const options: any = {};
     if (typeof node === "object") {
       Object.assign(options, node);
@@ -64,9 +64,9 @@ export function getUniqueHostnamesFromOptions(
   nodes: IRedisOptions[]
 ): string[] {
   const uniqueHostsMap = {};
-  nodes.forEach(node => {
+  nodes.forEach((node) => {
     uniqueHostsMap[node.host] = true;
   });
 
-  return Object.keys(uniqueHostsMap).filter(host => !isIP(host));
+  return Object.keys(uniqueHostsMap).filter((host) => !isIP(host));
 }

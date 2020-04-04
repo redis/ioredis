@@ -13,9 +13,7 @@ export default class Script {
     private keyPrefix: string = "",
     private readOnly: boolean = false
   ) {
-    this.sha = createHash("sha1")
-      .update(lua)
-      .digest("hex");
+    this.sha = createHash("sha1").update(lua).digest("hex");
   }
 
   execute(
@@ -40,7 +38,7 @@ export default class Script {
     const result = container.sendCommand(evalsha);
     if (isPromise(result)) {
       return asCallback(
-        result.catch(err => {
+        result.catch((err) => {
           if (err.toString().indexOf("NOSCRIPT") === -1) {
             throw err;
           }

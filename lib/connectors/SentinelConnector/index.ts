@@ -4,12 +4,12 @@ import {
   CONNECTION_CLOSED_ERROR_MSG,
   packObject,
   sample,
-  Debug
+  Debug,
 } from "../../utils";
 import { connect as createTLSConnection, SecureContextOptions } from "tls";
 import {
   ITcpConnectionOptions,
-  isIIpcConnectionOptions
+  isIIpcConnectionOptions,
 } from "../StandaloneConnector";
 import SentinelIterator from "./SentinelIterator";
 import { ISentinelAddress } from "./types";
@@ -179,10 +179,10 @@ export default class SentinelConnector extends AbstractConnector {
       }
 
       result
-        .map<IAddressFromResponse>(packObject as (
-          value: any
-        ) => IAddressFromResponse)
-        .forEach(sentinel => {
+        .map<IAddressFromResponse>(
+          packObject as (value: any) => IAddressFromResponse
+        )
+        .forEach((sentinel) => {
           const flags = sentinel.flags ? sentinel.flags.split(",") : [];
           if (
             flags.indexOf("disconnected") === -1 &&
@@ -214,7 +214,7 @@ export default class SentinelConnector extends AbstractConnector {
           client.disconnect();
           return callback(err);
         }
-        this.updateSentinels(client, err => {
+        this.updateSentinels(client, (err) => {
           client.disconnect();
           if (err) {
             return callback(err);
@@ -248,11 +248,11 @@ export default class SentinelConnector extends AbstractConnector {
       }
 
       const availableSlaves = result
-        .map<IAddressFromResponse>(packObject as (
-          value: any
-        ) => IAddressFromResponse)
+        .map<IAddressFromResponse>(
+          packObject as (value: any) => IAddressFromResponse
+        )
         .filter(
-          slave =>
+          (slave) =>
             slave.flags && !slave.flags.match(/(disconnected|s_down|o_down)/)
         );
 
@@ -275,7 +275,7 @@ export default class SentinelConnector extends AbstractConnector {
     endpoint,
     callback: CallbackFunction<ITcpConnectionOptions>
   ): void {
-    var client = new Redis({
+    const client = new Redis({
       port: endpoint.port || 26379,
       host: endpoint.host,
       password: this.options.sentinelPassword || null,
@@ -288,7 +288,7 @@ export default class SentinelConnector extends AbstractConnector {
       retryStrategy: null,
       enableReadyCheck: false,
       connectTimeout: this.options.connectTimeout,
-      dropBufferSupport: true
+      dropBufferSupport: true,
     });
 
     // ignore the errors since resolve* methods will handle them

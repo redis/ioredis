@@ -1,7 +1,6 @@
 language: node_js
 
 node_js:
-  - "6"
   - "8"
   - "9"
   - "10"
@@ -14,7 +13,7 @@ services:
 script:
   - npm run lint
   - npm run build
-  - npm run test:cov || npm run test:cov || npm run test:cov
+  - travis_retry npm run test
 
 env:
   - CC_TEST_REPORTER_ID="4cee2f60edbf31acac6ddff823f0b93e2e9882c3e5c55130049e0fd878549f84"

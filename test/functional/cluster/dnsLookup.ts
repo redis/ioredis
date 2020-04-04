@@ -3,10 +3,10 @@ import { Cluster } from "../../../lib";
 import { expect } from "chai";
 
 describe("cluster:dnsLookup", () => {
-  it("resolve hostnames to IPs", done => {
+  it("resolve hostnames to IPs", (done) => {
     const slotTable = [
       [0, 1000, ["127.0.0.1", 30001]],
-      [1001, 16383, ["127.0.0.1", 30002]]
+      [1001, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, (argv, c) => {}, slotTable);
     new MockServer(30002, (argv, c) => {}, slotTable);
@@ -22,11 +22,11 @@ describe("cluster:dnsLookup", () => {
     });
   });
 
-  it("support customize dnsLookup function", done => {
+  it("support customize dnsLookup function", (done) => {
     let dnsLookupCalledCount = 0;
     const slotTable = [
       [0, 1000, ["127.0.0.1", 30001]],
-      [1001, 16383, ["127.0.0.1", 30002]]
+      [1001, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, (argv, c) => {}, slotTable);
     new MockServer(30002, (argv, c) => {}, slotTable);
@@ -39,7 +39,7 @@ describe("cluster:dnsLookup", () => {
         } else {
           callback(new Error("Unknown hostname"));
         }
-      }
+      },
     });
     cluster.on("ready", () => {
       const nodes = cluster.nodes("master");
@@ -52,10 +52,10 @@ describe("cluster:dnsLookup", () => {
     });
   });
 
-  it("reconnects when dns lookup fails", done => {
+  it("reconnects when dns lookup fails", (done) => {
     const slotTable = [
       [0, 1000, ["127.0.0.1", 30001]],
-      [1001, 16383, ["127.0.0.1", 30002]]
+      [1001, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, (argv, c) => {}, slotTable);
     new MockServer(30002, (argv, c) => {}, slotTable);
@@ -69,12 +69,12 @@ describe("cluster:dnsLookup", () => {
           callback(new Error("Random Exception"));
         }
       },
-      clusterRetryStrategy: function(_, reason) {
+      clusterRetryStrategy: function (_, reason) {
         expect(reason.message).to.eql("Random Exception");
         expect(retried).to.eql(false);
         retried = true;
         return 0;
-      }
+      },
     });
     cluster.on("ready", () => {
       cluster.disconnect();
@@ -82,10 +82,10 @@ describe("cluster:dnsLookup", () => {
     });
   });
 
-  it("reconnects when dns lookup thrown an error", done => {
+  it("reconnects when dns lookup thrown an error", (done) => {
     const slotTable = [
       [0, 1000, ["127.0.0.1", 30001]],
-      [1001, 16383, ["127.0.0.1", 30002]]
+      [1001, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, (argv, c) => {}, slotTable);
     new MockServer(30002, (argv, c) => {}, slotTable);
@@ -99,12 +99,12 @@ describe("cluster:dnsLookup", () => {
           throw new Error("Random Exception");
         }
       },
-      clusterRetryStrategy: function(_, reason) {
+      clusterRetryStrategy: function (_, reason) {
         expect(reason.message).to.eql("Random Exception");
         expect(retried).to.eql(false);
         retried = true;
         return 0;
-      }
+      },
     });
     cluster.on("ready", () => {
       cluster.disconnect();

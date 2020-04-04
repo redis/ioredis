@@ -1,16 +1,16 @@
 import Redis from "../../lib/redis";
 import { expect } from "chai";
 
-var MAX_NUMBER = 9007199254740991; // Number.MAX_SAFE_INTEGER
+const MAX_NUMBER = 9007199254740991; // Number.MAX_SAFE_INTEGER
 
-describe("stringNumbers", function() {
-  context("enabled", function() {
-    it("returns numbers as strings", function(done) {
-      var redis = new Redis({
-        stringNumbers: true
+describe("stringNumbers", function () {
+  context("enabled", function () {
+    it("returns numbers as strings", function (done) {
+      const redis = new Redis({
+        stringNumbers: true,
       });
 
-      var pending = 0;
+      let pending = 0;
 
       redis.set("foo", MAX_NUMBER);
       redis.incr("foo", check("9007199254740992"));
@@ -27,7 +27,7 @@ describe("stringNumbers", function() {
 
       function check(expected) {
         pending += 1;
-        return function(err, res) {
+        return function (err, res) {
           expect(res).to.eql(expected);
           if (!--pending) {
             redis.disconnect();
@@ -38,12 +38,12 @@ describe("stringNumbers", function() {
     });
   });
 
-  context("disabled", function() {
-    it("returns numbers", function(done) {
-      var redis = new Redis();
+  context("disabled", function () {
+    it("returns numbers", function (done) {
+      const redis = new Redis();
 
       redis.set("foo", "123");
-      redis.incr("foo", function(err, res) {
+      redis.incr("foo", function (err, res) {
         expect(res).to.eql(124);
         redis.disconnect();
         done();

@@ -12,7 +12,7 @@ function isSentinelEql(
 
 export default class SentinelIterator
   implements Iterator<Partial<ISentinelAddress>> {
-  private cursor: number = 0;
+  private cursor = 0;
   private sentinels: Array<Partial<ISentinelAddress>>;
 
   constructor(sentinels: Array<Partial<ISentinelAddress>>) {

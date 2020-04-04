@@ -3,7 +3,7 @@ import { NetStream } from "../types";
 export type ErrorEmitter = (type: string, err: Error) => void;
 
 export default abstract class AbstractConnector {
-  protected connecting: boolean = false;
+  protected connecting = false;
   protected stream: NetStream;
 
   public check(info: any): boolean {

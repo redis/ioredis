@@ -6,7 +6,7 @@ import {
   optimizeErrorStack,
   toArg,
   convertMapToArray,
-  convertObjectToArray
+  convertObjectToArray,
 } from "./utils";
 import { flatten } from "./utils/lodash";
 import { get as getPromise } from "./promiseContainer";
@@ -89,12 +89,12 @@ export default class Command implements ICommand {
       "unsubscribe",
       "punsubscribe",
       "ping",
-      "quit"
+      "quit",
     ],
     VALID_IN_MONITOR_MODE: ["monitor", "auth"],
     ENTER_SUBSCRIBER_MODE: ["subscribe", "psubscribe"],
     EXIT_SUBSCRIBER_MODE: ["unsubscribe", "punsubscribe"],
-    WILL_DISCONNECT: ["quit"]
+    WILL_DISCONNECT: ["quit"],
   };
 
   private static flagMap?: IFlagMap;
@@ -103,7 +103,7 @@ export default class Command implements ICommand {
     if (!this.flagMap) {
       this.flagMap = Object.keys(Command.FLAGS).reduce((map, flagName) => {
         map[flagName] = {};
-        Command.FLAGS[flagName].forEach(commandName => {
+        Command.FLAGS[flagName].forEach((commandName) => {
           map[flagName][commandName] = true;
         });
         return map;
@@ -131,7 +131,7 @@ export default class Command implements ICommand {
     reply: { [command: string]: ReplyTransformer };
   } = {
     argument: {},
-    reply: {}
+    reply: {},
   };
 
   public static setArgumentTransformer(
@@ -152,9 +152,9 @@ export default class Command implements ICommand {
   private errorStack: string;
   public args: CommandParameter[];
   private callback: CallbackFunction;
-  private transformed: boolean = false;
-  public isCustomCommand: boolean = false;
-  public inTransaction: boolean = false;
+  private transformed = false;
+  public isCustomCommand = false;
+  public inTransaction = false;
   public pipelineIndex?: number;
 
   private slot?: number | null;
@@ -190,7 +190,7 @@ export default class Command implements ICommand {
     this.initPromise();
 
     if (options.keyPrefix) {
-      this._iterateKeys(key => options.keyPrefix + key);
+      this._iterateKeys((key) => options.keyPrefix + key);
     }
 
     if (options.readOnly) {
@@ -212,7 +212,7 @@ export default class Command implements ICommand {
 
       this.resolve = this._convertValue(resolve);
       if (this.errorStack) {
-        this.reject = err => {
+        this.reject = (err) => {
           reject(optimizeErrorStack(err, this.errorStack, __dirname));
         };
       } else {
@@ -244,7 +244,7 @@ export default class Command implements ICommand {
    * @memberof Command
    */
   private _iterateKeys(
-    transform: Function = key => key
+    transform: Function = (key) => key
   ): Array<string | Buffer> {
     if (typeof this.keys === "undefined") {
       this.keys = [];
@@ -276,7 +276,7 @@ export default class Command implements ICommand {
     }
 
     let result;
-    let commandStr =
+    const commandStr =
       "*" +
       (this.args.length + 1) +
       "\r\n$" +
@@ -339,7 +339,7 @@ export default class Command implements ICommand {
    * @memberof Command
    */
   private _convertValue(resolve: Function): (result: any) => void {
-    return value => {
+    return (value) => {
       try {
         resolve(this.transformReply(value));
       } catch (err) {
@@ -370,7 +370,7 @@ export default class Command implements ICommand {
   }
 }
 
-const msetArgumentTransformer = function(args) {
+const msetArgumentTransformer = function (args) {
   if (args.length === 1) {
     if (typeof Map !== "undefined" && args[0] instanceof Map) {
       return convertMapToArray(args[0]);
@@ -385,7 +385,7 @@ const msetArgumentTransformer = function(args) {
 Command.setArgumentTransformer("mset", msetArgumentTransformer);
 Command.setArgumentTransformer("msetnx", msetArgumentTransformer);
 
-Command.setArgumentTransformer("hmset", function(args) {
+Command.setArgumentTransformer("hmset", function (args) {
   if (args.length === 2) {
     if (typeof Map !== "undefined" && args[1] instanceof Map) {
       return [args[0]].concat(convertMapToArray(args[1]));
@@ -397,10 +397,10 @@ Command.setArgumentTransformer("hmset", function(args) {
   return args;
 });
 
-Command.setReplyTransformer("hgetall", function(result) {
+Command.setReplyTransformer("hgetall", function (result) {
   if (Array.isArray(result)) {
-    var obj = {};
-    for (var i = 0; i < result.length; i += 2) {
+    const obj = {};
+    for (let i = 0; i < result.length; i += 2) {
       obj[result[i]] = result[i + 1];
     }
     return obj;
@@ -408,7 +408,7 @@ Command.setReplyTransformer("hgetall", function(result) {
   return result;
 });
 
-Command.setArgumentTransformer("hset", function(args) {
+Command.setArgumentTransformer("hset", function (args) {
   if (args.length === 2) {
     if (typeof Map !== "undefined" && args[1] instanceof Map) {
       return [args[0]].concat(convertMapToArray(args[1]));

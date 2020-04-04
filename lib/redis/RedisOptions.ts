@@ -33,7 +33,7 @@ export const DEFAULT_REDIS_OPTIONS: IRedisOptions = {
   host: "localhost",
   family: 4,
   connectTimeout: 10000,
-  retryStrategy: function(times) {
+  retryStrategy: function (times) {
     return Math.min(times * 50, 2000);
   },
   keepAlive: 0,
@@ -43,7 +43,7 @@ export const DEFAULT_REDIS_OPTIONS: IRedisOptions = {
   sentinels: null,
   name: null,
   role: "master",
-  sentinelRetryStrategy: function(times) {
+  sentinelRetryStrategy: function (times) {
     return Math.min(times * 10, 1000);
   },
   natMap: null,
@@ -64,5 +64,5 @@ export const DEFAULT_REDIS_OPTIONS: IRedisOptions = {
   readOnly: false,
   stringNumbers: false,
   maxRetriesPerRequest: 20,
-  maxLoadingRetryTime: 10000
+  maxLoadingRetryTime: 10000,
 };
