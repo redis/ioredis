@@ -432,5 +432,23 @@ describe("connection", function () {
         new Redis().on("connect", () => done());
       });
     });
+
+    it("ignores connectTimeout when connection established before promise is resolved", (done) => {
+      const socketSetTimeoutSpy = sinon.spy(net.Socket.prototype, "setTimeout");
+      const socket = new net.Socket();
+      sinon.stub(StandaloneConnector.prototype, "connect").resolves(socket);
+      socket.connect(6379, "127.0.0.1").on("connect", () => {
+        const redis = new Redis({
+          connectTimeout: 1,
+        });
+        redis.on("error", () =>
+          done(new Error("Connect timeout should not have been called"))
+        );
+        redis.on("connect", () => {
+          expect(socketSetTimeoutSpy.callCount).to.eql(0);
+          done();
+        });
+      });
+    });
   });
 });

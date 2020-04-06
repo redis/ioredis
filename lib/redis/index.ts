@@ -306,42 +306,42 @@ Redis.prototype.connect = function (callback) {
 
         if (stream.connecting) {
           stream.once(CONNECT_EVENT, eventHandler.connectHandler(_this));
+
+          if (options.connectTimeout) {
+            /*
+             * Typically, Socket#setTimeout(0) will clear the timer
+             * set before. However, in some platforms (Electron 3.x~4.x),
+             * the timer will not be cleared. So we introduce a variable here.
+             *
+             * See https://github.com/electron/electron/issues/14915
+             */
+            let connectTimeoutCleared = false;
+            stream.setTimeout(options.connectTimeout, function () {
+              if (connectTimeoutCleared) {
+                return;
+              }
+              stream.setTimeout(0);
+              stream.destroy();
+
+              const err = new Error("connect ETIMEDOUT");
+              // @ts-ignore
+              err.errorno = "ETIMEDOUT";
+              // @ts-ignore
+              err.code = "ETIMEDOUT";
+              // @ts-ignore
+              err.syscall = "connect";
+              eventHandler.errorHandler(_this)(err);
+            });
+            stream.once(CONNECT_EVENT, function () {
+              connectTimeoutCleared = true;
+              stream.setTimeout(0);
+            });
+          }
         } else {
           process.nextTick(eventHandler.connectHandler(_this));
         }
         stream.once("error", eventHandler.errorHandler(_this));
         stream.once("close", eventHandler.closeHandler(_this));
-
-        if (options.connectTimeout) {
-          /*
-           * Typically, Socket#setTimeout(0) will clear the timer
-           * set before. However, in some platforms (Electron 3.x~4.x),
-           * the timer will not be cleared. So we introduce a variable here.
-           *
-           * See https://github.com/electron/electron/issues/14915
-           */
-          let connectTimeoutCleared = false;
-          stream.setTimeout(options.connectTimeout, function () {
-            if (connectTimeoutCleared) {
-              return;
-            }
-            stream.setTimeout(0);
-            stream.destroy();
-
-            const err = new Error("connect ETIMEDOUT");
-            // @ts-ignore
-            err.errorno = "ETIMEDOUT";
-            // @ts-ignore
-            err.code = "ETIMEDOUT";
-            // @ts-ignore
-            err.syscall = "connect";
-            eventHandler.errorHandler(_this)(err);
-          });
-          stream.once(CONNECT_EVENT, function () {
-            connectTimeoutCleared = true;
-            stream.setTimeout(0);
-          });
-        }
 
         if (options.noDelay) {
           stream.setNoDelay(true);
