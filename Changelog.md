@@ -1,3 +1,11 @@
+## [4.16.2](https://github.com/luin/ioredis/compare/v4.16.1...v4.16.2) (2020-04-11)
+
+
+### Bug Fixes
+
+* dismiss security alerts for dev dependencies [skip release] ([758b3f2](https://github.com/luin/ioredis/commit/758b3f29036c7830e963ac3d34d3ce9cc7c4cb52))
+* handle connection after connect event was emitted ([#1095](https://github.com/luin/ioredis/issues/1095)) ([16a0610](https://github.com/luin/ioredis/commit/16a06102fa4fa537be926b7e68601c777f0c64b5)), closes [#977](https://github.com/luin/ioredis/issues/977)
+
 ## [4.16.1](https://github.com/luin/ioredis/compare/v4.16.0...v4.16.1) (2020-03-28)
 
 
