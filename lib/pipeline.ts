@@ -253,6 +253,7 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
 
   // Check whether scripts exists
   const scripts = [];
+  const addedScriptHashes = {};
   for (let i = 0; i < this._queue.length; ++i) {
     const item = this._queue[i];
     if (this.isCluster && item.isCustomCommand) {
@@ -267,10 +268,11 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
       continue;
     }
     const script = this._shaToScript[item.args[0]];
-    if (!script) {
+    if (!script || addedScriptHashes[script.sha]) {
       continue;
     }
     scripts.push(script);
+    addedScriptHashes[script.sha] = true;
   }
 
   const _this = this;
@@ -279,7 +281,10 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
   }
 
   return this.redis
-    .script("exists", Array.from(new Set(scripts.map(({ sha }) => sha))))
+    .script(
+      "exists",
+      scripts.map(({ sha }) => sha)
+    )
     .then(function (results) {
       const pending = [];
       for (let i = 0; i < results.length; ++i) {
