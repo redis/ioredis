@@ -267,8 +267,8 @@ describe("pipeline", function () {
     it("should check and load uniq scripts only", function (done) {
       const redis = new Redis();
       redis.defineCommand("test", {
-        numberOfKeys: 1,
-        lua: "return {unpack(KEYS),unpack(ARGV)}",
+        numberOfKeys: 2,
+        lua: "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
       });
       redis.defineCommand("echo", {
         numberOfKeys: 1,
@@ -276,20 +276,30 @@ describe("pipeline", function () {
       });
 
       redis.once("ready", function () {
-        const expectedComands = [
-          "script",
-          "script",
-          "script",
-          "evalsha",
-          "evalsha",
-          "evalsha",
-          "evalsha",
+        const expectedCommands = [
+          ["script", "exists"],
+          ["script", "load", "return {KEYS[1],ARGV[1]}"],
+          ["script", "load", "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}"],
+          ["evalsha"],
+          ["evalsha"],
+          ["evalsha"],
+          ["evalsha"],
+          ["evalsha"],
+          ["evalsha"],
+        ];
+        const expectedResults = [
+          [null, ["a", "1"]],
+          [null, ["b", "2"]],
+          [null, ["k1", "k2", "v1", "v2"]],
+          [null, ["k3", "k4", "v3", "v4"]],
+          [null, ["c", "3"]],
+          [null, ["k5", "k6", "v5", "v6"]],
         ];
         redis.monitor(function (err, monitor) {
           monitor.on("monitor", function (_, command) {
-            const name = expectedComands.shift();
-            expect(name).to.eql(command[0]);
-            if (!expectedComands.length) {
+            const expectedCommand = expectedCommands.shift();
+            expectedCommand.forEach((arg, i) => expect(arg).to.eql(command[i]));
+            if (!expectedCommands.length) {
               monitor.disconnect();
               redis.disconnect();
               done();
@@ -297,11 +307,16 @@ describe("pipeline", function () {
           });
           const pipe = redis.pipeline();
           pipe
-            .echo("f", "0")
-            .test("a", "1")
+            .echo("a", "1")
             .echo("b", "2")
-            .test("b", "3")
-            .exec();
+            .test("k1", "k2", "v1", "v2")
+            .test("k3", "k4", "v3", "v4")
+            .echo("c", "3")
+            .test("k5", "k6", "v5", "v6")
+            .exec(function (err, results) {
+              expect(err).to.eql(null);
+              expect(results).to.eql(expectedResults);
+            });
         });
       });
     });
