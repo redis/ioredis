@@ -1,3 +1,10 @@
+## [4.16.3](https://github.com/luin/ioredis/compare/v4.16.2...v4.16.3) (2020-04-21)
+
+
+### Bug Fixes
+
+* scripts may not be loaded correctly in pipeline ([#1107](https://github.com/luin/ioredis/issues/1107)) ([072d460](https://github.com/luin/ioredis/commit/072d4604113e5562171d689b37c3cf73dcee18ad))
+
 ## [4.16.2](https://github.com/luin/ioredis/compare/v4.16.1...v4.16.2) (2020-04-11)
 
 
