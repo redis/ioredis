@@ -25,6 +25,7 @@ export interface IRedisOptions
   stringNumbers?: boolean;
   maxRetriesPerRequest?: number;
   maxLoadingRetryTime?: number;
+  tlsSni?: boolean;
 }
 
 export const DEFAULT_REDIS_OPTIONS: IRedisOptions = {
