@@ -12,6 +12,7 @@ export function isIIpcConnectionOptions(
 
 export interface ITcpConnectionOptions extends TcpNetConnectOpts {
   tls?: SecureContextOptions;
+  tlsSni?: boolean;
 }
 
 export interface IIpcConnectionOptions extends IpcNetConnectOpts {
@@ -29,6 +30,7 @@ export default class StandaloneConnector extends AbstractConnector {
     const { options } = this;
     this.connecting = true;
 
+    let isTls = false;
     let connectionOptions: any;
     if (isIIpcConnectionOptions(options)) {
       connectionOptions = {
@@ -41,6 +43,10 @@ export default class StandaloneConnector extends AbstractConnector {
       }
       if (options.host != null) {
         connectionOptions.host = options.host;
+        if (options.tlsSni) {
+          isTls = true;
+          connectionOptions.servername = options.host;
+        }
       }
       if (options.family != null) {
         connectionOptions.family = options.family;
@@ -48,6 +54,7 @@ export default class StandaloneConnector extends AbstractConnector {
     }
 
     if (options.tls) {
+      isTls = true;
       Object.assign(connectionOptions, options.tls);
     }
 
@@ -66,7 +73,7 @@ export default class StandaloneConnector extends AbstractConnector {
         }
 
         try {
-          if (options.tls) {
+          if (isTls) {
             this.stream = createTLSConnection(connectionOptions);
           } else {
             this.stream = createConnection(connectionOptions);
