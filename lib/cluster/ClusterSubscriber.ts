@@ -74,11 +74,13 @@ export default class ClusterSubscriber {
     this.subscriber = new Redis({
       port: options.port,
       host: options.host,
+      hostOriginal: options.hostOriginal,
       password: options.password,
       enableReadyCheck: true,
       connectionName: SUBSCRIBER_CONNECTION_NAME,
       lazyConnect: true,
       tls: options.tls,
+      tlsSni: options.tlsSni,
     });
 
     // Ignore the errors since they're handled in the connection pool.

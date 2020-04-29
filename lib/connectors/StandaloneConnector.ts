@@ -13,6 +13,7 @@ export function isIIpcConnectionOptions(
 export interface ITcpConnectionOptions extends TcpNetConnectOpts {
   tls?: SecureContextOptions;
   tlsSni?: boolean;
+  hostOriginal?: string;
 }
 
 export interface IIpcConnectionOptions extends IpcNetConnectOpts {
@@ -43,10 +44,10 @@ export default class StandaloneConnector extends AbstractConnector {
       }
       if (options.host != null) {
         connectionOptions.host = options.host;
-        if (options.tlsSni) {
-          isTls = true;
-          connectionOptions.servername = options.host;
-        }
+      }
+      if (options.tlsSni && (options.hostOriginal || options.host)) {
+        isTls = true;
+        connectionOptions.servername = options.hostOriginal || options.host;
       }
       if (options.family != null) {
         connectionOptions.family = options.family;
