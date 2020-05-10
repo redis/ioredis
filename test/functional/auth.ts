@@ -119,6 +119,36 @@ describe("auth", function () {
         done();
       });
     });
+
+    it('should emit "error" when username and password are set for a Redis 5 server', function (done) {
+      let username = "user";
+      let password = "password";
+
+      new MockServer(17379, function (argv) {
+        if (
+          argv[0] === "auth" &&
+          argv[1] === username &&
+          argv[2] === password
+        ) {
+          return new Error("ERR wrong number of arguments for 'auth' command");
+        }
+      });
+
+      const redis = new Redis({ port: 17379, username, password });
+      const stub = sinon.stub(console, "warn").callsFake((warn) => {
+        if (
+          warn.indexOf(
+            "You are probably passing both username and password to Redis version 5 or below"
+          ) !== -1
+        ) {
+          stub.restore();
+          setTimeout(function () {
+            redis.disconnect();
+            done();
+          }, 0);
+        }
+      });
+    });
   });
 
   describe("auth:redis6-specific", function () {
