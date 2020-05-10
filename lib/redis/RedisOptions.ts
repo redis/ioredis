@@ -14,6 +14,7 @@ export interface IRedisOptions
   keepAlive?: number;
   noDelay?: boolean;
   connectionName?: string;
+  username?: string;
   password?: string;
   db?: number;
   dropBufferSupport?: boolean;
@@ -50,6 +51,7 @@ export const DEFAULT_REDIS_OPTIONS: IRedisOptions = {
   enableTLSForSentinelMode: false,
   updateSentinels: true,
   // Status
+  username: null,
   password: null,
   db: 0,
   // Others

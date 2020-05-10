@@ -74,6 +74,7 @@ export default class ClusterSubscriber {
     this.subscriber = new Redis({
       port: options.port,
       host: options.host,
+      username: options.username,
       password: options.password,
       enableReadyCheck: true,
       connectionName: SUBSCRIBER_CONNECTION_NAME,

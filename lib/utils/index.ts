@@ -257,7 +257,11 @@ export function parseURL(url) {
 
   const result: any = {};
   if (parsed.auth) {
-    result.password = parsed.auth.split(":")[1];
+    const parsedAuth = parsed.auth.split(":");
+    if (parsedAuth[0].length > 0) {
+      result.username = parsedAuth[0];
+    }
+    result.password = parsedAuth[1];
   }
   if (parsed.pathname) {
     if (parsed.protocol === "redis:" || parsed.protocol === "rediss:") {

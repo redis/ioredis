@@ -25,13 +25,21 @@ export function connectHandler(self) {
           return;
         }
         if (err) {
-          if (err.message.indexOf("no password is set") === -1) {
-            flushed = true;
-            self.recoverFromFatalError(err, err);
-          } else {
+          if (err.message.indexOf("no password is set") !== -1) {
             console.warn(
               "[WARN] Redis server does not require a password, but a password was supplied."
             );
+          } else if (
+            err.message.indexOf(
+              "without any password configured for the default user"
+            ) !== -1
+          ) {
+            console.warn(
+              "[WARN] This Redis server's `default` user does not require a password, but a password was supplied"
+            );
+          } else {
+            flushed = true;
+            self.recoverFromFatalError(err, err);
           }
         }
       });

@@ -42,6 +42,7 @@ const debug = Debug("redis");
  * it to reduce the latency.
  * @param {string} [options.connectionName=null] - Connection name.
  * @param {number} [options.db=0] - Database index to use.
+ * @param {string} [options.username=null] - If set, client will send AUTH command with this user and password when connected.
  * @param {string} [options.password=null] - If set, client will send AUTH command
  * with the value of this option when connected.
  * @param {boolean} [options.dropBufferSupport=false] - Drop the buffer support for better performance.
@@ -277,7 +278,10 @@ Redis.prototype.connect = function (callback) {
 
     this.condition = {
       select: options.db,
-      auth: options.password,
+      auth:
+        options.username && options.username.length > 0
+          ? [options.username, options.password]
+          : options.password,
       subscriber: false,
     };
 

@@ -2,6 +2,7 @@ const Redis = require("ioredis");
 const redis = new Redis({
   port: process.env.redisPort,
   host: process.env.redisEndpoint,
+  username: process.env.redisUsername,
   password: process.env.redisPW,
 });
 
