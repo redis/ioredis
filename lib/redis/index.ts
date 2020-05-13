@@ -279,7 +279,7 @@ Redis.prototype.connect = function (callback) {
     this.condition = {
       select: options.db,
       auth:
-        options.username && options.username.length > 0
+        options.username
           ? [options.username, options.password]
           : options.password,
       subscriber: false,
