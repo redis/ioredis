@@ -1,3 +1,10 @@
+# [4.17.0](https://github.com/luin/ioredis/compare/v4.16.3...v4.17.0) (2020-05-16)
+
+
+### Features
+
+* add auth support for Redis 6 ([#1130](https://github.com/luin/ioredis/issues/1130)) ([ad5b455](https://github.com/luin/ioredis/commit/ad5b45587b2e378c15fa879cc72580c391c3c18d))
+
 ## [4.16.3](https://github.com/luin/ioredis/compare/v4.16.2...v4.16.3) (2020-04-21)
 
 
