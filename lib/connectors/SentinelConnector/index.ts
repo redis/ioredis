@@ -35,6 +35,7 @@ export { ISentinelAddress, SentinelIterator };
 export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   role: "master" | "slave";
   name: string;
+  sentinelUsername?: string;
   sentinelPassword?: string;
   sentinels: Array<Partial<ISentinelAddress>>;
   sentinelRetryStrategy?: (retryAttempts: number) => number | void | null;
@@ -278,6 +279,7 @@ export default class SentinelConnector extends AbstractConnector {
     const client = new Redis({
       port: endpoint.port || 26379,
       host: endpoint.host,
+      username: this.options.sentinelUsername || null,
       password: this.options.sentinelPassword || null,
       family:
         endpoint.family ||

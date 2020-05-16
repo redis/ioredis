@@ -25,13 +25,29 @@ export function connectHandler(self) {
           return;
         }
         if (err) {
-          if (err.message.indexOf("no password is set") === -1) {
-            flushed = true;
-            self.recoverFromFatalError(err, err);
-          } else {
+          if (err.message.indexOf("no password is set") !== -1) {
             console.warn(
               "[WARN] Redis server does not require a password, but a password was supplied."
             );
+          } else if (
+            err.message.indexOf(
+              "without any password configured for the default user"
+            ) !== -1
+          ) {
+            console.warn(
+              "[WARN] This Redis server's `default` user does not require a password, but a password was supplied"
+            );
+          } else if (
+            err.message.indexOf(
+              "wrong number of arguments for 'auth' command"
+            ) !== -1
+          ) {
+            console.warn(
+              `[ERROR] The server returned "wrong number of arguments for 'auth' command". You are probably passing both username and password to Redis version 5 or below. You should only pass the 'password' option for Redis version 5 and under.`
+            );
+          } else {
+            flushed = true;
+            self.recoverFromFatalError(err, err);
           }
         }
       });

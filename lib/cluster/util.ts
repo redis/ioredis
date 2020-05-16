@@ -7,6 +7,7 @@ export type NodeRole = "master" | "slave" | "all";
 export interface IRedisOptions {
   port: number;
   host: string;
+  username?: string;
   password?: string;
   [key: string]: any;
 }
