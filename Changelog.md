@@ -1,3 +1,10 @@
+## [4.17.1](https://github.com/luin/ioredis/compare/v4.17.0...v4.17.1) (2020-05-16)
+
+
+### Bug Fixes
+
+* revert parsing username via URI due to potential breaking changes ([#1134](https://github.com/luin/ioredis/issues/1134)) ([225ef45](https://github.com/luin/ioredis/commit/225ef450e320678c0c553c37e2f49b7727d5c573))
+
 # [4.17.0](https://github.com/luin/ioredis/compare/v4.16.3...v4.17.0) (2020-05-16)
 
 
