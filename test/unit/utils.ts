@@ -193,7 +193,6 @@ describe("utils", function () {
         port: "6380",
         db: "4",
         password: "pass",
-        username: "user",
         key: "value",
       });
       expect(utils.parseURL("redis://127.0.0.1/")).to.eql({
@@ -206,7 +205,6 @@ describe("utils", function () {
         port: "6380",
         db: "4",
         password: "pass",
-        username: "user",
         key: "value",
       });
     });
