@@ -258,9 +258,6 @@ export function parseURL(url) {
   const result: any = {};
   if (parsed.auth) {
     const parsedAuth = parsed.auth.split(":");
-    if (parsedAuth[0]) {
-      result.username = parsedAuth[0];
-    }
     result.password = parsedAuth[1];
   }
   if (parsed.pathname) {
