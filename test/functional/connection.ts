@@ -451,4 +451,27 @@ describe("connection", function () {
       });
     });
   });
+
+  describe("multiple reconnect", function () {
+    it("should reconnect after multiple consecutive disconnect(true) are called", function (done) {
+      const redis = new Redis();
+      redis.once("reconnecting", function () {
+        redis.disconnect(true);
+      });
+      redis.once("ready", function () {
+        redis.disconnect(true);
+        const rejectTimeout = setTimeout(function () {
+          redis.disconnect();
+          done(new Error("second disconnect(true) didn't reconnect redis"));
+        }, 1000);
+        process.nextTick(function () {
+          redis.once("ready", function () {
+            clearTimeout(rejectTimeout);
+            redis.disconnect();
+            done();
+          });
+        });
+      });
+    });
+  });
 });
