@@ -316,7 +316,7 @@ class Cluster extends EventEmitter {
     if (!reconnect) {
       this.manuallyClosing = true;
     }
-    if (this.reconnectTimeout) {
+    if (this.reconnectTimeout && !reconnect) {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
       debug("Canceled reconnecting attempts");
