@@ -1,3 +1,10 @@
+## [4.17.3](https://github.com/luin/ioredis/compare/v4.17.2...v4.17.3) (2020-05-30)
+
+
+### Bug Fixes
+
+* race conditions in `Redis#disconnect()` can cancel reconnection unexpectedly ([6fad73b](https://github.com/luin/ioredis/commit/6fad73b672014c07bd0db7a8e51c0be341908868)), closes [#1138](https://github.com/luin/ioredis/issues/1138) [#1007](https://github.com/luin/ioredis/issues/1007)
+
 ## [4.17.2](https://github.com/luin/ioredis/compare/v4.17.1...v4.17.2) (2020-05-30)
 
 
