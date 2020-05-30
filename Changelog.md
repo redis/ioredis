@@ -1,3 +1,10 @@
+## [4.17.2](https://github.com/luin/ioredis/compare/v4.17.1...v4.17.2) (2020-05-30)
+
+
+### Bug Fixes
+
+* _readyCheck INFO parser's handling of colon characters ([#1127](https://github.com/luin/ioredis/issues/1127)) ([38a09e1](https://github.com/luin/ioredis/commit/38a09e1a06a54b811d839ecc5ff7669663eba619))
+
 ## [4.17.1](https://github.com/luin/ioredis/compare/v4.17.0...v4.17.1) (2020-05-16)
 
 
