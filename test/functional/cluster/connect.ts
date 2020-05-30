@@ -384,4 +384,30 @@ describe("cluster:connect", function () {
       }
     });
   });
+
+  describe("multiple reconnect", function () {
+    it("should reconnect after multiple consecutive disconnect(true) are called", function (done) {
+      new MockServer(30001);
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+        enableReadyCheck: false,
+      });
+      cluster.once("reconnecting", function () {
+        cluster.disconnect(true);
+      });
+      cluster.once("ready", function () {
+        cluster.disconnect(true);
+        const rejectTimeout = setTimeout(function () {
+          cluster.disconnect();
+          done(new Error("second disconnect(true) didn't reconnect redis"));
+        }, 1000);
+        process.nextTick(function () {
+          cluster.once("ready", function () {
+            clearTimeout(rejectTimeout);
+            cluster.disconnect();
+            done();
+          });
+        });
+      });
+    });
+  });
 });

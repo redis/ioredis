@@ -278,10 +278,9 @@ Redis.prototype.connect = function (callback) {
 
     this.condition = {
       select: options.db,
-      auth:
-        options.username
-          ? [options.username, options.password]
-          : options.password,
+      auth: options.username
+        ? [options.username, options.password]
+        : options.password,
       subscriber: false,
     };
 
@@ -380,7 +379,7 @@ Redis.prototype.disconnect = function (reconnect) {
   if (!reconnect) {
     this.manuallyClosing = true;
   }
-  if (this.reconnectTimeout) {
+  if (this.reconnectTimeout && !reconnect) {
     clearTimeout(this.reconnectTimeout);
     this.reconnectTimeout = null;
   }
