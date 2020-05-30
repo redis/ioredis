@@ -507,9 +507,10 @@ Redis.prototype._readyCheck = function (callback) {
 
     const lines = res.split("\r\n");
     for (let i = 0; i < lines.length; ++i) {
-      const parts = lines[i].split(":");
-      if (parts[1]) {
-        info[parts[0]] = parts[1];
+      const [fieldName, ...fieldValueParts] = lines[i].split(":");
+      const fieldValue = fieldValueParts.join(":");
+      if (fieldValue) {
+        info[fieldName] = fieldValue;
       }
     }
 
