@@ -4,9 +4,9 @@ import { lookup } from "dns";
 export type DNSLookupFunction = (
   hostname: string,
   callback: (
-    err: NodeJS.ErrnoException,
+    err: NodeJS.ErrnoException | undefined,
     address: string,
-    family: number
+    family?: number
   ) => void
 ) => void;
 export interface INatMap {
