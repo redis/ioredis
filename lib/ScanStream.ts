@@ -48,10 +48,8 @@ export default class ScanStream extends Readable {
 
     this.opt.redis[this.opt.command](args, (err, res) => {
       if (err) {
-        const error = new Error(
-          `${this.opt.command}Stream failed: ${err.message}`
-        );
-        this.emit("error", error);
+        err.message = `${this.opt.command}Stream failed: ${err.message}`;
+        this.emit("error", err);
         return;
       }
       this._redisCursor = res[0] instanceof Buffer ? res[0].toString() : res[0];
