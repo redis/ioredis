@@ -1,3 +1,10 @@
+# [4.18.0](https://github.com/luin/ioredis/compare/v4.17.3...v4.18.0) (2020-07-25)
+
+
+### Features
+
+* supports commands in Redis 6.0.6 ([c016265](https://github.com/luin/ioredis/commit/c016265028d746ab71ab2ad65e49a3fbe8c0f49c))
+
 ## [4.17.3](https://github.com/luin/ioredis/compare/v4.17.2...v4.17.3) (2020-05-30)
 
 
