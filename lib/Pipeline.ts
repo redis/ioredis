@@ -30,7 +30,7 @@ function generateMultiWithNodes(redis, keys) {
 class Pipeline extends Commander<{ type: "pipeline" }> {
   isCluster: boolean;
   isPipeline = true;
-  leftRedirections: { ttl?: number };
+  leftRedirections: { value?: number };
 
   promise: Promise<unknown>;
   resolve: (result: unknown) => void;
@@ -346,7 +346,7 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
     const stream: PipelineWriteableStream = {
       isPipeline: true,
       destination: _this.isCluster ? node : { redis: _this.redis },
-      write (writable) {
+      write(writable) {
         if (typeof writable !== "string") {
           if (!buffers) {
             buffers = [];
