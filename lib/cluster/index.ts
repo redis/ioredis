@@ -403,7 +403,7 @@ class Cluster extends Commander {
    */
   refreshSlotsCache(callback?: Callback<void>): void {
     if (this.isRefreshing) {
-      if (typeof callback === "function") {
+      if (callback) {
         process.nextTick(callback);
       }
       return;
@@ -413,7 +413,7 @@ class Cluster extends Commander {
     const _this = this;
     const wrapper = function (error?: Error) {
       _this.isRefreshing = false;
-      if (typeof callback === "function") {
+      if (callback) {
         callback(error);
       }
     };
@@ -422,7 +422,7 @@ class Cluster extends Commander {
 
     let lastNodeError = null;
 
-    function tryNode(index) {
+    function tryNode(index: number) {
       if (index === nodes.length) {
         const error = new ClusterAllFailedError(
           "Failed to refresh slots cache.",
@@ -629,7 +629,7 @@ class Cluster extends Commander {
   /**
    * @ignore
    */
-  handleError(error, ttl, handlers) {
+  handleError(error: Error, ttl: { value?: any }, handlers) {
     if (typeof ttl.value === "undefined") {
       ttl.value = this.options.maxRedirections;
     } else {
@@ -797,7 +797,7 @@ class Cluster extends Commander {
       : nodeKey;
   }
 
-  private getInfoFromNode(redis: Redis, callback) {
+  private getInfoFromNode(redis: Redis, callback: Callback<void>) {
     if (!redis) {
       return callback(new Error("Node is disconnected"));
     }
@@ -821,7 +821,7 @@ class Cluster extends Commander {
 
     duplicatedConnection.cluster(
       "SLOTS",
-      timeout((err, result) => {
+      timeout((err: Error, result) => {
         duplicatedConnection.disconnect();
         if (err) {
           return callback(err);
@@ -919,7 +919,7 @@ class Cluster extends Commander {
         return callback();
       }
 
-      let state;
+      let state: string;
       const lines = res.split("\r\n");
       for (let i = 0; i < lines.length; ++i) {
         const parts = lines[i].split(":");
