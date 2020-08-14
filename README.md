@@ -145,10 +145,10 @@ It subscribes to a channel with one connection
 and publishes to that channel with the other:
 
 ```javascript
-var Redis = require("ioredis");
-var redis = new Redis();
-var pub = new Redis();
-redis.subscribe("news", "music", function (err, count) {
+const Redis = require("ioredis");
+const redis = new Redis();
+const pub = new Redis();
+redis.subscribe("news", "music", (err, count) => {
   // Now we are subscribed to both the 'news' and 'music' channels.
   // `count` represents the number of channels we are currently subscribed to.
 
@@ -156,7 +156,7 @@ redis.subscribe("news", "music", function (err, count) {
   pub.publish("music", "Hello again!");
 });
 
-redis.on("message", function (channel, message) {
+redis.on("message", (channel, message) => {
   // Receive message Hello world! from channel news
   // Receive message Hello again! from channel music
   console.log("Receive message %s from channel %s", message, channel);
@@ -164,7 +164,7 @@ redis.on("message", function (channel, message) {
 
 // There's also an event called 'messageBuffer', which is the same as 'message' except
 // it returns buffers instead of strings.
-redis.on("messageBuffer", function (channel, message) {
+redis.on("messageBuffer", (channel, message) => {
   // Both `channel` and `message` are buffers.
 });
 ```
@@ -172,9 +172,9 @@ redis.on("messageBuffer", function (channel, message) {
 `PSUBSCRIBE` is also supported in a similar way:
 
 ```javascript
-redis.psubscribe("pat?ern", function (err, count) {});
-redis.on("pmessage", function (pattern, channel, message) {});
-redis.on("pmessageBuffer", function (pattern, channel, message) {});
+redis.psubscribe("pat?ern", (err, count) => {});
+redis.on("pmessage", (pattern, channel, message) => {});
+redis.on("pmessageBuffer", (pattern, channel, message) => {});
 ```
 
 When a client issues a SUBSCRIBE or PSUBSCRIBE, that connection is put into a "subscriber" mode.
@@ -195,7 +195,7 @@ And every command has a method that returns a Buffer (by adding a suffix of "Buf
 To get a buffer instead of a utf8 string:
 
 ```javascript
-redis.getBuffer("foo", function (err, result) {
+redis.getBuffer("foo", (err, result) => {
   // result is a buffer.
 });
 ```
@@ -210,10 +210,10 @@ commands on it just like the `Redis` instance. The commands are queued in memory
 and flushed to Redis by calling the `exec` method:
 
 ```javascript
-var pipeline = redis.pipeline();
+const pipeline = redis.pipeline();
 pipeline.set("foo", "bar");
 pipeline.del("cc");
-pipeline.exec(function (err, results) {
+pipeline.exec((err, results) => {
   // `err` is always null, and `results` is an array of responses
   // corresponding to the sequence of queued commands.
   // Each response follows the format `[err, result]`.
@@ -224,11 +224,11 @@ redis
   .pipeline()
   .set("foo", "bar")
   .del("cc")
-  .exec(function (err, results) {});
+  .exec((err, results) => {});
 
 // `exec` also returns a Promise:
-var promise = redis.pipeline().set("foo", "bar").get("foo").exec();
-promise.then(function (result) {
+const promise = redis.pipeline().set("foo", "bar").get("foo").exec();
+promise.then((result) => {
   // result === [[null, 'OK'], [null, 'bar']]
 });
 ```
@@ -240,10 +240,10 @@ gets a reply:
 redis
   .pipeline()
   .set("foo", "bar")
-  .get("foo", function (err, result) {
+  .get("foo", (err, result) => {
     // result === 'bar'
   })
-  .exec(function (err, result) {
+  .exec((err, result) => {
     // result[1][1] === 'bar'
   });
 ```
@@ -256,7 +256,7 @@ redis
     ["set", "foo", "bar"],
     ["get", "foo"],
   ])
-  .exec(function () {
+  .exec(() => {
     /* ... */
   });
 ```
@@ -279,7 +279,7 @@ redis
   .multi()
   .set("foo", "bar")
   .get("foo")
-  .exec(function (err, results) {
+  .exec((err, results) => {
     // results === [[null, 'OK'], [null, 'bar']]
   });
 ```
@@ -292,7 +292,7 @@ redis
   .multi()
   .set("foo")
   .set("foo", "new value")
-  .exec(function (err, results) {
+  .exec((err, results) => {
     // err:
     //  { [ReplyError: EXECABORT Transaction discarded because of previous errors.]
     //    name: 'ReplyError',
@@ -312,7 +312,7 @@ to each chained command, the queueing state is passed to the callback instead of
 ```javascript
 redis
   .multi()
-  .set("foo", "bar", function (err, result) {
+  .set("foo", "bar", (err, result) => {
     // result === 'QUEUED'
   })
   .exec(/* ... */);
@@ -325,7 +325,7 @@ and every command will be sent to Redis immediately without waiting for an `exec
 redis.multi({ pipeline: false });
 redis.set("foo", "bar");
 redis.get("foo");
-redis.exec(function (err, result) {
+redis.exec((err, result) => {
   // result === [[null, 'OK'], [null, 'bar']]
 });
 ```
@@ -338,7 +338,7 @@ redis
     ["set", "foo", "bar"],
     ["get", "foo"],
   ])
-  .exec(function () {
+  .exec(() => {
     /* ... */
   });
 ```
@@ -366,7 +366,7 @@ care of script caching and to detect when to use `EVAL` and when to use `EVALSHA
 ioredis exposes a `defineCommand` method to make scripting much easier to use:
 
 ```javascript
-var redis = new Redis();
+const redis = new Redis();
 
 // This will define a command echo:
 redis.defineCommand("echo", {
@@ -376,12 +376,12 @@ redis.defineCommand("echo", {
 
 // Now `echo` can be used just like any other ordinary command,
 // and ioredis will try to use `EVALSHA` internally when possible for better performance.
-redis.echo("k1", "k2", "a1", "a2", function (err, result) {
+redis.echo("k1", "k2", "a1", "a2", (err, result) => {
   // result === ['k1', 'k2', 'a1', 'a2']
 });
 
 // `echoBuffer` is also defined automatically to return buffers instead of strings:
-redis.echoBuffer("k1", "k2", "a1", "a2", function (err, result) {
+redis.echoBuffer("k1", "k2", "a1", "a2", (err, result) => {
   // result[0] equals to Buffer.from('k1');
 });
 
@@ -400,7 +400,7 @@ redis.defineCommand("echoDynamicKeyNumber", {
 
 // Now you have to pass the number of keys as the first argument every time
 // you invoke the `echoDynamicKeyNumber` command:
-redis.echoDynamicKeyNumber(2, "k1", "k2", "a1", "a2", function (err, result) {
+redis.echoDynamicKeyNumber(2, "k1", "k2", "a1", "a2", (err, result) => {
   // result === ['k1', 'k2', 'a1', 'a2']
 });
 ```
@@ -415,7 +415,7 @@ namespaces.
 and this feature also won't apply to the replies of commands even they are key names ([#325](https://github.com/luin/ioredis/issues/325)).
 
 ```javascript
-var fooRedis = new Redis({ keyPrefix: "foo:" });
+const fooRedis = new Redis({ keyPrefix: "foo:" });
 fooRedis.set("bar", "baz"); // Actually sends SET foo:bar baz
 
 fooRedis.defineCommand("echo", {
@@ -445,7 +445,7 @@ ioredis has a flexible system for transforming arguments and replies. There are 
 of transformers, argument transformer and reply transformer:
 
 ```javascript
-var Redis = require("ioredis");
+const Redis = require("ioredis");
 
 // Here's the built-in argument transformer converting
 // hmset('key', { k1: 'v1', k2: 'v2' })
@@ -453,7 +453,7 @@ var Redis = require("ioredis");
 // hmset('key', new Map([['k1', 'v1'], ['k2', 'v2']]))
 // into
 // hmset('key', 'k1', 'v1', 'k2', 'v2')
-Redis.Command.setArgumentTransformer("hmset", function (args) {
+Redis.Command.setArgumentTransformer("hmset", (args) => {
   if (args.length === 2) {
     if (typeof Map !== "undefined" && args[1] instanceof Map) {
       // utils is a internal module of ioredis
@@ -470,10 +470,10 @@ Redis.Command.setArgumentTransformer("hmset", function (args) {
 // ['k1', 'v1', 'k2', 'v2']
 // into
 // { k1: 'v1', 'k2': 'v2' }
-Redis.Command.setReplyTransformer("hgetall", function (result) {
+Redis.Command.setReplyTransformer("hgetall", (result) => {
   if (Array.isArray(result)) {
-    var obj = {};
-    for (var i = 0; i < result.length; i += 2) {
+    const obj = {};
+    for (let i = 0; i < result.length; i += 2) {
       obj[result[i]] = result[i + 1];
     }
     return obj;
@@ -488,7 +488,7 @@ above, and the transformer for `mset` is similar to the one for `hmset`:
 
 ```javascript
 redis.mset({ k1: "v1", k2: "v2" });
-redis.get("k1", function (err, result) {
+redis.get("k1", (err, result) => {
   // result === 'v1';
 });
 
@@ -498,7 +498,7 @@ redis.mset(
     ["k4", "v4"],
   ])
 );
-redis.get("k3", function (err, result) {
+redis.get("k3", (err, result) => {
   // result === 'v3';
 });
 ```
@@ -506,16 +506,16 @@ redis.get("k3", function (err, result) {
 Another useful example of a reply transformer is one that changes `hgetall` to return array of arrays instead of objects which avoids a unwanted conversation of hash keys to strings when dealing with binary hash keys:
 
 ```javascript
-Redis.Command.setReplyTransformer("hgetall", function (result) {
-  var arr = [];
-  for (var i = 0; i < result.length; i += 2) {
+Redis.Command.setReplyTransformer("hgetall", (result) => {
+  const arr = [];
+  for (let i = 0; i < result.length; i += 2) {
     arr.push([result[i], result[i + 1]]);
   }
   return arr;
 });
 redis.hset("h1", Buffer.from([0x01]), Buffer.from([0x02]));
 redis.hset("h1", Buffer.from([0x03]), Buffer.from([0x04]));
-redis.hgetallBuffer("h1", function (err, result) {
+redis.hgetallBuffer("h1", (err, result) => {
   // result === [ [ <Buffer 01>, <Buffer 02> ], [ <Buffer 03>, <Buffer 04> ] ];
 });
 ```
@@ -533,8 +533,8 @@ The callback for the monitor event takes a timestamp from the Redis server and a
 Here is a simple example:
 
 ```javascript
-redis.monitor(function (err, monitor) {
-  monitor.on("monitor", function (time, args, source, database) {});
+redis.monitor((err, monitor) => {
+  monitor.on("monitor", (time, args, source, database) => {});
 });
 ```
 
@@ -558,18 +558,18 @@ the `SCAN` command is called in order to iterate through all the keys correctly.
 provides a streaming interface for the `SCAN` command to make things much easier. A readable stream can be created by calling `scanStream`:
 
 ```javascript
-var redis = new Redis();
+const redis = new Redis();
 // Create a readable stream (object mode)
-var stream = redis.scanStream();
-stream.on("data", function (resultKeys) {
+const stream = redis.scanStream();
+stream.on("data", (resultKeys) => {
   // `resultKeys` is an array of strings representing key names.
   // Note that resultKeys may contain 0 keys, and that it will sometimes
   // contain duplicates due to SCAN's implementation in Redis.
-  for (var i = 0; i < resultKeys.length; i++) {
+  for (let i = 0; i < resultKeys.length; i++) {
     console.log(resultKeys[i]);
   }
 });
-stream.on("end", function () {
+stream.on("end", () => {
   console.log("all keys have been visited");
 });
 ```
@@ -577,7 +577,7 @@ stream.on("end", function () {
 `scanStream` accepts an option, with which you can specify the `MATCH` pattern and the `COUNT` argument:
 
 ```javascript
-var stream = redis.scanStream({
+const stream = redis.scanStream({
   // only returns keys following the pattern of `user:*`
   match: "user:*",
   // returns approximately 100 elements per call
@@ -592,7 +592,7 @@ There are also `hscanStream`, `zscanStream` and `sscanStream` to iterate through
 similar to `scanStream` except the first argument is the key name:
 
 ```javascript
-var stream = redis.hscanStream("myhash", {
+const stream = redis.hscanStream("myhash", {
   match: "age:??",
 });
 ```
@@ -603,8 +603,8 @@ You can learn more from the [Redis documentation](http://redis.io/commands/scan)
 It's pretty common that doing an async task in the `data` handler. We'd like the scanning process to be paused until the async task to be finished. `Stream#pause()` and `Stream.resume()` do the trick. For example if we want to migrate data in Redis to MySQL:
 
 ```javascript
-var stream = redis.scanStream();
-stream.on("data", function (resultKeys) {
+const stream = redis.scanStream();
+stream.on("data", (resultKeys) => {
   // Pause the stream from scanning more keys until we've migrated the current keys.
   stream.pause();
 
@@ -614,7 +614,7 @@ stream.on("data", function (resultKeys) {
   });
 });
 
-stream.on("end", function () {
+stream.on("end", () => {
   console.log("done migration");
 });
 ```
@@ -628,10 +628,10 @@ It's very flexible to control how long to wait to reconnect after disconnection
 using the `retryStrategy` option:
 
 ```javascript
-var redis = new Redis({
+const redis = new Redis({
   // This is the default value of `retryStrategy`
-  retryStrategy: function (times) {
-    var delay = Math.min(times * 50, 2000);
+  retryStrategy(times) {
+    const delay = Math.min(times * 50, 2000);
     return delay;
   },
 });
@@ -652,7 +652,7 @@ the client will resend them when reconnected. This behavior can be disabled by s
 By default, all pending commands will be flushed with an error every 20 retry attempts. That makes sure commands won't wait forever when the connection is down. You can change this behavior by setting `maxRetriesPerRequest`:
 
 ```javascript
-var redis = new Redis({
+const redis = new Redis({
   maxRetriesPerRequest: 1,
 });
 ```
@@ -664,9 +664,9 @@ Set maxRetriesPerRequest to `null` to disable this behavior, and every command w
 Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on the specified errors by the `reconnectOnError` option. Here's an example that will reconnect when receiving `READONLY` error:
 
 ```javascript
-var redis = new Redis({
-  reconnectOnError: function (err) {
-    var targetError = "READONLY";
+const redis = new Redis({
+  reconnectOnError(err) {
+    const targetError = "READONLY";
     if (err.message.includes(targetError)) {
       // Only reconnect when the error contains "READONLY"
       return true; // or `return 1;`
@@ -707,7 +707,7 @@ executed when it can be processed. You can disable this feature by setting the `
 option to `false`:
 
 ```javascript
-var redis = new Redis({ enableOfflineQueue: false });
+const redis = new Redis({ enableOfflineQueue: false });
 ```
 
 ## TLS Options
@@ -715,7 +715,7 @@ var redis = new Redis({ enableOfflineQueue: false });
 Redis doesn't support TLS natively, however if the redis server you want to connect to is hosted behind a TLS proxy (e.g. [stunnel](https://www.stunnel.org/)) or is offered by a PaaS service that supports TLS connection (e.g. [Redis Labs](https://redislabs.com/)), you can set the `tls` option:
 
 ```javascript
-var redis = new Redis({
+const redis = new Redis({
   host: "localhost",
   tls: {
     // Refer to `tls.connect()` section in
@@ -729,7 +729,7 @@ var redis = new Redis({
 Alternatively, specify the connection through a [`rediss://` URL](https://www.iana.org/assignments/uri-schemes/prov/rediss).
 
 ```javascript
-var redis = new Redis("rediss://redis.my-service.com");
+const redis = new Redis("rediss://redis.my-service.com");
 ```
 
 <hr>
@@ -742,7 +742,7 @@ you connect to a single node also work when you connect to a sentinel group. Mak
 To connect using Sentinel, use:
 
 ```javascript
-var redis = new Redis({
+const redis = new Redis({
   sentinels: [
     { host: "localhost", port: 26379 },
     { host: "localhost", port: 26380 },
@@ -769,18 +769,18 @@ If you specify the option `preferredSlaves` along with `role: 'slave'` ioredis w
 
 ```javascript
 // available slaves format
-var availableSlaves = [{ ip: "127.0.0.1", port: "31231", flags: "slave" }];
+const availableSlaves = [{ ip: "127.0.0.1", port: "31231", flags: "slave" }];
 
 // preferredSlaves array format
-var preferredSlaves = [
+let preferredSlaves = [
   { ip: "127.0.0.1", port: "31231", prio: 1 },
   { ip: "127.0.0.1", port: "31232", prio: 2 },
 ];
 
 // preferredSlaves function format
 preferredSlaves = function (availableSlaves) {
-  for (var i = 0; i < availableSlaves.length; i++) {
-    var slave = availableSlaves[i];
+  for (let i = 0; i < availableSlaves.length; i++) {
+    const slave = availableSlaves[i];
     if (slave.ip === "127.0.0.1") {
       if (slave.port === "31234") {
         return slave;
@@ -791,7 +791,7 @@ preferredSlaves = function (availableSlaves) {
   return false;
 };
 
-var redis = new Redis({
+const redis = new Redis({
   sentinels: [
     { host: "127.0.0.1", port: 26379 },
     { host: "127.0.0.1", port: 26380 },
@@ -806,7 +806,7 @@ Besides the `retryStrategy` option, there's also a `sentinelRetryStrategy` in Se
 
 ```javascript
 function (times) {
-  var delay = Math.min(times * 10, 1000);
+  const delay = Math.min(times * 10, 1000);
   return delay;
 }
 ```
@@ -817,9 +817,9 @@ Redis Cluster provides a way to run a Redis installation where data is automatic
 You can connect to a Redis Cluster like this:
 
 ```javascript
-var Redis = require("ioredis");
+const Redis = require("ioredis");
 
-var cluster = new Redis.Cluster([
+const cluster = new Redis.Cluster([
   {
     port: 6380,
     host: "127.0.0.1",
@@ -831,7 +831,7 @@ var cluster = new Redis.Cluster([
 ]);
 
 cluster.set("foo", "bar");
-cluster.get("foo", function (err, res) {
+cluster.get("foo", (err, res) => {
   // res === 'bar'
 });
 ```
@@ -849,7 +849,7 @@ cluster.get("foo", function (err, res) {
 
       ```javascript
       function (times) {
-        var delay = Math.min(100 + times * 2, 2000);
+        const delay = Math.min(100 + times * 2, 2000);
         return delay;
       }
       ```
@@ -894,7 +894,7 @@ A typical redis cluster contains three or more masters and several slaves for ea
 For example:
 
 ```javascript
-var cluster = new Redis.Cluster(
+const cluster = new Redis.Cluster(
   [
     /* nodes */
   ],
@@ -903,7 +903,7 @@ var cluster = new Redis.Cluster(
   }
 );
 cluster.set("foo", "bar"); // This query will be sent to one of the masters.
-cluster.get("foo", function (err, res) {
+cluster.get("foo", (err, res) => {
   // This query will be sent to one of the slaves.
 });
 ```
@@ -920,20 +920,12 @@ Sometimes you may want to send a command to multiple nodes (masters or slaves) o
 
 ```javascript
 // Send `FLUSHDB` command to all slaves:
-var slaves = cluster.nodes("slave");
-Promise.all(
-  slaves.map(function (node) {
-    return node.flushdb();
-  })
-);
+const slaves = cluster.nodes("slave");
+Promise.all(slaves.map(node => node.flushdb()))
 
 // Get keys of all the masters:
-var masters = cluster.nodes("master");
-Promise.all(
-  masters.map(function (node) {
-    return node.keys();
-  })
-).then(function (keys) {
+const masters = cluster.nodes("master");
+Promise.all(masters.map(node => node.keys()).then(keys => {
   // keys: [['key1', 'key2'], ['key3', 'key4']]
 });
 ```
@@ -983,16 +975,16 @@ When any commands in a pipeline receives a `MOVED` or `ASK` error, ioredis will 
 Pub/Sub in cluster mode works exactly as the same as in standalone mode. Internally, when a node of the cluster receives a message, it will broadcast the message to the other nodes. ioredis makes sure that each message will only be received once by strictly subscribing one node at the same time.
 
 ```javascript
-var nodes = [
+const nodes = [
   /* nodes */
 ];
-var pub = new Redis.Cluster(nodes);
-var sub = new Redis.Cluster(nodes);
-sub.on("message", function (channel, message) {
+const pub = new Redis.Cluster(nodes);
+const sub = new Redis.Cluster(nodes);
+sub.on("message", (channel, message) => {
   console.log(channel, message);
 });
 
-sub.subscribe("news", function () {
+sub.subscribe("news", () => {
   pub.publish("news", "highlights");
 });
 ```
@@ -1016,8 +1008,8 @@ sub.subscribe("news", function () {
 Setting the `password` option to access password-protected clusters:
 
 ```javascript
-var Redis = require("ioredis");
-var cluster = new Redis.Cluster(nodes, {
+const Redis = require("ioredis");
+const cluster = new Redis.Cluster(nodes, {
   redisOptions: {
     password: "your-cluster-password",
   },
@@ -1027,8 +1019,8 @@ var cluster = new Redis.Cluster(nodes, {
 If some of nodes in the cluster using a different password, you should specify them in the first parameter:
 
 ```javascript
-var Redis = require("ioredis");
-var cluster = new Redis.Cluster(
+const Redis = require("ioredis");
+const cluster = new Redis.Cluster(
   [
     // Use password "password-for-30001" for 30001
     { port: 30001, password: "password-for-30001" },
@@ -1051,7 +1043,7 @@ this, you may encounter errors with invalid certificates. To resolve this
 issue, construct the `Cluster` with the `dnsLookup` option as follows:
 
 ```javascript
-var cluster = new Redis.Cluster(
+const cluster = new Redis.Cluster(
   [
     {
       host: "clustercfg.myCluster.abcdefg.xyz.cache.amazonaws.com",
@@ -1074,10 +1066,10 @@ var cluster = new Redis.Cluster(
 All the errors returned by the Redis server are instances of `ReplyError`, which can be accessed via `Redis`:
 
 ```javascript
-var Redis = require("ioredis");
-var redis = new Redis();
+const Redis = require("ioredis");
+const redis = new Redis();
 // This command causes a reply error since the SET command requires two arguments.
-redis.set("foo", function (err) {
+redis.set("foo", (err) => {
   err instanceof Redis.ReplyError;
 });
 ```
@@ -1101,8 +1093,8 @@ ioredis provides an option `showFriendlyErrorStack` to solve the problem. When y
 `showFriendlyErrorStack`, ioredis will optimize the error stack for you:
 
 ```javascript
-var Redis = require("ioredis");
-var redis = new Redis({ showFriendlyErrorStack: true });
+const Redis = require("ioredis");
+const redis = new Redis({ showFriendlyErrorStack: true });
 redis.set("foo");
 ```
 
