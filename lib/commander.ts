@@ -1,4 +1,3 @@
-import { defaults } from "./utils/lodash";
 import Command from "./command";
 import Script from "./script";
 import * as PromiseContainer from "./promiseContainer";
@@ -23,9 +22,12 @@ const DROP_BUFFER_SUPPORT_ERROR =
  * @constructor
  */
 export default function Commander() {
-  this.options = defaults({}, this.options || {}, {
-    showFriendlyErrorStack: false,
-  });
+  this.options = Object.assign(
+    {
+      showFriendlyErrorStack: false,
+    },
+    this.options
+  );
   this.scriptsSet = {};
 }
 

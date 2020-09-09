@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import ClusterAllFailedError from "../errors/ClusterAllFailedError";
-import { defaults, noop, Debug } from "../utils";
+import { noop, Debug } from "../utils";
 import ConnectionPool from "./ConnectionPool";
 import {
   NodeKey,
@@ -91,7 +91,12 @@ class Cluster extends EventEmitter {
     Commander.call(this);
 
     this.startupNodes = startupNodes;
-    this.options = defaults({}, options, DEFAULT_CLUSTER_OPTIONS, this.options);
+    this.options = Object.assign(
+      {},
+      this.options,
+      DEFAULT_CLUSTER_OPTIONS,
+      options
+    );
 
     // validate options
     if (
@@ -910,15 +915,12 @@ const scanCommands = [
 scanCommands.forEach((command) => {
   Cluster.prototype[command + "Stream"] = function (key, options) {
     return new ScanStream(
-      defaults(
-        {
-          objectMode: true,
-          key: key,
-          redis: this,
-          command: command,
-        },
-        options
-      )
+      Object.assign({}, options, {
+        objectMode: true,
+        key: key,
+        redis: this,
+        command: command,
+      })
     );
   };
 });

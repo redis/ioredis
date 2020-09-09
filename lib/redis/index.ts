@@ -1,4 +1,4 @@
-import { defaults, noop } from "../utils/lodash";
+import { noop } from "../utils/lodash";
 import { inherits } from "util";
 import { EventEmitter } from "events";
 import Deque = require("denque");
@@ -201,9 +201,9 @@ Redis.prototype.parseOptions = function () {
       continue;
     }
     if (typeof arg === "object") {
-      defaults(this.options, arg);
+      this.options = Object.assign({}, arg, this.options);
     } else if (typeof arg === "string") {
-      defaults(this.options, parseURL(arg));
+      this.options = Object.assign({}, parseURL(arg), this.options);
       if (arg.startsWith("rediss://")) {
         isTls = true;
       }
@@ -214,9 +214,9 @@ Redis.prototype.parseOptions = function () {
     }
   }
   if (isTls) {
-    defaults(this.options, { tls: true });
+    this.options = Object.assign({}, { tls: true }, this.options);
   }
-  defaults(this.options, Redis.defaultOptions);
+  this.options = Object.assign({}, Redis.defaultOptions, this.options);
 
   if (typeof this.options.port === "string") {
     this.options.port = parseInt(this.options.port, 10);
@@ -459,10 +459,13 @@ Redis.prototype.handleReconnection = function handleReconnection(err, item) {
  * @private
  */
 Redis.prototype.flushQueue = function (error, options) {
-  options = defaults({}, options, {
-    offlineQueue: true,
-    commandQueue: true,
-  });
+  options = Object.assign(
+    {
+      offlineQueue: true,
+      commandQueue: true,
+    },
+    options
+  );
 
   let item;
   if (options.offlineQueue) {
@@ -788,15 +791,12 @@ Redis.prototype._getDescription = function () {
       key = null;
     }
     return new ScanStream(
-      defaults(
-        {
-          objectMode: true,
-          key: key,
-          redis: this,
-          command: command,
-        },
-        options
-      )
+      Object.assign({}, options, {
+        objectMode: true,
+        key: key,
+        redis: this,
+        command: command,
+      })
     );
   };
 });

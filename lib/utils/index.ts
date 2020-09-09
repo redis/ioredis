@@ -1,5 +1,5 @@
 import { parse as urllibParse } from "url";
-import { defaults, noop, flatten } from "./lodash";
+import { noop, flatten } from "./lodash";
 import Debug from "./debug";
 
 /**
@@ -255,7 +255,7 @@ export function parseURL(url) {
     parsed = urllibParse(url, true, true);
   }
 
-  const result: any = {};
+  let result: any = {};
   if (parsed.auth) {
     const parsedAuth = parsed.auth.split(":");
     result.password = parsedAuth[1];
@@ -275,7 +275,7 @@ export function parseURL(url) {
   if (parsed.port) {
     result.port = parsed.port;
   }
-  defaults(result, parsed.query);
+  result = Object.assign({}, parsed.query, result);
 
   return result;
 }
@@ -336,4 +336,4 @@ export function zipMap<K, V>(keys: K[], values: V[]): Map<K, V> {
   return map;
 }
 
-export { Debug, defaults, noop, flatten };
+export { Debug, noop, flatten };
