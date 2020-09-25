@@ -8,7 +8,6 @@ import {
   convertMapToArray,
   convertObjectToArray,
 } from "./utils";
-import { flatten } from "./utils/lodash";
 import { get as getPromise } from "./promiseContainer";
 import { CallbackFunction, ICommand, CommandParameter } from "./types";
 
@@ -184,7 +183,7 @@ export default class Command implements ICommand {
     this.replyEncoding = options.replyEncoding;
     this.errorStack = options.errorStack;
 
-    this.args = flatten(args);
+    this.args = [].concat(...args);
     this.callback = callback;
 
     this.initPromise();

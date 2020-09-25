@@ -1,5 +1,4 @@
 import { parse as urllibParse } from "url";
-import { defaults, noop, flatten } from "./lodash";
 import Debug from "./debug";
 
 /**
@@ -260,7 +259,7 @@ export function parseURL(url) {
     options.allowUsernameInURI && options.allowUsernameInURI !== "false";
   delete options.allowUsernameInURI;
 
-  const result: any = {};
+  const result: any = { ...options };
   if (parsed.auth) {
     const index = parsed.auth.indexOf(":");
     if (allowUsernameInURI) {
@@ -284,7 +283,6 @@ export function parseURL(url) {
   if (parsed.port) {
     result.port = parsed.port;
   }
-  defaults(result, options);
 
   return result;
 }
@@ -333,6 +331,13 @@ export function shuffle<T>(array: T[]): T[] {
 }
 
 /**
+ * Just return undefined
+ *
+ * @return undefined
+ */
+export function noop(): void {}
+
+/**
  * Error message for connection being disconnected
  */
 export const CONNECTION_CLOSED_ERROR_MSG = "Connection is closed.";
@@ -345,4 +350,4 @@ export function zipMap<K, V>(keys: K[], values: V[]): Map<K, V> {
   return map;
 }
 
-export { Debug, defaults, noop, flatten };
+export { Debug };
