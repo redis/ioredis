@@ -927,7 +927,7 @@ Promise.all(slaves.map(node => node.flushdb()))
 const masters = cluster.nodes("master");
 Promise.all(masters.map(node => node.keys()).then(keys => {
   // keys: [['key1', 'key2'], ['key3', 'key4']]
-});
+}));
 ```
 
 ### NAT Mapping
