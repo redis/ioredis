@@ -244,7 +244,7 @@ export default class Command implements ICommand {
    * @memberof Command
    */
   private _iterateKeys(
-    transform: Function = (key) => key
+    transform: (any) => any = (key) => key
   ): Array<string | Buffer> {
     if (typeof this.keys === "undefined") {
       this.keys = [];
@@ -338,6 +338,7 @@ export default class Command implements ICommand {
    * @returns {Function} A funtion to transform and resolve a value
    * @memberof Command
    */
+  // eslint-disable-next-line @typescript-eslint/ban-types
   private _convertValue(resolve: Function): (result: any) => void {
     return (value) => {
       try {

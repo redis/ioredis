@@ -30,7 +30,7 @@ export function nodeKeyToRedisOptions(nodeKey: NodeKey): IRedisOptions {
 }
 
 export function normalizeNodeOptions(
-  nodes: Array<string | number | object>
+  nodes: Array<string | number | Record<string, unknown>>
 ): IRedisOptions[] {
   return nodes.map((node) => {
     const options: any = {};
