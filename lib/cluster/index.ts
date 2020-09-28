@@ -50,9 +50,9 @@ type ClusterStatus =
  * @extends {EventEmitter}
  */
 class Cluster extends EventEmitter {
-  private options: IClusterOptions;
-  private startupNodes: (string | number | object)[];
-  private connectionPool: ConnectionPool;
+  private readonly options: IClusterOptions;
+  private readonly startupNodes: (string | number | object)[];
+  private readonly connectionPool: ConnectionPool;
   private slots: NodeKey[][] = [];
   private manuallyClosing: boolean;
   private retryAttempts = 0;

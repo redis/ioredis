@@ -148,11 +148,11 @@ export default class Command implements ICommand {
   public ignore?: boolean;
   public isReadOnly?: boolean;
 
-  private replyEncoding: string | null;
-  private errorStack: string;
-  public args: CommandParameter[];
-  private callback: CallbackFunction;
+  private readonly replyEncoding: string | null;
+  private readonly errorStack: string;
+  private readonly callback: CallbackFunction;
   private transformed = false;
+  public args: CommandParameter[];
   public isCustomCommand = false;
   public inTransaction = false;
   public pipelineIndex?: number;
