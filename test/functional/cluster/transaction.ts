@@ -8,8 +8,7 @@ describe("cluster:transaction", function () {
     let moved = false;
     const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
-      [12182, 12183, ["127.0.0.1", 30002]],
-      [12184, 16383, ["127.0.0.1", 30001]],
+      [12182, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
@@ -57,8 +56,7 @@ describe("cluster:transaction", function () {
     let asked = false;
     const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
-      [12182, 12183, ["127.0.0.1", 30002]],
-      [12184, 16383, ["127.0.0.1", 30001]],
+      [12182, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {

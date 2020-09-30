@@ -5,3 +5,4 @@ node_modules
 built
 
 .vscode
+benchmarks/fixtures/*.txt

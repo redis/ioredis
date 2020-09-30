@@ -5,11 +5,10 @@ import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
 
 describe("cluster:pipeline", function () {
-  it("should throw when not all keys belong to the same slot", function (done) {
+  it("should throw when not all keys in a pipeline command belong to the same slot", function (done) {
     const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
-      [12182, 12183, ["127.0.0.1", 30002]],
-      [12184, 16383, ["127.0.0.1", 30001]],
+      [12182, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
@@ -26,11 +25,42 @@ describe("cluster:pipeline", function () {
     cluster
       .pipeline()
       .set("foo", "bar")
+      .mget("foo1", "foo2")
+      .exec()
+      .catch(function (err) {
+        expect(err.message).to.match(
+          /All the keys in a pipeline command should belong to the same slot/
+        );
+        cluster.disconnect();
+        done();
+      });
+  });
+
+  it("should throw when not all keys in different pipeline commands belong to the same allocation group", function (done) {
+    const slotTable = [
+      [0, 12181, ["127.0.0.1", 30001]],
+      [12182, 16383, ["127.0.0.1", 30002]],
+    ];
+    new MockServer(30001, function (argv) {
+      if (argv[0] === "cluster" && argv[1] === "slots") {
+        return slotTable;
+      }
+    });
+    new MockServer(30002, function (argv) {
+      if (argv[0] === "cluster" && argv[1] === "slots") {
+        return slotTable;
+      }
+    });
+
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
+    cluster
+      .pipeline()
+      .set("foo1", "bar")
       .get("foo2")
       .exec()
       .catch(function (err) {
         expect(err.message).to.match(
-          /All keys in the pipeline should belong to the same slot/
+          /All keys in the pipeline should belong to the same slots allocation group/
         );
         cluster.disconnect();
         done();
@@ -41,8 +71,7 @@ describe("cluster:pipeline", function () {
     let moved = false;
     const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
-      [12182, 12183, ["127.0.0.1", 30002]],
-      [12184, 16383, ["127.0.0.1", 30001]],
+      [12182, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
@@ -83,8 +112,7 @@ describe("cluster:pipeline", function () {
     let asked = false;
     const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
-      [12182, 12183, ["127.0.0.1", 30002]],
-      [12184, 16383, ["127.0.0.1", 30001]],
+      [12182, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
@@ -158,8 +186,7 @@ describe("cluster:pipeline", function () {
   it("should not redirect commands on a non-readonly command is successful", function (done) {
     const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
-      [12182, 12183, ["127.0.0.1", 30002]],
-      [12184, 16383, ["127.0.0.1", 30001]],
+      [12182, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
@@ -195,8 +222,7 @@ describe("cluster:pipeline", function () {
   it("should retry when redis is down", function (done) {
     const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
-      [12182, 12183, ["127.0.0.1", 30002]],
-      [12184, 16383, ["127.0.0.1", 30001]],
+      [12182, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
