@@ -30,7 +30,8 @@ export function nodeKeyToRedisOptions(nodeKey: NodeKey): IRedisOptions {
 }
 
 export function normalizeNodeOptions(
-  nodes: Array<string | number | Record<string, unknown>>
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  nodes: Array<string | number | object>
 ): IRedisOptions[] {
   return nodes.map((node) => {
     const options: any = {};
