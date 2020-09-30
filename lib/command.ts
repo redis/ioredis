@@ -137,11 +137,14 @@ export default class Command implements ICommand {
   public static setArgumentTransformer(
     name: string,
     func: ArgumentTransformer
-  ) {
+  ): void {
     this._transformer.argument[name] = func;
   }
 
-  public static setReplyTransformer(name: string, func: ReplyTransformer) {
+  public static setReplyTransformer(
+    name: string,
+    func: ReplyTransformer
+  ): void {
     this._transformer.reply[name] = func;
   }
 
