@@ -141,7 +141,7 @@ describe("pipeline", function () {
   describe("custom commands", function () {
     let redis;
 
-    before(function () {
+    beforeEach(function () {
       redis = new Redis();
       redis.defineCommand("echo", {
         numberOfKeys: 2,
@@ -149,7 +149,7 @@ describe("pipeline", function () {
       });
     });
 
-    after(function () {
+    afterEach(function () {
       redis.disconnect();
     });
 

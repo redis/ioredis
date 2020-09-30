@@ -31,6 +31,7 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 10. Support for GEO commands (Redis 3.2 Unstable).
 11. Sophisticated error handling strategy.
 12. Support for NAT mapping.
+13. Support for autopipelining
 
 # Links
 
@@ -961,9 +962,8 @@ This option is also useful when the cluster is running inside a Docker container
 Almost all features that are supported by `Redis` are also supported by `Redis.Cluster`, e.g. custom commands, transaction and pipeline.
 However there are some differences when using transaction and pipeline in Cluster mode:
 
-0. All keys in a pipeline should belong to the same slot since ioredis sends all commands in a pipeline to the same node.
+0. All keys in a pipeline should belong to slots served by the same node, since ioredis sends all commands in a pipeline to the same node.
 1. You can't use `multi` without pipeline (aka `cluster.multi({ pipeline: false })`). This is because when you call `cluster.multi({ pipeline: false })`, ioredis doesn't know which node the `multi` command should be sent to.
-2. Chaining custom commands in the pipeline is not supported in Cluster mode.
 
 When any commands in a pipeline receives a `MOVED` or `ASK` error, ioredis will resend the whole pipeline to the specified node automatically if all of the following conditions are satisfied:
 
@@ -1060,6 +1060,100 @@ const cluster = new Redis.Cluster(
 ```
 
 <hr>
+
+## Autopipelining
+
+In standard mode, when you issue multiple commands, ioredis sends them to the server one by one. As described in Redis pipeline documentation, this is a suboptimal use of the network link, especially when such link is not very performant. 
+
+The TCP and network overhead negatively affects performance. Commands are stuck in the send queue until the previous ones are correctly delivered to the server. This is a problem known as Head-Of-Line blocking (HOL).
+
+ioredis supports a feature called “auto pipelining”. It can be enabled by setting the option `enableAutoPipelining` to `true`. No other code change is necessary.
+
+In auto pipelining mode, all commands issued during an event loop are enqueued in a pipeline automatically managed by ioredis. At the end of the iteration, the pipeline is executed and thus all commands are sent to the server at the same time.
+
+This feature can dramatically improve throughput and avoids HOL blocking. In our benchmarks, the improvement was between 35% and 50%.
+
+While an automatic pipeline is executing, all new commands will be enqueued in a new pipeline which will be executed as soon as the previous finishes.
+
+When using Redis Cluster, one pipeline per node is created. Commands are assigned to pipelines according to which node serves the slot. 
+
+A pipeline will thus contain commands using different slots but that ultimately are assigned to the same node. 
+
+Note that the same slot limitation within a single command still holds, as it is a Redis limitation.
+
+
+### Example of automatic pipeline enqueuing
+
+This sample code uses ioredis with automatic pipeline enabled.
+
+```javascript
+const Redis = require('./built');
+const http = require('http');
+
+const db = new Redis({ enableAutoPipelining: true });
+
+const server = http.createServer((request, response) => {
+  const key = new URL(request.url, 'https://localhost:3000/').searchParams.get('key');
+
+  db.get(key, (err, value) => {
+    response.writeHead(200, { 'Content-Type': 'text/plain' });
+    response.end(value);
+  });
+})
+
+server.listen(3000);
+```
+
+When Node receives requests, it schedules them to be processed in one or more iterations of the events loop.
+
+All commands issued by requests processing during one iteration of the loop will be wrapped in a pipeline automatically created by ioredis. 
+
+In the example above, the pipeline will have the following contents:
+
+```
+GET key1
+GET key2
+GET key3
+...
+GET keyN
+```
+
+When all events in the current loop have been processed, the pipeline is executed and thus all commands are sent to the server at the same time.
+
+While waiting for pipeline response from Redis, Node will still be able to process requests. All commands issued by request handler will be enqueued in a new automatically created pipeline. This pipeline will not be sent to the server yet.
+
+As soon as a previous automatic pipeline has received all responses from the server, the new pipeline is immediately sent without waiting for the events loop iteration to finish.
+
+This approach increases the utilization of the network link, reduces the TCP overhead and idle times and therefore improves throughput.
+
+### Benchmarks
+
+Here's some of the results of our tests for a single node. 
+
+Each iteration of the test runs 1000 random commands on the server.
+
+╔═══════════════════════════╤═════════╤═══════════════╤═══════════╤═════════════════════════╗
+║ Slower tests              │ Samples │        Result │ Tolerance │ Difference with slowest ║
+╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
+║ default                   │    1000 │ 174.62 op/sec │  ± 0.45 % │                         ║
+╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
+║ Fastest test              │ Samples │        Result │ Tolerance │ Difference with slowest ║
+╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
+║ enableAutoPipelining=true │    1500 │ 233.33 op/sec │  ± 0.88 % │ + 33.62 %               ║
+╚═══════════════════════════╧═════════╧═══════════════╧═══════════╧═════════════════════════╝
+
+And here's the same test for a cluster of 3 masters and 3 replicas:
+
+╔═══════════════════════════╤═════════╤═══════════════╤═══════════╤═════════════════════════╗
+║ Slower tests              │ Samples │        Result │ Tolerance │ Difference with slowest ║
+╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
+║ default                   │    1000 │ 164.05 op/sec │  ± 0.42 % │                         ║
+╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
+║ Fastest test              │ Samples │        Result │ Tolerance │ Difference with slowest ║
+╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
+║ enableAutoPipelining=true │    3000 │ 235.31 op/sec │  ± 0.94 % │ + 43.44 %               ║
+╚═══════════════════════════╧═════════╧═══════════════╧═══════════╧═════════════════════════╝
+
 
 # Error Handling
 

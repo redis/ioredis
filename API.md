@@ -63,7 +63,9 @@ Creates a Redis instance
 | [options.reconnectOnError] | <code>function</code> |  | See "Quick Start" section |
 | [options.readOnly] | <code>boolean</code> | <code>false</code> | Enable READONLY mode for the connection. Only available for cluster mode. |
 | [options.stringNumbers] | <code>boolean</code> | <code>false</code> | Force numbers to be always returned as JavaScript strings. This option is necessary when dealing with big numbers (exceed the [-2^53, +2^53] range). |
-
+| [options.enableAutoPipelining] | <code>boolean</code> | <code>false</code> | When enabled, all commands issued during an event loop iteration are automatically wrapped in a pipeline and sent to the server at the same time. This can improve performance by 30-50%. |
+| [options.autoPipeliningIgnoredCommands] | <code>string[]</code> | <code>[]</code> | The list of commands which must not be automatically wrapped in pipelines. |
+| [options.maxScriptsCachingTime] | <code>number</code> | <code>60000</code> | Default script definition caching time. |
 **Example**  
 ```js
 var Redis = require('ioredis');

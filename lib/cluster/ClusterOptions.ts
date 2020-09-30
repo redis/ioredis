@@ -1,5 +1,5 @@
-import { NodeRole } from "./util";
 import { lookup } from "dns";
+import { NodeRole } from "./util";
 
 export type DNSLookupFunction = (
   hostname: string,
@@ -130,6 +130,28 @@ export interface IClusterOptions {
    */
   dnsLookup?: DNSLookupFunction;
   natMap?: INatMap;
+
+  /**
+   * See Redis class.
+   *
+   * @default false
+   */
+  enableAutoPipelining?: boolean;  
+
+  /**
+   * See Redis class.
+   *
+   * @default []
+   */
+  autoPipeliningIgnoredCommands?: string[];
+
+
+  /**
+   * See Redis class.
+   *
+   * @default 60000
+   */
+  maxScriptsCachingTime?: number;
 }
 
 export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {
@@ -144,4 +166,7 @@ export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {
   slotsRefreshTimeout: 1000,
   slotsRefreshInterval: 5000,
   dnsLookup: lookup,
+  enableAutoPipelining: false,
+  autoPipeliningIgnoredCommands: [],
+  maxScriptsCachingTime: 60000
 };

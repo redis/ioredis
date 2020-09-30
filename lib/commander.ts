@@ -3,6 +3,7 @@ import Command from "./command";
 import Script from "./script";
 import * as PromiseContainer from "./promiseContainer";
 import asCallback from "standard-as-callback";
+import { executeWithAutoPipelining, shouldUseAutoPipelining } from "./autoPipelining";
 
 export interface ICommanderOptions {
   showFriendlyErrorStack?: boolean;
@@ -89,8 +90,8 @@ Commander.prototype.defineCommand = function (name, definition) {
     definition.readOnly
   );
   this.scriptsSet[name] = script;
-  this[name] = generateScriptingFunction(script, "utf8");
-  this[name + "Buffer"] = generateScriptingFunction(script, null);
+  this[name] = generateScriptingFunction(name, script, "utf8");
+  this[name + "Buffer"] = generateScriptingFunction(name, script, null);
 };
 
 /**
@@ -108,51 +109,41 @@ function generateFunction(_commandName?: string, _encoding?: string) {
     _encoding = _commandName;
     _commandName = null;
   }
-  return function () {
-    let firstArgIndex = 0;
-    let commandName = _commandName;
-    if (commandName === null) {
-      commandName = arguments[0];
-      firstArgIndex = 1;
-    }
-    let length = arguments.length;
-    const lastArgIndex = length - 1;
-    let callback = arguments[lastArgIndex];
-    if (typeof callback !== "function") {
+
+  return function (...args) {
+    const commandName = _commandName || args.shift();
+    let callback = args[args.length - 1];
+
+    if(typeof callback === 'function') {
+      args.pop();
+    } else {
       callback = undefined;
-    } else {
-      length = lastArgIndex;
-    }
-    const args = new Array(length - firstArgIndex);
-    for (let i = firstArgIndex; i < length; ++i) {
-      args[i - firstArgIndex] = arguments[i];
     }
 
-    let options;
-    if (this.options.dropBufferSupport) {
-      if (!_encoding) {
-        return asCallback(
-          PromiseContainer.get().reject(new Error(DROP_BUFFER_SUPPORT_ERROR)),
-          callback
-        );
-      }
-      options = { replyEncoding: null };
-    } else {
-      options = { replyEncoding: _encoding };
+    const options = {
+      errorStack: this.options.showFriendlyErrorStack ? new Error().stack : undefined,
+      keyPrefix: this.options.keyPrefix,
+      replyEncoding: _encoding
+    };
+
+    if (this.options.dropBufferSupport && !_encoding) {
+      return asCallback(
+        PromiseContainer.get().reject(new Error(DROP_BUFFER_SUPPORT_ERROR)),
+        callback
+      );
     }
 
-    if (this.options.showFriendlyErrorStack) {
-      options.errorStack = new Error().stack;
-    }
-    if (this.options.keyPrefix) {
-      options.keyPrefix = this.options.keyPrefix;
+    // No auto pipeline, use regular command sending
+    if(!shouldUseAutoPipelining(this, commandName)) {
+      return this.sendCommand(new Command(commandName, args, options, callback));
     }
 
-    return this.sendCommand(new Command(commandName, args, options, callback));
+    // Create a new pipeline and make sure it's scheduled
+    return executeWithAutoPipelining(this, commandName, args, callback);
   };
 }
 
-function generateScriptingFunction(_script, _encoding) {
+function generateScriptingFunction(name, script, encoding) {
   return function () {
     let length = arguments.length;
     const lastArgIndex = length - 1;
@@ -169,7 +160,7 @@ function generateScriptingFunction(_script, _encoding) {
 
     let options;
     if (this.options.dropBufferSupport) {
-      if (!_encoding) {
+      if (!encoding) {
         return asCallback(
           PromiseContainer.get().reject(new Error(DROP_BUFFER_SUPPORT_ERROR)),
           callback
@@ -177,13 +168,19 @@ function generateScriptingFunction(_script, _encoding) {
       }
       options = { replyEncoding: null };
     } else {
-      options = { replyEncoding: _encoding };
+      options = { replyEncoding: encoding };
     }
 
     if (this.options.showFriendlyErrorStack) {
       options.errorStack = new Error().stack;
     }
 
-    return _script.execute(this, args, options, callback);
+    // No auto pipeline, use regular command sending
+    if(!shouldUseAutoPipelining(this, name)) {
+      return script.execute(this, args, options, callback);
+    }
+
+    // Create a new pipeline and make sure it's scheduled
+    return executeWithAutoPipelining(this, name, args, callback);
   };
 }
