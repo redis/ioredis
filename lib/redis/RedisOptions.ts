@@ -72,5 +72,5 @@ export const DEFAULT_REDIS_OPTIONS: IRedisOptions = {
   maxLoadingRetryTime: 10000,
   enableAutoPipelining: false,
   autoPipeliningIgnoredCommands: [],
-  maxScriptsCachingTime: 60000
+  maxScriptsCachingTime: 60000,
 };
