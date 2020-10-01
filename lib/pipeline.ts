@@ -3,7 +3,7 @@ import { deprecate } from "util";
 import asCallback from "standard-as-callback";
 import { exists, hasFlag } from "redis-commands";
 import * as calculateSlot from "cluster-key-slot";
-import * as pMap from 'p-map';
+import * as pMap from "p-map";
 import * as PromiseContainer from "./promiseContainer";
 import { CallbackFunction } from "./types";
 import Commander from "./commander";
@@ -15,12 +15,12 @@ import Commander from "./commander";
 */
 function generateMultiWithNodes(redis, keys) {
   const slot = calculateSlot(keys[0]);
-  const target = redis.slots[slot].join(',');
+  const target = redis.slots[slot].join(",");
 
-  for(let i = 1; i < keys.length; i++) {
-    const currentTarget = redis.slots[calculateSlot(keys[i])].join(',');
+  for (let i = 1; i < keys.length; i++) {
+    const currentTarget = redis.slots[calculateSlot(keys[i])].join(",");
 
-    if(currentTarget !== target) {
+    if (currentTarget !== target) {
       return -1;
     }
   }
@@ -235,7 +235,7 @@ Pipeline.prototype.execBuffer = deprecate(function () {
 
 Pipeline.prototype.exec = function (callback: CallbackFunction) {
   // Wait for the cluster to be connected, since we need nodes information before continuing
-  if(this.isCluster && !this.redis.slots.length) {
+  if (this.isCluster && !this.redis.slots.length) {
     this.redis.delayUntilReady(() => {
       this.exec(callback);
     });
@@ -268,9 +268,11 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
       }
 
       // For each command, check that the keys belong to the same slot
-      if(keys.length && calculateSlot.generateMulti(keys) < 0) {
+      if (keys.length && calculateSlot.generateMulti(keys) < 0) {
         this.reject(
-          new Error("All the keys in a pipeline command should belong to the same slot")
+          new Error(
+            "All the keys in a pipeline command should belong to the same slot"
+          )
         );
 
         return this.promise;
@@ -282,7 +284,9 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
 
       if (pipelineSlot < 0) {
         this.reject(
-          new Error("All keys in the pipeline should belong to the same slots allocation group")
+          new Error(
+            "All keys in the pipeline should belong to the same slots allocation group"
+          )
         );
         return this.promise;
       }
@@ -300,7 +304,7 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
     if (item.name !== "evalsha") {
       continue;
     }
-    
+
     const script = this._shaToScript[item.args[0]];
 
     if (!script || this.redis._addedScriptHashes[script.sha]) {
@@ -317,12 +321,10 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
   }
 
   // In cluster mode, always load scripts before running the pipeline
-  if(this.isCluster) {
-    return pMap(
-      scripts, 
-      script => _this.redis.script("load", script.lua),
-      {concurrency: 10}
-    ).then(execPipeline);
+  if (this.isCluster) {
+    return pMap(scripts, (script) => _this.redis.script("load", script.lua), {
+      concurrency: 10,
+    }).then(execPipeline);
   }
 
   return this.redis

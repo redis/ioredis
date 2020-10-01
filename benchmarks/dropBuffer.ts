@@ -1,38 +1,38 @@
-import { cronometro } from 'cronometro'
-import Redis from '../lib/redis'
+import { cronometro } from "cronometro";
+import Redis from "../lib/redis";
 
-let redis
+let redis;
 
 cronometro(
   {
     default: {
       test() {
-        return redis.set('foo', 'bar')
+        return redis.set("foo", "bar");
       },
       before(cb) {
-        redis = new Redis()
-        cb()
+        redis = new Redis();
+        cb();
       },
       after(cb) {
-        redis.quit()
-        cb()
-      }
+        redis.quit();
+        cb();
+      },
     },
-    'dropBufferSupport=true': {
+    "dropBufferSupport=true": {
       test() {
-        return redis.set('foo', 'bar')
+        return redis.set("foo", "bar");
       },
       before(cb) {
-        redis = new Redis({ dropBufferSupport: true })
-        cb()
+        redis = new Redis({ dropBufferSupport: true });
+        cb();
       },
       after(cb) {
-        redis.quit()
-        cb()
-      }
-    }
+        redis.quit();
+        cb();
+      },
+    },
   },
   {
-    print: { compare: true }
+    print: { compare: true },
   }
-)
+);

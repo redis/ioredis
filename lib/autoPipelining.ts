@@ -2,23 +2,31 @@ import * as PromiseContainer from "./promiseContainer";
 import * as calculateSlot from "cluster-key-slot";
 import asCallback from "standard-as-callback";
 
-export const kExec = Symbol('exec');
-export const kCallbacks = Symbol('callbacks');
+export const kExec = Symbol("exec");
+export const kCallbacks = Symbol("callbacks");
 export const notAllowedAutoPipelineCommands = [
-  'info', 'script', 'quit', 'cluster', 'pipeline', 'multi', 
-  'subscribe', 'psubscribe', 'unsubscribe', 'unpsubscribe'
+  "info",
+  "script",
+  "quit",
+  "cluster",
+  "pipeline",
+  "multi",
+  "subscribe",
+  "psubscribe",
+  "unsubscribe",
+  "unpsubscribe",
 ];
 
-function findAutoPipeline (client, ...args: Array<string>): string {
-  if(!client.isCluster) {
-    return 'main';
+function findAutoPipeline(client, ...args: Array<string>): string {
+  if (!client.isCluster) {
+    return "main";
   }
 
   // We have slot information, we can improve routing by grouping slots served by the same subset of nodes
-  return client.slots[calculateSlot(args[0])].join(',');
+  return client.slots[calculateSlot(args[0])].join(",");
 }
 
-function executeAutoPipeline (client, slotKey: string) {
+function executeAutoPipeline(client, slotKey: string) {
   /*
     If a pipeline is already executing, keep queueing up commands
     since ioredis won't serve two pipelines at the same time
@@ -62,21 +70,29 @@ function executeAutoPipeline (client, slotKey: string) {
 
 export function shouldUseAutoPipelining(client, commandName: string): boolean {
   return (
-    client.options.enableAutoPipelining && 
+    client.options.enableAutoPipelining &&
     !client.isPipeline &&
     !notAllowedAutoPipelineCommands.includes(commandName) &&
     !client.options.autoPipeliningIgnoredCommands.includes(commandName)
   );
 }
 
-export function executeWithAutoPipelining(client, commandName: string, args: string[], callback) {
+export function executeWithAutoPipelining(
+  client,
+  commandName: string,
+  args: string[],
+  callback
+) {
   const CustomPromise = PromiseContainer.get();
-  
+
   // On cluster mode let's wait for slots to be available
-  if(client.isCluster && !client.slots.length) {
+  if (client.isCluster && !client.slots.length) {
     return new CustomPromise(function (resolve, reject) {
       client.delayUntilReady(() => {
-        executeWithAutoPipelining(client, commandName, args, callback).then(resolve, reject);
+        executeWithAutoPipelining(client, commandName, args, callback).then(
+          resolve,
+          reject
+        );
       });
     });
   }
@@ -106,7 +122,7 @@ export function executeWithAutoPipelining(client, commandName: string, args: str
     setImmediate(executeAutoPipeline, client, slotKey);
   }
 
-  // Create the promise which will execute the 
+  // Create the promise which will execute the
   const autoPipelinePromise = new CustomPromise(function (resolve, reject) {
     pipeline[kCallbacks].push(function (err, value) {
       if (err) {
@@ -120,5 +136,5 @@ export function executeWithAutoPipelining(client, commandName: string, args: str
     pipeline[commandName](...args);
   });
 
-  return asCallback(autoPipelinePromise, callback);    
+  return asCallback(autoPipelinePromise, callback);
 }

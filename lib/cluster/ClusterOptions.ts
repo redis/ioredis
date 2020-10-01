@@ -136,7 +136,7 @@ export interface IClusterOptions {
    *
    * @default false
    */
-  enableAutoPipelining?: boolean;  
+  enableAutoPipelining?: boolean;
 
   /**
    * See Redis class.
@@ -144,7 +144,6 @@ export interface IClusterOptions {
    * @default []
    */
   autoPipeliningIgnoredCommands?: string[];
-
 
   /**
    * See Redis class.
@@ -168,5 +167,5 @@ export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {
   dnsLookup: lookup,
   enableAutoPipelining: false,
   autoPipeliningIgnoredCommands: [],
-  maxScriptsCachingTime: 60000
+  maxScriptsCachingTime: 60000,
 };

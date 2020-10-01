@@ -164,10 +164,10 @@ function Redis() {
 
   // Prepare autopipelines structures
   this._autoPipelines = new Map();
-  this._runningAutoPipelines = new Set();  
+  this._runningAutoPipelines = new Set();
 
-  Object.defineProperty(this, 'autoPipelineQueueSize', {
-    get () {
+  Object.defineProperty(this, "autoPipelineQueueSize", {
+    get() {
       let queued = 0;
 
       for (const pipeline of this._autoPipelines.values()) {
@@ -175,7 +175,7 @@ function Redis() {
       }
 
       return queued;
-    }
+    },
   });
 
   // end(or wait) -> connecting -> connect -> ready -> end
@@ -297,9 +297,9 @@ Redis.prototype.connect = function (callback) {
     }
 
     this._addedScriptHashesCleanInterval = setInterval(() => {
-      this._addedScriptHashes = {}
+      this._addedScriptHashes = {};
     }, this.options.maxScriptsCachingTime);
-  
+
     this.connectionEpoch += 1;
     this.setStatus("connecting");
 
@@ -802,7 +802,6 @@ Redis.prototype._getDescription = function () {
   }
   return description;
 };
-
 [
   "scan",
   "sscan",

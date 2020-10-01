@@ -3,7 +3,10 @@ import Command from "./command";
 import Script from "./script";
 import * as PromiseContainer from "./promiseContainer";
 import asCallback from "standard-as-callback";
-import { executeWithAutoPipelining, shouldUseAutoPipelining } from "./autoPipelining";
+import {
+  executeWithAutoPipelining,
+  shouldUseAutoPipelining,
+} from "./autoPipelining";
 
 export interface ICommanderOptions {
   showFriendlyErrorStack?: boolean;
@@ -114,16 +117,18 @@ function generateFunction(_commandName?: string, _encoding?: string) {
     const commandName = _commandName || args.shift();
     let callback = args[args.length - 1];
 
-    if(typeof callback === 'function') {
+    if (typeof callback === "function") {
       args.pop();
     } else {
       callback = undefined;
     }
 
     const options = {
-      errorStack: this.options.showFriendlyErrorStack ? new Error().stack : undefined,
+      errorStack: this.options.showFriendlyErrorStack
+        ? new Error().stack
+        : undefined,
       keyPrefix: this.options.keyPrefix,
-      replyEncoding: _encoding
+      replyEncoding: _encoding,
     };
 
     if (this.options.dropBufferSupport && !_encoding) {
@@ -134,8 +139,10 @@ function generateFunction(_commandName?: string, _encoding?: string) {
     }
 
     // No auto pipeline, use regular command sending
-    if(!shouldUseAutoPipelining(this, commandName)) {
-      return this.sendCommand(new Command(commandName, args, options, callback));
+    if (!shouldUseAutoPipelining(this, commandName)) {
+      return this.sendCommand(
+        new Command(commandName, args, options, callback)
+      );
     }
 
     // Create a new pipeline and make sure it's scheduled
@@ -176,7 +183,7 @@ function generateScriptingFunction(name, script, encoding) {
     }
 
     // No auto pipeline, use regular command sending
-    if(!shouldUseAutoPipelining(this, name)) {
+    if (!shouldUseAutoPipelining(this, name)) {
       return script.execute(this, args, options, callback);
     }
 

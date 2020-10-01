@@ -63,12 +63,12 @@ class Cluster extends EventEmitter {
   private slotsTimer: NodeJS.Timer;
   private reconnectTimeout: NodeJS.Timer;
   private status: ClusterStatus;
-  private isRefreshing = false;  
+  private isRefreshing = false;
   public isCluster = true;
   private _autoPipelines: Map<string, typeof Pipeline> = new Map();
-  private _runningAutoPipelines: Set<string> = new Set();  
-  private _readyDelayedCallbacks: CallbackFunction[] = []
-  public _addedScriptHashes: {[key: string]: any} = {};
+  private _runningAutoPipelines: Set<string> = new Set();
+  private _readyDelayedCallbacks: CallbackFunction[] = [];
+  public _addedScriptHashes: { [key: string]: any } = {};
   public _addedScriptHashesCleanInterval: NodeJS.Timeout;
 
   /**
@@ -186,9 +186,9 @@ class Cluster extends EventEmitter {
       }
 
       this._addedScriptHashesCleanInterval = setInterval(() => {
-        this._addedScriptHashes = {}
+        this._addedScriptHashes = {};
       }, this.options.maxScriptsCachingTime);
-        
+
       const epoch = ++this.connectionEpoch;
       this.setStatus("connecting");
 
@@ -441,22 +441,22 @@ class Cluster extends EventEmitter {
   // This is needed in order not to install a listener for each auto pipeline
   public delayUntilReady(callback: CallbackFunction) {
     // First call, setup the event listener
-    if(!this._readyDelayedCallbacks.length) {
-      this.once('ready', (...args) => {
-        for(const c of this._readyDelayedCallbacks) {
-          c(...args)
+    if (!this._readyDelayedCallbacks.length) {
+      this.once("ready", (...args) => {
+        for (const c of this._readyDelayedCallbacks) {
+          c(...args);
         }
 
-        this._readyDelayedCallbacks = []
-      })      
+        this._readyDelayedCallbacks = [];
+      });
     }
 
-    this._readyDelayedCallbacks.push(callback)
+    this._readyDelayedCallbacks.push(callback);
   }
 
   /**
    * Get the number of commands queued in automatic pipelines.
-   * 
+   *
    * This is not available (and returns 0) until the cluster is connected and slots information have been received.
    */
   get autoPipelineQueueSize(): number {
