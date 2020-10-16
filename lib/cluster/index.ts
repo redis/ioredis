@@ -227,6 +227,7 @@ class Cluster extends EventEmitter {
 
           let closeListener: () => void = undefined;
           const refreshListener = () => {
+            this.invokeReadyDelayedCallbacks(undefined);
             this.removeListener("close", closeListener);
             this.manuallyClosing = false;
             this.setStatus("connect");
@@ -250,8 +251,11 @@ class Cluster extends EventEmitter {
           };
 
           closeListener = function () {
+            const error = new Error("None of startup nodes is available");
+
             this.removeListener("refresh", refreshListener);
-            reject(new Error("None of startup nodes is available"));
+            this.invokeReadyDelayedCallbacks(error);
+            reject(error);
           };
 
           this.once("refresh", refreshListener);
@@ -271,6 +275,7 @@ class Cluster extends EventEmitter {
         .catch((err) => {
           this.setStatus("close");
           this.handleCloseEvent(err);
+          this.invokeReadyDelayedCallbacks(err);
           reject(err);
         });
     });
@@ -440,17 +445,6 @@ class Cluster extends EventEmitter {
 
   // This is needed in order not to install a listener for each auto pipeline
   public delayUntilReady(callback: CallbackFunction) {
-    // First call, setup the event listener
-    if (!this._readyDelayedCallbacks.length) {
-      this.once("ready", (...args) => {
-        for (const c of this._readyDelayedCallbacks) {
-          c(...args);
-        }
-
-        this._readyDelayedCallbacks = [];
-      });
-    }
-
     this._readyDelayedCallbacks.push(callback);
   }
 
@@ -848,6 +842,14 @@ class Cluster extends EventEmitter {
         callback();
       }, this.options.slotsRefreshTimeout)
     );
+  }
+
+  private invokeReadyDelayedCallbacks(err) {
+    for (const c of this._readyDelayedCallbacks) {
+      process.nextTick(c, err);
+    }
+  
+    this._readyDelayedCallbacks = [];
   }
 
   /**
