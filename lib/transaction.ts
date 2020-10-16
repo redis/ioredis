@@ -32,14 +32,14 @@ export function addTransactionSupport(redis) {
       if (this.isCluster && !this.redis.slots.length) {
         return asCallback(
           new Promise((resolve, reject) => {
-            this.redis.delayUntilReady(err => {
+            this.redis.delayUntilReady((err) => {
               if (err) {
                 reject(err);
                 return;
               }
 
               this.exec(pipeline).then(resolve, reject);
-            })
+            });
           }),
           callback
         );

@@ -88,14 +88,17 @@ export function executeWithAutoPipelining(
   // On cluster mode let's wait for slots to be available
   if (client.isCluster && !client.slots.length) {
     return new CustomPromise(function (resolve, reject) {
-      client.delayUntilReady(err => {
+      client.delayUntilReady((err) => {
         if (err) {
           reject(err);
           return;
         }
 
-        executeWithAutoPipelining(client, commandName, args, callback).then(resolve, reject);
-      })
+        executeWithAutoPipelining(client, commandName, args, callback).then(
+          resolve,
+          reject
+        );
+      });
     });
   }
 
