@@ -236,14 +236,14 @@ Pipeline.prototype.execBuffer = deprecate(function () {
 Pipeline.prototype.exec = function (callback: CallbackFunction) {
   // Wait for the cluster to be connected, since we need nodes information before continuing
   if (this.isCluster && !this.redis.slots.length) {
-    this.redis.delayUntilReady(err => {
+    this.redis.delayUntilReady((err) => {
       if (err) {
         callback(err);
         return;
       }
 
       this.exec(callback);
-    })
+    });
 
     return this.promise;
   }

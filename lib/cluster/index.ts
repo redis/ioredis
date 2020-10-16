@@ -848,7 +848,7 @@ class Cluster extends EventEmitter {
     for (const c of this._readyDelayedCallbacks) {
       process.nextTick(c, err);
     }
-  
+
     this._readyDelayedCallbacks = [];
   }
 
