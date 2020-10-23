@@ -1,3 +1,15 @@
+# [4.19.0](https://github.com/luin/ioredis/compare/v4.18.0...v4.19.0) (2020-10-23)
+
+
+### Bug Fixes
+
+* Ensure delayed callbacks are always invoked. ([d6e78c3](https://github.com/luin/ioredis/commit/d6e78c306c8150c58277d60e51edac55a55523c2))
+
+
+### Features
+
+* Add autopipeline for commands and allow multi slot pipelines. ([aba3c74](https://github.com/luin/ioredis/commit/aba3c743c230ea6d10e6f3779214f34ebd9ae7ae)), closes [#536](https://github.com/luin/ioredis/issues/536)
+
 # [4.18.0](https://github.com/luin/ioredis/compare/v4.17.3...v4.18.0) (2020-07-25)
 
 
