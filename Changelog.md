@@ -1,3 +1,10 @@
+## [4.19.1](https://github.com/luin/ioredis/compare/v4.19.0...v4.19.1) (2020-10-28)
+
+
+### Bug Fixes
+
+* Make sure script caches interval is cleared. [[#1215](https://github.com/luin/ioredis/issues/1215)] ([d94f97d](https://github.com/luin/ioredis/commit/d94f97d6950035818a666c08447a9d5e0ef5f8c7))
+
 # [4.19.0](https://github.com/luin/ioredis/compare/v4.18.0...v4.19.0) (2020-10-23)
 
 
