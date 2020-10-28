@@ -1,9 +1,9 @@
 ## Classes
 
 <dl>
-<dt><a href="#Redis">Redis</a> ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code></dt>
+<dt><a href="#Redis">Redis</a> ⇐ <code><a href="http://nodejs.org/api/events.html#events_class_events_eventemitter">EventEmitter</a></code></dt>
 <dd></dd>
-<dt><a href="#Cluster">Cluster</a> ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code></dt>
+<dt><a href="#Cluster">Cluster</a> ⇐ <code><a href="http://nodejs.org/api/events.html#events_class_events_eventemitter">EventEmitter</a></code></dt>
 <dd></dd>
 <dt><a href="#Commander">Commander</a></dt>
 <dd></dd>
