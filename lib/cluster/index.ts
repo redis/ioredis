@@ -331,6 +331,7 @@ class Cluster extends EventEmitter {
     this.setStatus("disconnecting");
 
     clearInterval(this._addedScriptHashesCleanInterval);
+    this._addedScriptHashesCleanInterval = null;
 
     if (!reconnect) {
       this.manuallyClosing = true;
@@ -361,6 +362,9 @@ class Cluster extends EventEmitter {
   public quit(callback?: CallbackFunction<"OK">): Promise<"OK"> {
     const status = this.status;
     this.setStatus("disconnecting");
+
+    clearInterval(this._addedScriptHashesCleanInterval);
+    this._addedScriptHashesCleanInterval = null;
 
     this.manuallyClosing = true;
 

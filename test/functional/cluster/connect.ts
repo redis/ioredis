@@ -411,3 +411,31 @@ describe("cluster:connect", function () {
     });
   });
 });
+
+describe("cluster:disconnect", function () {
+  it("should clear the added script hashes interval when disconnecting", function (done) {
+    new MockServer(30001);
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      enableReadyCheck: false,
+    });
+    cluster.once("ready", function () {
+      cluster.disconnect();
+
+      expect(cluster._addedScriptHashesCleanInterval).to.be.null;
+      done();
+    });
+  });
+
+  it("should clear the added script hashes interval when quitting", function (done) {
+    new MockServer(30001);
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      enableReadyCheck: false,
+    });
+    cluster.once("ready", function () {
+      cluster.quit();
+
+      expect(cluster._addedScriptHashesCleanInterval).to.be.null;
+      done();
+    });
+  });
+});

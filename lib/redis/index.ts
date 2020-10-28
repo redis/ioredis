@@ -406,6 +406,7 @@ Redis.prototype.connect = function (callback) {
  */
 Redis.prototype.disconnect = function (reconnect) {
   clearInterval(this._addedScriptHashesCleanInterval);
+  this._addedScriptHashesCleanInterval = null;
 
   if (!reconnect) {
     this.manuallyClosing = true;
@@ -696,6 +697,11 @@ Redis.prototype.sendCommand = function (command, stream) {
       )
     );
     return command.promise;
+  }
+
+  if (command.name === "quit") {
+    clearInterval(this._addedScriptHashesCleanInterval);
+    this._addedScriptHashesCleanInterval = null;
   }
 
   let writable =
