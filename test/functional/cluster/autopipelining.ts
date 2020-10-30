@@ -1,4 +1,6 @@
 import { expect, use } from "chai";
+import * as calculateKeySlot from 'cluster-key-slot';
+
 import { default as Cluster } from "../../../lib/cluster";
 import MockServer from "../../helpers/mock_server";
 
@@ -395,12 +397,27 @@ describe("autoPipelining for cluster", function () {
     await new Promise((resolve) => cluster.once("connect", resolve));
 
     const promise1 = cluster.set("foo1", "bar");
-    const promise2 = cluster.set("foo2", "bar");
+    const promise2 = cluster.set("foo5", "bar");
+    const promise3 = cluster.set("foo2", "bar");
+    const promise4 = cluster.set("foo6", "bar");
+    
+    // Override slots to induce a failure
+    const key1Slot = calculateKeySlot('foo1');
+    const key2Slot = calculateKeySlot('foo2');
+    const key5Slot = calculateKeySlot('foo5');
+    cluster.slots[key1Slot] = cluster.slots[key2Slot];
+    cluster.slots[key2Slot] = cluster.slots[key5Slot];
 
     await expect(promise1).to.eventually.be.rejectedWith(
       "All keys in the pipeline should belong to the same slots allocation group"
     );
     await expect(promise2).to.eventually.be.rejectedWith(
+      "All keys in the pipeline should belong to the same slots allocation group"
+    );
+    await expect(promise3).to.eventually.be.rejectedWith(
+      "All keys in the pipeline should belong to the same slots allocation group"
+    );
+    await expect(promise4).to.eventually.be.rejectedWith(
       "All keys in the pipeline should belong to the same slots allocation group"
     );
 
@@ -411,13 +428,19 @@ describe("autoPipelining for cluster", function () {
     const cluster = new Cluster(hosts, { enableAutoPipelining: true });
 
     cluster.once("connect", () => {
-      let err1, err2;
+      let err1, err2, err3, err4;
 
       function cb() {
         expect(err1.message).to.eql(
           "All keys in the pipeline should belong to the same slots allocation group"
         );
         expect(err2.message).to.eql(
+          "All keys in the pipeline should belong to the same slots allocation group"
+        );
+        expect(err3.message).to.eql(
+          "All keys in the pipeline should belong to the same slots allocation group"
+        );
+        expect(err4.message).to.eql(
           "All keys in the pipeline should belong to the same slots allocation group"
         );
         expect(cluster.autoPipelineQueueSize).to.eql(0);
@@ -431,22 +454,49 @@ describe("autoPipelining for cluster", function () {
       cluster.set("foo1", "bar1", (err) => {
         err1 = err;
 
-        if (err1 && err2) {
+        if (err1 && err2 && err3 && err4) {
           cb();
         }
       });
 
       expect(cluster.autoPipelineQueueSize).to.eql(1);
 
-      cluster.set("foo2", (err) => {
+      cluster.set("foo2", "bar2", (err) => {
         err2 = err;
 
-        if (err1 && err2) {
+        if (err1 && err2 && err3 && err4) {
           cb();
         }
       });
 
       expect(cluster.autoPipelineQueueSize).to.eql(2);
+
+      cluster.set("foo5", "bar5", (err) => {
+        err3 = err;
+
+        if (err1 && err2 && err3 && err4) {
+          cb();
+        }
+      });
+
+      expect(cluster.autoPipelineQueueSize).to.eql(3);
+
+      cluster.set("foo6", "bar6", (err) => {
+        err4 = err;
+
+        if (err1 && err2 && err3 && err4) {
+          cb();
+        }
+      });
+
+      expect(cluster.autoPipelineQueueSize).to.eql(4);
+
+      // Override slots to induce a failure
+      const key1Slot = calculateKeySlot('foo1');
+      const key2Slot = calculateKeySlot('foo2');
+      const key5Slot = calculateKeySlot('foo5');
+      cluster.slots[key1Slot] = cluster.slots[key2Slot];
+      cluster.slots[key2Slot] = cluster.slots[key5Slot];
     });
   });
 
@@ -457,11 +507,14 @@ describe("autoPipelining for cluster", function () {
     process.removeAllListeners("uncaughtException");
 
     cluster.once("connect", () => {
-      let err1;
+      let err1, err5;
 
       process.once("uncaughtException", (err) => {
         expect(err.message).to.eql("ERROR");
         expect(err1.message).to.eql(
+          "All keys in the pipeline should belong to the same slots allocation group"
+        );
+        expect(err5.message).to.eql(
           "All keys in the pipeline should belong to the same slots allocation group"
         );
 
@@ -476,14 +529,21 @@ describe("autoPipelining for cluster", function () {
       cluster.set("foo1", "bar1", (err) => {
         err1 = err;
       });
+      cluster.set("foo5", "bar5", (err) => {
+        err5 = err;
+      });
 
-      expect(cluster.autoPipelineQueueSize).to.eql(1);
+      expect(cluster.autoPipelineQueueSize).to.eql(2);
 
       cluster.set("foo2", (err) => {
         throw new Error("ERROR");
       });
 
-      expect(cluster.autoPipelineQueueSize).to.eql(2);
+      expect(cluster.autoPipelineQueueSize).to.eql(3);
+
+      const key1Slot = calculateKeySlot('foo1');
+      const key2Slot = calculateKeySlot('foo2');
+      cluster.slots[key1Slot] = cluster.slots[key2Slot];
     });
   });
 });
