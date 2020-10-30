@@ -17,7 +17,7 @@ export const notAllowedAutoPipelineCommands = [
   "unpsubscribe",
 ];
 
-function findAutoPipeline(client, ...args: Array<string>): string {
+function findAutoPipeline(client, _commandName, ...args: Array<string>): string {
   if (!client.isCluster) {
     return "main";
   }
