@@ -1,3 +1,10 @@
+## [4.19.2](https://github.com/luin/ioredis/compare/v4.19.1...v4.19.2) (2020-10-31)
+
+
+### Bug Fixes
+
+* Fix autopipeline and downgrade p-map to support Node 6. [[#1216](https://github.com/luin/ioredis/issues/1216)] ([1bc8ca0](https://github.com/luin/ioredis/commit/1bc8ca0d05ab830a04502acd1cfc2796aca256ec))
+
 ## [4.19.1](https://github.com/luin/ioredis/compare/v4.19.0...v4.19.1) (2020-10-28)
 
 
