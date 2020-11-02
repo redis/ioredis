@@ -6,3 +6,4 @@ built
 
 .vscode
 benchmarks/fixtures/*.txt
+.clinic
