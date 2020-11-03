@@ -135,14 +135,14 @@ Commander.prototype.defineCommand = function (name, definition) {
  */
 Commander.prototype.sendCommand = function () {};
 
-function generateFunction(_functionName: string | null, _encoding: string);
+function generateFunction(functionName: string | null, _encoding: string);
 function generateFunction(
-  _functionName: string | null,
+  functionName: string | null,
   _commandName: string | void,
   _encoding: string
 );
 function generateFunction(
-  _functionName: string | null,
+  functionName: string | null,
   _commandName?: string,
   _encoding?: string
 ) {
@@ -150,7 +150,6 @@ function generateFunction(
     _encoding = _commandName;
     _commandName = null;
   }
-  const functionName = _functionName;
 
   return function (...args) {
     const commandName = _commandName || args.shift();
