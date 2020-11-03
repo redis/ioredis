@@ -78,7 +78,7 @@ Commander.prototype.addBuiltinCommand = function (commandName) {
   Commander.prototype[commandName + "Buffer"] = generateFunction(
     commandName + "Buffer",
     commandName,
-    "utf8"
+    null
   );
 };
 
