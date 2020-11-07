@@ -18,6 +18,7 @@ import ScanStream from "../ScanStream";
 import * as commands from "redis-commands";
 import * as PromiseContainer from "../promiseContainer";
 import { addTransactionSupport } from "../transaction";
+import { sanitizeError, warnOnceAboutSanitizeErrors } from "../errorSanitizer";
 import {
   IRedisOptions,
   ReconnectOnError,
@@ -257,6 +258,9 @@ Redis.prototype.parseOptions = function () {
   }
   defaults(this.options, Redis.defaultOptions);
 
+  if (typeof this.options.sanitizeErrors !== "boolean") {
+    warnOnceAboutSanitizeErrors();
+  }
   if (typeof this.options.port === "string") {
     this.options.port = parseInt(this.options.port, 10);
   }
@@ -608,6 +612,16 @@ Redis.prototype._readyCheck = function (callback: CallbackFunction) {
       }, retryTime);
     }
   });
+};
+
+const _emit = Redis.prototype.emit;
+Redis.prototype.emit = function (eventName) {
+  if (eventName === "error" && this.options.sanitizeErrors) {
+    const [eventName, error, ...extra] = arguments;
+    const sanitizedError = sanitizeError(error);
+    return _emit.apply(this, [eventName, sanitizedError, ...extra]);
+  }
+  return _emit.apply(this, arguments);
 };
 
 /**
