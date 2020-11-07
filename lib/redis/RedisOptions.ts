@@ -32,6 +32,7 @@ export interface IRedisOptions
   maxScriptsCachingTime?: number;
   offlineQueue?: boolean;
   commandQueue?: boolean;
+  sanitizeErrors?: boolean;
 }
 
 export const DEFAULT_REDIS_OPTIONS: IRedisOptions = {
