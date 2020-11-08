@@ -1131,6 +1131,7 @@ This approach increases the utilization of the network link, reduces the TCP ove
 Here's some of the results of our tests for a single node. 
 
 Each iteration of the test runs 1000 random commands on the server.
+```
 
 ╔═══════════════════════════╤═════════╤═══════════════╤═══════════╤═════════════════════════╗
 ║ Slower tests              │ Samples │        Result │ Tolerance │ Difference with slowest ║
@@ -1141,9 +1142,10 @@ Each iteration of the test runs 1000 random commands on the server.
 ╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
 ║ enableAutoPipelining=true │    1500 │ 233.33 op/sec │  ± 0.88 % │ + 33.62 %               ║
 ╚═══════════════════════════╧═════════╧═══════════════╧═══════════╧═════════════════════════╝
+```
 
 And here's the same test for a cluster of 3 masters and 3 replicas:
-
+```
 ╔═══════════════════════════╤═════════╤═══════════════╤═══════════╤═════════════════════════╗
 ║ Slower tests              │ Samples │        Result │ Tolerance │ Difference with slowest ║
 ╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
@@ -1153,6 +1155,7 @@ And here's the same test for a cluster of 3 masters and 3 replicas:
 ╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
 ║ enableAutoPipelining=true │    3000 │ 235.31 op/sec │  ± 0.94 % │ + 43.44 %               ║
 ╚═══════════════════════════╧═════════╧═══════════════╧═══════════╧═════════════════════════╝
+```
 
 
 # Error Handling
