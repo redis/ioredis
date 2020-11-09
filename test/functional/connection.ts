@@ -549,4 +549,21 @@ describe("disconnection", function () {
       }
     });
   });
+  
+  it("should clear the added script hashes interval even when no connection succeeded", function (done) {
+    let attempt = 0;
+    const redis = new Redis(0, 'localhost');
+    
+    redis.on("error", function () {
+      if(attempt < 5) {
+        attempt ++;
+        return
+      }
+
+      redis.quit();
+
+      expect(redis._addedScriptHashesCleanInterval).to.be.null;
+      done();
+    });
+  });
 });

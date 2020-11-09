@@ -190,7 +190,10 @@ class Cluster extends EventEmitter {
         return;
       }
 
+      // Make sure only one timer is active at a time
       clearInterval(this._addedScriptHashesCleanInterval);
+
+      // Start the script cache cleaning
       this._addedScriptHashesCleanInterval = setInterval(() => {
         this._addedScriptHashes = {};
       }, this.options.maxScriptsCachingTime);
