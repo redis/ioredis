@@ -20,7 +20,6 @@ describe("Commander", function () {
       const c = new Commander();
       c.addBuiltinCommand("someCommand");
       c.someCommand();
-      console.log(Commander.prototype.sendCommand.call);
       const command = Commander.prototype.sendCommand.getCall(0).args[0];
       expect(command.name).to.eql("someCommand");
       expect(command.replyEncoding).to.eql("utf8");
@@ -30,7 +29,6 @@ describe("Commander", function () {
       const c = new Commander();
       c.addBuiltinCommand("someCommand");
       c.someCommandBuffer();
-      console.log(Commander.prototype.sendCommand.call);
       const command = Commander.prototype.sendCommand.getCall(0).args[0];
       expect(command.name).to.eql("someCommand");
       expect(command.replyEncoding).to.eql(null);
