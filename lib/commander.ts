@@ -31,7 +31,7 @@ export default function Commander() {
     showFriendlyErrorStack: false,
   });
   this.scriptsSet = {};
-  this.addedBuiltinSet = {};
+  this.addedBuiltinSet = new Set();
 }
 
 const commands = require("redis-commands").list.filter(function (command) {
@@ -71,7 +71,7 @@ Commander.prototype.createBuiltinCommand = function (commandName) {
  * @public
  */
 Commander.prototype.addBuiltinCommand = function (commandName) {
-  this.addedBuiltinSet[commandName] = commandName;
+  this.addedBuiltinSet.add(commandName);
   this[commandName] = generateFunction(commandName, commandName, "utf8");
   this[commandName + "Buffer"] = generateFunction(
     commandName + "Buffer",

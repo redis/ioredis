@@ -47,7 +47,7 @@ export default function Pipeline(redis) {
     this[name + "Buffer"] = redis[name + "Buffer"];
   });
 
-  Object.keys(redis.addedBuiltinSet).forEach((name) => {
+  redis.addedBuiltinSet.forEach((name) => {
     this[name] = redis[name];
     this[name + "Buffer"] = redis[name + "Buffer"];
   });
