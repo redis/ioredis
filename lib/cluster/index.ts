@@ -867,7 +867,7 @@ class Cluster extends EventEmitter {
         }
 
         // Assign to each node keys a numeric value to make autopipeline comparison faster.
-        this._groupsIds = {};        
+        this._groupsIds = Object.create(null);        
         let j = 0;
         for (let i = 0; i < 16384; i++) {
           const target = (this.slots[i] || []).join(';');
