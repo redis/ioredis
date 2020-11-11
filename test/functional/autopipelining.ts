@@ -1,5 +1,7 @@
 import { expect, use } from "chai";
 import Redis from "../../lib/redis";
+import { ReplyError } from "redis-errors";
+import * as sinon from "sinon";
 
 use(require("chai-as-promised"));
 
@@ -42,6 +44,15 @@ describe("autoPipelining for single node", function () {
 
     expect(redis.autoPipelineQueueSize).to.eql(0);
     await promise;
+  });
+
+  it("should support buffer commands", async () => {
+    const redis = new Redis({ enableAutoPipelining: true });
+    const buffer = Buffer.from("bar");
+    await redis.setBuffer("foo", buffer);
+    const promise = redis.getBuffer("foo");
+    expect(redis.autoPipelineQueueSize).to.eql(1);
+    expect(await promise).to.eql(buffer);
   });
 
   it("should support custom commands", async () => {
