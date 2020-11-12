@@ -20,7 +20,10 @@ describe("StandaloneConnector", () => {
     });
 
     it("ignore path when port is set and path is null", async () => {
-      const spy = sinon.stub(net, "createConnection");
+      const spy = sinon.stub(net, "createConnection").returns({
+        once: (eventType, callback) => {},
+        end: () => {},
+      });
       const connector = new StandaloneConnector({ port: 6379, path: null });
       await connector.connect(() => {});
       expect(spy.calledOnce).to.eql(true);
@@ -29,7 +32,10 @@ describe("StandaloneConnector", () => {
     });
 
     it("supports tls", async () => {
-      const spy = sinon.stub(tls, "connect");
+      const spy = sinon.stub(tls, "connect").returns({
+        once: (eventType, callback) => {},
+        end: () => {},
+      });
       const connector = new StandaloneConnector({
         port: 6379,
         tls: { ca: "on" },
