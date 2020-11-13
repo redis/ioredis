@@ -245,7 +245,9 @@ describe("connection", function () {
       const stub = sinon
         .stub(net.Socket.prototype, "connect")
         .callsFake((options) => {
-          net.Socket.prototype.emit("error");
+          process.nextTick(function () {
+            net.Socket.prototype.emit.bind(net.Socket.prototype, "error");
+          });
         });
 
       const redis = new Redis({ lazyConnect: true });
