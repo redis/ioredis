@@ -240,6 +240,21 @@ describe("connection", function () {
         done();
       });
     });
+
+    it("should reject on initial connection error", function (done) {
+      const stub = sinon
+        .stub(net.Socket.prototype, "connect")
+        .callsFake((options) => {
+          net.Socket.prototype.emit("error");
+        });
+
+      const redis = new Redis({ lazyConnect: true });
+      redis.connect().catch(function () {
+        stub.restore();
+        redis.disconnect();
+        done();
+      });
+    });
   });
 
   describe("retryStrategy", function () {
