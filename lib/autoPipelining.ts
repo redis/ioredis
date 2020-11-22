@@ -5,6 +5,7 @@ import asCallback from "standard-as-callback";
 export const kExec = Symbol("exec");
 export const kCallbacks = Symbol("callbacks");
 export const notAllowedAutoPipelineCommands = [
+  "auth",
   "info",
   "script",
   "quit",
@@ -17,7 +18,11 @@ export const notAllowedAutoPipelineCommands = [
   "unpsubscribe",
 ];
 
-function findAutoPipeline(client, _commandName, ...args: Array<string>): string {
+function findAutoPipeline(
+  client,
+  _commandName,
+  ...args: Array<string>
+): string {
   if (!client.isCluster) {
     return "main";
   }
