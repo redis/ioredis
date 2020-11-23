@@ -601,7 +601,7 @@ const stream = redis.hscanStream("myhash", {
 You can learn more from the [Redis documentation](http://redis.io/commands/scan).
 
 **Useful Tips**
-It's pretty common that doing an async task in the `data` handler. We'd like the scanning process to be paused until the async task to be finished. `Stream#pause()` and `Stream.resume()` do the trick. For example if we want to migrate data in Redis to MySQL:
+It's pretty common that doing an async task in the `data` handler. We'd like the scanning process to be paused until the async task to be finished. `Stream.pause()` and `Stream.resume()` do the trick. For example if we want to migrate data in Redis to MySQL:
 
 ```javascript
 const stream = redis.scanStream();
