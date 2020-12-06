@@ -1132,28 +1132,19 @@ Here's some of the results of our tests for a single node.
 
 Each iteration of the test runs 1000 random commands on the server.
 
-╔═══════════════════════════╤═════════╤═══════════════╤═══════════╤═════════════════════════╗
-║ Slower tests              │ Samples │        Result │ Tolerance │ Difference with slowest ║
-╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
-║ default                   │    1000 │ 174.62 op/sec │  ± 0.45 % │                         ║
-╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
-║ Fastest test              │ Samples │        Result │ Tolerance │ Difference with slowest ║
-╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
-║ enableAutoPipelining=true │    1500 │ 233.33 op/sec │  ± 0.88 % │ + 33.62 %               ║
-╚═══════════════════════════╧═════════╧═══════════════╧═══════════╧═════════════════════════╝
+| Slower tests              | Samples |        Result | Tolerance | Difference with slowest |
+|---------------------------|---------|---------------|-----------|-------------------------|
+| default                   |    1000 | 174.62 op/sec |  ± 0.45 % |                         |
+| Fastest test              | Samples |        Result | Tolerance | Difference with slowest |
+| enableAutoPipelining=true |    1500 | 233.33 op/sec |  ± 0.88 % | + 33.62 %               |
 
 And here's the same test for a cluster of 3 masters and 3 replicas:
 
-╔═══════════════════════════╤═════════╤═══════════════╤═══════════╤═════════════════════════╗
-║ Slower tests              │ Samples │        Result │ Tolerance │ Difference with slowest ║
-╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
-║ default                   │    1000 │ 164.05 op/sec │  ± 0.42 % │                         ║
-╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
-║ Fastest test              │ Samples │        Result │ Tolerance │ Difference with slowest ║
-╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
-║ enableAutoPipelining=true │    3000 │ 235.31 op/sec │  ± 0.94 % │ + 43.44 %               ║
-╚═══════════════════════════╧═════════╧═══════════════╧═══════════╧═════════════════════════╝
-
+| Slower tests              | Samples |        Result | Tolerance | Difference with slowest |
+|---------------------------|---------|---------------|-----------|-------------------------|
+| default                   |    1000 | 164.05 op/sec |  ± 0.42 % |                         |
+| Fastest test              | Samples |        Result | Tolerance | Difference with slowest |
+| enableAutoPipelining=true |    3000 | 235.31 op/sec |  ± 0.94 % | + 43.44 %               |
 
 # Error Handling
 
