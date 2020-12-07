@@ -31,6 +31,7 @@ import Redis from "../redis";
 import Commander from "../commander";
 import Deque = require("denque");
 import { Pipeline } from "..";
+import * as dns from "dns";
 
 const debug = Debug("cluster");
 
@@ -43,6 +44,71 @@ type ClusterStatus =
   | "ready"
   | "reconnecting"
   | "disconnecting";
+
+// Helper function for resolving SRV record
+function groupSrvRecords(addrs) {
+  let groups = {}; // by priority
+  addrs.forEach(function (addr) {
+    if (!groups.hasOwnProperty(addr.priority)) {
+      groups[addr.priority] = [];
+    }
+
+    groups[addr.priority].push(addr);
+  });
+
+  let result = [];
+  Object.keys(groups)
+    .sort(compareNumbers)
+    .forEach(function (priority) {
+      let group = groups[priority];
+      // Calculate the total weight for this priority group
+      let totalWeight = 0;
+      group.forEach(function (addr) {
+        totalWeight += addr.weight;
+      });
+      while (group.length > 1) {
+        // Select the next address (based on the relative weights)
+        let w = Math.floor(Math.random() * totalWeight);
+        let index = -1;
+        while (++index < group.length && w > 0) {
+          w -= group[index].weight;
+        }
+        if (index < group.length) {
+          // Remove selected address from the group and add it to the
+          // result list.
+          const addr = group.splice(index, 1)[0];
+          result.push(addr);
+          // Adjust the total group weight accordingly
+          totalWeight -= addr.weight;
+        }
+      }
+      // Add the final address from this group
+      result.push(group[0]);
+    });
+  return result;
+}
+
+function compareNumbers(a, b) {
+  a = parseInt(a, 10);
+  b = parseInt(b, 10);
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+// one of both A & AAAA, in case of broken tunnels
+function resolveHost(name, cb) {
+  let error,
+    results = [];
+  let cb1 = function (e, addr) {
+    error = error || e;
+    if (addr) {
+      results.push(addr);
+    }
+
+    cb(results.length > 0 ? null : error, results);
+  };
+
+  dns.lookup(name, cb1);
+}
 
 /**
  * Client for the official Redis Cluster
@@ -890,6 +956,49 @@ class Cluster extends EventEmitter {
     });
   }
 
+  private resolveSrv(hostname: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      dns.resolveSrv(hostname, function (err, addrs) {
+        if (err) {
+          /* no SRV record, try domain as A */
+          resolve(err);
+        } else {
+          let pending = 0,
+            error,
+            results = [];
+          let cb1 = function (e, addrs1) {
+            error = error || e;
+            results = results.concat(addrs1);
+            pending--;
+            if (pending < 1) {
+              if (results != null) {
+                resolve(results);
+              } else {
+                reject(error);
+              }
+            }
+          };
+          // cb1(null,addrs[0])
+          let gSRV = groupSrvRecords(addrs);
+          pending = gSRV.length;
+          gSRV.forEach(function (addr) {
+            resolveHost(addr.name, function (e, a) {
+              if (a) {
+                a = a.map(function (a1) {
+                  return {
+                    name: a1,
+                    port: addr.port,
+                  };
+                });
+              }
+              cb1(e, a);
+            });
+          });
+        }
+      });
+    });
+  }
+
   private dnsLookup(hostname: string): Promise<string> {
     return new Promise((resolve, reject) => {
       this.options.dnsLookup(hostname, (err, address) => {
@@ -930,17 +1039,34 @@ class Cluster extends EventEmitter {
       return Promise.resolve(startupNodes);
     }
 
-    return Promise.all(
-      hostnames.map((hostname) => this.dnsLookup(hostname))
-    ).then((ips) => {
-      const hostnameToIP = zipMap(hostnames, ips);
+    if (this.options.useSRVRecord) {
+      return Promise.all(
+        hostnames.map((hostname) => this.resolveSrv(hostname))
+      ).then((ips) => {
+        const hostnameToIP = zipMap(hostnames, ips);
+        let result = [];
+        startupNodes.map((node) => {
+          if (hostnameToIP.has(node.host)) {
+            if (ips[0][0].name) {
+              result.push({ host: ips[0][0].name, port: ips[0][0].port });
+            }
+          }
+        });
+        return result;
+      });
+    } else {
+      return Promise.all(
+        hostnames.map((hostname) => this.dnsLookup(hostname))
+      ).then((ips) => {
+        const hostnameToIP = zipMap(hostnames, ips);
 
-      return startupNodes.map((node) =>
-        hostnameToIP.has(node.host)
-          ? Object.assign({}, node, { host: hostnameToIP.get(node.host) })
-          : node
-      );
-    });
+        return startupNodes.map((node) =>
+          hostnameToIP.has(node.host)
+            ? Object.assign({}, node, { host: hostnameToIP.get(node.host) })
+            : node
+        );
+      });
+    }
   }
 }
 
