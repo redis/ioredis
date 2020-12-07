@@ -889,9 +889,12 @@ cluster.get("foo", (err, res) => {
       will resend the commands after the specified time (in ms).
     - `retryDelayOnTryAgain`: If this option is a number (by default, it is `100`), the client
       will resend the commands rejected with `TRYAGAIN` error after the specified time (in ms).
+    - `retryDelayOnMoved`: By default, this value is `0` (in ms), which means when a `MOVED` error is received, the client will resend
+      the command instantly to the node returned together with the `MOVED` error. However, sometimes it takes time for a cluster to become
+      state stabilized after a failover, so adding a delay before resending can prevent a ping pong effect.
     - `redisOptions`: Default options passed to the constructor of `Redis` when connecting to a node.
-    - `slotsRefreshTimeout`: Milliseconds before a timeout occurs while refreshing slots from the cluster (default `1000`)
-    - `slotsRefreshInterval`: Milliseconds between every automatic slots refresh (default `5000`)
+    - `slotsRefreshTimeout`: Milliseconds before a timeout occurs while refreshing slots from the cluster (default `1000`).
+    - `slotsRefreshInterval`: Milliseconds between every automatic slots refresh (default `5000`).
 
 ### Read-write splitting
 
