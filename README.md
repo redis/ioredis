@@ -1143,7 +1143,7 @@ And here's the same test for a cluster of 3 masters and 3 replicas:
 |                           | Samples | Result        | Tolerance |
 |---------------------------|---------|---------------|-----------|
 | default                   | 1000    | 164.05 op/sec | ± 0.42 %  |
-| enableAutoPipelining=true | 3500    | 235.31 op/sec | ± 0.94 %  |
+| enableAutoPipelining=true | 3000    | 235.31 op/sec | ± 0.94 %  |
 
 
 # Error Handling
