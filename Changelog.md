@@ -1,3 +1,10 @@
+## [4.19.3](https://github.com/luin/ioredis/compare/v4.19.2...v4.19.3) (2020-12-13)
+
+
+### Bug Fixes
+
+* auth command should be not allowed in auto pipeline. ([#1242](https://github.com/luin/ioredis/issues/1242)) ([bafdd4b](https://github.com/luin/ioredis/commit/bafdd4b928f40d8ede5d890b3f7fab0b7139f50b))
+
 ## [4.19.2](https://github.com/luin/ioredis/compare/v4.19.1...v4.19.2) (2020-10-31)
 
 
