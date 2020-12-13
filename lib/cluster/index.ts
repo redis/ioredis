@@ -185,6 +185,7 @@ class Cluster extends EventEmitter {
         return;
       }
 
+      clearInterval(this._addedScriptHashesCleanInterval);
       this._addedScriptHashesCleanInterval = setInterval(() => {
         this._addedScriptHashes = {};
       }, this.options.maxScriptsCachingTime);
