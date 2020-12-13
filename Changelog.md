@@ -1,3 +1,10 @@
+## [4.19.4](https://github.com/luin/ioredis/compare/v4.19.3...v4.19.4) (2020-12-13)
+
+
+### Bug Fixes
+
+* prevent duplicate intervals being set. ([#1244](https://github.com/luin/ioredis/issues/1244)) ([515d9ea](https://github.com/luin/ioredis/commit/515d9eaee8e2be0f31dc3fbf2264718bee2343f5)), closes [#1232](https://github.com/luin/ioredis/issues/1232) [#1226](https://github.com/luin/ioredis/issues/1226) [#1232](https://github.com/luin/ioredis/issues/1232) [/github.com/luin/ioredis/blob/v4.19.2/lib/cluster/index.ts#L311-L313](https://github.com//github.com/luin/ioredis/blob/v4.19.2/lib/cluster/index.ts/issues/L311-L313)
+
 ## [4.19.3](https://github.com/luin/ioredis/compare/v4.19.2...v4.19.3) (2020-12-13)
 
 
