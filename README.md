@@ -662,7 +662,7 @@ Set maxRetriesPerRequest to `null` to disable this behavior, and every command w
 
 ### Reconnect on error
 
-Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on the specified errors by the `reconnectOnError` option. Here's an example that will reconnect when receiving `READONLY` error:
+Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on certain Redis errors using the `reconnectOnError` option. Here's an example that will reconnect when receiving `READONLY` error:
 
 ```javascript
 const redis = new Redis({
@@ -676,9 +676,10 @@ const redis = new Redis({
 });
 ```
 
-This feature is useful when using Amazon ElastiCache. Once failover happens, Amazon ElastiCache will switch the master we currently connected with to a slave, leading to the following writes fails with the error `READONLY`. Using `reconnectOnError`, we can force the connection to reconnect on this error in order to connect to the new master.
+This feature is useful when using Amazon ElastiCache instances with Auto-failover disabled. On these instances, test your `reconnectOnError` handler by manually promoting the replica node to the primary role using the AWS console. The following writes fail with the error `READONLY`. Using `reconnectOnError`, we can force the connection to reconnect on this error in order to connect to the new master. Furthermore, if the `reconnectOnError` returns `2`, ioredis will resend the failed command after reconnecting.
 
-Furthermore, if the `reconnectOnError` returns `2`, ioredis will resend the failed command after reconnecting.
+On ElastiCache insances with Auto-failover enabled, `reconnectOnError` does not execute. Instead of returning a Redis error, AWS closes all connections to the master endpoint until the new primary node is ready. ioredis reconnects via `retryStrategy` instead of `reconnectOnError` after about a minute. On ElastiCache insances with Auto-failover enabled, test failover events with the `Failover primary` option in the AWS console.
+
 
 ## Connection Events
 
