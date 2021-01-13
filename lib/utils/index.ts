@@ -257,8 +257,8 @@ export function parseURL(url) {
 
   const result: any = {};
   if (parsed.auth) {
-    const parsedAuth = parsed.auth.split(":");
-    result.password = parsedAuth[1];
+    const index = parsed.auth.indexOf(":")
+    result.password = index === -1 ? '' : parsed.auth.slice(index + 1)
   }
   if (parsed.pathname) {
     if (parsed.protocol === "redis:" || parsed.protocol === "rediss:") {
