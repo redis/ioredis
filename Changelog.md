@@ -1,3 +1,10 @@
+## [4.19.5](https://github.com/luin/ioredis/compare/v4.19.4...v4.19.5) (2021-01-14)
+
+
+### Bug Fixes
+
+* password contains colons ([#1274](https://github.com/luin/ioredis/issues/1274)) ([37c6daf](https://github.com/luin/ioredis/commit/37c6dafafd51d817a3dfe4b4ca722fb709a209e7))
+
 ## [4.19.4](https://github.com/luin/ioredis/compare/v4.19.3...v4.19.4) (2020-12-13)
 
 
