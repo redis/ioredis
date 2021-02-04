@@ -106,11 +106,11 @@ export function weightSrvRecords(recordsGroup: ISrvRecordsGroup): SrvRecord {
   }
 
   // + `recordsGroup.records.length` to support `weight` 0
-  const random = Math.floor(Math.random() * recordsGroup.totalWeight + recordsGroup.records.length);
+  const random = Math.floor(Math.random() * (recordsGroup.totalWeight + recordsGroup.records.length));
   let total = 0;
   for (const [i, record] of recordsGroup.records.entries()) {
     total += 1 + record.weight;
-    if (total >= random) {
+    if (total > random) {
       recordsGroup.totalWeight -= record.weight;
       recordsGroup.records.splice(i, 1);
       return record;
