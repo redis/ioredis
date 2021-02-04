@@ -974,7 +974,7 @@ class Cluster extends EventEmitter {
       const hostnameToConfig = zipMap(hostnames, configs);
 
       return startupNodes.map((node) => {
-        const config = hostnameToConfig[node.host];
+        const config = hostnameToConfig.get(node.host);
         if (!config) {
           return node;
         } else if (this.options.useSRVRecords) {
