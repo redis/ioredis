@@ -1,5 +1,6 @@
 import { parseURL } from "../utils";
 import { isIP } from "net";
+import { SrvRecord } from "dns";
 
 export type NodeKey = string;
 export type NodeRole = "master" | "slave" | "all";
@@ -10,6 +11,15 @@ export interface IRedisOptions {
   username?: string;
   password?: string;
   [key: string]: any;
+}
+
+export interface ISrvRecordsGroup {
+  totalWeight: number;
+  records: SrvRecord[]
+}
+
+export interface IGroupedSrvRecords {
+  [key: number]: ISrvRecordsGroup
 }
 
 export function getNodeKey(node: IRedisOptions): NodeKey {
@@ -70,4 +80,40 @@ export function getUniqueHostnamesFromOptions(
   });
 
   return Object.keys(uniqueHostsMap).filter((host) => !isIP(host));
+}
+
+export function groupSrvRecords(records: SrvRecord[]): IGroupedSrvRecords {
+  const recordsByPriority = {};
+  for (const record of records) {
+    if (!recordsByPriority.hasOwnProperty(record.priority)) {
+      recordsByPriority[record.priority] = {
+        totalWeight: record.weight,
+        records: [record]
+      };
+    } else {
+      recordsByPriority[record.priority].totalWeight += record.weight;
+      recordsByPriority[record.priority].records.push(record);
+    }
+  }
+
+  return recordsByPriority;
+}
+
+export function weightSrvRecords(recordsGroup: ISrvRecordsGroup): SrvRecord {
+  if (recordsGroup.records.length === 1) {
+    recordsGroup.totalWeight = 0;
+    return recordsGroup.records.shift();
+  }
+
+  // + `recordsGroup.records.length` to support `weight` 0
+  const random = Math.floor(Math.random() * recordsGroup.totalWeight) + recordsGroup.records.length;
+  let total = 0;
+  for (const [i, record] of recordsGroup.records.entries()) {
+    total += 1 + record.weight;
+    if (total >= random) {
+      recordsGroup.totalWeight -= record.weight;
+      recordsGroup.records.splice(i, 1);
+      return record;
+    }
+  }
 }
