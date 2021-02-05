@@ -1,3 +1,10 @@
+# [4.20.0](https://github.com/luin/ioredis/compare/v4.19.5...v4.20.0) (2021-02-05)
+
+
+### Features
+
+* support username in URI ([#1284](https://github.com/luin/ioredis/issues/1284)) ([cbc5421](https://github.com/luin/ioredis/commit/cbc54218e26bd20ac3725df2e70b810599112ef8))
+
 ## [4.19.5](https://github.com/luin/ioredis/compare/v4.19.4...v4.19.5) (2021-01-14)
 
 
