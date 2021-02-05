@@ -42,9 +42,9 @@ const debug = Debug("redis");
  * it to reduce the latency.
  * @param {string} [options.connectionName=null] - Connection name.
  * @param {number} [options.db=0] - Database index to use.
- * @param {string} [options.username=null] - If set, client will send AUTH command with this user and password when connected.
  * @param {string} [options.password=null] - If set, client will send AUTH command
  * with the value of this option when connected.
+ * @param {string} [options.username=null] - Similar to `password`, Provide this for Redis ACL support.
  * @param {boolean} [options.dropBufferSupport=false] - Drop the buffer support for better performance.
  * This option is recommended to be enabled when
  * handling large array response and you don't need the buffer support.
