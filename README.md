@@ -135,6 +135,13 @@ You can also specify connection options as a [`redis://` URL](http://www.iana.or
 ```javascript
 // Connect to 127.0.0.1:6380, db 4, using password "authpassword":
 new Redis("redis://:authpassword@127.0.0.1:6380/4");
+
+// Username can also be passed via URI.
+// It's worth to noticing that for compatibility reasons `allowUsernameInURI`
+// need to be provided, otherwise the username part will be ignored.
+new Redis(
+  "redis://username:authpassword@127.0.0.1:6380/4?allowUsernameInURI=true"
+);
 ```
 
 See [API Documentation](API.md#new_Redis) for all available options.
