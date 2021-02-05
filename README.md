@@ -134,6 +134,13 @@ You can also specify connection options as a [`redis://` URL](http://www.iana.or
 ```javascript
 // Connect to 127.0.0.1:6380, db 4, using password "authpassword":
 new Redis("redis://:authpassword@127.0.0.1:6380/4");
+
+// Username can also be passed via URI.
+// It's worth to noticing that for compatibility reasons `allowUsernameInURI`
+// need to be provided, otherwise the username part will be ignored.
+new Redis(
+  "redis://username:authpassword@127.0.0.1:6380/4?allowUsernameInURI=true"
+);
 ```
 
 See [API Documentation](API.md#new_Redis) for all available options.
@@ -680,7 +687,6 @@ This feature is useful when using Amazon ElastiCache instances with Auto-failove
 
 On ElastiCache insances with Auto-failover enabled, `reconnectOnError` does not execute. Instead of returning a Redis error, AWS closes all connections to the master endpoint until the new primary node is ready. ioredis reconnects via `retryStrategy` instead of `reconnectOnError` after about a minute. On ElastiCache insances with Auto-failover enabled, test failover events with the `Failover primary` option in the AWS console.
 
-
 ## Connection Events
 
 The Redis instance will emit some events about the state of the connection to the Redis server.
@@ -923,13 +929,17 @@ Sometimes you may want to send a command to multiple nodes (masters or slaves) o
 ```javascript
 // Send `FLUSHDB` command to all slaves:
 const slaves = cluster.nodes("slave");
-Promise.all(slaves.map(node => node.flushdb()))
+Promise.all(slaves.map((node) => node.flushdb()));
 
 // Get keys of all the masters:
 const masters = cluster.nodes("master");
-Promise.all(masters.map(node => node.keys()).then(keys => {
-  // keys: [['key1', 'key2'], ['key3', 'key4']]
-}));
+Promise.all(
+  masters
+    .map((node) => node.keys())
+    .then((keys) => {
+      // keys: [['key1', 'key2'], ['key3', 'key4']]
+    })
+);
 ```
 
 ### NAT Mapping
@@ -1064,7 +1074,7 @@ const cluster = new Redis.Cluster(
 
 ## Autopipelining
 
-In standard mode, when you issue multiple commands, ioredis sends them to the server one by one. As described in Redis pipeline documentation, this is a suboptimal use of the network link, especially when such link is not very performant. 
+In standard mode, when you issue multiple commands, ioredis sends them to the server one by one. As described in Redis pipeline documentation, this is a suboptimal use of the network link, especially when such link is not very performant.
 
 The TCP and network overhead negatively affects performance. Commands are stuck in the send queue until the previous ones are correctly delivered to the server. This is a problem known as Head-Of-Line blocking (HOL).
 
@@ -1076,38 +1086,39 @@ This feature can dramatically improve throughput and avoids HOL blocking. In our
 
 While an automatic pipeline is executing, all new commands will be enqueued in a new pipeline which will be executed as soon as the previous finishes.
 
-When using Redis Cluster, one pipeline per node is created. Commands are assigned to pipelines according to which node serves the slot. 
+When using Redis Cluster, one pipeline per node is created. Commands are assigned to pipelines according to which node serves the slot.
 
-A pipeline will thus contain commands using different slots but that ultimately are assigned to the same node. 
+A pipeline will thus contain commands using different slots but that ultimately are assigned to the same node.
 
 Note that the same slot limitation within a single command still holds, as it is a Redis limitation.
-
 
 ### Example of automatic pipeline enqueuing
 
 This sample code uses ioredis with automatic pipeline enabled.
 
 ```javascript
-const Redis = require('./built');
-const http = require('http');
+const Redis = require("./built");
+const http = require("http");
 
 const db = new Redis({ enableAutoPipelining: true });
 
 const server = http.createServer((request, response) => {
-  const key = new URL(request.url, 'https://localhost:3000/').searchParams.get('key');
+  const key = new URL(request.url, "https://localhost:3000/").searchParams.get(
+    "key"
+  );
 
   db.get(key, (err, value) => {
-    response.writeHead(200, { 'Content-Type': 'text/plain' });
+    response.writeHead(200, { "Content-Type": "text/plain" });
     response.end(value);
   });
-})
+});
 
 server.listen(3000);
 ```
 
 When Node receives requests, it schedules them to be processed in one or more iterations of the events loop.
 
-All commands issued by requests processing during one iteration of the loop will be wrapped in a pipeline automatically created by ioredis. 
+All commands issued by requests processing during one iteration of the loop will be wrapped in a pipeline automatically created by ioredis.
 
 In the example above, the pipeline will have the following contents:
 
@@ -1129,23 +1140,21 @@ This approach increases the utilization of the network link, reduces the TCP ove
 
 ### Benchmarks
 
-Here's some of the results of our tests for a single node. 
+Here's some of the results of our tests for a single node.
 
 Each iteration of the test runs 1000 random commands on the server.
 
 |                           | Samples | Result        | Tolerance |
-|---------------------------|---------|---------------|-----------|
+| ------------------------- | ------- | ------------- | --------- |
 | default                   | 1000    | 174.62 op/sec | ± 0.45 %  |
 | enableAutoPipelining=true | 1500    | 233.33 op/sec | ± 0.88 %  |
-
 
 And here's the same test for a cluster of 3 masters and 3 replicas:
 
 |                           | Samples | Result        | Tolerance |
-|---------------------------|---------|---------------|-----------|
+| ------------------------- | ------- | ------------- | --------- |
 | default                   | 1000    | 164.05 op/sec | ± 0.42 %  |
 | enableAutoPipelining=true | 3000    | 235.31 op/sec | ± 0.94 %  |
-
 
 # Error Handling
 

@@ -255,10 +255,19 @@ export function parseURL(url) {
     parsed = urllibParse(url, true, true);
   }
 
+  const options = parsed.query || {};
+  const allowUsernameInURI =
+    options.allowUsernameInURI && options.allowUsernameInURI !== "false";
+  delete options.allowUsernameInURI;
+
   const result: any = {};
   if (parsed.auth) {
-    const index = parsed.auth.indexOf(":")
-    result.password = index === -1 ? '' : parsed.auth.slice(index + 1)
+    const index = parsed.auth.indexOf(":");
+    if (allowUsernameInURI) {
+      result.username =
+        index === -1 ? parsed.auth : parsed.auth.slice(0, index);
+    }
+    result.password = index === -1 ? "" : parsed.auth.slice(index + 1);
   }
   if (parsed.pathname) {
     if (parsed.protocol === "redis:" || parsed.protocol === "rediss:") {
@@ -275,7 +284,7 @@ export function parseURL(url) {
   if (parsed.port) {
     result.port = parsed.port;
   }
-  defaults(result, parsed.query);
+  defaults(result, options);
 
   return result;
 }
