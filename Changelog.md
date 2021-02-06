@@ -1,3 +1,10 @@
+# [4.21.0](https://github.com/luin/ioredis/compare/v4.20.0...v4.21.0) (2021-02-06)
+
+
+### Features
+
+* upgrade command list to Redis 6.2 ([#1286](https://github.com/luin/ioredis/issues/1286)) ([6ef9c6e](https://github.com/luin/ioredis/commit/6ef9c6e839dee8be021bcd43a57eaee56ec2f573))
+
 # [4.20.0](https://github.com/luin/ioredis/compare/v4.19.5...v4.20.0) (2021-02-05)
 
 
