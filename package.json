@@ -39,7 +39,7 @@
     "lodash.defaults": "^4.2.0",
     "lodash.flatten": "^4.4.0",
     "p-map": "^2.1.0",
-    "redis-commands": "1.6.0",
+    "redis-commands": "1.7.0",
     "redis-errors": "^1.2.0",
     "redis-parser": "^3.0.0",
     "standard-as-callback": "^2.0.1"
