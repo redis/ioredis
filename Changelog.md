@@ -1,3 +1,10 @@
+# [4.22.0](https://github.com/luin/ioredis/compare/v4.21.0...v4.22.0) (2021-02-06)
+
+
+### Features
+
+* add type support for scanStream ([#1287](https://github.com/luin/ioredis/issues/1287)) ([ad8ffa0](https://github.com/luin/ioredis/commit/ad8ffa06d68788de3c0703a70fe4c5b64ab4ac5b)), closes [#1279](https://github.com/luin/ioredis/issues/1279)
+
 # [4.21.0](https://github.com/luin/ioredis/compare/v4.20.0...v4.21.0) (2021-02-06)
 
 
