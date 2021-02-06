@@ -583,12 +583,15 @@ stream.on("end", () => {
 });
 ```
 
-`scanStream` accepts an option, with which you can specify the `MATCH` pattern and the `COUNT` argument:
+`scanStream` accepts an option, with which you can specify the `MATCH` pattern, the `TYPE` filter, and the `COUNT` argument:
 
 ```javascript
 const stream = redis.scanStream({
   // only returns keys following the pattern of `user:*`
   match: "user:*",
+  // only return objects that match a given type,
+  // (requires Redis >= 6.0)
+  type: "zset",
   // returns approximately 100 elements per call
   count: 100,
 });
