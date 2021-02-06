@@ -9,6 +9,7 @@ import { Readable, ReadableOptions } from "stream";
 export interface IScanStreamOptions extends ReadableOptions {
   key?: string;
   match?: string;
+  type?: string;
   command: string;
   redis: any;
   count?: string | number;
@@ -41,6 +42,9 @@ export default class ScanStream extends Readable {
     }
     if (this.opt.match) {
       args.push("MATCH", this.opt.match);
+    }
+    if (this.opt.type) {
+      args.push("TYPE", this.opt.type);
     }
     if (this.opt.count) {
       args.push("COUNT", String(this.opt.count));
