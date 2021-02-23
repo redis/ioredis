@@ -170,6 +170,25 @@ describe("auth", function () {
       redis = new Redis({ port: 17379, username, password });
     });
 
+    it("should handle auth with Redis URL string with username and password (Redis >=6) (redis://foo:bar@baz.com/) correctly", function (done) {
+      let username = "user";
+      let password = "pass";
+      let redis;
+      new MockServer(17379, function (argv) {
+        if (
+          argv[0] === "auth" &&
+          argv[1] === username &&
+          argv[2] === password
+        ) {
+          redis.disconnect();
+          done();
+        }
+      });
+      redis = new Redis(
+        `redis://user:pass@localhost:17379/?allowUsernameInURI=true`
+      );
+    });
+
     it('should not emit "error" when the Redis >=6 server doesn\'t need auth', function (done) {
       new MockServer(17379, function (argv) {
         if (argv[0] === "auth" && argv[1] === "pass") {
