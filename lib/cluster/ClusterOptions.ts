@@ -5,7 +5,7 @@ export type DNSResolveSrvFunction = (
     hostname: string,
     callback: (
         err: NodeJS.ErrnoException | undefined,
-        records: SrvRecord[] | undefined
+        records?: SrvRecord[]
     ) => void
 ) => void;
 
