@@ -1,3 +1,10 @@
+# [4.23.0](https://github.com/luin/ioredis/compare/v4.22.0...v4.23.0) (2021-02-25)
+
+
+### Features
+
+* add support for DNS SRV records ([#1283](https://github.com/luin/ioredis/issues/1283)) ([13a8614](https://github.com/luin/ioredis/commit/13a861432c2331ca25038f6b4eb060ba7b865b47))
+
 # [4.22.0](https://github.com/luin/ioredis/compare/v4.21.0...v4.22.0) (2021-02-06)
 
 
