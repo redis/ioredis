@@ -1,5 +1,13 @@
-import { lookup } from "dns";
+import { SrvRecord, resolveSrv, lookup } from "dns";
 import { NodeRole } from "./util";
+
+export type DNSResolveSrvFunction = (
+  hostname: string,
+  callback: (
+    err: NodeJS.ErrnoException | undefined,
+    records?: SrvRecord[]
+  ) => void
+) => void;
 
 export type DNSLookupFunction = (
   hostname: string,
@@ -119,6 +127,23 @@ export interface IClusterOptions {
   lazyConnect?: boolean;
 
   /**
+   * Discover nodes using SRV records
+   *
+   * @default false
+   */
+  useSRVRecords?: boolean;
+
+  /**
+   * SRV records will be resolved via this function.
+   *
+   * You may provide a custom `resolveSrv` function when you want to customize
+   * the cache behavior of the default function.
+   *
+   * @default require('dns').resolveSrv
+   */
+  resolveSrv?: DNSResolveSrvFunction;
+
+  /**
    * Hostnames will be resolved to IP addresses via this function.
    * This is needed when the addresses of startup nodes are hostnames instead
    * of IPs.
@@ -164,6 +189,8 @@ export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {
   retryDelayOnTryAgain: 100,
   slotsRefreshTimeout: 1000,
   slotsRefreshInterval: 5000,
+  useSRVRecords: false,
+  resolveSrv: resolveSrv,
   dnsLookup: lookup,
   enableAutoPipelining: false,
   autoPipeliningIgnoredCommands: [],
