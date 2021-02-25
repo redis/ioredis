@@ -1,5 +1,5 @@
 import { expect, use } from "chai";
-import * as calculateKeySlot from 'cluster-key-slot';
+import * as calculateKeySlot from "cluster-key-slot";
 
 import { default as Cluster } from "../../../lib/cluster";
 import MockServer from "../../helpers/mock_server";
@@ -400,11 +400,11 @@ describe("autoPipelining for cluster", function () {
     const promise2 = cluster.set("foo5", "bar");
     const promise3 = cluster.set("foo2", "bar");
     const promise4 = cluster.set("foo6", "bar");
-    
+
     // Override slots to induce a failure
-    const key1Slot = calculateKeySlot('foo1');
-    const key2Slot = calculateKeySlot('foo2');
-    const key5Slot = calculateKeySlot('foo5');
+    const key1Slot = calculateKeySlot("foo1");
+    const key2Slot = calculateKeySlot("foo2");
+    const key5Slot = calculateKeySlot("foo5");
     cluster.slots[key1Slot] = cluster.slots[key2Slot];
     cluster.slots[key2Slot] = cluster.slots[key5Slot];
 
@@ -492,9 +492,9 @@ describe("autoPipelining for cluster", function () {
       expect(cluster.autoPipelineQueueSize).to.eql(4);
 
       // Override slots to induce a failure
-      const key1Slot = calculateKeySlot('foo1');
-      const key2Slot = calculateKeySlot('foo2');
-      const key5Slot = calculateKeySlot('foo5');
+      const key1Slot = calculateKeySlot("foo1");
+      const key2Slot = calculateKeySlot("foo2");
+      const key5Slot = calculateKeySlot("foo5");
       cluster.slots[key1Slot] = cluster.slots[key2Slot];
       cluster.slots[key2Slot] = cluster.slots[key5Slot];
     });
@@ -541,8 +541,8 @@ describe("autoPipelining for cluster", function () {
 
       expect(cluster.autoPipelineQueueSize).to.eql(3);
 
-      const key1Slot = calculateKeySlot('foo1');
-      const key2Slot = calculateKeySlot('foo2');
+      const key1Slot = calculateKeySlot("foo1");
+      const key2Slot = calculateKeySlot("foo2");
       cluster.slots[key1Slot] = cluster.slots[key2Slot];
     });
   });

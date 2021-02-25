@@ -15,11 +15,11 @@ export interface IRedisOptions {
 
 export interface ISrvRecordsGroup {
   totalWeight: number;
-  records: SrvRecord[]
+  records: SrvRecord[];
 }
 
 export interface IGroupedSrvRecords {
-  [key: number]: ISrvRecordsGroup
+  [key: number]: ISrvRecordsGroup;
 }
 
 export function getNodeKey(node: IRedisOptions): NodeKey {
@@ -88,7 +88,7 @@ export function groupSrvRecords(records: SrvRecord[]): IGroupedSrvRecords {
     if (!recordsByPriority.hasOwnProperty(record.priority)) {
       recordsByPriority[record.priority] = {
         totalWeight: record.weight,
-        records: [record]
+        records: [record],
       };
     } else {
       recordsByPriority[record.priority].totalWeight += record.weight;
@@ -106,7 +106,9 @@ export function weightSrvRecords(recordsGroup: ISrvRecordsGroup): SrvRecord {
   }
 
   // + `recordsGroup.records.length` to support `weight` 0
-  const random = Math.floor(Math.random() * (recordsGroup.totalWeight + recordsGroup.records.length));
+  const random = Math.floor(
+    Math.random() * (recordsGroup.totalWeight + recordsGroup.records.length)
+  );
   let total = 0;
   for (const [i, record] of recordsGroup.records.entries()) {
     total += 1 + record.weight;

@@ -2,11 +2,11 @@ import { SrvRecord, resolveSrv, lookup } from "dns";
 import { NodeRole } from "./util";
 
 export type DNSResolveSrvFunction = (
-    hostname: string,
-    callback: (
-        err: NodeJS.ErrnoException | undefined,
-        records?: SrvRecord[]
-    ) => void
+  hostname: string,
+  callback: (
+    err: NodeJS.ErrnoException | undefined,
+    records?: SrvRecord[]
+  ) => void
 ) => void;
 
 export type DNSLookupFunction = (

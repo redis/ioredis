@@ -901,8 +901,10 @@ class Cluster extends EventEmitter {
         }
 
         const self = this,
-            groupedRecords = groupSrvRecords(records),
-            sortedKeys = Object.keys(groupedRecords).sort((a, b) => parseInt(a) - parseInt(b));
+          groupedRecords = groupSrvRecords(records),
+          sortedKeys = Object.keys(groupedRecords).sort(
+            (a, b) => parseInt(a) - parseInt(b)
+          );
 
         function tryFirstOne(err?) {
           if (!sortedKeys.length) {
@@ -910,17 +912,21 @@ class Cluster extends EventEmitter {
           }
 
           const key = sortedKeys[0],
-              group = groupedRecords[key],
-              record = weightSrvRecords(group);
+            group = groupedRecords[key],
+            record = weightSrvRecords(group);
 
           if (!group.records.length) {
             sortedKeys.shift();
           }
 
-          self.dnsLookup(record.name).then(host => resolve({
-            host,
-            port: record.port
-          }), tryFirstOne);
+          self.dnsLookup(record.name).then(
+            (host) =>
+              resolve({
+                host,
+                port: record.port,
+              }),
+            tryFirstOne
+          );
         }
 
         tryFirstOne();
@@ -969,7 +975,11 @@ class Cluster extends EventEmitter {
     }
 
     return Promise.all(
-      hostnames.map((this.options.useSRVRecords ? this.resolveSrv : this.dnsLookup).bind(this))
+      hostnames.map(
+        (this.options.useSRVRecords ? this.resolveSrv : this.dnsLookup).bind(
+          this
+        )
+      )
     ).then((configs) => {
       const hostnameToConfig = zipMap(hostnames, configs);
 
