@@ -1,3 +1,85 @@
+# [4.23.0](https://github.com/luin/ioredis/compare/v4.22.0...v4.23.0) (2021-02-25)
+
+
+### Features
+
+* add support for DNS SRV records ([#1283](https://github.com/luin/ioredis/issues/1283)) ([13a8614](https://github.com/luin/ioredis/commit/13a861432c2331ca25038f6b4eb060ba7b865b47))
+
+# [4.22.0](https://github.com/luin/ioredis/compare/v4.21.0...v4.22.0) (2021-02-06)
+
+
+### Features
+
+* add type support for scanStream ([#1287](https://github.com/luin/ioredis/issues/1287)) ([ad8ffa0](https://github.com/luin/ioredis/commit/ad8ffa06d68788de3c0703a70fe4c5b64ab4ac5b)), closes [#1279](https://github.com/luin/ioredis/issues/1279)
+
+# [4.21.0](https://github.com/luin/ioredis/compare/v4.20.0...v4.21.0) (2021-02-06)
+
+
+### Features
+
+* upgrade command list to Redis 6.2 ([#1286](https://github.com/luin/ioredis/issues/1286)) ([6ef9c6e](https://github.com/luin/ioredis/commit/6ef9c6e839dee8be021bcd43a57eaee56ec2f573))
+
+# [4.20.0](https://github.com/luin/ioredis/compare/v4.19.5...v4.20.0) (2021-02-05)
+
+
+### Features
+
+* support username in URI ([#1284](https://github.com/luin/ioredis/issues/1284)) ([cbc5421](https://github.com/luin/ioredis/commit/cbc54218e26bd20ac3725df2e70b810599112ef8))
+
+## [4.19.5](https://github.com/luin/ioredis/compare/v4.19.4...v4.19.5) (2021-01-14)
+
+
+### Bug Fixes
+
+* password contains colons ([#1274](https://github.com/luin/ioredis/issues/1274)) ([37c6daf](https://github.com/luin/ioredis/commit/37c6dafafd51d817a3dfe4b4ca722fb709a209e7))
+
+## [4.19.4](https://github.com/luin/ioredis/compare/v4.19.3...v4.19.4) (2020-12-13)
+
+
+### Bug Fixes
+
+* prevent duplicate intervals being set. ([#1244](https://github.com/luin/ioredis/issues/1244)) ([515d9ea](https://github.com/luin/ioredis/commit/515d9eaee8e2be0f31dc3fbf2264718bee2343f5)), closes [#1232](https://github.com/luin/ioredis/issues/1232) [#1226](https://github.com/luin/ioredis/issues/1226) [#1232](https://github.com/luin/ioredis/issues/1232) [/github.com/luin/ioredis/blob/v4.19.2/lib/cluster/index.ts#L311-L313](https://github.com//github.com/luin/ioredis/blob/v4.19.2/lib/cluster/index.ts/issues/L311-L313)
+
+## [4.19.3](https://github.com/luin/ioredis/compare/v4.19.2...v4.19.3) (2020-12-13)
+
+
+### Bug Fixes
+
+* auth command should be not allowed in auto pipeline. ([#1242](https://github.com/luin/ioredis/issues/1242)) ([bafdd4b](https://github.com/luin/ioredis/commit/bafdd4b928f40d8ede5d890b3f7fab0b7139f50b))
+
+## [4.19.2](https://github.com/luin/ioredis/compare/v4.19.1...v4.19.2) (2020-10-31)
+
+
+### Bug Fixes
+
+* Fix autopipeline and downgrade p-map to support Node 6. [[#1216](https://github.com/luin/ioredis/issues/1216)] ([1bc8ca0](https://github.com/luin/ioredis/commit/1bc8ca0d05ab830a04502acd1cfc2796aca256ec))
+
+## [4.19.1](https://github.com/luin/ioredis/compare/v4.19.0...v4.19.1) (2020-10-28)
+
+
+### Bug Fixes
+
+* Make sure script caches interval is cleared. [[#1215](https://github.com/luin/ioredis/issues/1215)] ([d94f97d](https://github.com/luin/ioredis/commit/d94f97d6950035818a666c08447a9d5e0ef5f8c7))
+
+# [4.19.0](https://github.com/luin/ioredis/compare/v4.18.0...v4.19.0) (2020-10-23)
+
+
+### Bug Fixes
+
+* Ensure delayed callbacks are always invoked. ([d6e78c3](https://github.com/luin/ioredis/commit/d6e78c306c8150c58277d60e51edac55a55523c2))
+
+
+### Features
+
+* Add autopipeline for commands and allow multi slot pipelines. ([aba3c74](https://github.com/luin/ioredis/commit/aba3c743c230ea6d10e6f3779214f34ebd9ae7ae)), closes [#536](https://github.com/luin/ioredis/issues/536)
+
+# [4.18.0](https://github.com/luin/ioredis/compare/v4.17.3...v4.18.0) (2020-07-25)
+
+
+### Features
+
+* supports commands in Redis 6.0.6 ([c016265](https://github.com/luin/ioredis/commit/c016265028d746ab71ab2ad65e49a3fbe8c0f49c))
+
 ## [4.17.3](https://github.com/luin/ioredis/compare/v4.17.2...v4.17.3) (2020-05-30)
 
 

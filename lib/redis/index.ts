@@ -42,9 +42,9 @@ const debug = Debug("redis");
  * it to reduce the latency.
  * @param {string} [options.connectionName=null] - Connection name.
  * @param {number} [options.db=0] - Database index to use.
- * @param {string} [options.username=null] - If set, client will send AUTH command with this user and password when connected.
  * @param {string} [options.password=null] - If set, client will send AUTH command
  * with the value of this option when connected.
+ * @param {string} [options.username=null] - Similar to `password`, Provide this for Redis ACL support.
  * @param {boolean} [options.dropBufferSupport=false] - Drop the buffer support for better performance.
  * This option is recommended to be enabled when
  * handling large array response and you don't need the buffer support.
@@ -97,7 +97,12 @@ const debug = Debug("redis");
  * @param {NatMap} [options.natMap=null] NAT map for sentinel connector.
  * @param {boolean} [options.updateSentinels=true] - Update the given `sentinels` list with new IP
  * addresses when communicating with existing sentinels.
- * @extends [EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)
+* @param {boolean} [options.enableAutoPipelining=false] - When enabled, all commands issued during an event loop 
+ * iteration are automatically wrapped in a pipeline and sent to the server at the same time. 
+ * This can dramatically improve performance.
+ * @param {string[]} [options.autoPipeliningIgnoredCommands=[]] - The list of commands which must not be automatically wrapped in pipelines.
+ * @param {number} [options.maxScriptsCachingTime=60000] Default script definition caching time.
+  * @extends [EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)
  * @extends Commander
  * @example
  * ```js
@@ -153,6 +158,25 @@ function Redis() {
   }
 
   this.retryAttempts = 0;
+
+  // Prepare a cache of scripts and setup a interval which regularly clears it
+  this._addedScriptHashes = {};
+
+  // Prepare autopipelines structures
+  this._autoPipelines = new Map();
+  this._runningAutoPipelines = new Set();
+
+  Object.defineProperty(this, "autoPipelineQueueSize", {
+    get() {
+      let queued = 0;
+
+      for (const pipeline of this._autoPipelines.values()) {
+        queued += pipeline.length;
+      }
+
+      return queued;
+    },
+  });
 
   // end(or wait) -> connecting -> connect -> ready -> end
   if (this.options.lazyConnect) {
@@ -271,6 +295,11 @@ Redis.prototype.connect = function (callback) {
       reject(new Error("Redis is already connecting/connected"));
       return;
     }
+    clearInterval(this._addedScriptHashesCleanInterval);
+    this._addedScriptHashesCleanInterval = setInterval(() => {
+      this._addedScriptHashes = {};
+    }, this.options.maxScriptsCachingTime);
+
     this.connectionEpoch += 1;
     this.setStatus("connecting");
 
@@ -376,6 +405,9 @@ Redis.prototype.connect = function (callback) {
  * @public
  */
 Redis.prototype.disconnect = function (reconnect) {
+  clearInterval(this._addedScriptHashesCleanInterval);
+  this._addedScriptHashesCleanInterval = null;
+
   if (!reconnect) {
     this.manuallyClosing = true;
   }
@@ -667,6 +699,11 @@ Redis.prototype.sendCommand = function (command, stream) {
     return command.promise;
   }
 
+  if (command.name === "quit") {
+    clearInterval(this._addedScriptHashesCleanInterval);
+    this._addedScriptHashesCleanInterval = null;
+  }
+
   let writable =
     this.status === "ready" ||
     (!stream &&
@@ -771,7 +808,6 @@ Redis.prototype._getDescription = function () {
   }
   return description;
 };
-
 [
   "scan",
   "sscan",

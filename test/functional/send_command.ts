@@ -76,7 +76,7 @@ describe("send command", function () {
 
   it("should support utf8", function (done) {
     const redis = new Redis();
-    redis.set(Buffer.from("你好"), new String("你好"));
+    redis.set(Buffer.from("你好"), String("你好"));
     redis.getBuffer("你好", function (err, result) {
       expect(result.toString()).to.eql("你好");
       redis.get("你好", function (err, result) {

@@ -28,6 +28,23 @@ export function addTransactionSupport(redis) {
     }
     const exec = pipeline.exec;
     pipeline.exec = function (callback: CallbackFunction) {
+      // Wait for the cluster to be connected, since we need nodes information before continuing
+      if (this.isCluster && !this.redis.slots.length) {
+        return asCallback(
+          new Promise((resolve, reject) => {
+            this.redis.delayUntilReady((err) => {
+              if (err) {
+                reject(err);
+                return;
+              }
+
+              this.exec(pipeline).then(resolve, reject);
+            });
+          }),
+          callback
+        );
+      }
+
       if (this._transactions > 0) {
         exec.call(pipeline);
       }

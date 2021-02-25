@@ -1,12 +1,20 @@
+import { SrvRecord, resolveSrv, lookup } from "dns";
 import { NodeRole } from "./util";
-import { lookup } from "dns";
+
+export type DNSResolveSrvFunction = (
+  hostname: string,
+  callback: (
+    err: NodeJS.ErrnoException | undefined,
+    records?: SrvRecord[]
+  ) => void
+) => void;
 
 export type DNSLookupFunction = (
   hostname: string,
   callback: (
-    err: NodeJS.ErrnoException,
+    err: NodeJS.ErrnoException | undefined,
     address: string,
-    family: number
+    family?: number
   ) => void
 ) => void;
 export interface INatMap {
@@ -119,6 +127,23 @@ export interface IClusterOptions {
   lazyConnect?: boolean;
 
   /**
+   * Discover nodes using SRV records
+   *
+   * @default false
+   */
+  useSRVRecords?: boolean;
+
+  /**
+   * SRV records will be resolved via this function.
+   *
+   * You may provide a custom `resolveSrv` function when you want to customize
+   * the cache behavior of the default function.
+   *
+   * @default require('dns').resolveSrv
+   */
+  resolveSrv?: DNSResolveSrvFunction;
+
+  /**
    * Hostnames will be resolved to IP addresses via this function.
    * This is needed when the addresses of startup nodes are hostnames instead
    * of IPs.
@@ -130,6 +155,27 @@ export interface IClusterOptions {
    */
   dnsLookup?: DNSLookupFunction;
   natMap?: INatMap;
+
+  /**
+   * See Redis class.
+   *
+   * @default false
+   */
+  enableAutoPipelining?: boolean;
+
+  /**
+   * See Redis class.
+   *
+   * @default []
+   */
+  autoPipeliningIgnoredCommands?: string[];
+
+  /**
+   * See Redis class.
+   *
+   * @default 60000
+   */
+  maxScriptsCachingTime?: number;
 }
 
 export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {
@@ -143,5 +189,10 @@ export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {
   retryDelayOnTryAgain: 100,
   slotsRefreshTimeout: 1000,
   slotsRefreshInterval: 5000,
+  useSRVRecords: false,
+  resolveSrv: resolveSrv,
   dnsLookup: lookup,
+  enableAutoPipelining: false,
+  autoPipeliningIgnoredCommands: [],
+  maxScriptsCachingTime: 60000,
 };

@@ -2,16 +2,38 @@ import Command from "./command";
 import { deprecate } from "util";
 import asCallback from "standard-as-callback";
 import { exists, hasFlag } from "redis-commands";
-import { generateMulti } from "cluster-key-slot";
+import * as calculateSlot from "cluster-key-slot";
+import * as pMap from "p-map";
 import * as PromiseContainer from "./promiseContainer";
 import { CallbackFunction } from "./types";
 import Commander from "./commander";
+
+/*
+  This function derives from the cluster-key-slot implementation.
+  Instead of checking that all keys have the same slot, it checks that all slots are served by the same set of nodes.
+  If this is satisfied, it returns the first key's slot.
+*/
+function generateMultiWithNodes(redis, keys) {
+  const slot = calculateSlot(keys[0]);
+  const target = redis.slots[slot].join(",");
+
+  for (let i = 1; i < keys.length; i++) {
+    const currentTarget = redis.slots[calculateSlot(keys[i])].join(",");
+
+    if (currentTarget !== target) {
+      return -1;
+    }
+  }
+
+  return slot;
+}
 
 export default function Pipeline(redis) {
   Commander.call(this);
 
   this.redis = redis;
   this.isCluster = this.redis.constructor.name === "Cluster";
+  this.isPipeline = true;
   this.options = redis.options;
   this._queue = [];
   this._result = [];
@@ -212,6 +234,20 @@ Pipeline.prototype.execBuffer = deprecate(function () {
 }, "Pipeline#execBuffer: Use Pipeline#exec instead");
 
 Pipeline.prototype.exec = function (callback: CallbackFunction) {
+  // Wait for the cluster to be connected, since we need nodes information before continuing
+  if (this.isCluster && !this.redis.slots.length) {
+    this.redis.delayUntilReady((err) => {
+      if (err) {
+        callback(err);
+        return;
+      }
+
+      this.exec(callback);
+    });
+
+    return this.promise;
+  }
+
   if (this._transactions > 0) {
     this._transactions -= 1;
     return (this.options.dropBufferSupport ? exec : execBuffer).apply(
@@ -235,13 +271,27 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
       if (keys.length) {
         sampleKeys.push(keys[0]);
       }
+
+      // For each command, check that the keys belong to the same slot
+      if (keys.length && calculateSlot.generateMulti(keys) < 0) {
+        this.reject(
+          new Error(
+            "All the keys in a pipeline command should belong to the same slot"
+          )
+        );
+
+        return this.promise;
+      }
     }
 
     if (sampleKeys.length) {
-      pipelineSlot = generateMulti(sampleKeys);
+      pipelineSlot = generateMultiWithNodes(this.redis, sampleKeys);
+
       if (pipelineSlot < 0) {
         this.reject(
-          new Error("All keys in the pipeline should belong to the same slot")
+          new Error(
+            "All keys in the pipeline should belong to the same slots allocation group"
+          )
         );
         return this.promise;
       }
@@ -253,31 +303,33 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
 
   // Check whether scripts exists
   const scripts = [];
-  const addedScriptHashes = {};
   for (let i = 0; i < this._queue.length; ++i) {
     const item = this._queue[i];
-    if (this.isCluster && item.isCustomCommand) {
-      this.reject(
-        new Error(
-          "Sending custom commands in pipeline is not supported in Cluster mode."
-        )
-      );
-      return this.promise;
-    }
+
     if (item.name !== "evalsha") {
       continue;
     }
+
     const script = this._shaToScript[item.args[0]];
-    if (!script || addedScriptHashes[script.sha]) {
+
+    if (!script || this.redis._addedScriptHashes[script.sha]) {
       continue;
     }
+
     scripts.push(script);
-    addedScriptHashes[script.sha] = true;
+    this.redis._addedScriptHashes[script.sha] = true;
   }
 
   const _this = this;
   if (!scripts.length) {
     return execPipeline();
+  }
+
+  // In cluster mode, always load scripts before running the pipeline
+  if (this.isCluster) {
+    return pMap(scripts, (script) => _this.redis.script("load", script.lua), {
+      concurrency: 10,
+    }).then(execPipeline);
   }
 
   return this.redis

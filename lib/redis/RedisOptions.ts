@@ -1,7 +1,7 @@
-import { ISentinelConnectionOptions } from "../connectors/SentinelConnector";
-import AbstractConnector from "../connectors/AbstractConnector";
 import { IClusterOptions } from "../cluster/ClusterOptions";
 import { ICommanderOptions } from "../commander";
+import AbstractConnector from "../connectors/AbstractConnector";
+import { ISentinelConnectionOptions } from "../connectors/SentinelConnector";
 
 export type ReconnectOnError = (err: Error) => boolean | 1 | 2;
 
@@ -26,6 +26,9 @@ export interface IRedisOptions
   stringNumbers?: boolean;
   maxRetriesPerRequest?: number;
   maxLoadingRetryTime?: number;
+  enableAutoPipelining?: boolean;
+  autoPipeliningIgnoredCommands?: string[];
+  maxScriptsCachingTime?: number;
 }
 
 export const DEFAULT_REDIS_OPTIONS: IRedisOptions = {
@@ -67,4 +70,7 @@ export const DEFAULT_REDIS_OPTIONS: IRedisOptions = {
   stringNumbers: false,
   maxRetriesPerRequest: 20,
   maxLoadingRetryTime: 10000,
+  enableAutoPipelining: false,
+  autoPipeliningIgnoredCommands: [],
+  maxScriptsCachingTime: 60000,
 };

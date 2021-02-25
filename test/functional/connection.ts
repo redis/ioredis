@@ -475,3 +475,25 @@ describe("connection", function () {
     });
   });
 });
+
+describe("disconnection", function () {
+  it("should clear the added script hashes interval when disconnecting", function (done) {
+    const redis = new Redis();
+    redis.once("ready", function () {
+      redis.disconnect();
+
+      expect(redis._addedScriptHashesCleanInterval).to.be.null;
+      done();
+    });
+  });
+
+  it("should clear the added script hashes interval when quitting", function (done) {
+    const redis = new Redis();
+    redis.once("ready", function () {
+      redis.quit();
+
+      expect(redis._addedScriptHashesCleanInterval).to.be.null;
+      done();
+    });
+  });
+});

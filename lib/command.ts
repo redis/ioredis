@@ -335,7 +335,7 @@ export default class Command implements ICommand {
    *
    * @private
    * @param {Function} resolve The resolve function of the Promise
-   * @returns {Function} A funtion to transform and resolve a value
+   * @returns {Function} A function to transform and resolve a value
    * @memberof Command
    */
   private _convertValue(resolve: Function): (result: any) => void {

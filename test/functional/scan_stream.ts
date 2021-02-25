@@ -77,6 +77,28 @@ describe("*scanStream", function () {
       );
     });
 
+    it("should recognize `TYPE`", function (done) {
+      let keys = [];
+      const redis = new Redis();
+      redis.set("foo1", "bar");
+      redis.set("foo2", "bar");
+      redis.set("foo3", "bar");
+      redis.lpush("loo1", "1");
+      redis.lpush("loo2", "1");
+      redis.lpush("loo3", "1");
+      const stream = redis.scanStream({
+        type: "list",
+      });
+      stream.on("data", function (data) {
+        keys = keys.concat(data);
+      });
+      stream.on("end", function () {
+        expect(keys.sort()).to.eql(["loo1", "loo2", "loo3"]);
+        redis.disconnect();
+        done();
+      });
+    });
+
     it("should recognize `COUNT`", function (done) {
       let keys = [];
       const redis = new Redis();

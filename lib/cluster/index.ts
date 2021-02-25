@@ -9,6 +9,8 @@ import {
   NodeRole,
   getUniqueHostnamesFromOptions,
   nodeKeyToRedisOptions,
+  groupSrvRecords,
+  weightSrvRecords,
 } from "./util";
 import ClusterSubscriber from "./ClusterSubscriber";
 import DelayQueue from "./DelayQueue";
@@ -30,6 +32,7 @@ import Command from "../command";
 import Redis from "../redis";
 import Commander from "../commander";
 import Deque = require("denque");
+import { Pipeline } from "..";
 
 const debug = Debug("cluster");
 
@@ -63,6 +66,12 @@ class Cluster extends EventEmitter {
   private reconnectTimeout: NodeJS.Timer;
   private status: ClusterStatus;
   private isRefreshing = false;
+  public isCluster = true;
+  private _autoPipelines: Map<string, typeof Pipeline> = new Map();
+  private _runningAutoPipelines: Set<string> = new Set();
+  private _readyDelayedCallbacks: CallbackFunction[] = [];
+  public _addedScriptHashes: { [key: string]: any } = {};
+  public _addedScriptHashesCleanInterval: NodeJS.Timeout;
 
   /**
    * Every time Cluster#connect() is called, this value will be
@@ -177,6 +186,12 @@ class Cluster extends EventEmitter {
         reject(new Error("Redis is already connecting/connected"));
         return;
       }
+
+      clearInterval(this._addedScriptHashesCleanInterval);
+      this._addedScriptHashesCleanInterval = setInterval(() => {
+        this._addedScriptHashes = {};
+      }, this.options.maxScriptsCachingTime);
+
       const epoch = ++this.connectionEpoch;
       this.setStatus("connecting");
 
@@ -215,6 +230,7 @@ class Cluster extends EventEmitter {
 
           let closeListener: () => void = undefined;
           const refreshListener = () => {
+            this.invokeReadyDelayedCallbacks(undefined);
             this.removeListener("close", closeListener);
             this.manuallyClosing = false;
             this.setStatus("connect");
@@ -238,8 +254,11 @@ class Cluster extends EventEmitter {
           };
 
           closeListener = function () {
+            const error = new Error("None of startup nodes is available");
+
             this.removeListener("refresh", refreshListener);
-            reject(new Error("None of startup nodes is available"));
+            this.invokeReadyDelayedCallbacks(error);
+            reject(error);
           };
 
           this.once("refresh", refreshListener);
@@ -259,6 +278,7 @@ class Cluster extends EventEmitter {
         .catch((err) => {
           this.setStatus("close");
           this.handleCloseEvent(err);
+          this.invokeReadyDelayedCallbacks(err);
           reject(err);
         });
     });
@@ -313,6 +333,9 @@ class Cluster extends EventEmitter {
     const status = this.status;
     this.setStatus("disconnecting");
 
+    clearInterval(this._addedScriptHashesCleanInterval);
+    this._addedScriptHashesCleanInterval = null;
+
     if (!reconnect) {
       this.manuallyClosing = true;
     }
@@ -342,6 +365,9 @@ class Cluster extends EventEmitter {
   public quit(callback?: CallbackFunction<"OK">): Promise<"OK"> {
     const status = this.status;
     this.setStatus("disconnecting");
+
+    clearInterval(this._addedScriptHashesCleanInterval);
+    this._addedScriptHashesCleanInterval = null;
 
     this.manuallyClosing = true;
 
@@ -422,6 +448,26 @@ class Cluster extends EventEmitter {
       );
     }
     return this.connectionPool.getNodes(role);
+  }
+
+  // This is needed in order not to install a listener for each auto pipeline
+  public delayUntilReady(callback: CallbackFunction) {
+    this._readyDelayedCallbacks.push(callback);
+  }
+
+  /**
+   * Get the number of commands queued in automatic pipelines.
+   *
+   * This is not available (and returns 0) until the cluster is connected and slots information have been received.
+   */
+  get autoPipelineQueueSize(): number {
+    let queued = 0;
+
+    for (const pipeline of this._autoPipelines.values()) {
+      queued += pipeline.length;
+    }
+
+    return queued;
   }
 
   /**
@@ -805,6 +851,14 @@ class Cluster extends EventEmitter {
     );
   }
 
+  private invokeReadyDelayedCallbacks(err) {
+    for (const c of this._readyDelayedCallbacks) {
+      process.nextTick(c, err);
+    }
+
+    this._readyDelayedCallbacks = [];
+  }
+
   /**
    * Check whether Cluster is able to process commands
    *
@@ -836,6 +890,47 @@ class Cluster extends EventEmitter {
       } else {
         callback();
       }
+    });
+  }
+
+  private resolveSrv(hostname: string): Promise<IRedisOptions> {
+    return new Promise((resolve, reject) => {
+      this.options.resolveSrv(hostname, (err, records) => {
+        if (err) {
+          return reject(err);
+        }
+
+        const self = this,
+          groupedRecords = groupSrvRecords(records),
+          sortedKeys = Object.keys(groupedRecords).sort(
+            (a, b) => parseInt(a) - parseInt(b)
+          );
+
+        function tryFirstOne(err?) {
+          if (!sortedKeys.length) {
+            return reject(err);
+          }
+
+          const key = sortedKeys[0],
+            group = groupedRecords[key],
+            record = weightSrvRecords(group);
+
+          if (!group.records.length) {
+            sortedKeys.shift();
+          }
+
+          self.dnsLookup(record.name).then(
+            (host) =>
+              resolve({
+                host,
+                port: record.port,
+              }),
+            tryFirstOne
+          );
+        }
+
+        tryFirstOne();
+      });
     });
   }
 
@@ -880,15 +975,24 @@ class Cluster extends EventEmitter {
     }
 
     return Promise.all(
-      hostnames.map((hostname) => this.dnsLookup(hostname))
-    ).then((ips) => {
-      const hostnameToIP = zipMap(hostnames, ips);
+      hostnames.map(
+        (this.options.useSRVRecords ? this.resolveSrv : this.dnsLookup).bind(
+          this
+        )
+      )
+    ).then((configs) => {
+      const hostnameToConfig = zipMap(hostnames, configs);
 
-      return startupNodes.map((node) =>
-        hostnameToIP.has(node.host)
-          ? Object.assign({}, node, { host: hostnameToIP.get(node.host) })
-          : node
-      );
+      return startupNodes.map((node) => {
+        const config = hostnameToConfig.get(node.host);
+        if (!config) {
+          return node;
+        } else if (this.options.useSRVRecords) {
+          return Object.assign({}, node, config);
+        } else {
+          return Object.assign({}, node, { host: config });
+        }
+      });
     });
   }
 }
