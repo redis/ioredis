@@ -526,7 +526,7 @@ Redis.prototype.flushQueue = function (error, options) {
  */
 Redis.prototype._readyCheck = function (callback) {
   const _this = this;
-  this.info(function (err, res) {
+  this.info('persistence', function (err, res) {
     if (err) {
       return callback(err);
     }
