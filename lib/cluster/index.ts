@@ -519,6 +519,8 @@ class Cluster extends EventEmitter {
           "Failed to refresh slots cache.",
           lastNodeError
         );
+        _this.setStatus("close");
+        _this.handleCloseEvent(error);
         return wrapper(error);
       }
       const node = nodes[index];
