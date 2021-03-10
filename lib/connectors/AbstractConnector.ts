@@ -4,7 +4,6 @@ export type ErrorEmitter = (type: string, err: Error) => void;
 
 export default abstract class AbstractConnector {
   protected connecting = false;
-  protected stream: NetStream;
 
   public check(info: any): boolean {
     return true;
@@ -12,10 +11,7 @@ export default abstract class AbstractConnector {
 
   public disconnect(): void {
     this.connecting = false;
-    if (this.stream) {
-      this.stream.end();
-    }
   }
 
-  public abstract connect(_: ErrorEmitter): Promise<NetStream>;
+  public abstract connect(_: ErrorEmitter): Promise<() => NetStream>;
 }

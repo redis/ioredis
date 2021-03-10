@@ -82,14 +82,14 @@ export default class SentinelConnector extends AbstractConnector {
     return roleMatches;
   }
 
-  public connect(eventEmitter: ErrorEmitter): Promise<NetStream> {
+  public connect(eventEmitter: ErrorEmitter): Promise<() => NetStream> {
     this.connecting = true;
     this.retryAttempts = 0;
 
     let lastError;
 
     const connectToNext = () =>
-      new Promise<NetStream>((resolve, reject) => {
+      new Promise<() => NetStream>((resolve, reject) => {
         const endpoint = this.sentinelIterator.next();
 
         if (endpoint.done) {
@@ -131,12 +131,11 @@ export default class SentinelConnector extends AbstractConnector {
             debug("resolved: %s:%s", resolved.host, resolved.port);
             if (this.options.enableTLSForSentinelMode && this.options.tls) {
               Object.assign(resolved, this.options.tls);
-              this.stream = createTLSConnection(resolved);
+              resolve(() => createTLSConnection(resolved));
             } else {
-              this.stream = createConnection(resolved);
+              resolve(() => createConnection(resolved));
             }
             this.sentinelIterator.reset(true);
-            resolve(this.stream);
           } else {
             const endpointAddress =
               endpoint.value.host + ":" + endpoint.value.port;

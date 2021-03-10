@@ -52,13 +52,9 @@ export default class StandaloneConnector extends AbstractConnector {
     }
 
     // TODO:
-    // We use native Promise here since other Promise
-    // implementation may use different schedulers that
-    // cause issue when the stream is resolved in the
-    // next tick.
     // Should use the provided promise in the next major
-    // version and do not connect before resolved.
-    return new Promise<NetStream>((resolve, reject) => {
+    // version.
+    return new Promise<() => NetStream>((resolve, reject) => {
       process.nextTick(() => {
         if (!this.connecting) {
           reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
@@ -67,16 +63,14 @@ export default class StandaloneConnector extends AbstractConnector {
 
         try {
           if (options.tls) {
-            this.stream = createTLSConnection(connectionOptions);
+            resolve(() => createTLSConnection(connectionOptions));
           } else {
-            this.stream = createConnection(connectionOptions);
+            resolve(() => createConnection(connectionOptions));
           }
         } catch (err) {
           reject(err);
           return;
         }
-
-        resolve(this.stream);
       });
     });
   }
