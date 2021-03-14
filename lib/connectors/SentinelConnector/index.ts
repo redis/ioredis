@@ -135,6 +135,11 @@ export default class SentinelConnector extends AbstractConnector {
             } else {
               this.stream = createConnection(resolved);
             }
+
+            this.stream.once("error", (err) => {
+              this.firstError = err;
+            });
+
             this.sentinelIterator.reset(true);
             resolve(this.stream);
           } else {

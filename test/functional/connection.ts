@@ -5,6 +5,7 @@ import { expect } from "chai";
 import MockServer from "../helpers/mock_server";
 import * as Bluebird from "bluebird";
 import { StandaloneConnector } from "../../lib/connectors";
+import { CONNECTION_CLOSED_ERROR_MSG } from "../../lib/utils";
 
 describe("connection", function () {
   it('should emit "connect" when connected', function (done) {
@@ -238,6 +239,40 @@ describe("connection", function () {
         expect(redis.status).to.eql("end");
         redis.disconnect();
         done();
+      });
+    });
+
+    it("should close if socket destroyed before being returned", function (done) {
+      const message = "instant error";
+      sinon.stub(net, "createConnection").callsFake(function () {
+        const socket = (net.createConnection as any).wrappedMethod.apply(
+          net,
+          arguments
+        ) as net.Socket;
+        socket.destroy(new Error(message));
+        return socket;
+      });
+
+      let closed = false;
+      let errored = false;
+
+      const redis = new Redis({ lazyConnect: true });
+      redis
+        .connect(() => {})
+        .catch((err) => {
+          expect(closed).to.equal(true);
+          expect(err.message).to.eql(CONNECTION_CLOSED_ERROR_MSG);
+          redis.disconnect();
+          done();
+        });
+
+      redis.on("error", (err) => {
+        expect(err.message).to.equal(message);
+        errored = true;
+      });
+      redis.on("close", () => {
+        expect(errored).to.equal(true);
+        closed = true;
       });
     });
   });

@@ -5,6 +5,7 @@ export type ErrorEmitter = (type: string, err: Error) => void;
 export default abstract class AbstractConnector {
   protected connecting = false;
   protected stream: NetStream;
+  public firstError?: Error;
 
   public check(info: any): boolean {
     return true;

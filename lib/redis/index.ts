@@ -287,7 +287,7 @@ Redis.prototype.setStatus = function (status, arg) {
  */
 Redis.prototype.connect = function (callback) {
   const _Promise = PromiseContainer.get();
-  const promise = new _Promise((resolve, reject) => {
+  const promise = new _Promise<void>((resolve, reject) => {
     if (
       this.status === "connecting" ||
       this.status === "connect" ||
@@ -370,11 +370,21 @@ Redis.prototype.connect = function (callback) {
               stream.setTimeout(0);
             });
           }
+        } else if (stream.destroyed) {
+          const firstError = _this.connector.firstError;
+          if (firstError) {
+            process.nextTick(() => {
+              eventHandler.errorHandler(_this)(firstError);
+            });
+          }
+          process.nextTick(eventHandler.closeHandler(_this));
         } else {
           process.nextTick(eventHandler.connectHandler(_this));
         }
-        stream.once("error", eventHandler.errorHandler(_this));
-        stream.once("close", eventHandler.closeHandler(_this));
+        if (!stream.destroyed) {
+          stream.once("error", eventHandler.errorHandler(_this));
+          stream.once("close", eventHandler.closeHandler(_this));
+        }
 
         if (options.noDelay) {
           stream.setNoDelay(true);
