@@ -1,3 +1,10 @@
+## [4.23.1](https://github.com/luin/ioredis/compare/v4.23.0...v4.23.1) (2021-03-14)
+
+
+### Bug Fixes
+
+* **cluster:** issues when code is processed by babel ([#1298](https://github.com/luin/ioredis/issues/1298)) ([bfc194d](https://github.com/luin/ioredis/commit/bfc194dcad2af527e802d6f5b060f0b0779e840d)), closes [#1288](https://github.com/luin/ioredis/issues/1288)
+
 # [4.23.0](https://github.com/luin/ioredis/compare/v4.22.0...v4.23.0) (2021-02-25)
 
 
