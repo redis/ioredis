@@ -1,3 +1,10 @@
+## [4.24.1](https://github.com/luin/ioredis/compare/v4.24.0...v4.24.1) (2021-03-14)
+
+
+### Bug Fixes
+
+* **cluster:** reconnect when failing to refresh slots cache for all nodes ([8524eea](https://github.com/luin/ioredis/commit/8524eeaedaa2542f119f2b65ab8e2f15644b474e))
+
 # [4.24.0](https://github.com/luin/ioredis/compare/v4.23.1...v4.24.0) (2021-03-14)
 
 
