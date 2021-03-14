@@ -1,3 +1,10 @@
+## [4.24.2](https://github.com/luin/ioredis/compare/v4.24.1...v4.24.2) (2021-03-14)
+
+
+### Bug Fixes
+
+* properly handle instant stream errors ([#1299](https://github.com/luin/ioredis/issues/1299)) ([0327ef5](https://github.com/luin/ioredis/commit/0327ef5a57481042d3f7d306917f55ef04f3a6cc))
+
 ## [4.24.1](https://github.com/luin/ioredis/compare/v4.24.0...v4.24.1) (2021-03-14)
 
 
