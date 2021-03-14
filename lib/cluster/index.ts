@@ -381,7 +381,7 @@ class Cluster extends EventEmitter {
 
     const Promise = PromiseContainer.get();
     if (status === "wait") {
-      const ret = asCallback(Promise.resolve("OK"), callback);
+      const ret = asCallback(Promise.resolve<"OK">("OK"), callback);
 
       // use setImmediate to make sure "close" event
       // being emitted after quit() is returned

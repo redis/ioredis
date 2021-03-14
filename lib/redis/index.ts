@@ -17,6 +17,7 @@ import {
   ReconnectOnError,
   DEFAULT_REDIS_OPTIONS,
 } from "./RedisOptions";
+import { NetStream } from "../types";
 
 const debug = Debug("redis");
 
@@ -317,7 +318,7 @@ Redis.prototype.connect = function (callback) {
     asCallback(
       this.connector.connect(function (type, err) {
         _this.silentEmit(type, err);
-      }),
+      }) as Promise<NetStream>,
       function (err, stream) {
         if (err) {
           _this.flushQueue(err);
