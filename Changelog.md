@@ -1,3 +1,10 @@
+# [4.24.0](https://github.com/luin/ioredis/compare/v4.23.1...v4.24.0) (2021-03-14)
+
+
+### Features
+
+* **cluster:** support retrying MOVED with a delay ([#1254](https://github.com/luin/ioredis/issues/1254)) ([8599981](https://github.com/luin/ioredis/commit/8599981141e8357f5ae2706fffb55010490bf002))
+
 ## [4.23.1](https://github.com/luin/ioredis/compare/v4.23.0...v4.23.1) (2021-03-14)
 
 
