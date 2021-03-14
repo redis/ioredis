@@ -76,6 +76,10 @@ export default class StandaloneConnector extends AbstractConnector {
           return;
         }
 
+        this.stream.once("error", (err) => {
+          this.firstError = err;
+        });
+
         resolve(this.stream);
       });
     });
