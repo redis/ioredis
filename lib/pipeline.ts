@@ -32,7 +32,8 @@ export default function Pipeline(redis) {
   Commander.call(this);
 
   this.redis = redis;
-  this.isCluster = this.redis.constructor.name === "Cluster";
+  this.isCluster =
+    this.redis.constructor.name === "Cluster" || this.redis.isCluster;
   this.isPipeline = true;
   this.options = redis.options;
   this._queue = [];
