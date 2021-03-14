@@ -745,8 +745,19 @@ class Cluster extends EventEmitter {
       return;
     }
     const errv = error.message.split(" ");
-    if (errv[0] === "MOVED" || errv[0] === "ASK") {
-      handlers[errv[0] === "MOVED" ? "moved" : "ask"](errv[1], errv[2]);
+    if (errv[0] === "MOVED") {
+      const timeout = this.options.retryDelayOnMoved;
+      if (timeout && typeof timeout === "number") {
+        this.delayQueue.push(
+          "moved",
+          handlers.moved.bind(null, errv[1], errv[2]),
+          { timeout }
+        );
+      } else {
+        handlers.moved(errv[1], errv[2]);
+      }
+    } else if (errv[0] === "ASK") {
+      handlers.ask(errv[1], errv[2]);
     } else if (errv[0] === "TRYAGAIN") {
       this.delayQueue.push("tryagain", handlers.tryagain, {
         timeout: this.options.retryDelayOnTryAgain,

@@ -95,6 +95,17 @@ export interface IClusterOptions {
   retryDelayOnTryAgain?: number;
 
   /**
+   * By default, this value is 0, which means when a `MOVED` error is received,
+   * the client will resend the command instantly to the node returned together with
+   * the `MOVED` error. However, sometimes it takes time for a cluster to become
+   * state stabilized after a failover, so adding a delay before resending can
+   * prevent a ping pong effect.
+   *
+   * @default 0
+   */
+  retryDelayOnMoved?: number;
+
+  /**
    * The milliseconds before a timeout occurs while refreshing
    * slots from the cluster.
    *
@@ -184,6 +195,7 @@ export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {
   enableReadyCheck: true,
   scaleReads: "master",
   maxRedirections: 16,
+  retryDelayOnMoved: 0,
   retryDelayOnFailover: 100,
   retryDelayOnClusterDown: 100,
   retryDelayOnTryAgain: 100,
