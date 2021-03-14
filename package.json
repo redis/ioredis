@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "cluster-key-slot": "^1.1.0",
-    "debug": "^4.1.1",
+    "debug": "^4.3.1",
     "denque": "^1.1.0",
     "lodash.defaults": "^4.2.0",
     "lodash.flatten": "^4.4.0",
@@ -42,7 +42,7 @@
     "redis-commands": "1.7.0",
     "redis-errors": "^1.2.0",
     "redis-parser": "^3.0.0",
-    "standard-as-callback": "^2.0.1"
+    "standard-as-callback": "^2.1.0"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^5.0.1",
