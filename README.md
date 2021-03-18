@@ -741,6 +741,7 @@ The Redis instance will emit some events about the state of the connection to th
 | close        | emits when an established Redis server connection has closed.                                                                                                                                                                                   |
 | reconnecting | emits after `close` when a reconnection will be made. The argument of the event is the time (in ms) before reconnecting.                                                                                                                        |
 | end          | emits after `close` when no more reconnections will be made, or the connection is failed to establish.                                                                                                                                          |
+| wait          | emits when `lazyConnect` is set and will wait for the first command to be called before connecting.                                                                                                                                          |
 
 You can also check out the `Redis#status` property to get the current connection status.
 
