@@ -148,7 +148,7 @@ See [API Documentation](API.md#new_Redis) for all available options.
 
 ## Pub/Sub
 
-Redis provides several commands for developers to implement the [Publish–subscribe pattern](https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern). There are two roles in this pattern, publishers and subscribers. Publishers are not programmed to send their messages to specific subscribers. Rather, published messages are characterized into channels, without knowledge of what (if any) subscribers there may be.
+Redis provides several commands for developers to implement the [Publish–subscribe pattern](https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern). There are two roles in this pattern: publisher and subscriber. Publishers are not programmed to send their messages to specific subscribers. Rather, published messages are characterized into channels, without knowledge of what (if any) subscribers there may be.
 
 By leveraging Node.js's built-in events module, ioredis makes pub/sub very straightforward to use. Below is a simple example that consists of two files, one is publisher.js that publishes messages to a channel, the other is subscriber.js that listens for messages on specific channels.
 
@@ -159,18 +159,18 @@ const Redis = require("ioredis");
 const redis = new Redis();
 
 setInterval(() => {
-  const event = { foo: Math.random() };
+  const message = { foo: Math.random() };
   // Publish to my-channel-1 or my-channel-2 randomly.
   const channel = `my-channel-${1 + Math.round(Math.random())}`;
 
-  redis.publish(channel, JSON.stringify(event));
-  console.log("Published %s to %s", event, channel);
+  // Message can be either a string or a buffer
+  redis.publish(channel, JSON.stringify(message));
+  console.log("Published %s to %s", message, channel);
 }, 1000);
 ```
 
 ```javascript
 // subscriber.js
-// Listens for messages on specific channels
 
 const Redis = require("ioredis");
 const redis = new Redis();
@@ -194,14 +194,14 @@ redis.on("message", (channel, message) => {
 
 // There's also an event called 'messageBuffer', which is the same as 'message' except
 // it returns buffers instead of strings.
-// It's useful when you are going to publish binary data.
+// It's useful when the messages are binary data.
 redis.on("messageBuffer", (channel, message) => {
   // Both `channel` and `message` are buffers.
   console.log(channel, message);
 });
 ```
 
-It worth noticing that a connection (aka `Redis` instance) can't play both roles together. More specifically, when a client issues `subscribe()` or `psubscribe()`, that connection is put into a "subscriber" mode. At that point, only commands that modify the subscription set are valid. Namely, they are: `subscribe`, `psubscribe`, `unsubscribe`, `punsubscribe`, `ping`, and `quit`. When the subscription set is empty (via `unsubscribe`/`punsubscribe`), the connection is put back into regular mode.
+It worth noticing that a connection (aka `Redis` instance) can't play both roles together. More specifically, when a client issues `subscribe()` or `psubscribe()`, it enters the "subscriber" mode. From that point, only commands that modify the subscription set are valid. Namely, they are: `subscribe`, `psubscribe`, `unsubscribe`, `punsubscribe`, `ping`, and `quit`. When the subscription set is empty (via `unsubscribe`/`punsubscribe`), the connection is put back into the regular mode.
 
 If you want to do pub/sub in the same file/process, you should create a separate connection:
 
