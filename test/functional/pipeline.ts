@@ -320,6 +320,28 @@ describe("pipeline", function () {
         });
       });
     });
+
+    it("should support parallel script execution", function (done) {
+      const random = `${Math.random()}`;
+      const redis = new Redis();
+      redis.defineCommand("something", {
+        numberOfKeys: 0,
+        lua: `return "${random}"`,
+      });
+      Promise.all([
+        redis.multi([["something"]]).exec(),
+        redis.multi([["something"]]).exec(),
+      ])
+        .then(([[first], [second]]) => {
+          expect(first[0]).to.equal(null);
+          expect(first[1]).to.equal(random);
+          expect(second[0]).to.equal(null);
+          expect(second[1]).to.equal(random);
+          redis.disconnect();
+          done();
+        })
+        .catch(done);
+    });
   });
 
   describe("#length", function () {
