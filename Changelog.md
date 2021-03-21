@@ -1,3 +1,10 @@
+## [4.24.3](https://github.com/luin/ioredis/compare/v4.24.2...v4.24.3) (2021-03-21)
+
+
+### Bug Fixes
+
+* support parallel script execution in pipelines ([#1304](https://github.com/luin/ioredis/issues/1304)) ([c917719](https://github.com/luin/ioredis/commit/c91771997e5e3a0196d380522b4750de9e84cc9b))
+
 ## [4.24.2](https://github.com/luin/ioredis/compare/v4.24.1...v4.24.2) (2021-03-14)
 
 
