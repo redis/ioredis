@@ -313,12 +313,15 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
 
     const script = this._shaToScript[item.args[0]];
 
-    if (!script || this.redis._addedScriptHashes[script.sha]) {
+    if (
+      !script ||
+      this.redis._addedScriptHashes[script.sha] ||
+      scripts.includes(script)
+    ) {
       continue;
     }
 
     scripts.push(script);
-    this.redis._addedScriptHashes[script.sha] = true;
   }
 
   const _this = this;
@@ -330,7 +333,12 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
   if (this.isCluster) {
     return pMap(scripts, (script) => _this.redis.script("load", script.lua), {
       concurrency: 10,
-    }).then(execPipeline);
+    }).then(function () {
+      for (let i = 0; i < scripts.length; i++) {
+        _this.redis._addedScriptHashes[scripts[i].sha] = true;
+      }
+      return execPipeline();
+    });
   }
 
   return this.redis
@@ -352,7 +360,12 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
         })
       );
     })
-    .then(execPipeline);
+    .then(function () {
+      for (let i = 0; i < scripts.length; i++) {
+        _this.redis._addedScriptHashes[scripts[i].sha] = true;
+      }
+      return execPipeline();
+    });
 
   function execPipeline() {
     let data = "";
