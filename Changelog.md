@@ -1,3 +1,10 @@
+## [4.24.4](https://github.com/luin/ioredis/compare/v4.24.3...v4.24.4) (2021-03-24)
+
+
+### Bug Fixes
+
+* minor compatibility issues caused by TypeScript upgrade ([#1309](https://github.com/luin/ioredis/issues/1309)) ([c96139a](https://github.com/luin/ioredis/commit/c96139a531d2652eed5631a85ac4dc6a57f1048d)), closes [#1308](https://github.com/luin/ioredis/issues/1308)
+
 ## [4.24.3](https://github.com/luin/ioredis/compare/v4.24.2...v4.24.3) (2021-03-21)
 
 
