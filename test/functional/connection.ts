@@ -531,4 +531,22 @@ describe("disconnection", function () {
       done();
     });
   });
+
+  it("emits an error if select is not allowed", function (done) {
+    const errMessage = "select is not allowed";
+    const node = new MockServer(30001, function (argv) {
+      if (argv[0] === "select") {
+        return new Error(errMessage);
+      }
+    });
+    const redis = new Redis({ port: 30001, db: 2 });
+    redis.on("error", (err) => {
+      if (err.message === errMessage) {
+        redis.disconnect();
+        node.disconnect(() => {
+          done();
+        });
+      }
+    });
+  });
 });
