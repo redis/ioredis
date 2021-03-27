@@ -1,3 +1,10 @@
+## [4.24.5](https://github.com/luin/ioredis/compare/v4.24.4...v4.24.5) (2021-03-27)
+
+
+### Bug Fixes
+
+* select db in cluster mode causes unhandled errors ([#1311](https://github.com/luin/ioredis/issues/1311)) ([da3ec92](https://github.com/luin/ioredis/commit/da3ec92a406ab6c2f1517810f29f55a0c12712dc)), closes [#1310](https://github.com/luin/ioredis/issues/1310)
+
 ## [4.24.4](https://github.com/luin/ioredis/compare/v4.24.3...v4.24.4) (2021-03-24)
 
 
