@@ -1,5 +1,5 @@
 import { createConnection, TcpNetConnectOpts, IpcNetConnectOpts } from "net";
-import { connect as createTLSConnection, SecureContextOptions } from "tls";
+import { connect as createTLSConnection, ConnectionOptions } from "tls";
 import { CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import AbstractConnector, { ErrorEmitter } from "./AbstractConnector";
 import { NetStream } from "../types";
@@ -11,11 +11,11 @@ export function isIIpcConnectionOptions(
 }
 
 export interface ITcpConnectionOptions extends TcpNetConnectOpts {
-  tls?: SecureContextOptions;
+  tls?: ConnectionOptions;
 }
 
 export interface IIpcConnectionOptions extends IpcNetConnectOpts {
-  tls?: SecureContextOptions;
+  tls?: ConnectionOptions;
 }
 
 export default class StandaloneConnector extends AbstractConnector {

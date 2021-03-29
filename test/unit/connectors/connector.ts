@@ -32,11 +32,16 @@ describe("StandaloneConnector", () => {
       const spy = sinon.spy(tls, "connect");
       const connector = new StandaloneConnector({
         port: 6379,
-        tls: { ca: "on" },
+        tls: { ca: "on", servername: "localhost", rejectUnauthorized: false },
       });
       await connector.connect(() => {});
       expect(spy.calledOnce).to.eql(true);
-      expect(spy.firstCall.args[0]).to.eql({ port: 6379, ca: "on" });
+      expect(spy.firstCall.args[0]).to.eql({
+        port: 6379,
+        ca: "on",
+        servername: "localhost",
+        rejectUnauthorized: false,
+      });
       connector.disconnect();
     });
   });

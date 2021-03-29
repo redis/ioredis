@@ -6,7 +6,7 @@ import {
   sample,
   Debug,
 } from "../../utils";
-import { connect as createTLSConnection, SecureContextOptions } from "tls";
+import { connect as createTLSConnection, ConnectionOptions } from "tls";
 import {
   ITcpConnectionOptions,
   isIIpcConnectionOptions,
@@ -42,7 +42,7 @@ export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   preferredSlaves?: PreferredSlaves;
   connectTimeout?: number;
   enableTLSForSentinelMode?: boolean;
-  sentinelTLS?: SecureContextOptions;
+  sentinelTLS?: ConnectionOptions;
   natMap?: INatMap;
   updateSentinels?: boolean;
 }

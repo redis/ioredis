@@ -15,6 +15,10 @@ describe("tls option", () => {
         // @ts-ignore
         expect(op.ca).to.eql("123");
         // @ts-ignore
+        expect(op.servername).to.eql("localhost");
+        // @ts-ignore
+        expect(op.rejectUnauthorized).to.eql(false);
+        // @ts-ignore
         expect(op.port).to.eql(6379);
         const stream = net.createConnection(op);
         stream.on("connect", (data) => {
@@ -23,7 +27,9 @@ describe("tls option", () => {
         return stream;
       });
 
-      redis = new Redis({ tls: { ca: "123" } });
+      redis = new Redis({
+        tls: { ca: "123", servername: "localhost", rejectUnauthorized: false },
+      });
       redis.on("ready", () => {
         redis.disconnect();
         stub.restore();
@@ -68,6 +74,10 @@ describe("tls option", () => {
       const stub = sinon.stub(tls, "connect").callsFake((op) => {
         // @ts-ignore
         expect(op.ca).to.eql("123");
+        // @ts-ignore
+        expect(op.servername).to.eql("localhost");
+        // @ts-ignore
+        expect(op.rejectUnauthorized).to.eql(false);
         redis.disconnect();
         stub.restore();
         process.nextTick(done);
@@ -77,7 +87,7 @@ describe("tls option", () => {
       redis = new Redis({
         sentinels: [{ port: 27379 }],
         name: "my",
-        tls: { ca: "123" },
+        tls: { ca: "123", servername: "localhost", rejectUnauthorized: false },
         enableTLSForSentinelMode: true,
       });
     });
@@ -96,6 +106,10 @@ describe("tls option", () => {
         // @ts-ignore
         expect(op.ca).to.eql("123");
         // @ts-ignore
+        expect(op.servername).to.eql("localhost");
+        // @ts-ignore
+        expect(op.rejectUnauthorized).to.eql(false);
+        // @ts-ignore
         expect(op.port).to.eql(27379);
         const stream = net.createConnection(op);
         stream.on("connect", (data) => {
@@ -107,7 +121,11 @@ describe("tls option", () => {
       redis = new Redis({
         sentinels: [{ port: 27379 }],
         name: "my",
-        sentinelTLS: { ca: "123" },
+        sentinelTLS: {
+          ca: "123",
+          servername: "localhost",
+          rejectUnauthorized: false,
+        },
       });
       redis.on("ready", () => {
         redis.disconnect();
