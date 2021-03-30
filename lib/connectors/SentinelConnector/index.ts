@@ -179,81 +179,68 @@ export default class SentinelConnector extends AbstractConnector {
       return;
     }
 
-    try {
-      const result = await client.sentinel("sentinels", this.options.name);
+    const result = await client.sentinel("sentinels", this.options.name);
 
-      if (!Array.isArray(result)) {
-        return;
-      }
-
-      result
-        .map<IAddressFromResponse>(
-          packObject as (value: any) => IAddressFromResponse
-        )
-        .forEach((sentinel) => {
-          const flags = sentinel.flags ? sentinel.flags.split(",") : [];
-          if (
-            flags.indexOf("disconnected") === -1 &&
-            sentinel.ip &&
-            sentinel.port
-          ) {
-            const endpoint = this.sentinelNatResolve(
-              addressResponseToAddress(sentinel)
-            );
-            if (this.sentinelIterator.add(endpoint)) {
-              debug("adding sentinel %s:%s", endpoint.host, endpoint.port);
-            }
-          }
-        });
-      debug("Updated internal sentinels: %s", this.sentinelIterator);
-    } catch (err) {
-      client.disconnect();
-      throw err;
+    if (!Array.isArray(result)) {
+      return;
     }
+
+    result
+      .map<IAddressFromResponse>(
+        packObject as (value: any) => IAddressFromResponse
+      )
+      .forEach((sentinel) => {
+        const flags = sentinel.flags ? sentinel.flags.split(",") : [];
+        if (
+          flags.indexOf("disconnected") === -1 &&
+          sentinel.ip &&
+          sentinel.port
+        ) {
+          const endpoint = this.sentinelNatResolve(
+            addressResponseToAddress(sentinel)
+          );
+          if (this.sentinelIterator.add(endpoint)) {
+            debug("adding sentinel %s:%s", endpoint.host, endpoint.port);
+          }
+        }
+      });
+    debug("Updated internal sentinels: %s", this.sentinelIterator);
   }
 
   private async resolveMaster(client): Promise<ITcpConnectionOptions | null> {
-    try {
-      const result = await client.sentinel(
-        "get-master-addr-by-name",
-        this.options.name
-      );
+    const result = await client.sentinel(
+      "get-master-addr-by-name",
+      this.options.name
+    );
 
-      await this.updateSentinels(client);
+    await this.updateSentinels(client);
 
-      return this.sentinelNatResolve(
-        Array.isArray(result)
-          ? { host: result[0], port: Number(result[1]) }
-          : null
-      );
-    } finally {
-      client.disconnect();
-    }
+    return this.sentinelNatResolve(
+      Array.isArray(result)
+        ? { host: result[0], port: Number(result[1]) }
+        : null
+    );
   }
 
   private async resolveSlave(client): Promise<ITcpConnectionOptions | null> {
-    try {
-      const result = await client.sentinel("slaves", this.options.name);
+    const result = await client.sentinel("slaves", this.options.name);
 
-      if (!Array.isArray(result)) {
-        return null;
-      }
-
-      const availableSlaves = result
-        .map<IAddressFromResponse>(
-          packObject as (value: any) => IAddressFromResponse
-        )
-        .filter(
-          (slave) =>
-            slave.flags && !slave.flags.match(/(disconnected|s_down|o_down)/)
-        );
-
-      return this.sentinelNatResolve(
-        selectPreferredSentinel(availableSlaves, this.options.preferredSlaves)
-      );
-    } finally {
-      client.disconnect();
+    if (!Array.isArray(result)) {
+      return null;
     }
+
+    const availableSlaves = result
+      .map<IAddressFromResponse>(
+        packObject as (value: any) => IAddressFromResponse
+      )
+      .filter(
+        (slave) =>
+          slave.flags && !slave.flags.match(/(disconnected|s_down|o_down)/)
+      );
+
+    return this.sentinelNatResolve(
+      selectPreferredSentinel(availableSlaves, this.options.preferredSlaves)
+    );
   }
 
   sentinelNatResolve(item: ISentinelAddress | null) {
@@ -283,10 +270,14 @@ export default class SentinelConnector extends AbstractConnector {
     // ignore the errors since resolve* methods will handle them
     client.on("error", noop);
 
-    if (this.options.role === "slave") {
-      return this.resolveSlave(client);
-    } else {
-      return this.resolveMaster(client);
+    try {
+      if (this.options.role === "slave") {
+        return await this.resolveSlave(client);
+      } else {
+        return await this.resolveMaster(client);
+      }
+    } finally {
+      client.disconnect();
     }
   }
 }
