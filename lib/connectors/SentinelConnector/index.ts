@@ -170,18 +170,16 @@ export default class SentinelConnector extends AbstractConnector {
     return connectToNext();
   }
 
-  private updateSentinels(client, callback: CallbackFunction): void {
+  private async updateSentinels(client): Promise<void> {
     if (!this.options.updateSentinels) {
-      return callback(null);
+      return;
     }
 
-    client.sentinel("sentinels", this.options.name, (err, result) => {
-      if (err) {
-        client.disconnect();
-        return callback(err);
-      }
+    try {
+      const result = await client.sentinel("sentinels", this.options.name);
+
       if (!Array.isArray(result)) {
-        return callback(null);
+        return;
       }
 
       result
@@ -204,8 +202,10 @@ export default class SentinelConnector extends AbstractConnector {
           }
         });
       debug("Updated internal sentinels: %s", this.sentinelIterator);
-      callback(null);
-    });
+    } catch (err) {
+      client.disconnect();
+      throw err;
+    }
   }
 
   private resolveMaster(
@@ -215,16 +215,14 @@ export default class SentinelConnector extends AbstractConnector {
     client.sentinel(
       "get-master-addr-by-name",
       this.options.name,
-      (err, result) => {
+      async (err, result) => {
         if (err) {
           client.disconnect();
           return callback(err);
         }
-        this.updateSentinels(client, (err) => {
-          client.disconnect();
-          if (err) {
-            return callback(err);
-          }
+
+        try {
+          await this.updateSentinels(client);
 
           callback(
             null,
@@ -234,7 +232,11 @@ export default class SentinelConnector extends AbstractConnector {
                 : null
             )
           );
-        });
+        } catch (err) {
+          return callback(err);
+        } finally {
+          client.disconnect();
+        }
       }
     );
   }
