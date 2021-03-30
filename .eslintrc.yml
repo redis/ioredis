@@ -21,6 +21,7 @@ rules:
   no-var: 0
   no-prototype-builtins: 0
   prefer-spread: 0
+  "@typescript-eslint/array-type": 0 # Removed from recommended rules in 2.x
   "@typescript-eslint/no-var-requires": 0
   "@typescript-eslint/explicit-function-return-type": 0
   "@typescript-eslint/no-explicit-any": 0
