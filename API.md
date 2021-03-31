@@ -13,7 +13,7 @@
 
 ## Redis ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
 
-**Kind**: global class  
+**Kind**: global class
 **Extends**: <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>, [<code>Commander</code>](#Commander)
 
 - [Redis](#Redis) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
@@ -96,7 +96,7 @@ unless `lazyConnect: true` is passed.
 When calling this method manually, a Promise is returned, which will
 be resolved when the connection status is ready.
 
-**Kind**: instance method of [<code>Redis</code>](#Redis)  
+**Kind**: instance method of [<code>Redis</code>](#Redis)
 **Access**: public
 
 | Param      | Type                  |
@@ -113,8 +113,8 @@ This method closes the connection immediately,
 and may lose some pending replies that haven't written to client.
 If you want to wait for the pending replies, use Redis#quit instead.
 
-**Kind**: instance method of [<code>Redis</code>](#Redis)  
-**Access**: public  
+**Kind**: instance method of [<code>Redis</code>](#Redis)
+**Access**: public
 <a name="Redis+end"></a>
 
 ### ~~redis.end()~~
@@ -123,15 +123,15 @@ If you want to wait for the pending replies, use Redis#quit instead.
 
 Disconnect from Redis.
 
-**Kind**: instance method of [<code>Redis</code>](#Redis)  
+**Kind**: instance method of [<code>Redis</code>](#Redis)
 <a name="Redis+duplicate"></a>
 
 ### redis.duplicate()
 
 Create a new instance with the same options as the current one.
 
-**Kind**: instance method of [<code>Redis</code>](#Redis)  
-**Access**: public  
+**Kind**: instance method of [<code>Redis</code>](#Redis)
+**Access**: public
 **Example**
 
 ```js
@@ -149,7 +149,7 @@ This command will create a new connection to Redis and send a
 MONITOR command via the new connection in order to avoid disturbing
 the current connection.
 
-**Kind**: instance method of [<code>Redis</code>](#Redis)  
+**Kind**: instance method of [<code>Redis</code>](#Redis)
 **Access**: public
 
 | Param      | Type                  | Description                                                 |
@@ -181,17 +181,17 @@ redis.monitor().then(function (monitor) {
 
 Return supported builtin commands
 
-**Kind**: instance method of [<code>Redis</code>](#Redis)  
-**Returns**: <code>Array.&lt;string&gt;</code> - command list  
-**Access**: public  
+**Kind**: instance method of [<code>Redis</code>](#Redis)
+**Returns**: <code>Array.&lt;string&gt;</code> - command list
+**Access**: public
 <a name="Commander+createBuiltinCommand"></a>
 
 ### redis.createBuiltinCommand(commandName) ⇒ <code>object</code>
 
 Create a builtin command
 
-**Kind**: instance method of [<code>Redis</code>](#Redis)  
-**Returns**: <code>object</code> - functions  
+**Kind**: instance method of [<code>Redis</code>](#Redis)
+**Returns**: <code>object</code> - functions
 **Access**: public
 
 | Param       | Type                | Description  |
@@ -221,12 +221,12 @@ Define a custom command using lua script
 
 Create a Redis instance
 
-**Kind**: static method of [<code>Redis</code>](#Redis)  
+**Kind**: static method of [<code>Redis</code>](#Redis)
 <a name="Cluster"></a>
 
 ## Cluster ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
 
-**Kind**: global class  
+**Kind**: global class
 **Extends**: <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>, [<code>Commander</code>](#Commander)
 
 - [Cluster](#Cluster) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
@@ -269,15 +269,15 @@ Creates a Redis Cluster instance
 
 Connect to a cluster
 
-**Kind**: instance method of [<code>Cluster</code>](#Cluster)  
-**Access**: public  
+**Kind**: instance method of [<code>Cluster</code>](#Cluster)
+**Access**: public
 <a name="Cluster+disconnect"></a>
 
 ### cluster.disconnect([reconnect])
 
 Disconnect from every node in the cluster.
 
-**Kind**: instance method of [<code>Cluster</code>](#Cluster)  
+**Kind**: instance method of [<code>Cluster</code>](#Cluster)
 **Access**: public
 
 | Param       | Type                 |
@@ -290,8 +290,8 @@ Disconnect from every node in the cluster.
 
 Quit the cluster gracefully.
 
-**Kind**: instance method of [<code>Cluster</code>](#Cluster)  
-**Returns**: <code>Promise</code> - return 'OK' if successfully  
+**Kind**: instance method of [<code>Cluster</code>](#Cluster)
+**Returns**: <code>Promise</code> - return 'OK' if successfully
 **Access**: public
 
 | Param      | Type                  |
@@ -304,8 +304,8 @@ Quit the cluster gracefully.
 
 Get nodes with the specified role
 
-**Kind**: instance method of [<code>Cluster</code>](#Cluster)  
-**Returns**: [<code>Array.&lt;Redis&gt;</code>](#Redis) - array of nodes  
+**Kind**: instance method of [<code>Cluster</code>](#Cluster)
+**Returns**: [<code>Array.&lt;Redis&gt;</code>](#Redis) - array of nodes
 **Access**: public
 
 | Param  | Type                | Default                      | Description                      |
@@ -318,17 +318,17 @@ Get nodes with the specified role
 
 Return supported builtin commands
 
-**Kind**: instance method of [<code>Cluster</code>](#Cluster)  
-**Returns**: <code>Array.&lt;string&gt;</code> - command list  
-**Access**: public  
+**Kind**: instance method of [<code>Cluster</code>](#Cluster)
+**Returns**: <code>Array.&lt;string&gt;</code> - command list
+**Access**: public
 <a name="Commander+createBuiltinCommand"></a>
 
 ### cluster.createBuiltinCommand(commandName) ⇒ <code>object</code>
 
 Create a builtin command
 
-**Kind**: instance method of [<code>Cluster</code>](#Cluster)  
-**Returns**: <code>object</code> - functions  
+**Kind**: instance method of [<code>Cluster</code>](#Cluster)
+**Returns**: <code>object</code> - functions
 **Access**: public
 
 | Param       | Type                | Description  |
@@ -356,9 +356,9 @@ Define a custom command using lua script
 
 Send a command
 
-**Kind**: instance abstract method of [<code>Cluster</code>](#Cluster)  
-**Overrides**: [<code>sendCommand</code>](#Commander+sendCommand)  
-**Access**: public  
+**Kind**: instance abstract method of [<code>Cluster</code>](#Cluster)
+**Overrides**: [<code>sendCommand</code>](#Commander+sendCommand)
+**Access**: public
 <a name="Commander"></a>
 
 ## Commander
@@ -390,17 +390,17 @@ This is the base class of Redis, Redis.Cluster and Pipeline
 
 Return supported builtin commands
 
-**Kind**: instance method of [<code>Commander</code>](#Commander)  
-**Returns**: <code>Array.&lt;string&gt;</code> - command list  
-**Access**: public  
+**Kind**: instance method of [<code>Commander</code>](#Commander)
+**Returns**: <code>Array.&lt;string&gt;</code> - command list
+**Access**: public
 <a name="Commander+createBuiltinCommand"></a>
 
 ### commander.createBuiltinCommand(commandName) ⇒ <code>object</code>
 
 Create a builtin command
 
-**Kind**: instance method of [<code>Commander</code>](#Commander)  
-**Returns**: <code>object</code> - functions  
+**Kind**: instance method of [<code>Commander</code>](#Commander)
+**Returns**: <code>object</code> - functions
 **Access**: public
 
 | Param       | Type                | Description  |
@@ -428,5 +428,5 @@ Define a custom command using lua script
 
 Send a command
 
-**Kind**: instance abstract method of [<code>Commander</code>](#Commander)  
+**Kind**: instance abstract method of [<code>Commander</code>](#Commander)
 **Access**: public
