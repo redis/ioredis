@@ -41,6 +41,7 @@ export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   sentinelRetryStrategy?: (retryAttempts: number) => number | void | null;
   preferredSlaves?: PreferredSlaves;
   connectTimeout?: number;
+  disconnectTimeout?: number;
   enableTLSForSentinelMode?: boolean;
   sentinelTLS?: ConnectionOptions;
   natMap?: INatMap;
@@ -52,7 +53,7 @@ export default class SentinelConnector extends AbstractConnector {
   protected sentinelIterator: SentinelIterator;
 
   constructor(protected options: ISentinelConnectionOptions) {
-    super();
+    super(options.disconnectTimeout);
 
     if (!this.options.sentinels.length) {
       throw new Error("Requires at least one sentinel to connect to.");

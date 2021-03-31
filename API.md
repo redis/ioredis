@@ -13,7 +13,7 @@
 
 ## Redis ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
 
-**Kind**: global class  
+**Kind**: global class
 **Extends**: <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>, [<code>Commander</code>](#Commander)
 
 - [Redis](#Redis) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
@@ -55,6 +55,7 @@ Creates a Redis instance
 | [options.enableReadyCheck]              | <code>boolean</code>                                              | <code>true</code>                     | When a connection is established to the Redis server, the server might still be loading the database from disk. While loading, the server not respond to any commands. To work around this, when this option is `true`, ioredis will check the status of the Redis server, and when the Redis server is able to process commands, a `ready` event will be emitted.                                                                            |
 | [options.enableOfflineQueue]            | <code>boolean</code>                                              | <code>true</code>                     | By default, if there is no active connection to the Redis server, commands are added to a queue and are executed once the connection is "ready" (when `enableReadyCheck` is `true`, "ready" means the Redis server has loaded the database from disk, otherwise means the connection to the Redis server has been established). If this option is false, when execute the command when the connection isn't ready, an error will be returned. |
 | [options.connectTimeout]                | <code>number</code>                                               | <code>10000</code>                    | The milliseconds before a timeout occurs during the initial connection to the Redis server.                                                                                                                                                                                                                                                                                                                                                   |
+| [options.disconnectTimeout]             | <code>number</code>                                               | <code>2000</code>                     | The milliseconds before [socket.destroy()](https://nodejs.org/dist/latest-v14.x/docs/api/net.html#net_socket_destroy_error) is called after [socket.end()](https://nodejs.org/dist/latest-v14.x/docs/api/net.html#net_socket_end_data_encoding_callback) if the connection remains half-open during disconnection.                                                                                                                            |
 | [options.autoResubscribe]               | <code>boolean</code>                                              | <code>true</code>                     | After reconnected, if the previous connection was in the subscriber mode, client will auto re-subscribe these channels.                                                                                                                                                                                                                                                                                                                       |
 | [options.autoResendUnfulfilledCommands] | <code>boolean</code>                                              | <code>true</code>                     | If true, client will resend unfulfilled commands(e.g. block commands) in the previous connection when reconnected.                                                                                                                                                                                                                                                                                                                            |
 | [options.lazyConnect]                   | <code>boolean</code>                                              | <code>false</code>                    | By default, When a new `Redis` instance is created, it will connect to Redis server automatically. If you want to keep the instance disconnected until a command is called, you can pass the `lazyConnect` option to the constructor: `javascript var redis = new Redis({ lazyConnect: true }); // No attempting to connect to the Redis server here. // Now let's connect to the Redis server redis.get('foo', function () { });`            |
@@ -96,7 +97,7 @@ unless `lazyConnect: true` is passed.
 When calling this method manually, a Promise is returned, which will
 be resolved when the connection status is ready.
 
-**Kind**: instance method of [<code>Redis</code>](#Redis)  
+**Kind**: instance method of [<code>Redis</code>](#Redis)
 **Access**: public
 
 | Param      | Type                  |
@@ -113,8 +114,8 @@ This method closes the connection immediately,
 and may lose some pending replies that haven't written to client.
 If you want to wait for the pending replies, use Redis#quit instead.
 
-**Kind**: instance method of [<code>Redis</code>](#Redis)  
-**Access**: public  
+**Kind**: instance method of [<code>Redis</code>](#Redis)
+**Access**: public
 <a name="Redis+end"></a>
 
 ### ~~redis.end()~~
@@ -123,15 +124,15 @@ If you want to wait for the pending replies, use Redis#quit instead.
 
 Disconnect from Redis.
 
-**Kind**: instance method of [<code>Redis</code>](#Redis)  
+**Kind**: instance method of [<code>Redis</code>](#Redis)
 <a name="Redis+duplicate"></a>
 
 ### redis.duplicate()
 
 Create a new instance with the same options as the current one.
 
-**Kind**: instance method of [<code>Redis</code>](#Redis)  
-**Access**: public  
+**Kind**: instance method of [<code>Redis</code>](#Redis)
+**Access**: public
 **Example**
 
 ```js
@@ -149,7 +150,7 @@ This command will create a new connection to Redis and send a
 MONITOR command via the new connection in order to avoid disturbing
 the current connection.
 
-**Kind**: instance method of [<code>Redis</code>](#Redis)  
+**Kind**: instance method of [<code>Redis</code>](#Redis)
 **Access**: public
 
 | Param      | Type                  | Description                                                 |
@@ -181,17 +182,17 @@ redis.monitor().then(function (monitor) {
 
 Return supported builtin commands
 
-**Kind**: instance method of [<code>Redis</code>](#Redis)  
-**Returns**: <code>Array.&lt;string&gt;</code> - command list  
-**Access**: public  
+**Kind**: instance method of [<code>Redis</code>](#Redis)
+**Returns**: <code>Array.&lt;string&gt;</code> - command list
+**Access**: public
 <a name="Commander+createBuiltinCommand"></a>
 
 ### redis.createBuiltinCommand(commandName) ⇒ <code>object</code>
 
 Create a builtin command
 
-**Kind**: instance method of [<code>Redis</code>](#Redis)  
-**Returns**: <code>object</code> - functions  
+**Kind**: instance method of [<code>Redis</code>](#Redis)
+**Returns**: <code>object</code> - functions
 **Access**: public
 
 | Param       | Type                | Description  |
@@ -221,12 +222,12 @@ Define a custom command using lua script
 
 Create a Redis instance
 
-**Kind**: static method of [<code>Redis</code>](#Redis)  
+**Kind**: static method of [<code>Redis</code>](#Redis)
 <a name="Cluster"></a>
 
 ## Cluster ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
 
-**Kind**: global class  
+**Kind**: global class
 **Extends**: <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>, [<code>Commander</code>](#Commander)
 
 - [Cluster](#Cluster) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code>
@@ -269,15 +270,15 @@ Creates a Redis Cluster instance
 
 Connect to a cluster
 
-**Kind**: instance method of [<code>Cluster</code>](#Cluster)  
-**Access**: public  
+**Kind**: instance method of [<code>Cluster</code>](#Cluster)
+**Access**: public
 <a name="Cluster+disconnect"></a>
 
 ### cluster.disconnect([reconnect])
 
 Disconnect from every node in the cluster.
 
-**Kind**: instance method of [<code>Cluster</code>](#Cluster)  
+**Kind**: instance method of [<code>Cluster</code>](#Cluster)
 **Access**: public
 
 | Param       | Type                 |
@@ -290,8 +291,8 @@ Disconnect from every node in the cluster.
 
 Quit the cluster gracefully.
 
-**Kind**: instance method of [<code>Cluster</code>](#Cluster)  
-**Returns**: <code>Promise</code> - return 'OK' if successfully  
+**Kind**: instance method of [<code>Cluster</code>](#Cluster)
+**Returns**: <code>Promise</code> - return 'OK' if successfully
 **Access**: public
 
 | Param      | Type                  |
@@ -304,8 +305,8 @@ Quit the cluster gracefully.
 
 Get nodes with the specified role
 
-**Kind**: instance method of [<code>Cluster</code>](#Cluster)  
-**Returns**: [<code>Array.&lt;Redis&gt;</code>](#Redis) - array of nodes  
+**Kind**: instance method of [<code>Cluster</code>](#Cluster)
+**Returns**: [<code>Array.&lt;Redis&gt;</code>](#Redis) - array of nodes
 **Access**: public
 
 | Param  | Type                | Default                      | Description                      |
@@ -318,17 +319,17 @@ Get nodes with the specified role
 
 Return supported builtin commands
 
-**Kind**: instance method of [<code>Cluster</code>](#Cluster)  
-**Returns**: <code>Array.&lt;string&gt;</code> - command list  
-**Access**: public  
+**Kind**: instance method of [<code>Cluster</code>](#Cluster)
+**Returns**: <code>Array.&lt;string&gt;</code> - command list
+**Access**: public
 <a name="Commander+createBuiltinCommand"></a>
 
 ### cluster.createBuiltinCommand(commandName) ⇒ <code>object</code>
 
 Create a builtin command
 
-**Kind**: instance method of [<code>Cluster</code>](#Cluster)  
-**Returns**: <code>object</code> - functions  
+**Kind**: instance method of [<code>Cluster</code>](#Cluster)
+**Returns**: <code>object</code> - functions
 **Access**: public
 
 | Param       | Type                | Description  |
@@ -356,9 +357,9 @@ Define a custom command using lua script
 
 Send a command
 
-**Kind**: instance abstract method of [<code>Cluster</code>](#Cluster)  
-**Overrides**: [<code>sendCommand</code>](#Commander+sendCommand)  
-**Access**: public  
+**Kind**: instance abstract method of [<code>Cluster</code>](#Cluster)
+**Overrides**: [<code>sendCommand</code>](#Commander+sendCommand)
+**Access**: public
 <a name="Commander"></a>
 
 ## Commander
@@ -390,17 +391,17 @@ This is the base class of Redis, Redis.Cluster and Pipeline
 
 Return supported builtin commands
 
-**Kind**: instance method of [<code>Commander</code>](#Commander)  
-**Returns**: <code>Array.&lt;string&gt;</code> - command list  
-**Access**: public  
+**Kind**: instance method of [<code>Commander</code>](#Commander)
+**Returns**: <code>Array.&lt;string&gt;</code> - command list
+**Access**: public
 <a name="Commander+createBuiltinCommand"></a>
 
 ### commander.createBuiltinCommand(commandName) ⇒ <code>object</code>
 
 Create a builtin command
 
-**Kind**: instance method of [<code>Commander</code>](#Commander)  
-**Returns**: <code>object</code> - functions  
+**Kind**: instance method of [<code>Commander</code>](#Commander)
+**Returns**: <code>object</code> - functions
 **Access**: public
 
 | Param       | Type                | Description  |
@@ -428,5 +429,5 @@ Define a custom command using lua script
 
 Send a command
 
-**Kind**: instance abstract method of [<code>Commander</code>](#Commander)  
+**Kind**: instance abstract method of [<code>Commander</code>](#Commander)
 **Access**: public

@@ -18,11 +18,14 @@ export interface IIpcConnectionOptions extends IpcNetConnectOpts {
   tls?: ConnectionOptions;
 }
 
+type IStandaloneConnectionOptions = (
+  | ITcpConnectionOptions
+  | IIpcConnectionOptions
+) & { disconnectTimeout: number };
+
 export default class StandaloneConnector extends AbstractConnector {
-  constructor(
-    protected options: ITcpConnectionOptions | IIpcConnectionOptions
-  ) {
-    super();
+  constructor(protected options: IStandaloneConnectionOptions) {
+    super(options.disconnectTimeout);
   }
 
   public connect(_: ErrorEmitter) {
