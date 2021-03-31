@@ -1,3 +1,10 @@
+## [4.24.6](https://github.com/luin/ioredis/compare/v4.24.5...v4.24.6) (2021-03-31)
+
+
+### Bug Fixes
+
+* force disconnect after a timeout if socket is still half-open ([#1318](https://github.com/luin/ioredis/issues/1318)) ([6cacd17](https://github.com/luin/ioredis/commit/6cacd17e6ac4d9f995728ee09777e0a7f3b739d7))
+
 ## [4.24.5](https://github.com/luin/ioredis/compare/v4.24.4...v4.24.5) (2021-03-27)
 
 
