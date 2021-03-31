@@ -37,6 +37,7 @@ export const DEFAULT_REDIS_OPTIONS: IRedisOptions = {
   host: "localhost",
   family: 4,
   connectTimeout: 10000,
+  disconnectTimeout: 2000,
   retryStrategy: function (times) {
     return Math.min(times * 50, 2000);
   },
