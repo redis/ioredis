@@ -98,8 +98,8 @@ const debug = Debug("redis");
  * @param {NatMap} [options.natMap=null] NAT map for sentinel connector.
  * @param {boolean} [options.updateSentinels=true] - Update the given `sentinels` list with new IP
  * addresses when communicating with existing sentinels.
-* @param {boolean} [options.enableAutoPipelining=false] - When enabled, all commands issued during an event loop 
- * iteration are automatically wrapped in a pipeline and sent to the server at the same time. 
+* @param {boolean} [options.enableAutoPipelining=false] - When enabled, all commands issued during an event loop
+ * iteration are automatically wrapped in a pipeline and sent to the server at the same time.
  * This can dramatically improve performance.
  * @param {string[]} [options.autoPipeliningIgnoredCommands=[]] - The list of commands which must not be automatically wrapped in pipelines.
  * @param {number} [options.maxScriptsCachingTime=60000] Default script definition caching time.
@@ -710,12 +710,12 @@ Redis.prototype.sendCommand = function (command, stream) {
     return command.promise;
   }
 
-  if (typeof this.options.timeoutPerRequest === "number") {
+  if (typeof this.options.commandTimeout === "number") {
     setTimeout(() => {
       if (!command.isResolved) {
         command.reject(new Error("Command timed out"));
       }
-    }, this.options.timeoutPerRequest);
+    }, this.options.commandTimeout);
   }
 
   if (command.name === "quit") {
