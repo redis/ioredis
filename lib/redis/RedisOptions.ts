@@ -11,6 +11,7 @@ export interface IRedisOptions
     Partial<IClusterOptions> {
   Connector?: typeof AbstractConnector;
   retryStrategy?: (times: number) => number | void | null;
+  timeoutPerRequest?: number;
   keepAlive?: number;
   noDelay?: boolean;
   connectionName?: string;

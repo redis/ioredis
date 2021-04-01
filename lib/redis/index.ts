@@ -710,6 +710,14 @@ Redis.prototype.sendCommand = function (command, stream) {
     return command.promise;
   }
 
+  if (typeof this.options.timeoutPerRequest === "number") {
+    setTimeout(() => {
+      if (!command.isResolved) {
+        command.reject(new Error("Command timed out"));
+      }
+    }, this.options.timeoutPerRequest);
+  }
+
   if (command.name === "quit") {
     clearInterval(this._addedScriptHashesCleanInterval);
     this._addedScriptHashesCleanInterval = null;
