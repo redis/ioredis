@@ -1,3 +1,10 @@
+# [4.25.0](https://github.com/luin/ioredis/compare/v4.24.6...v4.25.0) (2021-04-02)
+
+
+### Features
+
+* added commandTimeout option ([#1320](https://github.com/luin/ioredis/issues/1320)) ([56f0272](https://github.com/luin/ioredis/commit/56f02729958545e5b7e713436181b0dd46f8803a))
+
 ## [4.24.6](https://github.com/luin/ioredis/compare/v4.24.5...v4.24.6) (2021-03-31)
 
 
