@@ -160,6 +160,7 @@ export default class Command implements ICommand {
   private slot?: number | null;
   private keys?: Array<string | Buffer>;
 
+  public isResolved = false;
   public reject: (err: Error) => void;
   public resolve: (result: any) => void;
   public promise: Promise<any>;
@@ -342,6 +343,7 @@ export default class Command implements ICommand {
     return (value) => {
       try {
         resolve(this.transformReply(value));
+        this.isResolved = true;
       } catch (err) {
         this.reject(err);
       }
@@ -392,7 +394,7 @@ const hsetArgumentTransformer = function (args) {
     }
   }
   return args;
-}
+};
 
 Command.setArgumentTransformer("mset", msetArgumentTransformer);
 Command.setArgumentTransformer("msetnx", msetArgumentTransformer);

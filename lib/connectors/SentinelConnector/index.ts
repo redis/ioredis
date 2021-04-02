@@ -42,6 +42,7 @@ export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   preferredSlaves?: PreferredSlaves;
   connectTimeout?: number;
   disconnectTimeout?: number;
+  sentinelCommandTimeout?: number;
   enableTLSForSentinelMode?: boolean;
   sentinelTLS?: ConnectionOptions;
   natMap?: INatMap;
@@ -265,6 +266,7 @@ export default class SentinelConnector extends AbstractConnector {
       retryStrategy: null,
       enableReadyCheck: false,
       connectTimeout: this.options.connectTimeout,
+      commandTimeout: this.options.sentinelCommandTimeout,
       dropBufferSupport: true,
     });
 

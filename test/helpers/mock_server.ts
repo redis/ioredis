@@ -34,6 +34,7 @@ export function getConnectionName(socket: Socket): string | undefined {
 
 interface IFlags {
   disconnect?: boolean;
+  hang?: boolean;
 }
 export type MockServerHandler = (
   reply: any,
@@ -93,7 +94,9 @@ export default class MockServer extends EventEmitter {
           }
           const flags: IFlags = {};
           const handlerResult = this.handler && this.handler(reply, c, flags);
-          this.write(c, handlerResult);
+          if (!flags.hang) {
+            this.write(c, handlerResult);
+          }
           if (flags.disconnect) {
             this.disconnect();
           }
