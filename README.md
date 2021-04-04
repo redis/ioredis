@@ -11,7 +11,7 @@
 
 A robust, performance-focused and full-featured [Redis](http://redis.io) client for [Node.js](https://nodejs.org).
 
-Supports Redis >= 2.6.12 and (Node.js >= 6).
+Supports Redis >= 2.6.12 and (Node.js >= 6). Completely compatible with Redis 6.x.
 
 # Features
 
@@ -206,12 +206,12 @@ It worth noticing that a connection (aka `Redis` instance) can't play both roles
 If you want to do pub/sub in the same file/process, you should create a separate connection:
 
 ```javascript
-const Redis = require('ioredis');
+const Redis = require("ioredis");
 const sub = new Redis();
 const pub = new Redis();
 
 sub.subscribe(/* ... */); // From now, `sub` enters the subscriber mode.
-sub.on("message", /* ... */);
+sub.on("message" /* ... */);
 
 setInterval(() => {
   // `pub` can be used to publish messages, or send other regular commands (e.g. `hgetall`)
@@ -228,6 +228,34 @@ redis.psubscribe("pat?ern", (err, count) => {});
 // Event names are "pmessage"/"pmessageBuffer" instead of "message/messageBuffer".
 redis.on("pmessage", (pattern, channel, message) => {});
 redis.on("pmessageBuffer", (pattern, channel, message) => {});
+```
+
+## Streams
+
+Redis v5 introduces a new data type called streams. It doubles as a communication channel for building streaming architectures and as a log-like data structure for persisting data. With ioredis, the usage can be pretty straightforward. Say we have a producer publishes messages to a stream with `redis.xadd("mystream", "*", "randomValue", Math.random())` (You may find the [official documentation of Streams](https://redis.io/topics/streams-intro) as a starter to understand the parameters used), to consume the messages, we'll have a consumer with the following code:
+
+```javascript
+const Redis = require("ioredis");
+const redis = new Redis();
+
+const processMessage = (message) => {
+  console.log("Id: %s. Data: %O", message[0], message[1]);
+};
+
+async function listenForMessage(lastId = "$") {
+  // `results` is an array, each element of which corresponds to a key.
+  // Because we only listen to one key (mystream) here, `results` only contains
+  // a single element. See more: https://redis.io/commands/xread#return-value
+  const results = await redis.xread("block", 0, "STREAMS", "mystream", lastId);
+  const [key, messages] = results[0]; // `key` equals to "mystream"
+
+  messages.forEach(processMessage);
+
+  // Pass the last id of the results to the next round.
+  await listenForMessage(messages[messages.length - 1][0]);
+}
+
+listenForMessage();
 ```
 
 ## Handle Binary Data
@@ -741,7 +769,7 @@ The Redis instance will emit some events about the state of the connection to th
 | close        | emits when an established Redis server connection has closed.                                                                                                                                                                                   |
 | reconnecting | emits after `close` when a reconnection will be made. The argument of the event is the time (in ms) before reconnecting.                                                                                                                        |
 | end          | emits after `close` when no more reconnections will be made, or the connection is failed to establish.                                                                                                                                          |
-| wait          | emits when `lazyConnect` is set and will wait for the first command to be called before connecting.                                                                                                                                          |
+| wait         | emits when `lazyConnect` is set and will wait for the first command to be called before connecting.                                                                                                                                             |
 
 You can also check out the `Redis#status` property to get the current connection status.
 
