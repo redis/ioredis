@@ -50,6 +50,10 @@ export default class ClusterSubscriber {
       lastActiveSubscriber.disconnect();
     }
 
+    if (this.subscriber) {
+      this.subscriber.disconnect();
+    }
+
     const sampleNode = sample(this.connectionPool.getNodes());
     if (!sampleNode) {
       debug(
@@ -113,7 +117,10 @@ export default class ClusterSubscriber {
                 this.lastActiveSubscriber = this.subscriber;
               }
             })
-            .catch(noop);
+            .catch(() => {
+              // TODO: should probably disconnect the subscriber and try again.
+              debug("failed to %s %d channels", type, channels.length);
+            });
         }
       }
     } else {
