@@ -11,6 +11,7 @@ import {
   nodeKeyToRedisOptions,
   groupSrvRecords,
   weightSrvRecords,
+  getConnectionName,
 } from "./util";
 import ClusterSubscriber from "./ClusterSubscriber";
 import DelayQueue from "./DelayQueue";
@@ -791,7 +792,10 @@ class Cluster extends EventEmitter {
       enableOfflineQueue: true,
       enableReadyCheck: false,
       retryStrategy: null,
-      connectionName: "ioredisClusterRefresher",
+      connectionName: getConnectionName(
+        "refresher",
+        this.options.redisOptions && this.options.redisOptions.connectionName
+      ),
     });
 
     // Ignore error events since we will handle
