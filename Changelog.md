@@ -1,3 +1,15 @@
+# [4.26.0](https://github.com/luin/ioredis/compare/v4.25.0...v4.26.0) (2021-04-08)
+
+
+### Bug Fixes
+
+* **cluster:** subscriber connection leaks ([81b9be0](https://github.com/luin/ioredis/commit/81b9be021d471796bba00ee7b08768df9d7e2689)), closes [#1325](https://github.com/luin/ioredis/issues/1325)
+
+
+### Features
+
+* **cluster:** apply provided connection name to internal connections ([2e388db](https://github.com/luin/ioredis/commit/2e388dbaa528d009b97b82c4dc362377165670a4))
+
 # [4.25.0](https://github.com/luin/ioredis/compare/v4.24.6...v4.25.0) (2021-04-02)
 
 
