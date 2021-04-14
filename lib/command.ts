@@ -344,6 +344,7 @@ export default class Command implements ICommand {
       try {
         if (this._commandTimeoutTimer) {
           clearTimeout(this._commandTimeoutTimer);
+          delete this._commandTimeoutTimer;
         }
 
         resolve(this.transformReply(value));

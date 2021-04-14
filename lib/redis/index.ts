@@ -710,7 +710,7 @@ Redis.prototype.sendCommand = function (command, stream) {
     return command.promise;
   }
 
-  if (typeof this.options.commandTimeout === "number" && command.name !== 'cluster') {
+  if (typeof this.options.commandTimeout === "number") {
     command._commandTimeoutTimer = setTimeout(() => {
       if (!command.isResolved) {
         command.reject(new Error("Command timed out"));
