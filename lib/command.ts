@@ -156,7 +156,7 @@ export default class Command implements ICommand {
   public isCustomCommand = false;
   public inTransaction = false;
   public pipelineIndex?: number;
-  private _commandTimeoutTimer?: number;
+  private _commandTimeoutTimer?: Timeout;
 
   private slot?: number | null;
   private keys?: Array<string | Buffer>;
