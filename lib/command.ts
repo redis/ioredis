@@ -342,6 +342,10 @@ export default class Command implements ICommand {
   private _convertValue(resolve: Function): (result: any) => void {
     return (value) => {
       try {
+        if (this._commandTimeoutTimer) {
+          clearTimeout(this._commandTimeoutTimer);
+        }
+
         resolve(this.transformReply(value));
         this.isResolved = true;
       } catch (err) {
