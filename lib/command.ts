@@ -156,7 +156,7 @@ export default class Command implements ICommand {
   public isCustomCommand = false;
   public inTransaction = false;
   public pipelineIndex?: number;
-  private _commandTimeoutTimer?: ReturnType<typeof setTimeout>;
+  private _commandTimeoutTimer?: NodeJS.Timeout;
 
   private slot?: number | null;
   private keys?: Array<string | Buffer>;
