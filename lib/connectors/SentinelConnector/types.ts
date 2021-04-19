@@ -27,6 +27,5 @@ export interface IRedisClient {
 
 export interface ISentinel {
   address: Partial<ISentinelAddress>;
-  isConnected: boolean;
-  getClient: () => IRedisClient;
+  client: IRedisClient;
 }

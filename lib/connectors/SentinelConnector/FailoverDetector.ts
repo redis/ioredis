@@ -21,14 +21,8 @@ export class FailoverDetector {
     this.isDisconnected = true;
 
     for (const sentinel of this.sentinels) {
-      if (sentinel.isConnected) {
-        sentinel.getClient().disconnect();
-      }
+      sentinel.client.disconnect();
     }
-  }
-
-  public getClients() {
-    return this.sentinels.map((sentinel) => sentinel.getClient());
   }
 
   public async subscribe() {
@@ -37,9 +31,7 @@ export class FailoverDetector {
     const promises: Promise<unknown>[] = [];
 
     for (const sentinel of this.sentinels) {
-      const client = sentinel.getClient();
-
-      const promise = client.subscribe(CHANNEL_NAME).catch((err) => {
+      const promise = sentinel.client.subscribe(CHANNEL_NAME).catch((err) => {
         debug(
           "Failed to subscribe to failover messages on sentinel %s:%s (%s)",
           sentinel.address.host || "127.0.0.1",
@@ -50,7 +42,7 @@ export class FailoverDetector {
 
       promises.push(promise);
 
-      client.on("message", (channel: string) => {
+      sentinel.client.on("message", (channel: string) => {
         if (!this.isDisconnected && channel === CHANNEL_NAME) {
           this.disconnect();
         }

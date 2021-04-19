@@ -17,6 +17,7 @@ import { IRedisClient, ISentinelAddress, ISentinel } from "./types";
 import AbstractConnector, { ErrorEmitter } from "../AbstractConnector";
 import { NetStream } from "../../types";
 import Redis from "../../redis";
+import { IRedisOptions } from "../../redis/RedisOptions";
 import { FailoverDetector } from "./FailoverDetector";
 
 const debug = Debug("SentinelConnector");
@@ -164,7 +165,7 @@ export default class SentinelConnector extends AbstractConnector {
           this.stream = createConnection(resolved);
         }
 
-        this.stream.once("connect", () => this.activateFailoverDetector());
+        this.stream.once("connect", () => this.initFailoverDetector());
 
         this.stream.once("error", (err) => {
           this.firstError = err;
@@ -276,7 +277,10 @@ export default class SentinelConnector extends AbstractConnector {
     return this.options.natMap[`${item.host}:${item.port}`] || item;
   }
 
-  private connectToSentinel(endpoint: Partial<ISentinelAddress>): IRedisClient {
+  private connectToSentinel(
+    endpoint: Partial<ISentinelAddress>,
+    options?: Partial<IRedisOptions>
+  ): IRedisClient {
     return new Redis({
       port: endpoint.port || 26379,
       host: endpoint.host,
@@ -293,6 +297,7 @@ export default class SentinelConnector extends AbstractConnector {
       connectTimeout: this.options.connectTimeout,
       commandTimeout: this.options.sentinelCommandTimeout,
       dropBufferSupport: true,
+      ...options,
     });
   }
 
@@ -304,41 +309,22 @@ export default class SentinelConnector extends AbstractConnector {
     // ignore the errors since resolve* methods will handle them
     client.on("error", noop);
 
-    let result: ITcpConnectionOptions | null = null;
-
     try {
       if (this.options.role === "slave") {
-        result = await this.resolveSlave(client);
+        return await this.resolveSlave(client);
       } else {
-        result = await this.resolveMaster(client);
+        return await this.resolveMaster(client);
       }
-
-      if (result) {
-        this.initFailoverDetector({
-          address: endpoint,
-          isConnected: true,
-          getClient: () => client,
-        });
-      }
-
-      return result;
     } finally {
-      if (!result) {
-        // Only disconnect if we didn't get a result.
-        // Otherwise we'll use this connection for failover detection.
-        client.disconnect();
-      }
+      client.disconnect();
     }
   }
 
-  private initFailoverDetector(firstSentinel: ISentinel): void {
+  private async initFailoverDetector(): Promise<void> {
     // Move the current sentinel to the first position
     this.sentinelIterator.reset(true);
 
-    const sentinels: ISentinel[] = [firstSentinel];
-
-    // Skip the first sentinel that we've already connected to
-    this.sentinelIterator.next();
+    const sentinels: ISentinel[] = [];
 
     // In case of a large amount of sentinels, limit the number of concurrent connections
     while (sentinels.length < this.options.sentinelMaxConnections) {
@@ -348,22 +334,17 @@ export default class SentinelConnector extends AbstractConnector {
         break;
       }
 
-      let client: IRedisClient | null = null;
+      const client = this.connectToSentinel(value, {
+        lazyConnect: true,
+        retryStrategy: this.options.sentinelReconnectStrategy,
+      });
 
-      const sentinel = {
-        address: value,
-        isConnected: false,
-        getClient: () => {
-          if (!client) {
-            client = this.connectToSentinel(value);
-            sentinel.isConnected = true;
-          }
+      client.on("reconnecting", () => {
+        // Tests listen to this event
+        this.emitter?.emit("sentinelReconnecting");
+      });
 
-          return client;
-        },
-      };
-
-      sentinels.push(sentinel);
+      sentinels.push({ address: value, client });
     }
 
     this.sentinelIterator.reset(false);
@@ -374,24 +355,6 @@ export default class SentinelConnector extends AbstractConnector {
     }
 
     this.failoverDetector = new FailoverDetector(this, sentinels);
-  }
-
-  private async activateFailoverDetector() {
-    if (!this.failoverDetector) {
-      return;
-    }
-
-    for (const client of this.failoverDetector.getClients()) {
-      // Apply reconnect strategy to sentinels now that we're no longer looking for master
-      client.options.retryStrategy = this.options.sentinelReconnectStrategy;
-
-      // Tests listen to this event
-      client.on("reconnecting", () => {
-        this.emitter?.emit("sentinelReconnecting");
-      });
-    }
-
-    // The sentinel clients can't be used for regular commands after this
     await this.failoverDetector.subscribe();
 
     // Tests listen to this event
