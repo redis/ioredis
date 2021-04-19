@@ -177,4 +177,8 @@ export default class MockServer extends EventEmitter {
         return getConnectionName(client) === name;
       });
   }
+
+  getAllClients(): Socket[] {
+    return this.clients.filter(Boolean);
+  }
 }

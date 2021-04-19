@@ -119,3 +119,8 @@ export function weightSrvRecords(recordsGroup: ISrvRecordsGroup): SrvRecord {
     }
   }
 }
+
+export function getConnectionName(component, nodeConnectionName) {
+  const prefix = `ioredis-cluster(${component})`;
+  return nodeConnectionName ? `${prefix}:${nodeConnectionName}` : prefix;
+}

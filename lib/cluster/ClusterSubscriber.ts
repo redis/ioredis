@@ -1,12 +1,10 @@
 import { EventEmitter } from "events";
 import ConnectionPool from "./ConnectionPool";
-import { getNodeKey } from "./util";
+import { getConnectionName, getNodeKey } from "./util";
 import { sample, noop, Debug } from "../utils";
 import Redis from "../redis";
 
 const debug = Debug("cluster:subscriber");
-
-const SUBSCRIBER_CONNECTION_NAME = "ioredisClusterSubscriber";
 
 export default class ClusterSubscriber {
   private started = false;
@@ -50,6 +48,10 @@ export default class ClusterSubscriber {
       lastActiveSubscriber.disconnect();
     }
 
+    if (this.subscriber) {
+      this.subscriber.disconnect();
+    }
+
     const sampleNode = sample(this.connectionPool.getNodes());
     if (!sampleNode) {
       debug(
@@ -77,7 +79,7 @@ export default class ClusterSubscriber {
       username: options.username,
       password: options.password,
       enableReadyCheck: true,
-      connectionName: SUBSCRIBER_CONNECTION_NAME,
+      connectionName: getConnectionName("subscriber", options.connectionName),
       lazyConnect: true,
       tls: options.tls,
     });
@@ -113,7 +115,10 @@ export default class ClusterSubscriber {
                 this.lastActiveSubscriber = this.subscriber;
               }
             })
-            .catch(noop);
+            .catch(() => {
+              // TODO: should probably disconnect the subscriber and try again.
+              debug("failed to %s %d channels", type, channels.length);
+            });
         }
       }
     } else {
