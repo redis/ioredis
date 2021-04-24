@@ -693,7 +693,7 @@ addTransactionSupport(Redis.prototype);
  * ```
  * @private
  */
-Redis.prototype.sendCommand = function (command, stream) {
+Redis.prototype.sendCommand = function (command: Command, stream) {
   if (this.status === "wait") {
     this.connect().catch(noop);
   }
@@ -714,11 +714,7 @@ Redis.prototype.sendCommand = function (command, stream) {
   }
 
   if (typeof this.options.commandTimeout === "number") {
-    setTimeout(() => {
-      if (!command.isResolved) {
-        command.reject(new Error("Command timed out"));
-      }
-    }, this.options.commandTimeout);
+    command.setTimeout(this.options.commandTimeout);
   }
 
   if (command.name === "quit") {

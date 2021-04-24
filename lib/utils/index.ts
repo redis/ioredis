@@ -111,7 +111,7 @@ export function wrapMultiResult(arr) {
  * ```
  * @private
  */
-export function isInt(value) {
+export function isInt(value): value is string {
   const x = parseFloat(value);
   return !isNaN(value) && (x | 0) === x;
 }
