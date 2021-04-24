@@ -1,3 +1,4 @@
+import { EventEmitter } from "events";
 import { createConnection } from "net";
 import { INatMap } from "../../cluster/ClusterOptions";
 import {
@@ -12,10 +13,12 @@ import {
   isIIpcConnectionOptions,
 } from "../StandaloneConnector";
 import SentinelIterator from "./SentinelIterator";
-import { ISentinelAddress } from "./types";
+import { IRedisClient, ISentinelAddress, ISentinel } from "./types";
 import AbstractConnector, { ErrorEmitter } from "../AbstractConnector";
 import { NetStream } from "../../types";
 import Redis from "../../redis";
+import { IRedisOptions } from "../../redis/RedisOptions";
+import { FailoverDetector } from "./FailoverDetector";
 
 const debug = Debug("SentinelConnector");
 
@@ -39,6 +42,7 @@ export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   sentinelPassword?: string;
   sentinels: Array<Partial<ISentinelAddress>>;
   sentinelRetryStrategy?: (retryAttempts: number) => number | void | null;
+  sentinelReconnectStrategy?: (retryAttempts: number) => number | void | null;
   preferredSlaves?: PreferredSlaves;
   connectTimeout?: number;
   disconnectTimeout?: number;
@@ -47,11 +51,14 @@ export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   sentinelTLS?: ConnectionOptions;
   natMap?: INatMap;
   updateSentinels?: boolean;
+  sentinelMaxConnections?: number;
 }
 
 export default class SentinelConnector extends AbstractConnector {
   private retryAttempts: number;
+  private failoverDetector: FailoverDetector | null = null;
   protected sentinelIterator: SentinelIterator;
+  public emitter: EventEmitter | null = null;
 
   constructor(protected options: ISentinelConnectionOptions) {
     super(options.disconnectTimeout);
@@ -82,6 +89,14 @@ export default class SentinelConnector extends AbstractConnector {
       this.sentinelIterator.reset(true);
     }
     return roleMatches;
+  }
+
+  public disconnect(): void {
+    super.disconnect();
+
+    if (this.failoverDetector) {
+      this.failoverDetector.cleanup();
+    }
   }
 
   public connect(eventEmitter: ErrorEmitter): Promise<NetStream> {
@@ -134,8 +149,15 @@ export default class SentinelConnector extends AbstractConnector {
         throw new Error(CONNECTION_CLOSED_ERROR_MSG);
       }
 
+      const endpointAddress = endpoint.value.host + ":" + endpoint.value.port;
+
       if (resolved) {
-        debug("resolved: %s:%s", resolved.host, resolved.port);
+        debug(
+          "resolved: %s:%s from sentinel %s",
+          resolved.host,
+          resolved.port,
+          endpointAddress
+        );
         if (this.options.enableTLSForSentinelMode && this.options.tls) {
           Object.assign(resolved, this.options.tls);
           this.stream = createTLSConnection(resolved);
@@ -143,14 +165,14 @@ export default class SentinelConnector extends AbstractConnector {
           this.stream = createConnection(resolved);
         }
 
+        this.stream.once("connect", () => this.initFailoverDetector());
+
         this.stream.once("error", (err) => {
           this.firstError = err;
         });
 
-        this.sentinelIterator.reset(true);
         return this.stream;
       } else {
-        const endpointAddress = endpoint.value.host + ":" + endpoint.value.port;
         const errorMsg = err
           ? "failed to connect to sentinel " +
             endpointAddress +
@@ -176,7 +198,7 @@ export default class SentinelConnector extends AbstractConnector {
     return connectToNext();
   }
 
-  private async updateSentinels(client): Promise<void> {
+  private async updateSentinels(client: IRedisClient): Promise<void> {
     if (!this.options.updateSentinels) {
       return;
     }
@@ -209,7 +231,9 @@ export default class SentinelConnector extends AbstractConnector {
     debug("Updated internal sentinels: %s", this.sentinelIterator);
   }
 
-  private async resolveMaster(client): Promise<ITcpConnectionOptions | null> {
+  private async resolveMaster(
+    client: IRedisClient
+  ): Promise<ITcpConnectionOptions | null> {
     const result = await client.sentinel(
       "get-master-addr-by-name",
       this.options.name
@@ -224,7 +248,9 @@ export default class SentinelConnector extends AbstractConnector {
     );
   }
 
-  private async resolveSlave(client): Promise<ITcpConnectionOptions | null> {
+  private async resolveSlave(
+    client: IRedisClient
+  ): Promise<ITcpConnectionOptions | null> {
     const result = await client.sentinel("slaves", this.options.name);
 
     if (!Array.isArray(result)) {
@@ -251,8 +277,11 @@ export default class SentinelConnector extends AbstractConnector {
     return this.options.natMap[`${item.host}:${item.port}`] || item;
   }
 
-  private async resolve(endpoint): Promise<ITcpConnectionOptions | null> {
-    const client = new Redis({
+  private connectToSentinel(
+    endpoint: Partial<ISentinelAddress>,
+    options?: Partial<IRedisOptions>
+  ): IRedisClient {
+    return new Redis({
       port: endpoint.port || 26379,
       host: endpoint.host,
       username: this.options.sentinelUsername || null,
@@ -268,7 +297,14 @@ export default class SentinelConnector extends AbstractConnector {
       connectTimeout: this.options.connectTimeout,
       commandTimeout: this.options.sentinelCommandTimeout,
       dropBufferSupport: true,
+      ...options,
     });
+  }
+
+  private async resolve(
+    endpoint: Partial<ISentinelAddress>
+  ): Promise<ITcpConnectionOptions | null> {
+    const client = this.connectToSentinel(endpoint);
 
     // ignore the errors since resolve* methods will handle them
     client.on("error", noop);
@@ -282,6 +318,47 @@ export default class SentinelConnector extends AbstractConnector {
     } finally {
       client.disconnect();
     }
+  }
+
+  private async initFailoverDetector(): Promise<void> {
+    // Move the current sentinel to the first position
+    this.sentinelIterator.reset(true);
+
+    const sentinels: ISentinel[] = [];
+
+    // In case of a large amount of sentinels, limit the number of concurrent connections
+    while (sentinels.length < this.options.sentinelMaxConnections) {
+      const { done, value } = this.sentinelIterator.next();
+
+      if (done) {
+        break;
+      }
+
+      const client = this.connectToSentinel(value, {
+        lazyConnect: true,
+        retryStrategy: this.options.sentinelReconnectStrategy,
+      });
+
+      client.on("reconnecting", () => {
+        // Tests listen to this event
+        this.emitter?.emit("sentinelReconnecting");
+      });
+
+      sentinels.push({ address: value, client });
+    }
+
+    this.sentinelIterator.reset(false);
+
+    if (this.failoverDetector) {
+      // Clean up previous detector
+      this.failoverDetector.cleanup();
+    }
+
+    this.failoverDetector = new FailoverDetector(this, sentinels);
+    await this.failoverDetector.subscribe();
+
+    // Tests listen to this event
+    this.emitter?.emit("failoverSubscribed");
   }
 }
 

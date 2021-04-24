@@ -1,7 +1,16 @@
+import { Socket } from "net";
+
 import Redis from "../../lib/redis";
 import MockServer from "../helpers/mock_server";
+import { once } from "../helpers/once";
 import { expect } from "chai";
 import * as sinon from "sinon";
+
+function triggerParseError(socket: Socket) {
+  // Valid first characters: '$', '+', '*', ':', '-'
+  // To trigger an error, we need to write a different character
+  socket.write("A");
+}
 
 describe("sentinel", function () {
   describe("connect", function () {
@@ -45,6 +54,41 @@ describe("sentinel", function () {
         ],
         name: "master",
       });
+    });
+
+    it("should skip an unresponsive sentinel", async function () {
+      const sentinel1 = new MockServer(27379, function (argv, socket, flags) {
+        flags.hang = true;
+      });
+
+      const sentinel2 = new MockServer(27380, function (argv) {
+        if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
+          return ["127.0.0.1", "17380"];
+        }
+      });
+
+      const master = new MockServer(17380);
+      const clock = sinon.useFakeTimers();
+
+      const redis = new Redis({
+        sentinels: [
+          { host: "127.0.0.1", port: 27379 },
+          { host: "127.0.0.1", port: 27380 },
+        ],
+        name: "master",
+        sentinelCommandTimeout: 1000,
+      });
+
+      clock.tick(1000);
+      clock.restore();
+      await once(master, "connect");
+
+      redis.disconnect();
+      await Promise.all([
+        sentinel1.disconnectPromise(),
+        sentinel2.disconnectPromise(),
+        master.disconnectPromise(),
+      ]);
     });
 
     it("should call sentinelRetryStrategy when all sentinels are unreachable", function (done) {
@@ -100,18 +144,11 @@ describe("sentinel", function () {
       }
     });
 
-    it("should close the connection to the sentinel when resolving successfully", function (done) {
-      const sentinel = new MockServer(27379, function (argv) {
-        if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
-          return ["127.0.0.1", "17380"];
-        }
-      });
-      const master = new MockServer(17380);
+    it("should close the connection to the sentinel when resolving unsuccessfully", function (done) {
+      const sentinel = new MockServer(27379); // Does not respond properly to get-master-addr-by-name
       sentinel.once("disconnect", function () {
         redis.disconnect();
-        master.disconnect(function () {
-          sentinel.disconnect(done);
-        });
+        sentinel.disconnect(done);
       });
 
       var redis = new Redis({
@@ -140,17 +177,18 @@ describe("sentinel", function () {
         }
       });
       const master = new MockServer(17380);
-      sentinel.once("disconnect", function () {
+
+      const redis = new Redis({
+        sentinels: sentinels,
+        name: "master",
+      });
+
+      redis.on("ready", function () {
         redis.disconnect();
         master.disconnect(function () {
           expect(cloned.length).to.eql(2);
           sentinel.disconnect(done);
         });
-      });
-
-      var redis = new Redis({
-        sentinels: sentinels,
-        name: "master",
       });
     });
 
@@ -168,7 +206,14 @@ describe("sentinel", function () {
         }
       });
       const master = new MockServer(17380);
-      sentinel.once("disconnect", function () {
+
+      const redis = new Redis({
+        sentinels: sentinels,
+        updateSentinels: false,
+        name: "master",
+      });
+
+      redis.on("ready", function () {
         redis.disconnect();
         master.disconnect(function () {
           expect(sentinels.length).to.eql(1);
@@ -176,13 +221,8 @@ describe("sentinel", function () {
           sentinel.disconnect(done);
         });
       });
-
-      var redis = new Redis({
-        sentinels: sentinels,
-        updateSentinels: false,
-        name: "master",
-      });
     });
+
     it("should connect to sentinel with authentication successfully", function (done) {
       let authed = false;
       var redisServer = new MockServer(17380, function (argv) {
@@ -488,7 +528,7 @@ describe("sentinel", function () {
         }
       });
       const master = new MockServer(17380);
-      master.on("connect", function (c) {
+      master.on("connect", function (c: Socket) {
         c.destroy();
         master.disconnect();
         redis.get("foo", function (err, res) {
@@ -514,6 +554,244 @@ describe("sentinel", function () {
         sentinels: [{ host: "127.0.0.1", port: 27379 }],
         name: "master",
       });
+    });
+
+    it("should connect to new master after +switch-master", async function () {
+      const sentinel = new MockServer(27379, function (argv) {
+        if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
+          return ["127.0.0.1", "17380"];
+        }
+      });
+      const master = new MockServer(17380);
+      const newMaster = new MockServer(17381);
+
+      const redis = new Redis({
+        sentinels: [{ host: "127.0.0.1", port: 27379 }],
+        name: "master",
+      });
+
+      await Promise.all([
+        once(master, "connect"),
+        once(redis, "failoverSubscribed"),
+      ]);
+
+      sentinel.handler = function (argv) {
+        if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
+          return ["127.0.0.1", "17381"];
+        }
+      };
+
+      sentinel.broadcast([
+        "message",
+        "+switch-master",
+        "master 127.0.0.1 17380 127.0.0.1 17381",
+      ]);
+
+      await Promise.all([
+        once(redis, "close"), // Wait until disconnects from old master
+        once(master, "disconnect"),
+        once(newMaster, "connect"),
+      ]);
+
+      redis.disconnect(); // Disconnect from new master
+
+      await Promise.all([
+        sentinel.disconnectPromise(),
+        master.disconnectPromise(),
+        newMaster.disconnectPromise(),
+      ]);
+    });
+
+    it("should detect failover from secondary sentinel", async function () {
+      const sentinel1 = new MockServer(27379, function (argv) {
+        if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
+          return ["127.0.0.1", "17380"];
+        }
+      });
+      const sentinel2 = new MockServer(27380);
+      const master = new MockServer(17380);
+      const newMaster = new MockServer(17381);
+
+      const redis = new Redis({
+        sentinels: [
+          { host: "127.0.0.1", port: 27379 },
+          { host: "127.0.0.1", port: 27380 },
+        ],
+        name: "master",
+      });
+
+      await Promise.all([
+        once(master, "connect"),
+        once(redis, "failoverSubscribed"),
+      ]);
+
+      // In this test, only the first sentinel is used to resolve the master
+      sentinel1.handler = function (argv) {
+        if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
+          return ["127.0.0.1", "17381"];
+        }
+      };
+
+      // But only the second sentinel broadcasts +switch-master
+      sentinel2.broadcast([
+        "message",
+        "+switch-master",
+        "master 127.0.0.1 17380 127.0.0.1 17381",
+      ]);
+
+      await Promise.all([
+        once(redis, "close"), // Wait until disconnects from old master
+        once(master, "disconnect"),
+        once(newMaster, "connect"),
+      ]);
+
+      redis.disconnect(); // Disconnect from new master
+
+      await Promise.all([
+        sentinel1.disconnectPromise(),
+        sentinel2.disconnectPromise(),
+        master.disconnectPromise(),
+        newMaster.disconnectPromise(),
+      ]);
+    });
+
+    it("should detect failover when some sentinels fail", async function () {
+      // Will disconnect before failover
+      const sentinel1 = new MockServer(27379, function (argv) {
+        if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
+          return ["127.0.0.1", "17380"];
+        }
+      });
+
+      // Will emit an error before failover
+      let sentinel2Socket: Socket | null = null;
+      const sentinel2 = new MockServer(27380, function (argv, socket) {
+        sentinel2Socket = socket;
+      });
+
+      // Fails to subscribe
+      const sentinel3 = new MockServer(27381, function (argv, socket, flags) {
+        if (argv[0] === "subscribe") {
+          triggerParseError(socket);
+        }
+      });
+
+      // The only sentinel that can successfully publish the failover message
+      const sentinel4 = new MockServer(27382);
+
+      const master = new MockServer(17380);
+      const newMaster = new MockServer(17381);
+
+      const redis = new Redis({
+        sentinels: [
+          { host: "127.0.0.1", port: 27379 },
+          { host: "127.0.0.1", port: 27380 },
+          { host: "127.0.0.1", port: 27381 },
+          { host: "127.0.0.1", port: 27382 },
+        ],
+        name: "master",
+      });
+
+      await Promise.all([
+        once(master, "connect"),
+
+        // Must resolve even though subscribing to sentinel3 fails
+        once(redis, "failoverSubscribed"),
+      ]);
+
+      // Fail sentinels 1 and 2
+      await sentinel1.disconnectPromise();
+      triggerParseError(sentinel2Socket);
+
+      sentinel4.handler = function (argv) {
+        if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
+          return ["127.0.0.1", "17381"];
+        }
+      };
+
+      sentinel4.broadcast([
+        "message",
+        "+switch-master",
+        "master 127.0.0.1 17380 127.0.0.1 17381",
+      ]);
+
+      await Promise.all([
+        once(redis, "close"), // Wait until disconnects from old master
+        once(master, "disconnect"),
+        once(newMaster, "connect"),
+      ]);
+
+      redis.disconnect(); // Disconnect from new master
+
+      await Promise.all([
+        // sentinel1 is already disconnected
+        sentinel2.disconnectPromise(),
+        sentinel3.disconnectPromise(),
+        sentinel4.disconnectPromise(),
+        master.disconnectPromise(),
+        newMaster.disconnectPromise(),
+      ]);
+    });
+
+    it("should detect failover after sentinel disconnects and reconnects", async function () {
+      const sentinel = new MockServer(27379, function (argv) {
+        if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
+          return ["127.0.0.1", "17380"];
+        }
+      });
+
+      const master = new MockServer(17380);
+      const newMaster = new MockServer(17381);
+
+      const redis = new Redis({
+        sentinels: [{ host: "127.0.0.1", port: 27379 }],
+        name: "master",
+        sentinelReconnectStrategy: () => 1000,
+      });
+
+      await Promise.all([
+        once(master, "connect"),
+        once(redis, "failoverSubscribed"),
+      ]);
+
+      await sentinel.disconnectPromise();
+
+      sentinel.handler = function (argv) {
+        if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
+          return ["127.0.0.1", "17381"];
+        }
+        if (argv[0] === "subscribe") {
+          sentinel.emit("test:resubscribed"); // Custom event only used in tests
+        }
+      };
+
+      sentinel.connect();
+
+      const clock = sinon.useFakeTimers();
+      await once(redis, "sentinelReconnecting"); // Wait for the timeout to be set
+      clock.tick(1000);
+      clock.restore();
+      await once(sentinel, "test:resubscribed");
+
+      sentinel.broadcast([
+        "message",
+        "+switch-master",
+        "master 127.0.0.1 17380 127.0.0.1 17381",
+      ]);
+
+      await Promise.all([
+        once(redis, "close"), // Wait until disconnects from old master
+        once(master, "disconnect"),
+        once(newMaster, "connect"),
+      ]);
+
+      redis.disconnect(); // Disconnect from new master
+
+      await Promise.all([
+        sentinel.disconnectPromise(),
+        master.disconnectPromise(),
+        newMaster.disconnectPromise(),
+      ]);
     });
   });
 });

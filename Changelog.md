@@ -1,3 +1,10 @@
+# [4.27.0](https://github.com/luin/ioredis/compare/v4.26.0...v4.27.0) (2021-04-24)
+
+
+### Features
+
+* **sentinel:** detect failover from +switch-master messages ([#1328](https://github.com/luin/ioredis/issues/1328)) ([a464151](https://github.com/luin/ioredis/commit/a46415187d32bfdc974072403edb8aca2df282d6))
+
 # [4.26.0](https://github.com/luin/ioredis/compare/v4.25.0...v4.26.0) (2021-04-08)
 
 
