@@ -32,6 +32,6 @@ describe("commandTimeout", function () {
     expect(clock.countTimers()).to.eql(0);
     clock.restore();
     redis.disconnect();
-    await new Promise((resolve) => server.disconnect(() => resolve(null)));
+    await server.disconnectPromise();
   });
 });
