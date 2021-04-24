@@ -1,3 +1,10 @@
+## [4.27.1](https://github.com/luin/ioredis/compare/v4.27.0...v4.27.1) (2021-04-24)
+
+
+### Bug Fixes
+
+* clears commandTimeout timer as each respective command gets fulfilled ([#1336](https://github.com/luin/ioredis/issues/1336)) ([d65f8b2](https://github.com/luin/ioredis/commit/d65f8b2e6603a4de32f5d97e69a99be78e50708b))
+
 # [4.27.0](https://github.com/luin/ioredis/compare/v4.26.0...v4.27.0) (2021-04-24)
 
 
