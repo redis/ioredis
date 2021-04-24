@@ -124,6 +124,10 @@ export default class MockServer extends EventEmitter {
     this.socket.destroy(callback);
   }
 
+  disconnectPromise() {
+    return new Promise<void>((resolve) => this.disconnect(resolve));
+  }
+
   broadcast(data: any) {
     this.clients
       .filter((c) => c)

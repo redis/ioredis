@@ -153,7 +153,10 @@ function Redis() {
   if (this.options.Connector) {
     this.connector = new this.options.Connector(this.options);
   } else if (this.options.sentinels) {
-    this.connector = new SentinelConnector(this.options);
+    const sentinelConnector = new SentinelConnector(this.options);
+    sentinelConnector.emitter = this;
+
+    this.connector = sentinelConnector;
   } else {
     this.connector = new StandaloneConnector(this.options);
   }
