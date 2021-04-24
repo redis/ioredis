@@ -343,8 +343,9 @@ export default class Command implements ICommand {
   private _convertValue(resolve: Function): (result: any) => void {
     return (value) => {
       try {
-        if (this._commandTimeoutTimer) {
-          clearTimeout(this._commandTimeoutTimer);
+        const existingTimer = this._commandTimeoutTimer;
+        if (existingTimer) {
+          clearTimeout(existingTimer);
           delete this._commandTimeoutTimer;
         }
 
@@ -375,6 +376,20 @@ export default class Command implements ICommand {
     }
 
     return result;
+  }
+
+  /**
+   * Set the wait time before terminating the attempt to execute a command
+   * and generating an error.
+   */
+  public setTimeout(ms: number) {
+    if (!this._commandTimeoutTimer) {
+      this._commandTimeoutTimer = setTimeout(() => {
+        if (!this.isResolved) {
+          this.reject(new Error("Command timed out"));
+        }
+      }, ms);
+    }
   }
 }
 

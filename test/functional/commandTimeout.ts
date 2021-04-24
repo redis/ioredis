@@ -22,4 +22,16 @@ describe("commandTimeout", function () {
     });
     clock.tick(1000);
   });
+
+  it("does not leak timers for commands in offline queue", async function () {
+    const server = new MockServer(30001);
+
+    const redis = new Redis({ port: 30001, commandTimeout: 1000 });
+    const clock = sinon.useFakeTimers();
+    await redis.hget("foo");
+    expect(clock.countTimers()).to.eql(0);
+    clock.restore();
+    redis.disconnect();
+    await new Promise((resolve) => server.disconnect(() => resolve(null)));
+  });
 });
