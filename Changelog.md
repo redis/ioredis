@@ -1,3 +1,10 @@
+## [4.27.2](https://github.com/luin/ioredis/compare/v4.27.1...v4.27.2) (2021-05-04)
+
+
+### Bug Fixes
+
+* **cluster:** avoid ClusterAllFailedError in certain cases ([aa9c5b1](https://github.com/luin/ioredis/commit/aa9c5b1fee5daa24f35b3ff0d3556ecfb86db251)), closes [#1330](https://github.com/luin/ioredis/issues/1330)
+
 ## [4.27.1](https://github.com/luin/ioredis/compare/v4.27.0...v4.27.1) (2021-04-24)
 
 
