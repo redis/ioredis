@@ -1,3 +1,10 @@
+## [4.27.3](https://github.com/luin/ioredis/compare/v4.27.2...v4.27.3) (2021-05-22)
+
+
+### Bug Fixes
+
+* autopipeling for buffer function ([#1231](https://github.com/luin/ioredis/issues/1231)) ([abd9a82](https://github.com/luin/ioredis/commit/abd9a82433ad67b91a4bddb45aff8da2e20d45e8))
+
 ## [4.27.2](https://github.com/luin/ioredis/compare/v4.27.1...v4.27.2) (2021-05-04)
 
 
