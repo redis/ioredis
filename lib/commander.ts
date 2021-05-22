@@ -31,6 +31,7 @@ export default function Commander() {
     showFriendlyErrorStack: false,
   });
   this.scriptsSet = {};
+  this.addedBuiltinSet = new Set();
 }
 
 const commands = require("redis-commands").list.filter(function (command) {
@@ -57,21 +58,43 @@ Commander.prototype.getBuiltinCommands = function () {
  */
 Commander.prototype.createBuiltinCommand = function (commandName) {
   return {
-    string: generateFunction(commandName, "utf8"),
-    buffer: generateFunction(commandName, null),
+    string: generateFunction(null, commandName, "utf8"),
+    buffer: generateFunction(null, commandName, null),
   };
 };
 
+/**
+ * Create add builtin command
+ *
+ * @param {string} commandName - command name
+ * @return {object} functions
+ * @public
+ */
+Commander.prototype.addBuiltinCommand = function (commandName) {
+  this.addedBuiltinSet.add(commandName);
+  this[commandName] = generateFunction(commandName, commandName, "utf8");
+  this[commandName + "Buffer"] = generateFunction(
+    commandName + "Buffer",
+    commandName,
+    null
+  );
+};
+
 commands.forEach(function (commandName) {
-  Commander.prototype[commandName] = generateFunction(commandName, "utf8");
+  Commander.prototype[commandName] = generateFunction(
+    commandName,
+    commandName,
+    "utf8"
+  );
   Commander.prototype[commandName + "Buffer"] = generateFunction(
+    commandName + "Buffer",
     commandName,
     null
   );
 });
 
-Commander.prototype.call = generateFunction("utf8");
-Commander.prototype.callBuffer = generateFunction(null);
+Commander.prototype.call = generateFunction("call", "utf8");
+Commander.prototype.callBuffer = generateFunction("callBuffer", null);
 // eslint-disable-next-line @typescript-eslint/camelcase
 Commander.prototype.send_command = Commander.prototype.call;
 
@@ -93,8 +116,13 @@ Commander.prototype.defineCommand = function (name, definition) {
     definition.readOnly
   );
   this.scriptsSet[name] = script;
-  this[name] = generateScriptingFunction(name, script, "utf8");
-  this[name + "Buffer"] = generateScriptingFunction(name, script, null);
+  this[name] = generateScriptingFunction(name, name, script, "utf8");
+  this[name + "Buffer"] = generateScriptingFunction(
+    name + "Buffer",
+    name,
+    script,
+    null
+  );
 };
 
 /**
@@ -105,9 +133,17 @@ Commander.prototype.defineCommand = function (name, definition) {
  */
 Commander.prototype.sendCommand = function () {};
 
-function generateFunction(_encoding: string);
-function generateFunction(_commandName: string | void, _encoding: string);
-function generateFunction(_commandName?: string, _encoding?: string) {
+function generateFunction(functionName: string | null, _encoding: string);
+function generateFunction(
+  functionName: string | null,
+  _commandName: string | void,
+  _encoding: string
+);
+function generateFunction(
+  functionName: string | null,
+  _commandName?: string,
+  _encoding?: string
+) {
   if (typeof _encoding === "undefined") {
     _encoding = _commandName;
     _commandName = null;
@@ -139,18 +175,29 @@ function generateFunction(_commandName?: string, _encoding?: string) {
     }
 
     // No auto pipeline, use regular command sending
-    if (!shouldUseAutoPipelining(this, commandName)) {
+    if (!shouldUseAutoPipelining(this, functionName, commandName)) {
       return this.sendCommand(
         new Command(commandName, args, options, callback)
       );
     }
 
     // Create a new pipeline and make sure it's scheduled
-    return executeWithAutoPipelining(this, commandName, args, callback);
+    return executeWithAutoPipelining(
+      this,
+      functionName,
+      commandName,
+      args,
+      callback
+    );
   };
 }
 
-function generateScriptingFunction(name, script, encoding) {
+function generateScriptingFunction(
+  functionName,
+  commandName,
+  script,
+  encoding
+) {
   return function () {
     let length = arguments.length;
     const lastArgIndex = length - 1;
@@ -183,11 +230,17 @@ function generateScriptingFunction(name, script, encoding) {
     }
 
     // No auto pipeline, use regular command sending
-    if (!shouldUseAutoPipelining(this, name)) {
+    if (!shouldUseAutoPipelining(this, functionName, commandName)) {
       return script.execute(this, args, options, callback);
     }
 
     // Create a new pipeline and make sure it's scheduled
-    return executeWithAutoPipelining(this, name, args, callback);
+    return executeWithAutoPipelining(
+      this,
+      functionName,
+      commandName,
+      args,
+      callback
+    );
   };
 }

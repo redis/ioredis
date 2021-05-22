@@ -73,8 +73,13 @@ function executeAutoPipeline(client, slotKey: string) {
   });
 }
 
-export function shouldUseAutoPipelining(client, commandName: string): boolean {
+export function shouldUseAutoPipelining(
+  client,
+  functionName: string,
+  commandName: string
+): boolean {
   return (
+    functionName &&
     client.options.enableAutoPipelining &&
     !client.isPipeline &&
     !notAllowedAutoPipelineCommands.includes(commandName) &&
@@ -84,6 +89,7 @@ export function shouldUseAutoPipelining(client, commandName: string): boolean {
 
 export function executeWithAutoPipelining(
   client,
+  functionName: string,
   commandName: string,
   args: string[],
   callback
@@ -99,10 +105,13 @@ export function executeWithAutoPipelining(
           return;
         }
 
-        executeWithAutoPipelining(client, commandName, args, callback).then(
-          resolve,
-          reject
-        );
+        executeWithAutoPipelining(
+          client,
+          functionName,
+          commandName,
+          args,
+          callback
+        ).then(resolve, reject);
       });
     });
   }
@@ -143,7 +152,7 @@ export function executeWithAutoPipelining(
       resolve(value);
     });
 
-    pipeline[commandName](...args);
+    pipeline[functionName](...args);
   });
 
   return asCallback(autoPipelinePromise, callback);

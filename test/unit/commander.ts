@@ -13,6 +13,28 @@ describe("Commander", function () {
     });
   });
 
+  describe("#addBuiltinCommand()", () => {
+    beforeEach(() => sinon.spy(Commander.prototype, "sendCommand"));
+    afterEach(() => sinon.restore());
+    it("adds string command", () => {
+      const c = new Commander();
+      c.addBuiltinCommand("someCommand");
+      c.someCommand();
+      const command = Commander.prototype.sendCommand.getCall(0).args[0];
+      expect(command.name).to.eql("someCommand");
+      expect(command.replyEncoding).to.eql("utf8");
+    });
+
+    it("adds buffer command", () => {
+      const c = new Commander();
+      c.addBuiltinCommand("someCommand");
+      c.someCommandBuffer();
+      const command = Commander.prototype.sendCommand.getCall(0).args[0];
+      expect(command.name).to.eql("someCommand");
+      expect(command.replyEncoding).to.eql(null);
+    });
+  });
+
   it("should pass the correct arguments", function () {
     sinon.stub(Commander.prototype, "sendCommand").callsFake((command) => {
       return command;

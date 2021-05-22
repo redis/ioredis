@@ -1,5 +1,6 @@
 import Redis from "../../lib/redis";
 import { expect } from "chai";
+import * as sinon from "sinon";
 
 describe("pipeline", function () {
   it("should return correct result", function (done) {
@@ -136,6 +137,16 @@ describe("pipeline", function () {
         redis.disconnect();
         done();
       });
+  });
+
+  it("should include added built in commands", async () => {
+    const redis = new Redis({ keyPrefix: "foo:" });
+    redis.addBuiltinCommand("someCommand");
+    sinon.stub(redis, "sendCommand").callsFake((command) => {
+      command.resolve(Buffer.from("OK"));
+    });
+    const result = await redis.pipeline().someCommand().exec();
+    expect(result).to.eql([[null, "OK"]]);
   });
 
   describe("custom commands", function () {
