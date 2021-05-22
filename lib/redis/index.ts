@@ -17,6 +17,7 @@ import {
   ReconnectOnError,
   DEFAULT_REDIS_OPTIONS,
 } from "./RedisOptions";
+import { NetStream } from "../types";
 
 const debug = Debug("redis");
 
@@ -42,9 +43,9 @@ const debug = Debug("redis");
  * it to reduce the latency.
  * @param {string} [options.connectionName=null] - Connection name.
  * @param {number} [options.db=0] - Database index to use.
- * @param {string} [options.username=null] - If set, client will send AUTH command with this user and password when connected.
  * @param {string} [options.password=null] - If set, client will send AUTH command
  * with the value of this option when connected.
+ * @param {string} [options.username=null] - Similar to `password`, Provide this for Redis ACL support.
  * @param {boolean} [options.dropBufferSupport=false] - Drop the buffer support for better performance.
  * This option is recommended to be enabled when
  * handling large array response and you don't need the buffer support.
@@ -97,8 +98,8 @@ const debug = Debug("redis");
  * @param {NatMap} [options.natMap=null] NAT map for sentinel connector.
  * @param {boolean} [options.updateSentinels=true] - Update the given `sentinels` list with new IP
  * addresses when communicating with existing sentinels.
-* @param {boolean} [options.enableAutoPipelining=false] - When enabled, all commands issued during an event loop 
- * iteration are automatically wrapped in a pipeline and sent to the server at the same time. 
+* @param {boolean} [options.enableAutoPipelining=false] - When enabled, all commands issued during an event loop
+ * iteration are automatically wrapped in a pipeline and sent to the server at the same time.
  * This can dramatically improve performance.
  * @param {string[]} [options.autoPipeliningIgnoredCommands=[]] - The list of commands which must not be automatically wrapped in pipelines.
  * @param {number} [options.maxScriptsCachingTime=60000] Default script definition caching time.
@@ -152,7 +153,10 @@ function Redis() {
   if (this.options.Connector) {
     this.connector = new this.options.Connector(this.options);
   } else if (this.options.sentinels) {
-    this.connector = new SentinelConnector(this.options);
+    const sentinelConnector = new SentinelConnector(this.options);
+    sentinelConnector.emitter = this;
+
+    this.connector = sentinelConnector;
   } else {
     this.connector = new StandaloneConnector(this.options);
   }
@@ -286,7 +290,7 @@ Redis.prototype.setStatus = function (status, arg) {
  */
 Redis.prototype.connect = function (callback) {
   const _Promise = PromiseContainer.get();
-  const promise = new _Promise((resolve, reject) => {
+  const promise = new _Promise<void>((resolve, reject) => {
     if (
       this.status === "connecting" ||
       this.status === "connect" ||
@@ -295,7 +299,7 @@ Redis.prototype.connect = function (callback) {
       reject(new Error("Redis is already connecting/connected"));
       return;
     }
-
+    clearInterval(this._addedScriptHashesCleanInterval);
     this._addedScriptHashesCleanInterval = setInterval(() => {
       this._addedScriptHashes = {};
     }, this.options.maxScriptsCachingTime);
@@ -317,7 +321,7 @@ Redis.prototype.connect = function (callback) {
     asCallback(
       this.connector.connect(function (type, err) {
         _this.silentEmit(type, err);
-      }),
+      }) as Promise<NetStream>,
       function (err, stream) {
         if (err) {
           _this.flushQueue(err);
@@ -369,11 +373,21 @@ Redis.prototype.connect = function (callback) {
               stream.setTimeout(0);
             });
           }
+        } else if (stream.destroyed) {
+          const firstError = _this.connector.firstError;
+          if (firstError) {
+            process.nextTick(() => {
+              eventHandler.errorHandler(_this)(firstError);
+            });
+          }
+          process.nextTick(eventHandler.closeHandler(_this));
         } else {
           process.nextTick(eventHandler.connectHandler(_this));
         }
-        stream.once("error", eventHandler.errorHandler(_this));
-        stream.once("close", eventHandler.closeHandler(_this));
+        if (!stream.destroyed) {
+          stream.once("error", eventHandler.errorHandler(_this));
+          stream.once("close", eventHandler.closeHandler(_this));
+        }
 
         if (options.noDelay) {
           stream.setNoDelay(true);
@@ -679,7 +693,7 @@ addTransactionSupport(Redis.prototype);
  * ```
  * @private
  */
-Redis.prototype.sendCommand = function (command, stream) {
+Redis.prototype.sendCommand = function (command: Command, stream) {
   if (this.status === "wait") {
     this.connect().catch(noop);
   }
@@ -697,6 +711,10 @@ Redis.prototype.sendCommand = function (command, stream) {
       )
     );
     return command.promise;
+  }
+
+  if (typeof this.options.commandTimeout === "number") {
+    command.setTimeout(this.options.commandTimeout);
   }
 
   if (command.name === "quit") {

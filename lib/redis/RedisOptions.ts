@@ -11,6 +11,7 @@ export interface IRedisOptions
     Partial<IClusterOptions> {
   Connector?: typeof AbstractConnector;
   retryStrategy?: (times: number) => number | void | null;
+  commandTimeout?: number;
   keepAlive?: number;
   noDelay?: boolean;
   connectionName?: string;
@@ -37,6 +38,7 @@ export const DEFAULT_REDIS_OPTIONS: IRedisOptions = {
   host: "localhost",
   family: 4,
   connectTimeout: 10000,
+  disconnectTimeout: 2000,
   retryStrategy: function (times) {
     return Math.min(times * 50, 2000);
   },
@@ -49,6 +51,14 @@ export const DEFAULT_REDIS_OPTIONS: IRedisOptions = {
   role: "master",
   sentinelRetryStrategy: function (times) {
     return Math.min(times * 10, 1000);
+  },
+  sentinelReconnectStrategy: function () {
+    // This strategy only applies when sentinels are used for detecting
+    // a failover, not during initial master resolution.
+    // The deployment can still function when some of the sentinels are down
+    // for a long period of time, so we may not want to attempt reconnection
+    // very often. Therefore the default interval is fairly long (1 minute).
+    return 60000;
   },
   natMap: null,
   enableTLSForSentinelMode: false,
@@ -73,4 +83,5 @@ export const DEFAULT_REDIS_OPTIONS: IRedisOptions = {
   enableAutoPipelining: false,
   autoPipeliningIgnoredCommands: [],
   maxScriptsCachingTime: 60000,
+  sentinelMaxConnections: 10,
 };

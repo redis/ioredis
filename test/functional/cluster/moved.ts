@@ -2,6 +2,7 @@ import * as calculateSlot from "cluster-key-slot";
 import MockServer from "../../helpers/mock_server";
 import { expect } from "chai";
 import { Cluster } from "../../../lib";
+import * as sinon from "sinon";
 
 describe("cluster:MOVED", function () {
   it("should auto redirect the command to the correct nodes", function (done) {
@@ -114,6 +115,45 @@ describe("cluster:MOVED", function () {
       lazyConnect: false,
     });
     cluster.get("foo", function () {
+      cluster.get("foo");
+    });
+  });
+
+  it("should supports retryDelayOnMoved", (done) => {
+    let cluster = undefined;
+    const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
+    new MockServer(30001, function (argv) {
+      if (argv[0] === "cluster" && argv[1] === "slots") {
+        return slotTable;
+      }
+      if (argv[0] === "get" && argv[1] === "foo") {
+        return new Error("MOVED " + calculateSlot("foo") + " 127.0.0.1:30002");
+      }
+    });
+
+    new MockServer(30002, function (argv) {
+      if (argv[0] === "cluster" && argv[1] === "slots") {
+        return slotTable;
+      }
+      if (argv[0] === "get" && argv[1] === "foo") {
+        cluster.disconnect();
+        done();
+      }
+    });
+
+    const retryDelayOnMoved = 789;
+    cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      retryDelayOnMoved,
+    });
+    cluster.on("ready", function () {
+      sinon.stub(global, "setTimeout").callsFake((body, ms) => {
+        if (ms === retryDelayOnMoved) {
+          process.nextTick(() => {
+            body();
+          });
+        }
+      });
+
       cluster.get("foo");
     });
   });

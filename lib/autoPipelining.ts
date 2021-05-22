@@ -5,6 +5,7 @@ import asCallback from "standard-as-callback";
 export const kExec = Symbol("exec");
 export const kCallbacks = Symbol("callbacks");
 export const notAllowedAutoPipelineCommands = [
+  "auth",
   "info",
   "script",
   "quit",

@@ -156,10 +156,12 @@ export default class Command implements ICommand {
   public isCustomCommand = false;
   public inTransaction = false;
   public pipelineIndex?: number;
+  private _commandTimeoutTimer?: NodeJS.Timeout;
 
   private slot?: number | null;
   private keys?: Array<string | Buffer>;
 
+  public isResolved = false;
   public reject: (err: Error) => void;
   public resolve: (result: any) => void;
   public promise: Promise<any>;
@@ -335,13 +337,20 @@ export default class Command implements ICommand {
    *
    * @private
    * @param {Function} resolve The resolve function of the Promise
-   * @returns {Function} A funtion to transform and resolve a value
+   * @returns {Function} A function to transform and resolve a value
    * @memberof Command
    */
   private _convertValue(resolve: Function): (result: any) => void {
     return (value) => {
       try {
+        const existingTimer = this._commandTimeoutTimer;
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+          delete this._commandTimeoutTimer;
+        }
+
         resolve(this.transformReply(value));
+        this.isResolved = true;
       } catch (err) {
         this.reject(err);
       }
@@ -368,6 +377,20 @@ export default class Command implements ICommand {
 
     return result;
   }
+
+  /**
+   * Set the wait time before terminating the attempt to execute a command
+   * and generating an error.
+   */
+  public setTimeout(ms: number) {
+    if (!this._commandTimeoutTimer) {
+      this._commandTimeoutTimer = setTimeout(() => {
+        if (!this.isResolved) {
+          this.reject(new Error("Command timed out"));
+        }
+      }, ms);
+    }
+  }
 }
 
 const msetArgumentTransformer = function (args) {
@@ -382,10 +405,7 @@ const msetArgumentTransformer = function (args) {
   return args;
 };
 
-Command.setArgumentTransformer("mset", msetArgumentTransformer);
-Command.setArgumentTransformer("msetnx", msetArgumentTransformer);
-
-Command.setArgumentTransformer("hmset", function (args) {
+const hsetArgumentTransformer = function (args) {
   if (args.length === 2) {
     if (typeof Map !== "undefined" && args[1] instanceof Map) {
       return [args[0]].concat(convertMapToArray(args[1]));
@@ -395,7 +415,13 @@ Command.setArgumentTransformer("hmset", function (args) {
     }
   }
   return args;
-});
+};
+
+Command.setArgumentTransformer("mset", msetArgumentTransformer);
+Command.setArgumentTransformer("msetnx", msetArgumentTransformer);
+
+Command.setArgumentTransformer("hset", hsetArgumentTransformer);
+Command.setArgumentTransformer("hmset", hsetArgumentTransformer);
 
 Command.setReplyTransformer("hgetall", function (result) {
   if (Array.isArray(result)) {
@@ -406,18 +432,6 @@ Command.setReplyTransformer("hgetall", function (result) {
     return obj;
   }
   return result;
-});
-
-Command.setArgumentTransformer("hset", function (args) {
-  if (args.length === 2) {
-    if (typeof Map !== "undefined" && args[1] instanceof Map) {
-      return [args[0]].concat(convertMapToArray(args[1]));
-    }
-    if (typeof args[1] === "object" && args[1] !== null) {
-      return [args[0]].concat(convertObjectToArray(args[1]));
-    }
-  }
-  return args;
 });
 
 class MixedBuffers {

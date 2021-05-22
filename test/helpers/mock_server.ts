@@ -34,6 +34,7 @@ export function getConnectionName(socket: Socket): string | undefined {
 
 interface IFlags {
   disconnect?: boolean;
+  hang?: boolean;
 }
 export type MockServerHandler = (
   reply: any,
@@ -91,9 +92,11 @@ export default class MockServer extends EventEmitter {
             this.write(c, this.slotTable);
             return;
           }
-          const flags: Flags = {};
+          const flags: IFlags = {};
           const handlerResult = this.handler && this.handler(reply, c, flags);
-          this.write(c, handlerResult);
+          if (!flags.hang) {
+            this.write(c, handlerResult);
+          }
           if (flags.disconnect) {
             this.disconnect();
           }
@@ -119,6 +122,10 @@ export default class MockServer extends EventEmitter {
   disconnect(callback?: Function) {
     // @ts-ignore
     this.socket.destroy(callback);
+  }
+
+  disconnectPromise() {
+    return new Promise<void>((resolve) => this.disconnect(resolve));
   }
 
   broadcast(data: any) {
@@ -169,5 +176,9 @@ export default class MockServer extends EventEmitter {
       .find((client) => {
         return getConnectionName(client) === name;
       });
+  }
+
+  getAllClients(): Socket[] {
+    return this.clients.filter(Boolean);
   }
 }

@@ -11,7 +11,7 @@
 
 A robust, performance-focused and full-featured [Redis](http://redis.io) client for [Node.js](https://nodejs.org).
 
-Supports Redis >= 2.6.12 and (Node.js >= 6).
+Supports Redis >= 2.6.12 and (Node.js >= 6). Completely compatible with Redis 6.x.
 
 # Features
 
@@ -25,13 +25,14 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 4. Transparent key prefixing.
 5. Abstraction for Lua scripting, allowing you to define custom commands.
 6. Support for binary data.
-7. Support for TLS.
+7. Support for TLS 🔒.
 8. Support for offline queue and ready checking.
 9. Support for ES6 types, such as `Map` and `Set`.
-10. Support for GEO commands (Redis 3.2 Unstable).
-11. Sophisticated error handling strategy.
-12. Support for NAT mapping.
-13. Support for autopipelining
+10. Support for GEO commands 📍.
+11. Support for Redis ACL.
+12. Sophisticated error handling strategy.
+13. Support for NAT mapping.
+14. Support for autopipelining
 
 # Links
 
@@ -134,55 +135,128 @@ You can also specify connection options as a [`redis://` URL](http://www.iana.or
 ```javascript
 // Connect to 127.0.0.1:6380, db 4, using password "authpassword":
 new Redis("redis://:authpassword@127.0.0.1:6380/4");
+
+// Username can also be passed via URI.
+// It's worth to noticing that for compatibility reasons `allowUsernameInURI`
+// need to be provided, otherwise the username part will be ignored.
+new Redis(
+  "redis://username:authpassword@127.0.0.1:6380/4?allowUsernameInURI=true"
+);
 ```
 
 See [API Documentation](API.md#new_Redis) for all available options.
 
 ## Pub/Sub
 
-Here is a simple example of the API for publish/subscribe.
-The following program opens two client connections.
-It subscribes to a channel with one connection
-and publishes to that channel with the other:
+Redis provides several commands for developers to implement the [Publish–subscribe pattern](https://en.wikipedia.org/wiki/Publish%E2%80%93subscribe_pattern). There are two roles in this pattern: publisher and subscriber. Publishers are not programmed to send their messages to specific subscribers. Rather, published messages are characterized into channels, without knowledge of what (if any) subscribers there may be.
+
+By leveraging Node.js's built-in events module, ioredis makes pub/sub very straightforward to use. Below is a simple example that consists of two files, one is publisher.js that publishes messages to a channel, the other is subscriber.js that listens for messages on specific channels.
 
 ```javascript
+// publisher.js
+
 const Redis = require("ioredis");
 const redis = new Redis();
-const pub = new Redis();
-redis.subscribe("news", "music", (err, count) => {
-  // Now we are subscribed to both the 'news' and 'music' channels.
-  // `count` represents the number of channels we are currently subscribed to.
 
-  pub.publish("news", "Hello world!");
-  pub.publish("music", "Hello again!");
+setInterval(() => {
+  const message = { foo: Math.random() };
+  // Publish to my-channel-1 or my-channel-2 randomly.
+  const channel = `my-channel-${1 + Math.round(Math.random())}`;
+
+  // Message can be either a string or a buffer
+  redis.publish(channel, JSON.stringify(message));
+  console.log("Published %s to %s", message, channel);
+}, 1000);
+```
+
+```javascript
+// subscriber.js
+
+const Redis = require("ioredis");
+const redis = new Redis();
+
+redis.subscribe("my-channel-1", "my-channel-2", (err, count) => {
+  if (err) {
+    // Just like other commands, subscribe() can fail for some reasons,
+    // ex network issues.
+    console.error("Failed to subscribe: %s", err.message);
+  } else {
+    // `count` represents the number of channels this client are currently subscribed to.
+    console.log(
+      `Subscribed successfully! This client is currently subscribed to ${count} channels.`
+    );
+  }
 });
 
 redis.on("message", (channel, message) => {
-  // Receive message Hello world! from channel news
-  // Receive message Hello again! from channel music
-  console.log("Receive message %s from channel %s", message, channel);
+  console.log(`Received ${message} from ${channel}`);
 });
 
 // There's also an event called 'messageBuffer', which is the same as 'message' except
 // it returns buffers instead of strings.
+// It's useful when the messages are binary data.
 redis.on("messageBuffer", (channel, message) => {
   // Both `channel` and `message` are buffers.
+  console.log(channel, message);
 });
 ```
 
-`PSUBSCRIBE` is also supported in a similar way:
+It worth noticing that a connection (aka `Redis` instance) can't play both roles together. More specifically, when a client issues `subscribe()` or `psubscribe()`, it enters the "subscriber" mode. From that point, only commands that modify the subscription set are valid. Namely, they are: `subscribe`, `psubscribe`, `unsubscribe`, `punsubscribe`, `ping`, and `quit`. When the subscription set is empty (via `unsubscribe`/`punsubscribe`), the connection is put back into the regular mode.
+
+If you want to do pub/sub in the same file/process, you should create a separate connection:
+
+```javascript
+const Redis = require("ioredis");
+const sub = new Redis();
+const pub = new Redis();
+
+sub.subscribe(/* ... */); // From now, `sub` enters the subscriber mode.
+sub.on("message" /* ... */);
+
+setInterval(() => {
+  // `pub` can be used to publish messages, or send other regular commands (e.g. `hgetall`)
+  // because it's not in the subscriber mode.
+  pub.publish(/* ... */);
+}, 1000);
+```
+
+`PSUBSCRIBE` is also supported in a similar way when you want to subscribe all channels whose name matches a pattern:
 
 ```javascript
 redis.psubscribe("pat?ern", (err, count) => {});
+
+// Event names are "pmessage"/"pmessageBuffer" instead of "message/messageBuffer".
 redis.on("pmessage", (pattern, channel, message) => {});
 redis.on("pmessageBuffer", (pattern, channel, message) => {});
 ```
 
-When a client issues a SUBSCRIBE or PSUBSCRIBE, that connection is put into a "subscriber" mode.
-At that point, only commands that modify the subscription set are valid.
-When the subscription set is empty, the connection is put back into regular mode.
+## Streams
 
-If you need to send regular commands to Redis while in subscriber mode, just open another connection.
+Redis v5 introduces a new data type called streams. It doubles as a communication channel for building streaming architectures and as a log-like data structure for persisting data. With ioredis, the usage can be pretty straightforward. Say we have a producer publishes messages to a stream with `redis.xadd("mystream", "*", "randomValue", Math.random())` (You may find the [official documentation of Streams](https://redis.io/topics/streams-intro) as a starter to understand the parameters used), to consume the messages, we'll have a consumer with the following code:
+
+```javascript
+const Redis = require("ioredis");
+const redis = new Redis();
+
+const processMessage = (message) => {
+  console.log("Id: %s. Data: %O", message[0], message[1]);
+};
+
+async function listenForMessage(lastId = "$") {
+  // `results` is an array, each element of which corresponds to a key.
+  // Because we only listen to one key (mystream) here, `results` only contains
+  // a single element. See more: https://redis.io/commands/xread#return-value
+  const results = await redis.xread("block", 0, "STREAMS", "mystream", lastId);
+  const [key, messages] = results[0]; // `key` equals to "mystream"
+
+  messages.forEach(processMessage);
+
+  // Pass the last id of the results to the next round.
+  await listenForMessage(messages[messages.length - 1][0]);
+}
+
+listenForMessage();
+```
 
 ## Handle Binary Data
 
@@ -204,7 +278,7 @@ redis.getBuffer("foo", (err, result) => {
 ## Pipelining
 
 If you want to send a batch of commands (e.g. > 5), you can use pipelining to queue
-the commands in memory and then send them to Redis all at once. This way the performance improves by 50%~300% (See [benchmark section](#benchmark)).
+the commands in memory and then send them to Redis all at once. This way the performance improves by 50%~300% (See [benchmark section](#benchmarks)).
 
 `redis.pipeline()` creates a `Pipeline` instance. You can call any Redis
 commands on it just like the `Redis` instance. The commands are queued in memory
@@ -413,7 +487,7 @@ to all the keys in a command, which makes it easier to manage your key
 namespaces.
 
 **Warning** This feature won't apply to commands like [KEYS](http://redis.io/commands/KEYS) and [SCAN](http://redis.io/commands/scan) that take patterns rather than actual keys([#239](https://github.com/luin/ioredis/issues/239)),
-and this feature also won't apply to the replies of commands even they are key names ([#325](https://github.com/luin/ioredis/issues/325)).
+and this feature also won't apply to the replies of commands even if they are key names ([#325](https://github.com/luin/ioredis/issues/325)).
 
 ```javascript
 const fooRedis = new Redis({ keyPrefix: "foo:" });
@@ -575,12 +649,15 @@ stream.on("end", () => {
 });
 ```
 
-`scanStream` accepts an option, with which you can specify the `MATCH` pattern and the `COUNT` argument:
+`scanStream` accepts an option, with which you can specify the `MATCH` pattern, the `TYPE` filter, and the `COUNT` argument:
 
 ```javascript
 const stream = redis.scanStream({
   // only returns keys following the pattern of `user:*`
   match: "user:*",
+  // only return objects that match a given type,
+  // (requires Redis >= 6.0)
+  type: "zset",
   // returns approximately 100 elements per call
   count: 100,
 });
@@ -601,7 +678,7 @@ const stream = redis.hscanStream("myhash", {
 You can learn more from the [Redis documentation](http://redis.io/commands/scan).
 
 **Useful Tips**
-It's pretty common that doing an async task in the `data` handler. We'd like the scanning process to be paused until the async task to be finished. `Stream#pause()` and `Stream.resume()` do the trick. For example if we want to migrate data in Redis to MySQL:
+It's pretty common that doing an async task in the `data` handler. We'd like the scanning process to be paused until the async task to be finished. `Stream#pause()` and `Stream#resume()` do the trick. For example if we want to migrate data in Redis to MySQL:
 
 ```javascript
 const stream = redis.scanStream();
@@ -662,7 +739,7 @@ Set maxRetriesPerRequest to `null` to disable this behavior, and every command w
 
 ### Reconnect on error
 
-Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on the specified errors by the `reconnectOnError` option. Here's an example that will reconnect when receiving `READONLY` error:
+Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on certain Redis errors using the `reconnectOnError` option. Here's an example that will reconnect when receiving `READONLY` error:
 
 ```javascript
 const redis = new Redis({
@@ -676,9 +753,9 @@ const redis = new Redis({
 });
 ```
 
-This feature is useful when using Amazon ElastiCache. Once failover happens, Amazon ElastiCache will switch the master we currently connected with to a slave, leading to the following writes fails with the error `READONLY`. Using `reconnectOnError`, we can force the connection to reconnect on this error in order to connect to the new master.
+This feature is useful when using Amazon ElastiCache instances with Auto-failover disabled. On these instances, test your `reconnectOnError` handler by manually promoting the replica node to the primary role using the AWS console. The following writes fail with the error `READONLY`. Using `reconnectOnError`, we can force the connection to reconnect on this error in order to connect to the new master. Furthermore, if the `reconnectOnError` returns `2`, ioredis will resend the failed command after reconnecting.
 
-Furthermore, if the `reconnectOnError` returns `2`, ioredis will resend the failed command after reconnecting.
+On ElastiCache insances with Auto-failover enabled, `reconnectOnError` does not execute. Instead of returning a Redis error, AWS closes all connections to the master endpoint until the new primary node is ready. ioredis reconnects via `retryStrategy` instead of `reconnectOnError` after about a minute. On ElastiCache insances with Auto-failover enabled, test failover events with the `Failover primary` option in the AWS console.
 
 ## Connection Events
 
@@ -692,6 +769,7 @@ The Redis instance will emit some events about the state of the connection to th
 | close        | emits when an established Redis server connection has closed.                                                                                                                                                                                   |
 | reconnecting | emits after `close` when a reconnection will be made. The argument of the event is the time (in ms) before reconnecting.                                                                                                                        |
 | end          | emits after `close` when no more reconnections will be made, or the connection is failed to establish.                                                                                                                                          |
+| wait         | emits when `lazyConnect` is set and will wait for the first command to be called before connecting.                                                                                                                                             |
 
 You can also check out the `Redis#status` property to get the current connection status.
 
@@ -878,9 +956,12 @@ cluster.get("foo", (err, res) => {
       will resend the commands after the specified time (in ms).
     - `retryDelayOnTryAgain`: If this option is a number (by default, it is `100`), the client
       will resend the commands rejected with `TRYAGAIN` error after the specified time (in ms).
+    - `retryDelayOnMoved`: By default, this value is `0` (in ms), which means when a `MOVED` error is received, the client will resend
+      the command instantly to the node returned together with the `MOVED` error. However, sometimes it takes time for a cluster to become
+      state stabilized after a failover, so adding a delay before resending can prevent a ping pong effect.
     - `redisOptions`: Default options passed to the constructor of `Redis` when connecting to a node.
-    - `slotsRefreshTimeout`: Milliseconds before a timeout occurs while refreshing slots from the cluster (default `1000`)
-    - `slotsRefreshInterval`: Milliseconds between every automatic slots refresh (default `5000`)
+    - `slotsRefreshTimeout`: Milliseconds before a timeout occurs while refreshing slots from the cluster (default `1000`).
+    - `slotsRefreshInterval`: Milliseconds between every automatic slots refresh (default `5000`).
 
 ### Read-write splitting
 
@@ -922,13 +1003,17 @@ Sometimes you may want to send a command to multiple nodes (masters or slaves) o
 ```javascript
 // Send `FLUSHDB` command to all slaves:
 const slaves = cluster.nodes("slave");
-Promise.all(slaves.map(node => node.flushdb()))
+Promise.all(slaves.map((node) => node.flushdb()));
 
 // Get keys of all the masters:
 const masters = cluster.nodes("master");
-Promise.all(masters.map(node => node.keys()).then(keys => {
-  // keys: [['key1', 'key2'], ['key3', 'key4']]
-});
+Promise.all(
+  masters
+    .map((node) => node.keys())
+    .then((keys) => {
+      // keys: [['key1', 'key2'], ['key3', 'key4']]
+    })
+);
 ```
 
 ### NAT Mapping
@@ -1063,7 +1148,7 @@ const cluster = new Redis.Cluster(
 
 ## Autopipelining
 
-In standard mode, when you issue multiple commands, ioredis sends them to the server one by one. As described in Redis pipeline documentation, this is a suboptimal use of the network link, especially when such link is not very performant. 
+In standard mode, when you issue multiple commands, ioredis sends them to the server one by one. As described in Redis pipeline documentation, this is a suboptimal use of the network link, especially when such link is not very performant.
 
 The TCP and network overhead negatively affects performance. Commands are stuck in the send queue until the previous ones are correctly delivered to the server. This is a problem known as Head-Of-Line blocking (HOL).
 
@@ -1075,38 +1160,39 @@ This feature can dramatically improve throughput and avoids HOL blocking. In our
 
 While an automatic pipeline is executing, all new commands will be enqueued in a new pipeline which will be executed as soon as the previous finishes.
 
-When using Redis Cluster, one pipeline per node is created. Commands are assigned to pipelines according to which node serves the slot. 
+When using Redis Cluster, one pipeline per node is created. Commands are assigned to pipelines according to which node serves the slot.
 
-A pipeline will thus contain commands using different slots but that ultimately are assigned to the same node. 
+A pipeline will thus contain commands using different slots but that ultimately are assigned to the same node.
 
 Note that the same slot limitation within a single command still holds, as it is a Redis limitation.
-
 
 ### Example of automatic pipeline enqueuing
 
 This sample code uses ioredis with automatic pipeline enabled.
 
 ```javascript
-const Redis = require('./built');
-const http = require('http');
+const Redis = require("./built");
+const http = require("http");
 
 const db = new Redis({ enableAutoPipelining: true });
 
 const server = http.createServer((request, response) => {
-  const key = new URL(request.url, 'https://localhost:3000/').searchParams.get('key');
+  const key = new URL(request.url, "https://localhost:3000/").searchParams.get(
+    "key"
+  );
 
   db.get(key, (err, value) => {
-    response.writeHead(200, { 'Content-Type': 'text/plain' });
+    response.writeHead(200, { "Content-Type": "text/plain" });
     response.end(value);
   });
-})
+});
 
 server.listen(3000);
 ```
 
 When Node receives requests, it schedules them to be processed in one or more iterations of the events loop.
 
-All commands issued by requests processing during one iteration of the loop will be wrapped in a pipeline automatically created by ioredis. 
+All commands issued by requests processing during one iteration of the loop will be wrapped in a pipeline automatically created by ioredis.
 
 In the example above, the pipeline will have the following contents:
 
@@ -1128,32 +1214,21 @@ This approach increases the utilization of the network link, reduces the TCP ove
 
 ### Benchmarks
 
-Here's some of the results of our tests for a single node. 
+Here's some of the results of our tests for a single node.
 
 Each iteration of the test runs 1000 random commands on the server.
 
-╔═══════════════════════════╤═════════╤═══════════════╤═══════════╤═════════════════════════╗
-║ Slower tests              │ Samples │        Result │ Tolerance │ Difference with slowest ║
-╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
-║ default                   │    1000 │ 174.62 op/sec │  ± 0.45 % │                         ║
-╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
-║ Fastest test              │ Samples │        Result │ Tolerance │ Difference with slowest ║
-╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
-║ enableAutoPipelining=true │    1500 │ 233.33 op/sec │  ± 0.88 % │ + 33.62 %               ║
-╚═══════════════════════════╧═════════╧═══════════════╧═══════════╧═════════════════════════╝
+|                           | Samples | Result        | Tolerance |
+| ------------------------- | ------- | ------------- | --------- |
+| default                   | 1000    | 174.62 op/sec | ± 0.45 %  |
+| enableAutoPipelining=true | 1500    | 233.33 op/sec | ± 0.88 %  |
 
 And here's the same test for a cluster of 3 masters and 3 replicas:
 
-╔═══════════════════════════╤═════════╤═══════════════╤═══════════╤═════════════════════════╗
-║ Slower tests              │ Samples │        Result │ Tolerance │ Difference with slowest ║
-╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
-║ default                   │    1000 │ 164.05 op/sec │  ± 0.42 % │                         ║
-╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
-║ Fastest test              │ Samples │        Result │ Tolerance │ Difference with slowest ║
-╟───────────────────────────┼─────────┼───────────────┼───────────┼─────────────────────────╢
-║ enableAutoPipelining=true │    3000 │ 235.31 op/sec │  ± 0.94 % │ + 43.44 %               ║
-╚═══════════════════════════╧═════════╧═══════════════╧═══════════╧═════════════════════════╝
-
+|                           | Samples | Result        | Tolerance |
+| ------------------------- | ------- | ------------- | --------- |
+| default                   | 1000    | 164.05 op/sec | ± 0.42 %  |
+| enableAutoPipelining=true | 3000    | 235.31 op/sec | ± 0.94 %  |
 
 # Error Handling
 

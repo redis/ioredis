@@ -21,7 +21,7 @@ describe("cluster:pub/sub", function () {
     const sub = new Cluster(options);
 
     sub.subscribe("test cluster", function () {
-      node1.write(node1.findClientByName("ioredisClusterSubscriber"), [
+      node1.write(node1.findClientByName("ioredis-cluster(subscriber)"), [
         "message",
         "test channel",
         "hi",
@@ -61,7 +61,7 @@ describe("cluster:pub/sub", function () {
       }
       if (argv[0] === "subscribe") {
         expect(c.password).to.eql("abc");
-        expect(getConnectionName(c)).to.eql("ioredisClusterSubscriber");
+        expect(getConnectionName(c)).to.eql("ioredis-cluster(subscriber)");
       }
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return [[0, 16383, ["127.0.0.1", 30001]]];

@@ -9,6 +9,9 @@ import {
   NodeRole,
   getUniqueHostnamesFromOptions,
   nodeKeyToRedisOptions,
+  groupSrvRecords,
+  weightSrvRecords,
+  getConnectionName,
 } from "./util";
 import ClusterSubscriber from "./ClusterSubscriber";
 import DelayQueue from "./DelayQueue";
@@ -185,6 +188,7 @@ class Cluster extends EventEmitter {
         return;
       }
 
+      clearInterval(this._addedScriptHashesCleanInterval);
       this._addedScriptHashesCleanInterval = setInterval(() => {
         this._addedScriptHashes = {};
       }, this.options.maxScriptsCachingTime);
@@ -263,12 +267,12 @@ class Cluster extends EventEmitter {
           this.once("close", this.handleCloseEvent.bind(this));
 
           this.refreshSlotsCache(
-            function (err) {
-              if (err && err.message === "Failed to refresh slots cache.") {
-                Redis.prototype.silentEmit.call(this, "error", err);
-                this.connectionPool.reset([]);
-              }
-            }.bind(this)
+              function (err) {
+                if (err && err.message === "Failed to refresh slots cache.") {
+                  Redis.prototype.silentEmit.call(this, "error", err);
+                  this.connectionPool.reset([]);
+                }
+              }.bind(this)
           );
           this.subscriber.start();
         })
@@ -378,7 +382,7 @@ class Cluster extends EventEmitter {
 
     const Promise = PromiseContainer.get();
     if (status === "wait") {
-      const ret = asCallback(Promise.resolve("OK"), callback);
+      const ret = asCallback(Promise.resolve<"OK">("OK"), callback);
 
       // use setImmediate to make sure "close" event
       // being emitted after quit() is returned
@@ -742,8 +746,19 @@ class Cluster extends EventEmitter {
       return;
     }
     const errv = error.message.split(" ");
-    if (errv[0] === "MOVED" || errv[0] === "ASK") {
-      handlers[errv[0] === "MOVED" ? "moved" : "ask"](errv[1], errv[2]);
+    if (errv[0] === "MOVED") {
+      const timeout = this.options.retryDelayOnMoved;
+      if (timeout && typeof timeout === "number") {
+        this.delayQueue.push(
+          "moved",
+          handlers.moved.bind(null, errv[1], errv[2]),
+          { timeout }
+        );
+      } else {
+        handlers.moved(errv[1], errv[2]);
+      }
+    } else if (errv[0] === "ASK") {
+      handlers.ask(errv[1], errv[2]);
     } else if (errv[0] === "TRYAGAIN") {
       this.delayQueue.push("tryagain", handlers.tryagain, {
         timeout: this.options.retryDelayOnTryAgain,
@@ -782,7 +797,10 @@ class Cluster extends EventEmitter {
       enableOfflineQueue: true,
       enableReadyCheck: false,
       retryStrategy: null,
-      connectionName: "ioredisClusterRefresher",
+      connectionName: getConnectionName(
+        "refresher",
+        this.options.redisOptions && this.options.redisOptions.connectionName
+      ),
     });
 
     // Ignore error events since we will handle
@@ -890,6 +908,47 @@ class Cluster extends EventEmitter {
     });
   }
 
+  private resolveSrv(hostname: string): Promise<IRedisOptions> {
+    return new Promise((resolve, reject) => {
+      this.options.resolveSrv(hostname, (err, records) => {
+        if (err) {
+          return reject(err);
+        }
+
+        const self = this,
+          groupedRecords = groupSrvRecords(records),
+          sortedKeys = Object.keys(groupedRecords).sort(
+            (a, b) => parseInt(a) - parseInt(b)
+          );
+
+        function tryFirstOne(err?) {
+          if (!sortedKeys.length) {
+            return reject(err);
+          }
+
+          const key = sortedKeys[0],
+            group = groupedRecords[key],
+            record = weightSrvRecords(group);
+
+          if (!group.records.length) {
+            sortedKeys.shift();
+          }
+
+          self.dnsLookup(record.name).then(
+            (host) =>
+              resolve({
+                host,
+                port: record.port,
+              }),
+            tryFirstOne
+          );
+        }
+
+        tryFirstOne();
+      });
+    });
+  }
+
   private dnsLookup(hostname: string): Promise<string> {
     return new Promise((resolve, reject) => {
       this.options.dnsLookup(hostname, (err, address) => {
@@ -931,15 +990,24 @@ class Cluster extends EventEmitter {
     }
 
     return Promise.all(
-      hostnames.map((hostname) => this.dnsLookup(hostname))
-    ).then((ips) => {
-      const hostnameToIP = zipMap(hostnames, ips);
+      hostnames.map(
+        (this.options.useSRVRecords ? this.resolveSrv : this.dnsLookup).bind(
+          this
+        )
+      )
+    ).then((configs) => {
+      const hostnameToConfig = zipMap(hostnames, configs);
 
-      return startupNodes.map((node) =>
-        hostnameToIP.has(node.host)
-          ? Object.assign({}, node, { host: hostnameToIP.get(node.host) })
-          : node
-      );
+      return startupNodes.map((node) => {
+        const config = hostnameToConfig.get(node.host);
+        if (!config) {
+          return node;
+        } else if (this.options.useSRVRecords) {
+          return Object.assign({}, node, config);
+        } else {
+          return Object.assign({}, node, { host: config });
+        }
+      });
     });
   }
 }

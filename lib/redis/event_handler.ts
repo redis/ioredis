@@ -54,7 +54,11 @@ export function connectHandler(self) {
     }
 
     if (self.condition.select) {
-      self.select(self.condition.select);
+      self.select(self.condition.select).catch((err) => {
+        // If the node is in cluster mode, select is disallowed.
+        // In this case, reconnect won't help.
+        self.silentEmit("error", err);
+      });
     }
 
     if (!self.options.enableReadyCheck) {
