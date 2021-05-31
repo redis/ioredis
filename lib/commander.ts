@@ -160,9 +160,7 @@ function generateFunction(
     }
 
     const options = {
-      errorStack: this.options.showFriendlyErrorStack
-        ? new Error().stack
-        : undefined,
+      errorStack: this.options.showFriendlyErrorStack ? new Error() : undefined,
       keyPrefix: this.options.keyPrefix,
       replyEncoding: _encoding,
     };
@@ -226,7 +224,7 @@ function generateScriptingFunction(
     }
 
     if (this.options.showFriendlyErrorStack) {
-      options.errorStack = new Error().stack;
+      options.errorStack = new Error();
     }
 
     // No auto pipeline, use regular command sending
