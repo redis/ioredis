@@ -20,7 +20,7 @@ interface ICommandOptions {
    * @memberof ICommandOptions
    */
   replyEncoding?: string | null;
-  errorStack?: string;
+  errorStack?: Error;
   keyPrefix?: string;
   /**
    * Force the command to be readOnly so it will also execute on slaves
@@ -149,7 +149,7 @@ export default class Command implements ICommand {
   public isReadOnly?: boolean;
 
   private replyEncoding: string | null;
-  private errorStack: string;
+  private errorStack: Error;
   public args: CommandParameter[];
   private callback: CallbackFunction;
   private transformed = false;
@@ -215,7 +215,7 @@ export default class Command implements ICommand {
       this.resolve = this._convertValue(resolve);
       if (this.errorStack) {
         this.reject = (err) => {
-          reject(optimizeErrorStack(err, this.errorStack, __dirname));
+          reject(optimizeErrorStack(err, this.errorStack.stack, __dirname));
         };
       } else {
         this.reject = reject;
