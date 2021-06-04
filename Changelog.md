@@ -1,3 +1,10 @@
+## [4.27.4](https://github.com/luin/ioredis/compare/v4.27.3...v4.27.4) (2021-06-04)
+
+
+### Performance Improvements
+
+* Serialize error stack only when needed ([#1359](https://github.com/luin/ioredis/issues/1359)) ([62b6a64](https://github.com/luin/ioredis/commit/62b6a648910eccc3d83a3acd2db873704fd2080a))
+
 ## [4.27.3](https://github.com/luin/ioredis/compare/v4.27.2...v4.27.3) (2021-05-22)
 
 
