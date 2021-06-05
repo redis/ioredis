@@ -98,6 +98,11 @@ const debug = Debug("redis");
  * @param {NatMap} [options.natMap=null] NAT map for sentinel connector.
  * @param {boolean} [options.updateSentinels=true] - Update the given `sentinels` list with new IP
  * addresses when communicating with existing sentinels.
+ * @param {boolean} [options.failoverDetector=false] - Detect failover actively by subscribing to the
+ * related channels. With this option disabled, ioredis is still able to detect failovers because Redis
+ * Sentinel will disconnect all clients whenever a failover happens, so ioredis will reconnect to the new
+ * master. This option is useful when you want to detect failover quicker, but it will create more TCP
+ * connections to Redis servers in order to subscribe to related channels.
 * @param {boolean} [options.enableAutoPipelining=false] - When enabled, all commands issued during an event loop
  * iteration are automatically wrapped in a pipeline and sent to the server at the same time.
  * This can dramatically improve performance.

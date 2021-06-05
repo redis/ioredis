@@ -52,6 +52,7 @@ export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
   natMap?: INatMap;
   updateSentinels?: boolean;
   sentinelMaxConnections?: number;
+  failoverDetector?: boolean;
 }
 
 export default class SentinelConnector extends AbstractConnector {
@@ -321,6 +322,9 @@ export default class SentinelConnector extends AbstractConnector {
   }
 
   private async initFailoverDetector(): Promise<void> {
+    if (!this.options.failoverDetector) {
+      return;
+    }
     // Move the current sentinel to the first position
     this.sentinelIterator.reset(true);
 
