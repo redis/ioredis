@@ -63,6 +63,7 @@ export const DEFAULT_REDIS_OPTIONS: IRedisOptions = {
   natMap: null,
   enableTLSForSentinelMode: false,
   updateSentinels: true,
+  failoverDetector: false,
   // Status
   username: null,
   password: null,
