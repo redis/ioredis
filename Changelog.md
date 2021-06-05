@@ -1,3 +1,10 @@
+## [4.27.5](https://github.com/luin/ioredis/compare/v4.27.4...v4.27.5) (2021-06-05)
+
+
+### Bug Fixes
+
+* **SENTINEL:** actively failover detection under an option ([#1363](https://github.com/luin/ioredis/issues/1363)) ([f02e383](https://github.com/luin/ioredis/commit/f02e383996310adaefc2b4c40d946b76e450e5c7))
+
 ## [4.27.4](https://github.com/luin/ioredis/compare/v4.27.3...v4.27.4) (2021-06-04)
 
 
