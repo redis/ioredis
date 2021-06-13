@@ -1,3 +1,10 @@
+## [4.27.6](https://github.com/luin/ioredis/compare/v4.27.5...v4.27.6) (2021-06-13)
+
+
+### Bug Fixes
+
+* fixed autopipeline performances. ([#1226](https://github.com/luin/ioredis/issues/1226)) ([42f1ee1](https://github.com/luin/ioredis/commit/42f1ee107174366a79ff94bec8a7a1ac353e035c))
+
 ## [4.27.5](https://github.com/luin/ioredis/compare/v4.27.4...v4.27.5) (2021-06-05)
 
 
