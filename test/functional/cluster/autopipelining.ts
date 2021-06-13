@@ -11,6 +11,11 @@ use(require("chai-as-promised"));
   Instead foo1 and foo2 are usually served by different nodes in a 3-nodes cluster.
 */
 describe("autoPipelining for cluster", function () {
+  function changeSlot(cluster, from, to) {
+    cluster.slots[from] = cluster.slots[to];
+    cluster._groupsBySlot[from] = cluster._groupsBySlot[to];
+  }
+
   beforeEach(() => {
     const slotTable = [
       [0, 5000, ["127.0.0.1", 30001]],
@@ -402,11 +407,12 @@ describe("autoPipelining for cluster", function () {
     const promise4 = cluster.set("foo6", "bar");
 
     // Override slots to induce a failure
-    const key1Slot = calculateKeySlot("foo1");
-    const key2Slot = calculateKeySlot("foo2");
-    const key5Slot = calculateKeySlot("foo5");
-    cluster.slots[key1Slot] = cluster.slots[key2Slot];
-    cluster.slots[key2Slot] = cluster.slots[key5Slot];
+    const key1Slot = calculateKeySlot('foo1');
+    const key2Slot = calculateKeySlot('foo2');
+    const key5Slot = calculateKeySlot('foo5');
+
+    changeSlot(cluster, key1Slot, key2Slot);
+    changeSlot(cluster, key2Slot, key5Slot);
 
     await expect(promise1).to.eventually.be.rejectedWith(
       "All keys in the pipeline should belong to the same slots allocation group"
@@ -492,11 +498,11 @@ describe("autoPipelining for cluster", function () {
       expect(cluster.autoPipelineQueueSize).to.eql(4);
 
       // Override slots to induce a failure
-      const key1Slot = calculateKeySlot("foo1");
-      const key2Slot = calculateKeySlot("foo2");
-      const key5Slot = calculateKeySlot("foo5");
-      cluster.slots[key1Slot] = cluster.slots[key2Slot];
-      cluster.slots[key2Slot] = cluster.slots[key5Slot];
+      const key1Slot = calculateKeySlot('foo1');
+      const key2Slot = calculateKeySlot('foo2');
+      const key5Slot = calculateKeySlot('foo5');
+      changeSlot(cluster, key1Slot, key2Slot);
+      changeSlot(cluster, key2Slot, key5Slot);
     });
   });
 
@@ -541,9 +547,9 @@ describe("autoPipelining for cluster", function () {
 
       expect(cluster.autoPipelineQueueSize).to.eql(3);
 
-      const key1Slot = calculateKeySlot("foo1");
-      const key2Slot = calculateKeySlot("foo2");
-      cluster.slots[key1Slot] = cluster.slots[key2Slot];
+      const key1Slot = calculateKeySlot('foo1');
+      const key2Slot = calculateKeySlot('foo2');
+      changeSlot(cluster, key1Slot, key2Slot);
     });
   });
 });

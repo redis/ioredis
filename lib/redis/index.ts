@@ -304,7 +304,11 @@ Redis.prototype.connect = function (callback) {
       reject(new Error("Redis is already connecting/connected"));
       return;
     }
+
+    // Make sure only one timer is active at a time
     clearInterval(this._addedScriptHashesCleanInterval);
+
+    // Start the script cache cleaning
     this._addedScriptHashesCleanInterval = setInterval(() => {
       this._addedScriptHashes = {};
     }, this.options.maxScriptsCachingTime);

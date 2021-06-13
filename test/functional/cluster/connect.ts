@@ -438,4 +438,22 @@ describe("cluster:disconnect", function () {
       done();
     });
   });
+
+  it("should clear the added script hashes interval even when no connection succeeded", function (done) {
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "0" }], {
+      enableReadyCheck: false,
+    });
+
+    let attempt = 0;
+    cluster.on("error", function () {
+      if(attempt < 5) {
+        attempt ++;
+        return
+      }
+      cluster.quit();
+
+      expect(cluster._addedScriptHashesCleanInterval).to.be.null;
+      done();
+    });
+  });
 });

@@ -15,12 +15,10 @@ import Commander from "./commander";
 */
 function generateMultiWithNodes(redis, keys) {
   const slot = calculateSlot(keys[0]);
-  const target = redis.slots[slot].join(",");
-
+  const target = redis._groupsBySlot[slot];
+  
   for (let i = 1; i < keys.length; i++) {
-    const currentTarget = redis.slots[calculateSlot(keys[i])].join(",");
-
-    if (currentTarget !== target) {
+    if (redis._groupsBySlot[calculateSlot(keys[i])] !== target) {
       return -1;
     }
   }
@@ -158,6 +156,7 @@ Pipeline.prototype.fillResult = function (value, position) {
         moved: function (slot, key) {
           _this.preferKey = key;
           _this.redis.slots[errv[1]] = [key];
+          _this.redis._groupsBySlot[errv[1]] = _this.redis._groupsIds[_this.redis.slots[errv[1]].join(";")];
           _this.redis.refreshSlotsCache();
           _this.exec();
         },

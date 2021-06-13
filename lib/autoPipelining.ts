@@ -18,19 +18,6 @@ export const notAllowedAutoPipelineCommands = [
   "unpsubscribe",
 ];
 
-function findAutoPipeline(
-  client,
-  _commandName,
-  ...args: Array<string>
-): string {
-  if (!client.isCluster) {
-    return "main";
-  }
-
-  // We have slot information, we can improve routing by grouping slots served by the same subset of nodes
-  return client.slots[calculateSlot(args[0])].join(",");
-}
-
 function executeAutoPipeline(client, slotKey: string) {
   /*
     If a pipeline is already executing, keep queueing up commands
@@ -116,7 +103,8 @@ export function executeWithAutoPipelining(
     });
   }
 
-  const slotKey = findAutoPipeline(client, commandName, ...args);
+  // If we have slot information, we can improve routing by grouping slots served by the same subset of nodes
+  const slotKey = client.isCluster ? client.slots[calculateSlot(args[0])].join(",") : 'main';
 
   if (!client._autoPipelines.has(slotKey)) {
     const pipeline = client.pipeline();
