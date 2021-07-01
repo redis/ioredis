@@ -114,10 +114,8 @@ export default class RedisWritable extends Writable {
       return callback();
     }
 
-    const tmpKey = `${this.opts.key}_temp`;
-
     this.opts.redis
-      .rename(tmpKey, this.opts.key)
+      .rename(`${this.opts.key}_temp`, this.opts.key)
       .then(() => {
         if (this.opts.ttl) {
           this.opts.redis
