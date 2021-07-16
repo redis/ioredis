@@ -6,6 +6,7 @@ import {
   packObject,
   sample,
   Debug,
+  noop,
 } from "../../utils";
 import { connect as createTLSConnection, ConnectionOptions } from "tls";
 import {
@@ -431,5 +432,3 @@ function addressResponseToAddress(
 ): ISentinelAddress {
   return { host: input.ip, port: Number(input.port) };
 }
-
-function noop(): void {}

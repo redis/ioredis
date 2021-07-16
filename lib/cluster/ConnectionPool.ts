@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { sample, Debug, noop, defaults } from "../utils";
+import { sample, Debug, noop } from "../utils";
 import { IRedisOptions, getNodeKey, NodeKey, NodeRole } from "./util";
 import Redis from "../redis";
 
@@ -71,24 +71,20 @@ export default class ConnectionPool extends EventEmitter {
       }
     } else {
       debug("Connecting to %s as %s", key, readOnly ? "slave" : "master");
-      redis = new Redis(
-        defaults(
-          {
-            // Never try to reconnect when a node is lose,
-            // instead, waiting for a `MOVED` error and
-            // fetch the slots again.
-            retryStrategy: null,
-            // Offline queue should be enabled so that
-            // we don't need to wait for the `ready` event
-            // before sending commands to the node.
-            enableOfflineQueue: true,
-            readOnly: readOnly,
-          },
-          node,
-          this.redisOptions,
-          { lazyConnect: true }
-        )
-      );
+      redis = new Redis({
+        lazyConnect: true,
+        ...this.redisOptions,
+        ...node,
+        // Never try to reconnect when a node is lose,
+        // instead, waiting for a `MOVED` error and
+        // fetch the slots again.
+        retryStrategy: null,
+        // Offline queue should be enabled so that
+        // we don't need to wait for the `ready` event
+        // before sending commands to the node.
+        enableOfflineQueue: true,
+        readOnly: readOnly,
+      });
       this.nodes.all[key] = redis;
       this.nodes[readOnly ? "slave" : "master"][key] = redis;
 

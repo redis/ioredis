@@ -1,14 +1,22 @@
 import { EventEmitter } from "events";
 import ClusterAllFailedError from "../errors/ClusterAllFailedError";
-import { defaults, noop, Debug } from "../utils";
+import {
+  CONNECTION_CLOSED_ERROR_MSG,
+  Debug,
+  noop,
+  sample,
+  shuffle,
+  timeout,
+  zipMap,
+} from "../utils";
 import ConnectionPool from "./ConnectionPool";
 import {
-  NodeKey,
-  IRedisOptions,
-  normalizeNodeOptions,
-  NodeRole,
   getUniqueHostnamesFromOptions,
+  IRedisOptions,
+  NodeKey,
   nodeKeyToRedisOptions,
+  NodeRole,
+  normalizeNodeOptions,
   groupSrvRecords,
   weightSrvRecords,
   getConnectionName,
@@ -20,14 +28,7 @@ import { AbortError, RedisError } from "redis-errors";
 import asCallback from "standard-as-callback";
 import * as PromiseContainer from "../promiseContainer";
 import { CallbackFunction } from "../types";
-import { IClusterOptions, DEFAULT_CLUSTER_OPTIONS } from "./ClusterOptions";
-import {
-  sample,
-  CONNECTION_CLOSED_ERROR_MSG,
-  shuffle,
-  timeout,
-  zipMap,
-} from "../utils";
+import { DEFAULT_CLUSTER_OPTIONS, IClusterOptions } from "./ClusterOptions";
 import * as commands from "redis-commands";
 import Command from "../command";
 import Redis from "../redis";
@@ -103,7 +104,7 @@ class Cluster extends EventEmitter {
     Commander.call(this);
 
     this.startupNodes = startupNodes;
-    this.options = defaults({}, options, DEFAULT_CLUSTER_OPTIONS, this.options);
+    this.options = { ...this.options, ...DEFAULT_CLUSTER_OPTIONS, ...options };
 
     // validate options
     if (
@@ -1052,17 +1053,15 @@ const scanCommands = [
 ];
 scanCommands.forEach((command) => {
   Cluster.prototype[command + "Stream"] = function (key, options) {
-    return new ScanStream(
-      defaults(
-        {
-          objectMode: true,
-          key: key,
-          redis: this,
-          command: command,
-        },
-        options
-      )
-    );
+    return new ScanStream({
+      ...options,
+      ...{
+        objectMode: true,
+        key: key,
+        redis: this,
+        command: command,
+      },
+    });
   };
 });
 

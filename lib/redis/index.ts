@@ -1,10 +1,15 @@
-import { defaults, noop } from "../utils/lodash";
 import { inherits } from "util";
 import { EventEmitter } from "events";
 import Deque = require("denque");
 import Command from "../command";
 import Commander from "../commander";
-import { isInt, CONNECTION_CLOSED_ERROR_MSG, parseURL, Debug } from "../utils";
+import {
+  isInt,
+  CONNECTION_CLOSED_ERROR_MSG,
+  parseURL,
+  Debug,
+  noop,
+} from "../utils";
 import asCallback from "standard-as-callback";
 import * as eventHandler from "./event_handler";
 import { StandaloneConnector, SentinelConnector } from "../connectors";
@@ -226,7 +231,7 @@ Redis.prototype.resetOfflineQueue = function () {
 };
 
 Redis.prototype.parseOptions = function () {
-  this.options = {};
+  this.options = { ...Redis.defaultOptions };
   let isTls = false;
   for (let i = 0; i < arguments.length; ++i) {
     const arg = arguments[i];
@@ -234,9 +239,9 @@ Redis.prototype.parseOptions = function () {
       continue;
     }
     if (typeof arg === "object") {
-      defaults(this.options, arg);
+      Object.assign(this.options, arg);
     } else if (typeof arg === "string") {
-      defaults(this.options, parseURL(arg));
+      Object.assign(this.options, parseURL(arg));
       if (arg.startsWith("rediss://")) {
         isTls = true;
       }
@@ -247,9 +252,8 @@ Redis.prototype.parseOptions = function () {
     }
   }
   if (isTls) {
-    defaults(this.options, { tls: true });
+    this.options = { tls: true, ...this.options };
   }
-  defaults(this.options, Redis.defaultOptions);
 
   if (typeof this.options.port === "string") {
     this.options.port = parseInt(this.options.port, 10);
@@ -514,10 +518,11 @@ Redis.prototype.handleReconnection = function handleReconnection(err, item) {
  * @private
  */
 Redis.prototype.flushQueue = function (error, options) {
-  options = defaults({}, options, {
+  options = {
     offlineQueue: true,
     commandQueue: true,
-  });
+    ...options,
+  };
 
   let item;
   if (options.offlineQueue) {
@@ -850,16 +855,12 @@ Redis.prototype._getDescription = function () {
       options = key;
       key = null;
     }
-    return new ScanStream(
-      defaults(
-        {
-          objectMode: true,
-          key: key,
-          redis: this,
-          command: command,
-        },
-        options
-      )
-    );
+    return new ScanStream({
+      ...options,
+      objectMode: true,
+      key: key,
+      redis: this,
+      command: command,
+    });
   };
 });
