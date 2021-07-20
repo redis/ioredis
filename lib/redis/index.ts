@@ -137,7 +137,7 @@ function Redis(path: string): void;
 function Redis(): void;
 function Redis() {
   if (!(this instanceof Redis)) {
-    console.error(
+    debug(
       new Error(
         "Calling `Redis()` like a function is deprecated. Using `new Redis()` instead."
       ).stack.replace("Error", "Warning")
@@ -258,7 +258,7 @@ Redis.prototype.parseOptions = function () {
     this.options.db = parseInt(this.options.db, 10);
   }
   if (this.options.parser === "hiredis") {
-    console.warn(
+    debug(
       "Hiredis parser is abandoned since ioredis v3.0, and JavaScript parser will be used"
     );
   }
