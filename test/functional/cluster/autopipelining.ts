@@ -35,6 +35,10 @@ describe("autoPipelining for cluster", function () {
       if (argv[0] === "get" && argv[1] === "foo6") {
         return "bar6";
       }
+
+      if (argv[0] === "get" && argv[1] === "baz:foo10") {
+        return "bar10";
+      }
     });
 
     new MockServer(30002, function (argv) {
@@ -66,6 +70,10 @@ describe("autoPipelining for cluster", function () {
 
       if (argv[0] === "get" && argv[1] === "foo5") {
         return "bar5";
+      }
+
+      if (argv[0] === "get" && argv[1] === "baz:foo1") {
+        return "bar1";
       }
 
       if (argv[0] === "evalsha") {
@@ -173,6 +181,40 @@ describe("autoPipelining for cluster", function () {
         cluster.get("foo1"),
       ])
     ).to.eql(["bar1", "bar5", "bar1", "bar5", "bar1"]);
+
+    cluster.disconnect();
+  });
+
+  it("should support building pipelines when a prefix is used", async () => {
+    const cluster = new Cluster(hosts, {
+      enableAutoPipelining: true,
+      keyPrefix: "baz:",
+    });
+    await new Promise((resolve) => cluster.once("connect", resolve));
+
+    await cluster.set("foo1", "bar1");
+    await cluster.set("foo10", "bar10");
+
+    expect(
+      await Promise.all([cluster.get("foo1"), cluster.get("foo10")])
+    ).to.eql(["bar1", "bar10"]);
+
+    cluster.disconnect();
+  });
+
+  it("should support building pipelines when a prefix is used with arrays to flatten", async () => {
+    const cluster = new Cluster(hosts, {
+      enableAutoPipelining: true,
+      keyPrefix: "baz:",
+    });
+    await new Promise((resolve) => cluster.once("connect", resolve));
+
+    await cluster.set(["foo1"], "bar1");
+    await cluster.set(["foo10"], "bar10");
+
+    expect(
+      await Promise.all([cluster.get(["foo1"]), cluster.get(["foo10"])])
+    ).to.eql(["bar1", "bar10"]);
 
     cluster.disconnect();
   });
@@ -407,9 +449,9 @@ describe("autoPipelining for cluster", function () {
     const promise4 = cluster.set("foo6", "bar");
 
     // Override slots to induce a failure
-    const key1Slot = calculateKeySlot('foo1');
-    const key2Slot = calculateKeySlot('foo2');
-    const key5Slot = calculateKeySlot('foo5');
+    const key1Slot = calculateKeySlot("foo1");
+    const key2Slot = calculateKeySlot("foo2");
+    const key5Slot = calculateKeySlot("foo5");
 
     changeSlot(cluster, key1Slot, key2Slot);
     changeSlot(cluster, key2Slot, key5Slot);
@@ -498,9 +540,9 @@ describe("autoPipelining for cluster", function () {
       expect(cluster.autoPipelineQueueSize).to.eql(4);
 
       // Override slots to induce a failure
-      const key1Slot = calculateKeySlot('foo1');
-      const key2Slot = calculateKeySlot('foo2');
-      const key5Slot = calculateKeySlot('foo5');
+      const key1Slot = calculateKeySlot("foo1");
+      const key2Slot = calculateKeySlot("foo2");
+      const key5Slot = calculateKeySlot("foo5");
       changeSlot(cluster, key1Slot, key2Slot);
       changeSlot(cluster, key2Slot, key5Slot);
     });
@@ -547,8 +589,8 @@ describe("autoPipelining for cluster", function () {
 
       expect(cluster.autoPipelineQueueSize).to.eql(3);
 
-      const key1Slot = calculateKeySlot('foo1');
-      const key2Slot = calculateKeySlot('foo2');
+      const key1Slot = calculateKeySlot("foo1");
+      const key2Slot = calculateKeySlot("foo2");
       changeSlot(cluster, key1Slot, key2Slot);
     });
   });

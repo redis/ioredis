@@ -1,7 +1,5 @@
 import { expect, use } from "chai";
 import Redis from "../../lib/redis";
-import { ReplyError } from "redis-errors";
-import * as sinon from "sinon";
 
 use(require("chai-as-promised"));
 

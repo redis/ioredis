@@ -1,4 +1,5 @@
 import * as PromiseContainer from "./promiseContainer";
+import { flatten, isArguments } from "./utils/lodash";
 import * as calculateSlot from "cluster-key-slot";
 import asCallback from "standard-as-callback";
 
@@ -74,11 +75,35 @@ export function shouldUseAutoPipelining(
   );
 }
 
+/**
+ * @private
+ */
+export function getFirstValueInFlattenedArray(
+  args: (string | string[])[]
+): string | undefined {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (typeof arg === "string") {
+      return arg;
+    } else if (Array.isArray(arg) || isArguments(arg)) {
+      if (arg.length === 0) {
+        continue;
+      }
+      return arg[0];
+    }
+    const flattened = flatten([arg]);
+    if (flattened.length > 0) {
+      return flattened[0];
+    }
+  }
+  return undefined;
+}
+
 export function executeWithAutoPipelining(
   client,
   functionName: string,
   commandName: string,
-  args: string[],
+  args: (string | string[])[],
   callback
 ) {
   const CustomPromise = PromiseContainer.get();
@@ -104,7 +129,14 @@ export function executeWithAutoPipelining(
   }
 
   // If we have slot information, we can improve routing by grouping slots served by the same subset of nodes
-  const slotKey = client.isCluster ? client.slots[calculateSlot(args[0])].join(",") : 'main';
+  // Note that the first value in args may be a (possibly empty) array.
+  // ioredis will only flatten one level of the array, in the Command constructor.
+  const prefix = client.options.keyPrefix || "";
+  const slotKey = client.isCluster
+    ? client.slots[
+        calculateSlot(`${prefix}${getFirstValueInFlattenedArray(args)}`)
+      ].join(",")
+    : "main";
 
   if (!client._autoPipelines.has(slotKey)) {
     const pipeline = client.pipeline();
