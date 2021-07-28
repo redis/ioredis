@@ -1,6 +1,8 @@
 import * as PromiseContainer from "./promiseContainer";
+import * as commands from "redis-commands";
 import * as calculateSlot from "cluster-key-slot";
 import asCallback from "standard-as-callback";
+import { flatten } from "./utils/lodash";
 
 export const kExec = Symbol("exec");
 export const kCallbacks = Symbol("callbacks");
@@ -60,17 +62,33 @@ function executeAutoPipeline(client, slotKey: string) {
   });
 }
 
+function commandHasMultipleKeys(
+  commandName: string,
+  args: (string | string[])[]
+): boolean {
+  if (!commands.exists(commandName)) {
+    return false;
+  }
+  args = flatten(args);
+  if (args.length <= 1) {
+    return false;
+  }
+  return commands.getKeyIndexes(commandName, args).length > 1;
+}
+
 export function shouldUseAutoPipelining(
   client,
   functionName: string,
-  commandName: string
+  commandName: string,
+  args: (string | string[])[]
 ): boolean {
   return (
     functionName &&
     client.options.enableAutoPipelining &&
     !client.isPipeline &&
     !notAllowedAutoPipelineCommands.includes(commandName) &&
-    !client.options.autoPipeliningIgnoredCommands.includes(commandName)
+    !client.options.autoPipeliningIgnoredCommands.includes(commandName) &&
+    (!client.isCluster || !commandHasMultipleKeys(commandName, args))
   );
 }
 
@@ -78,7 +96,7 @@ export function executeWithAutoPipelining(
   client,
   functionName: string,
   commandName: string,
-  args: string[],
+  args: (string | string[])[],
   callback
 ) {
   const CustomPromise = PromiseContainer.get();
@@ -104,7 +122,12 @@ export function executeWithAutoPipelining(
   }
 
   // If we have slot information, we can improve routing by grouping slots served by the same subset of nodes
-  const slotKey = client.isCluster ? client.slots[calculateSlot(args[0])].join(",") : 'main';
+  // NOTE: args is the unflattened args.
+  // ioredis will only flatten arguments by one level in the Command constructor.
+  const slotKey =
+    client.isCluster && args.length > 0
+      ? client.slots[calculateSlot(flatten(args)[0])].join(",")
+      : "main";
 
   if (!client._autoPipelines.has(slotKey)) {
     const pipeline = client.pipeline();

@@ -173,7 +173,7 @@ function generateFunction(
     }
 
     // No auto pipeline, use regular command sending
-    if (!shouldUseAutoPipelining(this, functionName, commandName)) {
+    if (!shouldUseAutoPipelining(this, functionName, commandName, args)) {
       return this.sendCommand(
         new Command(commandName, args, options, callback)
       );
@@ -228,7 +228,7 @@ function generateScriptingFunction(
     }
 
     // No auto pipeline, use regular command sending
-    if (!shouldUseAutoPipelining(this, functionName, commandName)) {
+    if (!shouldUseAutoPipelining(this, functionName, commandName, args)) {
       return script.execute(this, args, options, callback);
     }
 
