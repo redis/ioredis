@@ -861,7 +861,7 @@ class Cluster extends EventEmitter {
             keys
           );
 
-          for (let slot = slotRangeStart; slot <= slotRangeEnd; slot++) {
+          for (let slot = Number(slotRangeStart); slot <= Number(slotRangeEnd); slot++) {
             this.slots[slot] = keys;
           }
         }
