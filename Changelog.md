@@ -1,3 +1,10 @@
+## [4.27.7](https://github.com/luin/ioredis/compare/v4.27.6...v4.27.7) (2021-08-01)
+
+
+### Bug Fixes
+
+* **cluster:** fix autopipeline with keyPrefix or arg array ([#1391](https://github.com/luin/ioredis/issues/1391)) ([d7477aa](https://github.com/luin/ioredis/commit/d7477aa5853388b51037210542372131919ddfb2)), closes [#1264](https://github.com/luin/ioredis/issues/1264) [#1248](https://github.com/luin/ioredis/issues/1248) [#1392](https://github.com/luin/ioredis/issues/1392)
+
 ## [4.27.6](https://github.com/luin/ioredis/compare/v4.27.5...v4.27.6) (2021-06-13)
 
 
