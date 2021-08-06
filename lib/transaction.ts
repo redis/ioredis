@@ -30,6 +30,7 @@ export function addTransactionSupport(redis) {
     pipeline.exec = function (callback: CallbackFunction) {
       // Wait for the cluster to be connected, since we need nodes information before continuing
       if (this.isCluster && !this.redis.slots.length) {
+        if (this.redis.status === "wait") this.redis.connect();
         return asCallback(
           new Promise((resolve, reject) => {
             this.redis.delayUntilReady((err) => {

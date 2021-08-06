@@ -110,6 +110,7 @@ export function executeWithAutoPipelining(
 
   // On cluster mode let's wait for slots to be available
   if (client.isCluster && !client.slots.length) {
+    if (client.status === "wait") client.connect();
     return new CustomPromise(function (resolve, reject) {
       client.delayUntilReady((err) => {
         if (err) {
