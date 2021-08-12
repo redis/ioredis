@@ -32,6 +32,7 @@ describe("connection", function () {
       times += 1;
       if (times === 1) {
         expect(command.name).to.eql("auth");
+        return command.resolve("OK");
       } else if (times === 2) {
         expect(command.name).to.eql("info");
         redis.disconnect();
@@ -549,15 +550,15 @@ describe("disconnection", function () {
       }
     });
   });
-  
+
   it("should clear the added script hashes interval even when no connection succeeded", function (done) {
     let attempt = 0;
-    const redis = new Redis(0, 'localhost');
-    
+    const redis = new Redis(0, "localhost");
+
     redis.on("error", function () {
-      if(attempt < 5) {
-        attempt ++;
-        return
+      if (attempt < 5) {
+        attempt++;
+        return;
       }
 
       redis.quit();
