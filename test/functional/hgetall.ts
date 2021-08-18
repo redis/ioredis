@@ -32,5 +32,6 @@ describe("hgetall", function () {
     expect(Object.keys(ret).sort()).to.eql(
       ["__proto__", CUSTOM_PROPERTY].sort()
     );
+    expect(Object.getPrototypeOf(ret)).to.eql(Object.prototype);
   });
 });
