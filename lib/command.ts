@@ -427,7 +427,20 @@ Command.setReplyTransformer("hgetall", function (result) {
   if (Array.isArray(result)) {
     const obj = {};
     for (let i = 0; i < result.length; i += 2) {
-      obj[result[i]] = result[i + 1];
+      const key = result[i];
+      const value = result[i + 1];
+      if (obj[key]) {
+        // can only be truthy if the property is special somehow, like '__proto__' or 'constructor'
+        // https://github.com/luin/ioredis/issues/1267
+        Object.defineProperty(obj, key, {
+          value,
+          configurable: true,
+          enumerable: true,
+          writable: true,
+        });
+      } else {
+        obj[key] = value;
+      }
     }
     return obj;
   }
