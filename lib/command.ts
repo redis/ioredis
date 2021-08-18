@@ -429,7 +429,7 @@ Command.setReplyTransformer("hgetall", function (result) {
     for (let i = 0; i < result.length; i += 2) {
       const key = result[i];
       const value = result[i + 1];
-      if (obj[key]) {
+      if (key in obj) {
         // can only be truthy if the property is special somehow, like '__proto__' or 'constructor'
         // https://github.com/luin/ioredis/issues/1267
         Object.defineProperty(obj, key, {
