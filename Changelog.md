@@ -1,3 +1,10 @@
+## [4.27.8](https://github.com/luin/ioredis/compare/v4.27.7...v4.27.8) (2021-08-18)
+
+
+### Bug Fixes
+
+* handle malicious keys for hgetall ([#1416](https://github.com/luin/ioredis/issues/1416)) ([7d73b9d](https://github.com/luin/ioredis/commit/7d73b9d07b52ec077f235292aa15c7aca203bba9)), closes [#1267](https://github.com/luin/ioredis/issues/1267)
+
 ## [4.27.7](https://github.com/luin/ioredis/compare/v4.27.6...v4.27.7) (2021-08-01)
 
 
