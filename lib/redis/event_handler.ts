@@ -20,7 +20,7 @@ export function connectHandler(self) {
     let flushed = false;
     const { connectionEpoch } = self;
     let authResolve;
-    const authPro = new Promise((resolve) => {
+    const authPromise = new Promise((resolve) => {
       authResolve = resolve;
     });
     if (self.condition.auth) {
@@ -85,7 +85,7 @@ export function connectHandler(self) {
     });
 
     if (self.options.enableReadyCheck) {
-      authPro.then(() => {
+      authPromise.then(() => {
         self._readyCheck(function (err, info) {
           if (connectionEpoch !== self.connectionEpoch) {
             return;
