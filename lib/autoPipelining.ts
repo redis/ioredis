@@ -27,6 +27,16 @@ function executeAutoPipeline(client, slotKey: string) {
   if (client._runningAutoPipelines.has(slotKey)) {
     return;
   }
+  if (!client._autoPipelines.has(slotKey)) {
+    /* 
+      Rare edge case. Somehow, something has deleted this running autopipeline in an immediate 
+      call to executeAutoPipeline. 
+     
+      Maybe the callback in the pipeline.exec is sometimes called in the same tick,
+      e.g. if redis is disconnected?
+    */
+    return;
+  }
 
   client._runningAutoPipelines.add(slotKey);
 
