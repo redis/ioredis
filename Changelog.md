@@ -1,3 +1,11 @@
+## [4.27.9](https://github.com/luin/ioredis/compare/v4.27.8...v4.27.9) (2021-08-30)
+
+
+### Bug Fixes
+
+* Fix undefined property warning in executeAutoPipeline ([#1425](https://github.com/luin/ioredis/issues/1425)) ([f898672](https://github.com/luin/ioredis/commit/f898672a29753774eeb6e166c28ed6f548533517))
+* improve proto checking for hgetall [skip ci] ([#1418](https://github.com/luin/ioredis/issues/1418)) ([cba83cb](https://github.com/luin/ioredis/commit/cba83cba2dba25e59ad87c85d740f15f78e45e14))
+
 ## [4.27.8](https://github.com/luin/ioredis/compare/v4.27.7...v4.27.8) (2021-08-18)
 
 
