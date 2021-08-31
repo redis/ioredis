@@ -578,7 +578,7 @@ redis.get("k3", (err, result) => {
 });
 ```
 
-Another useful example of a reply transformer is one that changes `hgetall` to return array of arrays instead of objects which avoids a unwanted conversation of hash keys to strings when dealing with binary hash keys:
+Another useful example of a reply transformer is one that changes `hgetall` to return array of arrays instead of objects which avoids an unwanted conversation of hash keys to strings when dealing with binary hash keys:
 
 ```javascript
 Redis.Command.setReplyTransformer("hgetall", (result) => {
