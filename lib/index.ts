@@ -26,6 +26,7 @@ Object.defineProperty(exports, "Promise", {
   set(lib) {
     PromiseContainer.set(lib);
   },
+  configurable: true,
 });
 
 export function print(err: Error | null, reply?: any) {
