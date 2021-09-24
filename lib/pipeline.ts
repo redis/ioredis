@@ -7,6 +7,7 @@ import * as pMap from "p-map";
 import * as PromiseContainer from "./promiseContainer";
 import { CallbackFunction } from "./types";
 import Commander from "./commander";
+import { noop } from "./utils";
 
 /*
   This function derives from the cluster-key-slot implementation.
@@ -242,7 +243,7 @@ Pipeline.prototype.execBuffer = deprecate(function () {
 Pipeline.prototype.exec = function (callback: CallbackFunction) {
   // Wait for the cluster to be connected, since we need nodes information before continuing
   if (this.isCluster && !this.redis.slots.length) {
-    if (this.redis.status === "wait") this.redis.connect();
+    if (this.redis.status === "wait") this.redis.connect().catch(noop);
     this.redis.delayUntilReady((err) => {
       if (err) {
         callback(err);
