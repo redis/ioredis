@@ -2,6 +2,7 @@ import Redis from "../../lib/redis";
 import { expect } from "chai";
 import * as sinon from "sinon";
 import { Cluster } from "../../lib";
+import Pipeline from "../../lib/pipeline";
 
 describe("lazy connect", function () {
   it("should not call `connect` when init", function () {
@@ -49,6 +50,28 @@ describe("lazy connect", function () {
         .throws(new Error("`connect` should not be called"));
       new Cluster([], { lazyConnect: true });
       stub.restore();
+    });
+
+    it("should call connect when pipeline exec", (done) => {
+      const stub = sinon.stub(Cluster.prototype, "connect").callsFake(() => {
+        stub.restore();
+        done();
+      });
+      const cluster = new Cluster([], { lazyConnect: true });
+      const pipline = new Pipeline(cluster);
+      pipline.get("fool1").exec(() => {});
+    });
+
+    it("should call connect when transction exec", (done) => {
+      const stub = sinon.stub(Cluster.prototype, "connect").callsFake(() => {
+        stub.restore();
+        done();
+      });
+      const cluster = new Cluster([], { lazyConnect: true });
+      cluster
+        .multi()
+        .get("fool1")
+        .exec(() => {});
     });
 
     it('should quit before "close" being emited', function (done) {

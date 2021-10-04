@@ -7,6 +7,7 @@ import * as pMap from "p-map";
 import * as PromiseContainer from "./promiseContainer";
 import { CallbackFunction } from "./types";
 import Commander from "./commander";
+import { noop } from "./utils";
 
 /*
   This function derives from the cluster-key-slot implementation.
@@ -16,7 +17,7 @@ import Commander from "./commander";
 function generateMultiWithNodes(redis, keys) {
   const slot = calculateSlot(keys[0]);
   const target = redis._groupsBySlot[slot];
-  
+
   for (let i = 1; i < keys.length; i++) {
     if (redis._groupsBySlot[calculateSlot(keys[i])] !== target) {
       return -1;
@@ -156,7 +157,8 @@ Pipeline.prototype.fillResult = function (value, position) {
         moved: function (slot, key) {
           _this.preferKey = key;
           _this.redis.slots[errv[1]] = [key];
-          _this.redis._groupsBySlot[errv[1]] = _this.redis._groupsIds[_this.redis.slots[errv[1]].join(";")];
+          _this.redis._groupsBySlot[errv[1]] =
+            _this.redis._groupsIds[_this.redis.slots[errv[1]].join(";")];
           _this.redis.refreshSlotsCache();
           _this.exec();
         },
@@ -241,6 +243,7 @@ Pipeline.prototype.execBuffer = deprecate(function () {
 Pipeline.prototype.exec = function (callback: CallbackFunction) {
   // Wait for the cluster to be connected, since we need nodes information before continuing
   if (this.isCluster && !this.redis.slots.length) {
+    if (this.redis.status === "wait") this.redis.connect().catch(noop);
     this.redis.delayUntilReady((err) => {
       if (err) {
         callback(err);

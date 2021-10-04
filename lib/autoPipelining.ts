@@ -1,5 +1,5 @@
 import * as PromiseContainer from "./promiseContainer";
-import { flatten, isArguments } from "./utils/lodash";
+import { flatten, isArguments, noop } from "./utils/lodash";
 import * as calculateSlot from "cluster-key-slot";
 import asCallback from "standard-as-callback";
 
@@ -120,6 +120,7 @@ export function executeWithAutoPipelining(
 
   // On cluster mode let's wait for slots to be available
   if (client.isCluster && !client.slots.length) {
+    if (client.status === "wait") client.connect().catch(noop);
     return new CustomPromise(function (resolve, reject) {
       client.delayUntilReady((err) => {
         if (err) {

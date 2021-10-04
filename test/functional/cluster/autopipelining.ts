@@ -594,4 +594,26 @@ describe("autoPipelining for cluster", function () {
       changeSlot(cluster, key1Slot, key2Slot);
     });
   });
+
+  it("should support lazyConnect", async () => {
+    const cluster = new Cluster(hosts, {
+      enableAutoPipelining: true,
+      lazyConnect: true,
+    });
+
+    await cluster.set("foo1", "bar1");
+    await cluster.set("foo5", "bar5");
+
+    expect(
+      await Promise.all([
+        cluster.get("foo1"),
+        cluster.get("foo5"),
+        cluster.get("foo1"),
+        cluster.get("foo5"),
+        cluster.get("foo1"),
+      ])
+    ).to.eql(["bar1", "bar5", "bar1", "bar5", "bar1"]);
+
+    cluster.disconnect();
+  });
 });
