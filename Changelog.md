@@ -1,3 +1,10 @@
+## [4.27.10](https://github.com/luin/ioredis/compare/v4.27.9...v4.27.10) (2021-10-04)
+
+
+### Bug Fixes
+
+* **cluster:** lazyConnect with pipeline ([#1408](https://github.com/luin/ioredis/issues/1408)) ([b798107](https://github.com/luin/ioredis/commit/b798107e4123d0027ef1bdb3319cd00516221f3b))
+
 ## [4.27.9](https://github.com/luin/ioredis/compare/v4.27.8...v4.27.9) (2021-08-30)
 
 
