@@ -49,4 +49,4 @@ deploy:
     on:
       tags: false
       all_branches: true
-      node: "10"
+      node: "14"
