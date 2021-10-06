@@ -4,7 +4,13 @@ import { EventEmitter } from "events";
 import Deque = require("denque");
 import Command from "../command";
 import Commander from "../commander";
-import { isInt, CONNECTION_CLOSED_ERROR_MSG, parseURL, Debug } from "../utils";
+import {
+  isInt,
+  CONNECTION_CLOSED_ERROR_MSG,
+  parseURL,
+  Debug,
+  resolveTLSProfile,
+} from "../utils";
 import asCallback from "standard-as-callback";
 import * as eventHandler from "./event_handler";
 import { StandaloneConnector, SentinelConnector } from "../connectors";
@@ -262,6 +268,8 @@ Redis.prototype.parseOptions = function () {
       "Hiredis parser is abandoned since ioredis v3.0, and JavaScript parser will be used"
     );
   }
+
+  this.options = resolveTLSProfile(this.options);
 };
 
 /**
