@@ -1,3 +1,10 @@
+## [4.27.11](https://github.com/luin/ioredis/compare/v4.27.10...v4.27.11) (2021-10-11)
+
+
+### Bug Fixes
+
+* make export interface compatible with jest ([#1445](https://github.com/luin/ioredis/issues/1445)) ([2728dbe](https://github.com/luin/ioredis/commit/2728dbe5289ebc8603484bc85c01632cfab98204))
+
 ## [4.27.10](https://github.com/luin/ioredis/compare/v4.27.9...v4.27.10) (2021-10-04)
 
 
