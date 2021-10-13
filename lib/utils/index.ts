@@ -2,6 +2,8 @@ import { parse as urllibParse } from "url";
 import { defaults, noop, flatten } from "./lodash";
 import Debug from "./debug";
 
+import TLSProfiles from "../constants/TLSProfiles";
+
 /**
  * Test if two buffers are equal
  *
@@ -287,6 +289,28 @@ export function parseURL(url) {
   defaults(result, options);
 
   return result;
+}
+
+/**
+ * Resolve TLS profile shortcut in connection options
+ *
+ * @param {Object} options - the redis connection options
+ * @return {Object}
+ */
+export function resolveTLSProfile(options) {
+  let tls = options?.tls;
+
+  if (typeof tls === "string") tls = { profile: tls };
+
+  const profile = TLSProfiles[tls?.profile];
+
+  if (profile) {
+    tls = Object.assign({}, profile, tls);
+    delete tls.profile;
+    options = Object.assign({}, options, { tls });
+  }
+
+  return options;
 }
 
 /**

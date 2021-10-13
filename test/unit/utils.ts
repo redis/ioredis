@@ -1,6 +1,7 @@
 import * as sinon from "sinon";
 import { expect } from "chai";
 import * as utils from "../../lib/utils";
+import TLSProfiles from "../../lib/constants/TLSProfiles";
 
 describe("utils", function () {
   describe(".bufferEqual", function () {
@@ -276,6 +277,50 @@ describe("utils", function () {
       ).to.eql({
         host: "127.0.0.1",
       });
+    });
+  });
+
+  describe(".resolveTLSProfile", function () {
+    it("should leave options alone when no tls profile is set", function () {
+      [
+        {},
+        { tls: true },
+        { tls: false },
+        { tls: "foo" },
+        { tls: {} },
+        { tls: { ca: "foo" } },
+        { tls: { profile: "foo" } },
+      ].forEach((options) => {
+        expect(utils.resolveTLSProfile(options)).to.eql(options);
+      });
+    });
+
+    it("should have redis.com profiles defined", function () {
+      expect(TLSProfiles).to.have.property("RedisCloudFixed");
+      expect(TLSProfiles).to.have.property("RedisCloudFlexible");
+    });
+
+    it("should read profile from options.tls.profile", function () {
+      const input = { tls: { profile: "RedisCloudFixed" } };
+      const expected = { tls: TLSProfiles.RedisCloudFixed };
+
+      expect(utils.resolveTLSProfile(input)).to.eql(expected);
+    });
+
+    it("should read profile from options.tls", function () {
+      const input = { tls: "RedisCloudFixed" };
+      const expected = { tls: TLSProfiles.RedisCloudFixed };
+
+      expect(utils.resolveTLSProfile(input)).to.eql(expected);
+    });
+
+    it("supports extra options when using options.tls.profile", function () {
+      const input = { tls: { profile: "RedisCloudFixed", key: "foo" } };
+      const expected = {
+        tls: { ...TLSProfiles.RedisCloudFixed, key: "foo" },
+      };
+
+      expect(utils.resolveTLSProfile(input)).to.eql(expected);
     });
   });
 
