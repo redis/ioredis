@@ -1,3 +1,10 @@
+# [4.28.0](https://github.com/luin/ioredis/compare/v4.27.11...v4.28.0) (2021-10-13)
+
+
+### Features
+
+* **tls:** add TLS profiles for easier configuration ([#1441](https://github.com/luin/ioredis/issues/1441)) ([4680211](https://github.com/luin/ioredis/commit/4680211fe853831f9ff3a3eb69f16d5db6bfbabd))
+
 ## [4.27.11](https://github.com/luin/ioredis/compare/v4.27.10...v4.27.11) (2021-10-11)
 
 
