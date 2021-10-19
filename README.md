@@ -42,11 +42,26 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 - [Error Handling](#error-handling)
 
 <hr>
-<a href="http://bit.ly/medis-macos"><img align="right" src="resources/medis.png" alt="Download on the App Store"></a>
 
-### [AD] Medis: Redis GUI for OS X
+# Sponsors
 
-Looking for a Redis GUI manager for OS X, Windows and Linux? Here's [Medis](http://bit.ly/medis-macos)!
+<a href="https://github.com/sponsors/luin">Become a sponsor!</a>
+
+### Upstash: Serverless Database for Redis
+
+<a href="https://upstash.com/?utm_source=ioredis"><img align="right" width="320" src="resources/upstash.png" alt="Upstash"></a>
+
+Upstash is a Serverless Database with Redis/REST API and durable storage. It is the perfect database for your applications thanks to its per request pricing and low latency data.
+
+[Start for free in 30 seconds! ](https://upstash.com/?utm_source=ioredis)
+
+<br clear="both"/>
+
+### Medis: Redis GUI for macOS
+
+<a href="https://getmedis.com/"><img align="right" width="404" src="resources/medis.png" alt="Download on the App Store"></a>
+
+Looking for a Redis GUI for macOS, Windows and Linux? Here's [Medis](https://getmedis.com/)!
 
 Medis is an open-sourced, beautiful, easy-to-use Redis GUI management application.
 
@@ -55,12 +70,11 @@ Medis starts with all the basic features you need:
 - Keys viewing/editing
 - SSH Tunnel for connecting with remote servers
 - Terminal for executing custom commands
-- JSON/MessagePack format viewing/editing and built-in highlighting/validator
 - And other awesome features...
 
-[Medis is open sourced on GitHub](https://github.com/luin/medis)
+[Medis 1 is open sourced on GitHub](https://github.com/luin/medis)
 
-### [AD] Kuber: Kubernetes Dashboard for iOS
+### Kuber: Kubernetes Dashboard for iOS
 
 <a href="http://bit.ly/kuber-ios"><img src="resources/kuber.png" alt="Download on the App Store"></a>
 
