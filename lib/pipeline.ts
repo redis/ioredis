@@ -240,7 +240,15 @@ Pipeline.prototype.execBuffer = deprecate(function () {
   return execBuffer.apply(this, arguments);
 }, "Pipeline#execBuffer: Use Pipeline#exec instead");
 
-Pipeline.prototype.exec = function (callback: CallbackFunction) {
+// NOTE: To avoid an unhandled promise rejection, this will unconditionally always return this.promise,
+// which always has the rejection handled by standard-as-callback
+// adding the provided rejection callback.
+//
+// If a different promise instance were returned, that promise would cause its own unhandled promise rejection
+// errors, even if that promise unconditionally resolved to **the resolved value of** this.promise.
+Pipeline.prototype.exec = function (
+  callback: CallbackFunction
+): Promise<Array<any>> {
   // Wait for the cluster to be connected, since we need nodes information before continuing
   if (this.isCluster && !this.redis.slots.length) {
     if (this.redis.status === "wait") this.redis.connect().catch(noop);
@@ -338,17 +346,19 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
 
   // In cluster mode, always load scripts before running the pipeline
   if (this.isCluster) {
-    return pMap(scripts, (script) => _this.redis.script("load", script.lua), {
+    pMap(scripts, (script) => _this.redis.script("load", script.lua), {
       concurrency: 10,
-    }).then(function () {
-      for (let i = 0; i < scripts.length; i++) {
-        _this.redis._addedScriptHashes[scripts[i].sha] = true;
-      }
-      return execPipeline();
-    });
+    })
+      .then(function () {
+        for (let i = 0; i < scripts.length; i++) {
+          _this.redis._addedScriptHashes[scripts[i].sha] = true;
+        }
+      })
+      .then(execPipeline, this.reject);
+    return this.promise;
   }
 
-  return this.redis
+  this.redis
     .script(
       "exists",
       scripts.map(({ sha }) => sha)
@@ -371,8 +381,9 @@ Pipeline.prototype.exec = function (callback: CallbackFunction) {
       for (let i = 0; i < scripts.length; i++) {
         _this.redis._addedScriptHashes[scripts[i].sha] = true;
       }
-      return execPipeline();
-    });
+    })
+    .then(execPipeline, this.reject);
+  return this.promise;
 
   function execPipeline() {
     let data = "";
