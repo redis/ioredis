@@ -3,6 +3,7 @@ import { expect } from "chai";
 import { Readable } from "stream";
 import * as sinon from "sinon";
 import MockServer from "../helpers/mock_server";
+import { getRedisVersion } from "../helpers/util";
 import { Cluster } from "../../lib";
 
 describe("*scanStream", function () {
@@ -77,9 +78,13 @@ describe("*scanStream", function () {
       );
     });
 
-    it("should recognize `TYPE`", function (done) {
+    it("should recognize `TYPE`", async function () {
       let keys = [];
       const redis = new Redis();
+      const [major] = await getRedisVersion(redis);
+      if (major < 6) {
+        return;
+      }
       redis.set("foo1", "bar");
       redis.set("foo2", "bar");
       redis.set("foo3", "bar");
@@ -92,10 +97,12 @@ describe("*scanStream", function () {
       stream.on("data", function (data) {
         keys = keys.concat(data);
       });
-      stream.on("end", function () {
-        expect(keys.sort()).to.eql(["loo1", "loo2", "loo3"]);
-        redis.disconnect();
-        done();
+      return new Promise((resolve) => {
+        stream.on("end", function () {
+          expect(keys.sort()).to.eql(["loo1", "loo2", "loo3"]);
+          redis.disconnect();
+          resolve();
+        });
       });
     });
 
