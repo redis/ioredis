@@ -121,22 +121,25 @@ export function executeWithAutoPipelining(
   // On cluster mode let's wait for slots to be available
   if (client.isCluster && !client.slots.length) {
     if (client.status === "wait") client.connect().catch(noop);
-    return new CustomPromise(function (resolve, reject) {
-      client.delayUntilReady((err) => {
-        if (err) {
-          reject(err);
-          return;
-        }
+    return asCallback(
+      new CustomPromise(function (resolve, reject) {
+        client.delayUntilReady((err) => {
+          if (err) {
+            reject(err);
+            return;
+          }
 
-        executeWithAutoPipelining(
-          client,
-          functionName,
-          commandName,
-          args,
-          callback
-        ).then(resolve, reject);
-      });
-    });
+          executeWithAutoPipelining(
+            client,
+            functionName,
+            commandName,
+            args,
+            null
+          ).then(resolve, reject);
+        });
+      }),
+      callback
+    );
   }
 
   // If we have slot information, we can improve routing by grouping slots served by the same subset of nodes
