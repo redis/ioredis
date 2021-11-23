@@ -1,3 +1,10 @@
+## [4.28.1](https://github.com/luin/ioredis/compare/v4.28.0...v4.28.1) (2021-11-23)
+
+
+### Bug Fixes
+
+* handle possible unhandled promise rejection with autopipelining+cluster ([#1467](https://github.com/luin/ioredis/issues/1467)) ([6ad285a](https://github.com/luin/ioredis/commit/6ad285a59f4a46d5452a799371dfbd69a07ac9f9)), closes [#1466](https://github.com/luin/ioredis/issues/1466)
+
 # [4.28.0](https://github.com/luin/ioredis/compare/v4.27.11...v4.28.0) (2021-10-13)
 
 
