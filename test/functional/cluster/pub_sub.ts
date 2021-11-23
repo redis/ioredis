@@ -3,6 +3,7 @@ import { expect } from "chai";
 import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
 import Redis from "../../../lib/redis";
+import { noop } from "../../../lib/utils";
 
 describe("cluster:pub/sub", function () {
   it("should receive messages", function (done) {
@@ -97,7 +98,7 @@ describe("cluster:pub/sub", function () {
           return Redis.prototype.subscribe.apply(this, arguments);
         });
       client.once("end", function () {
-        client.connect();
+        client.connect().catch(noop);
       });
       client.disconnect();
     });
@@ -124,7 +125,7 @@ describe("cluster:pub/sub", function () {
           return Redis.prototype.psubscribe.apply(this, arguments);
         });
       client.once("end", function () {
-        client.connect();
+        client.connect().catch(noop);
       });
       client.disconnect();
     });
