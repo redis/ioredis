@@ -1,4 +1,5 @@
 import Redis from "../../lib/redis";
+import { getRedisVersion } from "../helpers/util";
 import { expect } from "chai";
 
 describe("transformer", function () {
@@ -163,39 +164,72 @@ describe("transformer", function () {
     });
 
     describe("hset", function () {
-      it("should support object", function (done) {
+      it("should support object", async function () {
         const redis = new Redis();
-        redis.hset("foo", { a: 1, b: "e", c: 123 }, function (err, result) {
-          expect(result).to.eql(3);
-          redis.hget("foo", "b", function (err, result) {
-            expect(result).to.eql("e");
-            done();
+        const [major] = await getRedisVersion(redis);
+        if (major < 4) {
+          // Skip if redis is too outdated to hset multiple pairs at once.
+          return;
+        }
+        // NOTE: could simplify these tests using await redis.hset instead,
+        // but not sure if this is deliberately testing the transformers with callbacks
+        return new Promise((resolve, reject) => {
+          redis.hset("foo", { a: 1, b: "e", c: 123 }, function (err, result) {
+            if (err) {
+              return reject(err);
+            }
+            expect(result).to.eql(3);
+            redis.hget("foo", "b", function (err, result) {
+              expect(result).to.eql("e");
+              resolve();
+            });
           });
         });
       });
-      it("should support Map", function (done) {
+      it("should support Map", async function () {
         if (typeof Map === "undefined") {
-          return done();
+          return;
         }
         const redis = new Redis();
+        const [major] = await getRedisVersion(redis);
+        if (major < 4) {
+          // Skip if redis is too outdated to hset multiple pairs at once.
+          return;
+        }
         const map = new Map();
         map.set("a", 1);
         map.set("b", "e");
-        redis.hset("foo", map, function (err, result) {
-          expect(result).to.eql(2);
-          redis.hget("foo", "b", function (err, result) {
-            expect(result).to.eql("e");
-            done();
+        return new Promise((resolve, reject) => {
+          redis.hset("foo", map, function (err, result) {
+            if (err) {
+              return reject(err);
+            }
+            expect(result).to.eql(2);
+            redis.hget("foo", "b", function (err, result) {
+              if (err) {
+                return reject(err);
+              }
+              expect(result).to.eql("e");
+              resolve();
+            });
           });
         });
       });
-      it("should affect the old way", function (done) {
+      it("should affect the old way", async function () {
         const redis = new Redis();
-        redis.hset("foo", "a", 1, "b", "e", function (err, result) {
-          expect(result).to.eql(2);
-          redis.hget("foo", "b", function (err, result) {
-            expect(result).to.eql("e");
-            done();
+        const [major] = await getRedisVersion(redis);
+        if (major < 4) {
+          // Skip if redis is too outdated to hset multiple pairs at once.
+          return;
+        }
+
+        return new Promise((resolve) => {
+          redis.hset("foo", "a", 1, "b", "e", function (err, result) {
+            expect(result).to.eql(2);
+            redis.hget("foo", "b", function (err, result) {
+              expect(result).to.eql("e");
+              resolve();
+            });
           });
         });
       });
