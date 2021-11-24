@@ -45,6 +45,10 @@ function executeAutoPipeline(client, slotKey: string) {
   client._autoPipelines.delete(slotKey);
 
   const callbacks = pipeline[kCallbacks];
+  // Stop keeping a reference to callbacks immediately after the callbacks stop being used.
+  // This allows the GC to reclaim objects referenced by callbacks, especially with 16384 slots
+  // in Redis.Cluster
+  pipeline[kCallbacks] = null;
 
   // Perform the call
   pipeline.exec(function (err, results) {
