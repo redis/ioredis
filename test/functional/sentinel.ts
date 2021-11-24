@@ -324,7 +324,7 @@ describe("sentinel", function () {
     });
 
     it("should connect to the next sentinel if the role is wrong", function (done) {
-      new MockServer(27379, function (argv) {
+      const sentinel = new MockServer(27379, function (argv) {
         if (
           argv[0] === "sentinel" &&
           argv[1] === "get-master-addr-by-name" &&
@@ -334,10 +334,12 @@ describe("sentinel", function () {
         }
       });
 
-      const sentinel = new MockServer(27380);
+      const sentinel2 = new MockServer(27380);
       sentinel.on("connect", function () {
         redis.disconnect();
-        done();
+        sentinel.disconnect(function () {
+          sentinel2.disconnect(done);
+        });
       });
 
       new MockServer(17380, function (argv) {

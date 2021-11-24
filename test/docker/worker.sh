@@ -10,4 +10,5 @@ REDIS_PID=$?
 sleep 1
 echo "Started redis as process $REDIS_PID"
 trap "trap - SIGINT SIGTERM EXIT && kill $REDIS_PID" SIGINT SIGTERM EXIT
-npm run test || exit 1
+# Retry failed tests up to 3 times in case of spurious failures.
+npm run test || npm run test || npm run test || exit 1
