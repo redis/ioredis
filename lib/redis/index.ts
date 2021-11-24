@@ -23,7 +23,7 @@ import {
   ReconnectOnError,
   DEFAULT_REDIS_OPTIONS,
 } from "./RedisOptions";
-import { NetStream } from "../types";
+import { NetStream, CallbackFunction, ICommandItem } from "../types";
 
 const debug = Debug("redis");
 
@@ -339,7 +339,7 @@ Redis.prototype.connect = function (callback) {
       this.connector.connect(function (type, err) {
         _this.silentEmit(type, err);
       }) as Promise<NetStream>,
-      function (err, stream) {
+      function (err: Error | null, stream?: NetStream) {
         if (err) {
           _this.flushQueue(err);
           _this.silentEmit("error", err);
@@ -473,17 +473,24 @@ Redis.prototype.end = function () {
  *
  * @public
  */
-Redis.prototype.duplicate = function (override) {
+Redis.prototype.duplicate = function (override: IRedisOptions) {
   return new Redis(Object.assign({}, this.options, override || {}));
 };
 
-Redis.prototype.recoverFromFatalError = function (commandError, err, options) {
+Redis.prototype.recoverFromFatalError = function (
+  commandError,
+  err: Error | null,
+  options
+) {
   this.flushQueue(err, options);
   this.silentEmit("error", err);
   this.disconnect(true);
 };
 
-Redis.prototype.handleReconnection = function handleReconnection(err, item) {
+Redis.prototype.handleReconnection = function handleReconnection(
+  err: Error,
+  item: ICommandItem
+) {
   let needReconnect: ReturnType<ReconnectOnError> = false;
   if (this.options.reconnectOnError) {
     needReconnect = this.options.reconnectOnError(err);
@@ -521,7 +528,7 @@ Redis.prototype.handleReconnection = function handleReconnection(err, item) {
  * @param {object} options
  * @private
  */
-Redis.prototype.flushQueue = function (error, options) {
+Redis.prototype.flushQueue = function (error: Error, options: IRedisOptions) {
   options = defaults({}, options, {
     offlineQueue: true,
     commandQueue: true,
@@ -555,9 +562,9 @@ Redis.prototype.flushQueue = function (error, options) {
  * @param {Function} callback
  * @private
  */
-Redis.prototype._readyCheck = function (callback) {
+Redis.prototype._readyCheck = function (callback: CallbackFunction) {
   const _this = this;
-  this.info(function (err, res) {
+  this.info(function (err: Error | null, res: string) {
     if (err) {
       return callback(err);
     }
@@ -710,7 +717,7 @@ addTransactionSupport(Redis.prototype);
  * ```
  * @private
  */
-Redis.prototype.sendCommand = function (command: Command, stream) {
+Redis.prototype.sendCommand = function (command: Command, stream: NetStream) {
   if (this.status === "wait") {
     this.connect().catch(noop);
   }

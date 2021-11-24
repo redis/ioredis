@@ -57,7 +57,7 @@ export function addTransactionSupport(redis) {
       }
       const promise = exec.call(pipeline);
       return asCallback(
-        promise.then(function (result) {
+        promise.then(function (result: any[]): any[] | null {
           const execResult = result[result.length - 1];
           if (typeof execResult === "undefined") {
             throw new Error(
@@ -80,7 +80,7 @@ export function addTransactionSupport(redis) {
     };
 
     const { execBuffer } = pipeline;
-    pipeline.execBuffer = function (callback) {
+    pipeline.execBuffer = function (callback: CallbackFunction) {
       if (this._transactions > 0) {
         execBuffer.call(pipeline);
       }
@@ -90,9 +90,9 @@ export function addTransactionSupport(redis) {
   };
 
   const { exec } = redis;
-  redis.exec = function (callback: CallbackFunction) {
+  redis.exec = function (callback: CallbackFunction): Promise<any[] | null> {
     return asCallback(
-      exec.call(this).then(function (results) {
+      exec.call(this).then(function (results: any[] | null) {
         if (Array.isArray(results)) {
           results = wrapMultiResult(results);
         }

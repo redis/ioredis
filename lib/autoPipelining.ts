@@ -175,9 +175,9 @@ export function executeWithAutoPipelining(
     setImmediate(executeAutoPipeline, client, slotKey);
   }
 
-  // Create the promise which will execute the
+  // Create the promise which will execute the command in the pipeline.
   const autoPipelinePromise = new CustomPromise(function (resolve, reject) {
-    pipeline[kCallbacks].push(function (err, value) {
+    pipeline[kCallbacks].push(function (err: Error | null, value: any) {
       if (err) {
         reject(err);
         return;

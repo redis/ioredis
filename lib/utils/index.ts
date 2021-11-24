@@ -1,5 +1,6 @@
 import { parse as urllibParse } from "url";
 import { defaults, noop, flatten } from "./lodash";
+import { CallbackFunction } from "../types";
 import Debug from "./debug";
 
 import TLSProfiles from "../constants/TLSProfiles";
@@ -74,7 +75,7 @@ export function convertBufferToString(value: any, encoding?: string) {
  * ```
  * @private
  */
-export function wrapMultiResult(arr) {
+export function wrapMultiResult(arr: any[] | null): any[][] {
   // When using WATCH/EXEC transactions, the EXEC will return
   // a null instead of an array
   if (!arr) {
@@ -94,7 +95,7 @@ export function wrapMultiResult(arr) {
 }
 
 /**
- * Detect the argument is a int
+ * Detect if the argument is a int
  *
  * @param {string} value
  * @return {boolean} Whether the value is a int
@@ -113,7 +114,7 @@ export function wrapMultiResult(arr) {
  * ```
  * @private
  */
-export function isInt(value): value is string {
+export function isInt(value: any): value is string {
   const x = parseFloat(value);
   return !isNaN(value) && (x | 0) === x;
 }
@@ -129,7 +130,7 @@ export function isInt(value): value is string {
  * { a: 'b', c: 'd' }
  * ```
  */
-export function packObject(array) {
+export function packObject(array: any[]): Record<string, any> {
   const result = {};
   const length = array.length;
 
@@ -147,8 +148,8 @@ export function packObject(array) {
  * @param {number} timeout
  * @return {function}
  */
-export function timeout(callback, timeout) {
-  let timer;
+export function timeout(callback: CallbackFunction, timeout: number) {
+  let timer: NodeJS.Timeout;
   const run = function () {
     if (timer) {
       clearTimeout(timer);
@@ -171,9 +172,11 @@ export function timeout(callback, timeout) {
  * ['a', '1']
  * ```
  */
-export function convertObjectToArray(obj) {
+export function convertObjectToArray<T>(
+  obj: Record<string, T>
+): Array<string | T> {
   const result = [];
-  const keys = Object.keys(obj);
+  const keys = Object.keys(obj); // Object.entries requires node 7+
 
   for (let i = 0, l = keys.length; i < l; i++) {
     result.push(keys[i], obj[keys[i]]);
@@ -188,12 +191,12 @@ export function convertObjectToArray(obj) {
  * @return {array}
  * @example
  * ```js
- * > convertObjectToArray(new Map([[1, '2']]))
+ * > convertMapToArray(new Map([[1, '2']]))
  * [1, '2']
  * ```
  */
 export function convertMapToArray<K, V>(map: Map<K, V>): Array<K | V> {
-  const result = [];
+  const result: Array<K | V> = [];
   let pos = 0;
   map.forEach(function (value, key) {
     result[pos] = key;
@@ -209,7 +212,7 @@ export function convertMapToArray<K, V>(map: Map<K, V>): Array<K | V> {
  * @param {*} arg
  * @return {string}
  */
-export function toArg(arg) {
+export function toArg(arg: any): string {
   if (arg === null || typeof arg === "undefined") {
     return "";
   }
@@ -223,7 +226,11 @@ export function toArg(arg) {
  * @param {string} friendlyStack - the stack that more meaningful
  * @param {string} filterPath - only show stacks with the specified path
  */
-export function optimizeErrorStack(error, friendlyStack, filterPath) {
+export function optimizeErrorStack(
+  error: Error,
+  friendlyStack: string,
+  filterPath: string
+) {
   const stacks = friendlyStack.split("\n");
   let lines = "";
   let i;
@@ -246,7 +253,7 @@ export function optimizeErrorStack(error, friendlyStack, filterPath) {
  * @param {string} url - the redis protocol url
  * @return {Object}
  */
-export function parseURL(url) {
+export function parseURL(url: string) {
   if (isInt(url)) {
     return { port: url };
   }
@@ -291,13 +298,19 @@ export function parseURL(url) {
   return result;
 }
 
+interface TLSOptions {
+  port: number;
+  host: string;
+  [key: string]: any;
+}
+
 /**
  * Resolve TLS profile shortcut in connection options
  *
  * @param {Object} options - the redis connection options
  * @return {Object}
  */
-export function resolveTLSProfile(options) {
+export function resolveTLSProfile(options: TLSOptions): TLSOptions {
   let tls = options?.tls;
 
   if (typeof tls === "string") tls = { profile: tls };

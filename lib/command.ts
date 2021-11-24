@@ -101,13 +101,16 @@ export default class Command implements ICommand {
 
   private static getFlagMap(): IFlagMap {
     if (!this.flagMap) {
-      this.flagMap = Object.keys(Command.FLAGS).reduce((map, flagName) => {
-        map[flagName] = {};
-        Command.FLAGS[flagName].forEach((commandName) => {
-          map[flagName][commandName] = true;
-        });
-        return map;
-      }, {});
+      this.flagMap = Object.keys(Command.FLAGS).reduce(
+        (map: IFlagMap, flagName: string) => {
+          map[flagName] = {};
+          Command.FLAGS[flagName].forEach((commandName: string) => {
+            map[flagName][commandName] = true;
+          });
+          return map;
+        },
+        {}
+      );
     }
     return this.flagMap;
   }
