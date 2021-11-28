@@ -38,7 +38,7 @@ export default class Script {
     const result = container.sendCommand(evalsha);
     if (isPromise(result)) {
       return asCallback(
-        result.catch((err) => {
+        result.catch((err: Error) => {
           if (err.toString().indexOf("NOSCRIPT") === -1) {
             throw err;
           }
