@@ -298,7 +298,7 @@ export function parseURL(url: string) {
   return result;
 }
 
-interface TLSOptions {
+interface ITLSOptions {
   port: number;
   host: string;
   [key: string]: any;
@@ -310,7 +310,7 @@ interface TLSOptions {
  * @param {Object} options - the redis connection options
  * @return {Object}
  */
-export function resolveTLSProfile(options: TLSOptions): TLSOptions {
+export function resolveTLSProfile(options: ITLSOptions): ITLSOptions {
   let tls = options?.tls;
 
   if (typeof tls === "string") tls = { profile: tls };
