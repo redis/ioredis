@@ -55,7 +55,7 @@ Upstash is a Serverless Database with Redis/REST API and durable storage. It is 
 
 <br clear="both"/>
 
-### Redis: From the creators of Redis
+### Redis Cloud: From the creators of Redis
 
 <a href="https://redis.info/ioredis-tryfree"><img align="right" width="320" src="resources/redis-tryfree.png" alt="redis-tryfree"></a>
 
