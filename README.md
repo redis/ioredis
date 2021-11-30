@@ -45,15 +45,23 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 
 # Sponsors
 
-<a href="https://github.com/sponsors/luin">Become a sponsor!</a>
-
 ### Upstash: Serverless Database for Redis
 
 <a href="https://upstash.com/?utm_source=ioredis"><img align="right" width="320" src="resources/upstash.png" alt="Upstash"></a>
 
 Upstash is a Serverless Database with Redis/REST API and durable storage. It is the perfect database for your applications thanks to its per request pricing and low latency data.
 
-[Start for free in 30 seconds! ](https://upstash.com/?utm_source=ioredis)
+[Start for free in 30 seconds!](https://upstash.com/?utm_source=ioredis)
+
+<br clear="both"/>
+
+### Redis: From the creators of Redis
+
+<a href="https://redis.info/ioredis-tryfree"><img align="right" width="320" src="resources/redis-tryfree.png" alt="redis-tryfree"></a>
+
+Experience the best Redis. For a limited time, sign up to Redis Enterprise Cloud and use **MATRIX200** to get $200 credits, and a chance to win a Tesla!
+
+[Sign Up Now!](https://redis.info/ioredis-tryfree)
 
 <br clear="both"/>
 
@@ -74,9 +82,7 @@ Medis starts with all the basic features you need:
 
 [Medis 1 is open sourced on GitHub](https://github.com/luin/medis)
 
-### Kuber: Kubernetes Dashboard for iOS
-
-<a href="http://bit.ly/kuber-ios"><img src="resources/kuber.png" alt="Download on the App Store"></a>
+<br clear="both"/>
 
 <hr>
 
