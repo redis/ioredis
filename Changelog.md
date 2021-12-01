@@ -1,3 +1,12 @@
+## [4.28.2](https://github.com/luin/ioredis/compare/v4.28.1...v4.28.2) (2021-12-01)
+
+
+### Bug Fixes
+
+* add Redis campaign ([#1475](https://github.com/luin/ioredis/issues/1475)) ([3f3d8e9](https://github.com/luin/ioredis/commit/3f3d8e9eb868f4e58bb63926d3b683d9892835f2))
+* fix a memory leak with autopipelining. ([#1470](https://github.com/luin/ioredis/issues/1470)) ([f5d8b73](https://github.com/luin/ioredis/commit/f5d8b73c747a0db5cb36e83e6fe022a19a544bd2))
+* unhandled Promise rejections in pipeline.exec [skip ci] ([#1466](https://github.com/luin/ioredis/issues/1466)) ([e5615da](https://github.com/luin/ioredis/commit/e5615da8786956df08a9b33b6cd4dd31e6eaa759))
+
 ## [4.28.1](https://github.com/luin/ioredis/compare/v4.28.0...v4.28.1) (2021-11-23)
 
 
