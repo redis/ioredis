@@ -1,0 +1,9 @@
+node_modules
+*.cpuprofile
+/test.js
+/.idea
+built
+
+.vscode
+benchmarks/fixtures/*.txt
+

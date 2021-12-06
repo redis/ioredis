@@ -1,4 +1,5 @@
 import Redis from "../../lib/redis";
+import { noop } from "../../lib/utils";
 import * as sinon from "sinon";
 
 describe("ready_check", function () {
@@ -16,7 +17,7 @@ describe("ready_check", function () {
         done();
       }
     });
-    redis.connect();
+    redis.connect().catch(noop);
   });
 
   it("should reconnect when info return a error", function (done) {
@@ -32,6 +33,6 @@ describe("ready_check", function () {
       callback(new Error("info error"));
     });
 
-    redis.connect();
+    redis.connect().catch(noop);
   });
 });
