@@ -119,7 +119,7 @@ export default class DataHandler {
       case "message":
         if (this.redis.listeners("message").length > 0) {
           // Check if there're listeners to avoid unnecessary `toString()`.
-          this.redis.emit("message", reply[1].toString(), reply[2].toString());
+          this.redis.emit("message", reply[1].toString(), reply[2] ? reply[2].toString() : '');
         }
         this.redis.emit("messageBuffer", reply[1], reply[2]);
         break;
