@@ -1,3 +1,10 @@
+## [4.28.3](https://github.com/luin/ioredis/compare/v4.28.2...v4.28.3) (2022-01-11)
+
+
+### Bug Fixes
+
+* fix exceptions on messages of client side cache ([#1479](https://github.com/luin/ioredis/issues/1479)) ([02adca4](https://github.com/luin/ioredis/commit/02adca4bc1cc50a232703d2b48ea41a18fa82c93))
+
 ## [4.28.2](https://github.com/luin/ioredis/compare/v4.28.1...v4.28.2) (2021-12-01)
 
 
