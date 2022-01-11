@@ -165,7 +165,7 @@ new Redis(
 );
 ```
 
-See [API Documentation](API.md#new_Redis) for all available options.
+See [API Documentation](API.md#new-redisport-host-options) for all available options.
 
 ## Pub/Sub
 
