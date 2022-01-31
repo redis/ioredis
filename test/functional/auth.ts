@@ -200,7 +200,6 @@ describe("auth", function () {
       let errorEmited = false;
       const redis = new Redis({ port: 17379, password: "pass" });
       redis.on("error", function () {
-        console.log("boop");
         errorEmited = true;
       });
       const stub = sinon.stub(console, "warn").callsFake((warn) => {

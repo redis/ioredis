@@ -76,7 +76,7 @@ describe("autoPipelining for cluster", function () {
         return "bar1";
       }
 
-      if (argv[0] === "evalsha") {
+      if (argv[0] === "evalsha" || argv[0] === "eval") {
         return argv.slice(argv.length - 4);
       }
     });
