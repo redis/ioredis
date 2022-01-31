@@ -321,6 +321,12 @@ Redis.prototype.connect = function (callback) {
       this._addedScriptHashes = {};
     }, this.options.maxScriptsCachingTime);
 
+    this.on("end", () => {
+      console.log("On end, going to clear interval.");
+      clearInterval(this._addedScriptHashesCleanInterval);
+      this._addedScriptHashesCleanInterval = null;
+    });
+
     this.connectionEpoch += 1;
     this.setStatus("connecting");
 
