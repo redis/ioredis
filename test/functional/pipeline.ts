@@ -1,6 +1,7 @@
 import Redis from "../../lib/Redis";
 import { expect } from "chai";
 import * as sinon from "sinon";
+import { getCommandsFromMonitor } from "../helpers/util";
 
 describe("pipeline", function () {
   it("should return correct result", function (done) {
@@ -275,7 +276,7 @@ describe("pipeline", function () {
       });
     });
 
-    it("should check and load uniq scripts only", function (done) {
+    it("should check and load uniq scripts only", async function () {
       const redis = new Redis();
       redis.defineCommand("test", {
         numberOfKeys: 2,
@@ -286,49 +287,43 @@ describe("pipeline", function () {
         lua: "return {KEYS[1],ARGV[1]}",
       });
 
-      redis.once("ready", function () {
-        const expectedCommands = [
-          ["script", "exists"],
-          ["script", "load", "return {KEYS[1],ARGV[1]}"],
-          ["script", "load", "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}"],
-          ["evalsha"],
-          ["evalsha"],
-          ["evalsha"],
-          ["evalsha"],
-          ["evalsha"],
-          ["evalsha"],
-        ];
-        const expectedResults = [
-          [null, ["a", "1"]],
-          [null, ["b", "2"]],
-          [null, ["k1", "k2", "v1", "v2"]],
-          [null, ["k3", "k4", "v3", "v4"]],
-          [null, ["c", "3"]],
-          [null, ["k5", "k6", "v5", "v6"]],
-        ];
-        redis.monitor(function (err, monitor) {
-          monitor.on("monitor", function (_, command) {
-            const expectedCommand = expectedCommands.shift();
-            expectedCommand.forEach((arg, i) => expect(arg).to.eql(command[i]));
-            if (!expectedCommands.length) {
-              monitor.disconnect();
-              redis.disconnect();
-              done();
-            }
+      const expectedCommands = [
+        ["eval"],
+        ["evalsha"],
+        ["eval"],
+        ["evalsha"],
+        ["evalsha"],
+        ["evalsha"],
+      ];
+
+      const expectedResults = [
+        [null, ["a", "1"]],
+        [null, ["b", "2"]],
+        [null, ["k1", "k2", "v1", "v2"]],
+        [null, ["k3", "k4", "v3", "v4"]],
+        [null, ["c", "3"]],
+        [null, ["k5", "k6", "v5", "v6"]],
+      ];
+
+      const commands = await getCommandsFromMonitor(redis, 6, () => {
+        return redis
+          .pipeline()
+          .echo("a", "1")
+          .echo("b", "2")
+          .test("k1", "k2", "v1", "v2")
+          .test("k3", "k4", "v3", "v4")
+          .echo("c", "3")
+          .test("k5", "k6", "v5", "v6")
+          .exec()
+          .then((results) => {
+            expect(results).to.eql(expectedResults);
           });
-          const pipe = redis.pipeline();
-          pipe
-            .echo("a", "1")
-            .echo("b", "2")
-            .test("k1", "k2", "v1", "v2")
-            .test("k3", "k4", "v3", "v4")
-            .echo("c", "3")
-            .test("k5", "k6", "v5", "v6")
-            .exec(function (err, results) {
-              expect(err).to.eql(null);
-              expect(results).to.eql(expectedResults);
-            });
-        });
+      });
+
+      redis.disconnect();
+
+      expectedCommands.forEach((expectedCommand, j) => {
+        expectedCommand.forEach((arg, i) => expect(arg).to.eql(commands[j][i]));
       });
     });
 
@@ -362,11 +357,10 @@ describe("pipeline", function () {
         lua: `return "Foo"`,
       });
 
-      const [[err, res]] = await redis
-        .pipeline([["execafterreconnect"]])
-        .exec();
-      expect(err).to.equal(null);
-      expect(res).to.equal("Foo");
+      const preloadscript = await redis.pipeline().execafterreconnect().exec();
+
+      expect(preloadscript[0][0]).to.equal(null);
+      expect(preloadscript[0][1]).to.equal("Foo");
 
       const client = await redis.client("list").then((clients) => {
         const myInfo = clients
@@ -379,22 +373,24 @@ describe("pipeline", function () {
 
       await redis2.script("flush");
       await redis2.client("kill", "addr", client);
+      await redis.get("waitforready");
 
-      const res2 = await redis
-        .pipeline([
-          ["set", "foo", "bar"],
-          ["execafterreconnect"],
-          ["get", "foo"],
-        ])
-        .exec();
-
-      expect(res2).to.deep.equal([
-        [null, "OK"],
-        [null, "Foo"],
-        [null, "bar"],
-      ]);
+      const commands = await getCommandsFromMonitor(redis2, 3, () => {
+        return redis
+          .pipeline([
+            ["set", "foo", "bar"],
+            ["execafterreconnect"],
+            ["get", "foo"],
+          ])
+          .exec();
+      });
       redis.disconnect();
       redis2.disconnect();
+
+      const expected = ["set", "eval", "get"];
+      commands.forEach((c, i) => {
+        expect(c[0]).to.equal(expected[i]);
+      });
     });
   });
 
