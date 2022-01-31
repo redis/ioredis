@@ -41,26 +41,21 @@ export default class Script {
 
     const evalsha = new Command("evalsha", [this.sha].concat(args), options);
     evalsha.isCustomCommand = true;
+    evalsha.promise = evalsha.promise.catch((err: Error) => {
+      if (err.toString().indexOf("NOSCRIPT") === -1) {
+        throw err;
+      }
+      const command = new Command("eval", [this.lua].concat(args), options);
+      if (container.isPipeline === true) container.redis.sendCommand(command);
+      else container.sendCommand(command);
+      return command.promise;
+    });
 
-    const result = container.sendCommand(evalsha);
-    if (isPromise(result)) {
-      return asCallback(
-        result.catch((err: Error) => {
-          if (err.toString().indexOf("NOSCRIPT") === -1) {
-            throw err;
-          }
-          return container.sendCommand(
-            new Command("eval", [this.lua].concat(args), options)
-          );
-        }),
-        callback
-      );
-    }
-
-    // result is not a Promise--probably returned from a pipeline chain; however,
-    // we still need the callback to fire when the script is evaluated
     asCallback(evalsha.promise, callback);
 
-    return result;
+    // The result here is one of
+    // - a Promise when executed on the redis instance
+    // - a pipeline instance in pipeline mode
+    return container.sendCommand(evalsha);
   }
 }

@@ -357,14 +357,16 @@ describe("pipeline", function () {
     it("should reload scripts on redis restart (reconnect)", async function () {
       const redis = new Redis({ connectionName: "load-script-on-reconnect" });
       const redis2 = new Redis();
-      redis.defineCommand("exeecafterreconnect", {
+      redis.defineCommand("execafterreconnect", {
         numberOfKeys: 0,
-        lua: `return "OK"`,
+        lua: `return "Foo"`,
       });
 
-      const [[err, res]] = await redis.multi([["exeecafterreconnect"]]).exec();
+      const [[err, res]] = await redis
+        .pipeline([["execafterreconnect"]])
+        .exec();
       expect(err).to.equal(null);
-      expect(res).to.equal("OK");
+      expect(res).to.equal("Foo");
 
       const client = await redis.client("list").then((clients) => {
         const myInfo = clients
@@ -378,16 +380,19 @@ describe("pipeline", function () {
       await redis2.script("flush");
       await redis2.client("kill", "addr", client);
 
-      // Wait for reconnect, at the moment scripts are not loaded
-      // if the pipeline starts before ioredis reconnects
-      await redis.ping();
-
-      const [[err2, res2]] = await redis
-        .multi([["exeecafterreconnect"]])
+      const res2 = await redis
+        .pipeline([
+          ["set", "foo", "bar"],
+          ["execafterreconnect"],
+          ["get", "foo"],
+        ])
         .exec();
 
-      expect(err2).to.equal(null);
-      expect(res2).to.equal("OK");
+      expect(res2).to.deep.equal([
+        [null, "OK"],
+        [null, "Foo"],
+        [null, "bar"],
+      ]);
       redis.disconnect();
       redis2.disconnect();
     });
