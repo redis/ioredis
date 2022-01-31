@@ -353,6 +353,44 @@ describe("pipeline", function () {
         })
         .catch(done);
     });
+
+    it("should reload scripts on redis restart (reconnect)", async function () {
+      const redis = new Redis({ connectionName: "load-script-on-reconnect" });
+      const redis2 = new Redis();
+      redis.defineCommand("exeecafterreconnect", {
+        numberOfKeys: 0,
+        lua: `return "OK"`,
+      });
+
+      const [[err, res]] = await redis.multi([["exeecafterreconnect"]]).exec();
+      expect(err).to.equal(null);
+      expect(res).to.equal("OK");
+
+      const client = await redis.client("list").then((clients) => {
+        const myInfo = clients
+          .split("\n")
+          .find((client) => client.includes("load-script-on-reconnect"));
+
+        const match = / addr=([^ ]+)/.exec(myInfo);
+        if (match) return match[1];
+      });
+
+      await redis2.script("flush");
+      await redis2.client("kill", "addr", client);
+
+      // Wait for reconnect, at the moment scripts are not loaded
+      // if the pipeline starts before ioredis reconnects
+      await redis.ping();
+
+      const [[err2, res2]] = await redis
+        .multi([["exeecafterreconnect"]])
+        .exec();
+
+      expect(err2).to.equal(null);
+      expect(res2).to.equal("OK");
+      redis.disconnect();
+      redis2.disconnect();
+    });
   });
 
   describe("#length", function () {
