@@ -1,5 +1,4 @@
 import * as calculateSlot from "cluster-key-slot";
-import * as pMap from "p-map";
 import { exists, hasFlag } from "redis-commands";
 import asCallback from "standard-as-callback";
 import { deprecate } from "util";
@@ -334,71 +333,9 @@ Pipeline.prototype.exec = function (
     }
   }
 
-  // Check whether scripts exists
-  const scripts = [];
-  for (let i = 0; i < this._queue.length; ++i) {
-    const item = this._queue[i];
-
-    if (item.name !== "evalsha") {
-      continue;
-    }
-
-    const script = this._shaToScript[item.args[0]];
-
-    if (
-      !script ||
-      this.redis._addedScriptHashes[script.sha] ||
-      scripts.includes(script)
-    ) {
-      continue;
-    }
-
-    scripts.push(script);
-  }
-
   const _this = this;
-  if (!scripts.length) {
-    return execPipeline();
-  }
+  execPipeline();
 
-  // In cluster mode, always load scripts before running the pipeline
-  if (this.isCluster) {
-    pMap(scripts, (script) => _this.redis.script("load", script.lua), {
-      concurrency: 10,
-    })
-      .then(function () {
-        for (let i = 0; i < scripts.length; i++) {
-          _this.redis._addedScriptHashes[scripts[i].sha] = true;
-        }
-      })
-      .then(execPipeline, this.reject);
-    return this.promise;
-  }
-
-  this.redis
-    .script(
-      "exists",
-      scripts.map(({ sha }) => sha)
-    )
-    .then(function (results) {
-      const pending = [];
-      for (let i = 0; i < results.length; ++i) {
-        if (!results[i]) {
-          pending.push(scripts[i]);
-        }
-      }
-      return Promise.all(
-        pending.map(function (script) {
-          return _this.redis.script("load", script.lua);
-        })
-      );
-    })
-    .then(function () {
-      for (let i = 0; i < scripts.length; i++) {
-        _this.redis._addedScriptHashes[scripts[i].sha] = true;
-      }
-    })
-    .then(execPipeline, this.reject);
   return this.promise;
 
   function execPipeline() {
