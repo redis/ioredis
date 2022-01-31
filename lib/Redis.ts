@@ -72,12 +72,6 @@ class Redis extends Commander {
   private _autoPipelines = new Map();
   private _runningAutoPipelines = new Set();
 
-  // Prepare a cache of scripts and setup a interval which regularly clears it
-  private _addedScriptHashes: { [sha: string]: true } = {};
-  private _addedScriptHashesCleanInterval?: ReturnType<
-    typeof setInterval
-  > | null = null;
-
   constructor(port: number, host: string, options: RedisOptions);
   constructor(path: string, options: RedisOptions);
   constructor(port: number, options: RedisOptions);
@@ -187,13 +181,6 @@ class Redis extends Commander {
     process.nextTick(this.emit.bind(this, status, arg));
   }
 
-  private clearAddedScriptHashesCleanInterval() {
-    if (this._addedScriptHashesCleanInterval) {
-      clearInterval(this._addedScriptHashesCleanInterval);
-      this._addedScriptHashesCleanInterval = null;
-    }
-  }
-
   /**
    * Create a connection to Redis.
    * This method will be invoked automatically when creating a new Redis instance
@@ -212,18 +199,6 @@ class Redis extends Commander {
         reject(new Error("Redis is already connecting/connected"));
         return;
       }
-
-      // Make sure only one timer is active at a time
-      this.clearAddedScriptHashesCleanInterval();
-
-      // Scripts need to get reset on reconnect as redis
-      // might have been restarted or some failover happened
-      this._addedScriptHashes = {};
-
-      // Start the script cache cleaning
-      this._addedScriptHashesCleanInterval = setInterval(() => {
-        this._addedScriptHashes = {};
-      }, this.options.maxScriptsCachingTime);
 
       this.connectionEpoch += 1;
       this.setStatus("connecting");
@@ -343,8 +318,6 @@ class Redis extends Commander {
    * If you want to wait for the pending replies, use Redis#quit instead.
    */
   disconnect(reconnect = false) {
-    this.clearAddedScriptHashesCleanInterval();
-
     if (!reconnect) {
       this.manuallyClosing = true;
     }
@@ -628,10 +601,6 @@ class Redis extends Commander {
       command.setTimeout(this.options.commandTimeout);
     }
 
-    if (command.name === "quit") {
-      this.clearAddedScriptHashesCleanInterval();
-    }
-
     let writable =
       this.status === "ready" ||
       (!stream &&
@@ -679,7 +648,16 @@ class Redis extends Commander {
           command.args
         );
       }
-      (stream || this.stream).write(command.toWritable());
+
+      if (stream) {
+        if (stream.isPipeline) {
+          stream.write(command.toWritable(stream.destination.redis.stream));
+        } else {
+          stream.write(command.toWritable(stream));
+        }
+      } else {
+        this.stream.write(command.toWritable(this.stream));
+      }
 
       this.commandQueue.push({
         command: command,
