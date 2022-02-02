@@ -1,3 +1,10 @@
+## [4.28.4](https://github.com/luin/ioredis/compare/v4.28.3...v4.28.4) (2022-02-02)
+
+
+### Bug Fixes
+
+* make sure timers is cleared on exit ([#1502](https://github.com/luin/ioredis/issues/1502)) ([cfb04a0](https://github.com/luin/ioredis/commit/cfb04a062b380bad5655b6f97b4259f328f1ee4a))
+
 ## [4.28.3](https://github.com/luin/ioredis/compare/v4.28.2...v4.28.3) (2022-01-11)
 
 
