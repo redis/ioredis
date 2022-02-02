@@ -181,7 +181,7 @@ describe("autoPipelining for single node", function () {
     expect(redis.autoPipelineQueueSize).to.eql(1);
 
     redis.set("foo2", (err) => {
-      expect(err.message).to.eql(
+      expect(err.message).to.include(
         "ERR wrong number of arguments for 'set' command"
       );
       done();
