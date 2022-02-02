@@ -355,7 +355,7 @@ describe("autoPipelining for cluster", function () {
       expect(cluster.autoPipelineQueueSize).to.eql(1);
 
       cluster.set("foo5", (err) => {
-        expect(err.message).to.eql(
+        expect(err.message).to.include(
           "ERR wrong number of arguments for 'set' command"
         );
 

@@ -290,6 +290,13 @@ Redis.prototype.setStatus = function (status, arg) {
   process.nextTick(this.emit.bind(this, status, arg));
 };
 
+Redis.prototype.clearAddedScriptHashesCleanInterval = function () {
+  if (this._addedScriptHashesCleanInterval) {
+    clearInterval(this._addedScriptHashesCleanInterval);
+    this._addedScriptHashesCleanInterval = null;
+  }
+};
+
 /**
  * Create a connection to Redis.
  * This method will be invoked automatically when creating a new Redis instance
@@ -314,7 +321,7 @@ Redis.prototype.connect = function (callback) {
     }
 
     // Make sure only one timer is active at a time
-    clearInterval(this._addedScriptHashesCleanInterval);
+    this.clearAddedScriptHashesCleanInterval();
 
     // Start the script cache cleaning
     this._addedScriptHashesCleanInterval = setInterval(() => {
@@ -436,8 +443,7 @@ Redis.prototype.connect = function (callback) {
  * @public
  */
 Redis.prototype.disconnect = function (reconnect) {
-  clearInterval(this._addedScriptHashesCleanInterval);
-  this._addedScriptHashesCleanInterval = null;
+  this.clearAddedScriptHashesCleanInterval();
 
   if (!reconnect) {
     this.manuallyClosing = true;
@@ -742,8 +748,7 @@ Redis.prototype.sendCommand = function (command: Command, stream: NetStream) {
   }
 
   if (command.name === "quit") {
-    clearInterval(this._addedScriptHashesCleanInterval);
-    this._addedScriptHashesCleanInterval = null;
+    this.clearAddedScriptHashesCleanInterval();
   }
 
   let writable =

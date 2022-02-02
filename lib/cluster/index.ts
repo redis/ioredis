@@ -69,7 +69,7 @@ class Cluster extends EventEmitter {
   private isRefreshing = false;
   public isCluster = true;
   private _autoPipelines: Map<string, typeof Pipeline> = new Map();
-  private _groupsIds: {[key: string]: number} = {};
+  private _groupsIds: { [key: string]: number } = {};
   private _groupsBySlot: number[] = Array(16384);
   private _runningAutoPipelines: Set<string> = new Set();
   private _readyDelayedCallbacks: CallbackFunction[] = [];
@@ -154,6 +154,13 @@ class Cluster extends EventEmitter {
     }
   }
 
+  clearAddedScriptHashesCleanInterval() {
+    if (this._addedScriptHashesCleanInterval) {
+      clearInterval(this._addedScriptHashesCleanInterval);
+      this._addedScriptHashesCleanInterval = null;
+    }
+  }
+
   resetNodesRefreshInterval() {
     if (this.slotsTimer) {
       return;
@@ -191,7 +198,7 @@ class Cluster extends EventEmitter {
       }
 
       // Make sure only one timer is active at a time
-      clearInterval(this._addedScriptHashesCleanInterval);
+      this.clearAddedScriptHashesCleanInterval();
 
       // Start the script cache cleaning
       this._addedScriptHashesCleanInterval = setInterval(() => {
@@ -272,12 +279,12 @@ class Cluster extends EventEmitter {
           this.once("close", this.handleCloseEvent.bind(this));
 
           this.refreshSlotsCache(
-              function (err) {
-                if (err && err.message === "Failed to refresh slots cache.") {
-                  Redis.prototype.silentEmit.call(this, "error", err);
-                  this.connectionPool.reset([]);
-                }
-              }.bind(this)
+            function (err) {
+              if (err && err.message === "Failed to refresh slots cache.") {
+                Redis.prototype.silentEmit.call(this, "error", err);
+                this.connectionPool.reset([]);
+              }
+            }.bind(this)
           );
           this.subscriber.start();
         })
@@ -300,6 +307,9 @@ class Cluster extends EventEmitter {
     if (reason) {
       debug("closed because %s", reason);
     }
+
+    this.clearAddedScriptHashesCleanInterval();
+
     let retryDelay;
     if (
       !this.manuallyClosing &&
@@ -339,8 +349,7 @@ class Cluster extends EventEmitter {
     const status = this.status;
     this.setStatus("disconnecting");
 
-    clearInterval(this._addedScriptHashesCleanInterval);
-    this._addedScriptHashesCleanInterval = null;
+    this.clearAddedScriptHashesCleanInterval();
 
     if (!reconnect) {
       this.manuallyClosing = true;
@@ -372,8 +381,7 @@ class Cluster extends EventEmitter {
     const status = this.status;
     this.setStatus("disconnecting");
 
-    clearInterval(this._addedScriptHashesCleanInterval);
-    this._addedScriptHashesCleanInterval = null;
+    this.clearAddedScriptHashesCleanInterval();
 
     this.manuallyClosing = true;
 
@@ -632,7 +640,8 @@ class Cluster extends EventEmitter {
             } else {
               _this.slots[slot] = [key];
             }
-            _this._groupsBySlot[slot] = _this._groupsIds[_this.slots[slot].join(';')];
+            _this._groupsBySlot[slot] =
+              _this._groupsIds[_this.slots[slot].join(";")];
             _this.connectionPool.findOrCreate(_this.natMapper(key));
             tryConnection();
             debug("refreshing slot caches... (triggered by MOVED error)");
@@ -867,14 +876,14 @@ class Cluster extends EventEmitter {
         }
 
         // Assign to each node keys a numeric value to make autopipeline comparison faster.
-        this._groupsIds = Object.create(null);        
+        this._groupsIds = Object.create(null);
         let j = 0;
         for (let i = 0; i < 16384; i++) {
-          const target = (this.slots[i] || []).join(';');
+          const target = (this.slots[i] || []).join(";");
 
           if (!target.length) {
             this._groupsBySlot[i] = undefined;
-            continue;  
+            continue;
           }
 
           if (!this._groupsIds[target]) {
