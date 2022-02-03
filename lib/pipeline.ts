@@ -343,7 +343,10 @@ Pipeline.prototype.exec = function (
       };
     }
     let bufferMode = false;
+
     const stream = {
+      isPipeline: true,
+      destination: _this.isCluster ? node : { redis: _this.redis },
       write: function (writable) {
         if (writable instanceof Buffer) {
           bufferMode = true;
@@ -371,11 +374,8 @@ Pipeline.prototype.exec = function (
           } else {
             sendData = data;
           }
-          if (_this.isCluster) {
-            node.redis.stream.write(sendData);
-          } else {
-            _this.redis.stream.write(sendData);
-          }
+
+          stream.destination.redis.stream.write(sendData);
 
           // Reset writePending for resending
           writePending = _this._queue.length;
