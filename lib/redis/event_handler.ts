@@ -170,8 +170,6 @@ export function closeHandler(self) {
       abortTransactionFragments(self.offlineQueue);
     }
 
-    self.clearAddedScriptHashesCleanInterval();
-
     if (self.manuallyClosing) {
       self.manuallyClosing = false;
       debug("skip reconnecting since the connection is manually closed.");

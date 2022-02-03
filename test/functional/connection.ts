@@ -501,26 +501,6 @@ describe("connection", function () {
 });
 
 describe("disconnection", function () {
-  it("should clear the added script hashes interval when disconnecting", function (done) {
-    const redis = new Redis();
-    redis.once("ready", function () {
-      redis.disconnect();
-
-      expect(redis._addedScriptHashesCleanInterval).to.be.null;
-      done();
-    });
-  });
-
-  it("should clear the added script hashes interval when quitting", function (done) {
-    const redis = new Redis();
-    redis.once("ready", function () {
-      redis.quit();
-
-      expect(redis._addedScriptHashesCleanInterval).to.be.null;
-      done();
-    });
-  });
-
   it("emits an error if select is not allowed", function (done) {
     const errMessage = "select is not allowed";
     const node = new MockServer(30001, function (argv) {
@@ -536,23 +516,6 @@ describe("disconnection", function () {
           done();
         });
       }
-    });
-  });
-
-  it("should clear the added script hashes interval even when no connection succeeded", function (done) {
-    let attempt = 0;
-    const redis = new Redis(0, "localhost");
-
-    redis.on("error", function () {
-      if (attempt < 5) {
-        attempt++;
-        return;
-      }
-
-      redis.quit();
-
-      expect(redis._addedScriptHashesCleanInterval).to.be.null;
-      done();
     });
   });
 });

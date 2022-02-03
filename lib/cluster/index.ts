@@ -72,8 +72,6 @@ class Cluster extends Commander {
   _groupsBySlot: number[] = Array(16384);
   private _runningAutoPipelines: Set<string> = new Set();
   private _readyDelayedCallbacks: CallbackFunction[] = [];
-  public _addedScriptHashes: { [key: string]: any } = {};
-  public _addedScriptHashesCleanInterval: NodeJS.Timeout;
 
   /**
    * Every time Cluster#connect() is called, this value will be
@@ -153,13 +151,6 @@ class Cluster extends Commander {
     }
   }
 
-  clearAddedScriptHashesCleanInterval() {
-    if (this._addedScriptHashesCleanInterval) {
-      clearInterval(this._addedScriptHashesCleanInterval);
-      this._addedScriptHashesCleanInterval = null;
-    }
-  }
-
   resetNodesRefreshInterval() {
     if (this.slotsTimer) {
       return;
@@ -194,14 +185,6 @@ class Cluster extends Commander {
         reject(new Error("Redis is already connecting/connected"));
         return;
       }
-
-      // Make sure only one timer is active at a time
-      this.clearAddedScriptHashesCleanInterval();
-
-      // Start the script cache cleaning
-      this._addedScriptHashesCleanInterval = setInterval(() => {
-        this._addedScriptHashes = {};
-      }, this.options.maxScriptsCachingTime);
 
       const epoch = ++this.connectionEpoch;
       this.setStatus("connecting");
@@ -306,8 +289,6 @@ class Cluster extends Commander {
       debug("closed because %s", reason);
     }
 
-    this.clearAddedScriptHashesCleanInterval();
-
     let retryDelay;
     if (
       !this.manuallyClosing &&
@@ -347,8 +328,6 @@ class Cluster extends Commander {
     const status = this.status;
     this.setStatus("disconnecting");
 
-    this.clearAddedScriptHashesCleanInterval();
-
     if (!reconnect) {
       this.manuallyClosing = true;
     }
@@ -378,8 +357,6 @@ class Cluster extends Commander {
   public quit(callback?: CallbackFunction<"OK">): Promise<"OK"> {
     const status = this.status;
     this.setStatus("disconnecting");
-
-    this.clearAddedScriptHashesCleanInterval();
 
     this.manuallyClosing = true;
 
