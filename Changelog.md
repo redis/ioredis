@@ -1,3 +1,10 @@
+## [4.28.5](https://github.com/luin/ioredis/compare/v4.28.4...v4.28.5) (2022-02-06)
+
+
+### Bug Fixes
+
+* Reset loaded script hashes to force a reload of scripts after reconnect of redis ([#1497](https://github.com/luin/ioredis/issues/1497)) ([f357a31](https://github.com/luin/ioredis/commit/f357a3145694250bf361827403252b31435afabd))
+
 ## [4.28.4](https://github.com/luin/ioredis/compare/v4.28.3...v4.28.4) (2022-02-02)
 
 
