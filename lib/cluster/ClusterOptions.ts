@@ -1,4 +1,5 @@
 import { SrvRecord, resolveSrv, lookup } from "dns";
+import { CommanderOptions } from "../utils/Commander";
 import { NodeRole } from "./util";
 
 export type DNSResolveSrvFunction = (
@@ -25,9 +26,9 @@ export interface INatMap {
  * Options for Cluster constructor
  *
  * @export
- * @interface IClusterOptions
+ * @interface ClusterOptions
  */
-export interface IClusterOptions {
+export interface ClusterOptions extends CommanderOptions {
   /**
    * See "Quick Start" section.
    *
@@ -189,7 +190,7 @@ export interface IClusterOptions {
   maxScriptsCachingTime?: number;
 }
 
-export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {
+export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = {
   clusterRetryStrategy: (times) => Math.min(100 + times * 2, 2000),
   enableOfflineQueue: true,
   enableReadyCheck: true,

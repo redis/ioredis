@@ -1,0 +1,786 @@
+import { EventEmitter } from "events";
+import * as commands from "redis-commands";
+import asCallback from "standard-as-callback";
+import { AbstractConnector, Command, ScanStream, SentinelConnector } from ".";
+import Commander from "./utils/Commander";
+import { StandaloneConnector } from "./connectors";
+import * as eventHandler from "./redis/event_handler";
+import {
+  DEFAULT_REDIS_OPTIONS,
+  ReconnectOnError,
+  RedisOptions,
+} from "./redis/RedisOptions";
+import { addTransactionSupport } from "./transaction";
+import { CallbackFunction, ICommandItem, NetStream } from "./types";
+import {
+  CONNECTION_CLOSED_ERROR_MSG,
+  Debug,
+  isInt,
+  parseURL,
+  resolveTLSProfile,
+} from "./utils";
+import applyMixin from "./utils/applyMixin";
+import { defaults, noop } from "./utils/lodash";
+import Deque = require("denque");
+const debug = Debug("redis");
+
+type RedisStatus =
+  | "wait"
+  | "reconnecting"
+  | "connecting"
+  | "connect"
+  | "ready"
+  | "close"
+  | "end";
+
+class Redis extends Commander {
+  /**
+   * Default options
+   *
+   * @var defaultOptions
+   */
+  private static defaultOptions = DEFAULT_REDIS_OPTIONS;
+
+  /**
+   * Create a Redis instance
+   *
+   * @deprecated
+   */
+  static createClient(...args: unknown[]): Redis {
+    // @ts-expect-error
+    return new Redis(...args);
+  }
+
+  options: RedisOptions;
+  status: RedisStatus = "wait";
+  commandQueue: Deque;
+  offlineQueue: Deque;
+  connectionEpoch = 0;
+  connector: AbstractConnector;
+  condition: {
+    select: number;
+    auth?: string | [string, string];
+    subscriber: boolean;
+  };
+  stream: NetStream;
+  manuallyClosing = false;
+  retryAttempts = 0;
+  reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+  isCluster = false;
+
+  // Prepare autopipelines structures
+  private _autoPipelines = new Map();
+  private _runningAutoPipelines = new Set();
+
+  // Prepare a cache of scripts and setup a interval which regularly clears it
+  private _addedScriptHashes: { [sha: string]: true } = {};
+  private _addedScriptHashesCleanInterval?: ReturnType<
+    typeof setInterval
+  > | null = null;
+
+  constructor(port: number, host: string, options: RedisOptions);
+  constructor(path: string, options: RedisOptions);
+  constructor(port: number, options: RedisOptions);
+  constructor(port: number, host: string);
+  constructor(options: RedisOptions);
+  constructor(port: number);
+  constructor(path: string);
+  constructor();
+  constructor(arg1?: unknown, arg2?: unknown, arg3?: unknown) {
+    super();
+    this.parseOptions(arg1, arg2, arg3);
+
+    EventEmitter.call(this);
+
+    this.resetCommandQueue();
+    this.resetOfflineQueue();
+
+    if ("Connector" in this.options && this.options.Connector) {
+      this.connector = new this.options.Connector(this.options);
+    } else if ("sentinels" in this.options && this.options.sentinels) {
+      const sentinelConnector = new SentinelConnector(this.options);
+      sentinelConnector.emitter = this;
+
+      this.connector = sentinelConnector;
+    } else {
+      // @ts-expect-error
+      this.connector = new StandaloneConnector(this.options);
+    }
+
+    // end(or wait) -> connecting -> connect -> ready -> end
+    if (this.options.lazyConnect) {
+      this.setStatus("wait");
+    } else {
+      this.connect().catch(noop);
+    }
+  }
+
+  get autoPipelineQueueSize() {
+    let queued = 0;
+
+    for (const pipeline of this._autoPipelines.values()) {
+      queued += pipeline.length;
+    }
+
+    return queued;
+  }
+
+  parseOptions(...args: unknown[]) {
+    const options: Record<string, unknown> = {};
+    let isTls = false;
+    for (let i = 0; i < args.length; ++i) {
+      const arg = args[i];
+      if (arg === null || typeof arg === "undefined") {
+        continue;
+      }
+      if (typeof arg === "object") {
+        defaults(options, arg);
+      } else if (typeof arg === "string") {
+        defaults(options, parseURL(arg));
+        if (arg.startsWith("rediss://")) {
+          isTls = true;
+        }
+      } else if (typeof arg === "number") {
+        options.port = arg;
+      } else {
+        throw new Error("Invalid argument " + arg);
+      }
+    }
+    if (isTls) {
+      defaults(options, { tls: true });
+    }
+    defaults(options, Redis.defaultOptions);
+
+    if (typeof options.port === "string") {
+      options.port = parseInt(options.port, 10);
+    }
+    if (typeof options.db === "string") {
+      options.db = parseInt(options.db, 10);
+    }
+
+    // @ts-expect-error
+    this.options = resolveTLSProfile(options);
+  }
+
+  resetCommandQueue() {
+    this.commandQueue = new Deque();
+  }
+
+  resetOfflineQueue() {
+    this.offlineQueue = new Deque();
+  }
+
+  /**
+   * Change instance's status
+   */
+  private setStatus(status: RedisStatus, arg?: unknown) {
+    // @ts-expect-error
+    if (debug.enabled) {
+      debug(
+        "status[%s]: %s -> %s",
+        this._getDescription(),
+        this.status || "[empty]",
+        status
+      );
+    }
+    this.status = status;
+    process.nextTick(this.emit.bind(this, status, arg));
+  }
+
+  private clearAddedScriptHashesCleanInterval() {
+    if (this._addedScriptHashesCleanInterval) {
+      clearInterval(this._addedScriptHashesCleanInterval);
+      this._addedScriptHashesCleanInterval = null;
+    }
+  }
+
+  /**
+   * Create a connection to Redis.
+   * This method will be invoked automatically when creating a new Redis instance
+   * unless `lazyConnect: true` is passed.
+   *
+   * When calling this method manually, a Promise is returned, which will
+   * be resolved when the connection status is ready.
+   */
+  connect(callback?: CallbackFunction<void>): Promise<void> {
+    const promise = new Promise<void>((resolve, reject) => {
+      if (
+        this.status === "connecting" ||
+        this.status === "connect" ||
+        this.status === "ready"
+      ) {
+        reject(new Error("Redis is already connecting/connected"));
+        return;
+      }
+
+      // Make sure only one timer is active at a time
+      this.clearAddedScriptHashesCleanInterval();
+
+      // Scripts need to get reset on reconnect as redis
+      // might have been restarted or some failover happened
+      this._addedScriptHashes = {};
+
+      // Start the script cache cleaning
+      this._addedScriptHashesCleanInterval = setInterval(() => {
+        this._addedScriptHashes = {};
+      }, this.options.maxScriptsCachingTime);
+
+      this.connectionEpoch += 1;
+      this.setStatus("connecting");
+
+      const { options } = this;
+
+      this.condition = {
+        select: options.db,
+        auth: options.username
+          ? [options.username, options.password]
+          : options.password,
+        subscriber: false,
+      };
+
+      const _this = this;
+      asCallback(
+        this.connector.connect(function (type, err) {
+          _this.silentEmit(type, err);
+        }) as Promise<NetStream>,
+        function (err: Error | null, stream?: NetStream) {
+          if (err) {
+            _this.flushQueue(err);
+            _this.silentEmit("error", err);
+            reject(err);
+            _this.setStatus("end");
+            return;
+          }
+          let CONNECT_EVENT = options.tls ? "secureConnect" : "connect";
+          if (
+            "sentinels" in options &&
+            options.sentinels &&
+            !options.enableTLSForSentinelMode
+          ) {
+            CONNECT_EVENT = "connect";
+          }
+
+          _this.stream = stream;
+          if (typeof options.keepAlive === "number") {
+            stream.setKeepAlive(true, options.keepAlive);
+          }
+
+          if (stream.connecting) {
+            stream.once(CONNECT_EVENT, eventHandler.connectHandler(_this));
+
+            if (options.connectTimeout) {
+              /*
+               * Typically, Socket#setTimeout(0) will clear the timer
+               * set before. However, in some platforms (Electron 3.x~4.x),
+               * the timer will not be cleared. So we introduce a variable here.
+               *
+               * See https://github.com/electron/electron/issues/14915
+               */
+              let connectTimeoutCleared = false;
+              stream.setTimeout(options.connectTimeout, function () {
+                if (connectTimeoutCleared) {
+                  return;
+                }
+                stream.setTimeout(0);
+                stream.destroy();
+
+                const err = new Error("connect ETIMEDOUT");
+                // @ts-expect-error
+                err.errorno = "ETIMEDOUT";
+                // @ts-expect-error
+                err.code = "ETIMEDOUT";
+                // @ts-expect-error
+                err.syscall = "connect";
+                eventHandler.errorHandler(_this)(err);
+              });
+              stream.once(CONNECT_EVENT, function () {
+                connectTimeoutCleared = true;
+                stream.setTimeout(0);
+              });
+            }
+          } else if (stream.destroyed) {
+            const firstError = _this.connector.firstError;
+            if (firstError) {
+              process.nextTick(() => {
+                eventHandler.errorHandler(_this)(firstError);
+              });
+            }
+            process.nextTick(eventHandler.closeHandler(_this));
+          } else {
+            process.nextTick(eventHandler.connectHandler(_this));
+          }
+          if (!stream.destroyed) {
+            stream.once("error", eventHandler.errorHandler(_this));
+            stream.once("close", eventHandler.closeHandler(_this));
+          }
+
+          if (options.noDelay) {
+            stream.setNoDelay(true);
+          }
+
+          const connectionReadyHandler = function () {
+            _this.removeListener("close", connectionCloseHandler);
+            resolve();
+          };
+          var connectionCloseHandler = function () {
+            _this.removeListener("ready", connectionReadyHandler);
+            reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
+          };
+          _this.once("ready", connectionReadyHandler);
+          _this.once("close", connectionCloseHandler);
+        }
+      );
+    });
+
+    return asCallback(promise, callback);
+  }
+
+  /**
+   * Disconnect from Redis.
+   *
+   * This method closes the connection immediately,
+   * and may lose some pending replies that haven't written to client.
+   * If you want to wait for the pending replies, use Redis#quit instead.
+   */
+  disconnect(reconnect = false) {
+    this.clearAddedScriptHashesCleanInterval();
+
+    if (!reconnect) {
+      this.manuallyClosing = true;
+    }
+    if (this.reconnectTimeout && !reconnect) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+    if (this.status === "wait") {
+      eventHandler.closeHandler(this)();
+    } else {
+      this.connector.disconnect();
+    }
+  }
+
+  /**
+   * Disconnect from Redis.
+   *
+   * @deprecated
+   */
+  end() {
+    this.disconnect();
+  }
+
+  /**
+   * Create a new instance with the same options as the current one.
+   *
+   * @example
+   * ```js
+   * var redis = new Redis(6380);
+   * var anotherRedis = redis.duplicate();
+   * ```
+   */
+  duplicate(override: RedisOptions) {
+    return new Redis(Object.assign({}, this.options, override || {}));
+  }
+
+  recoverFromFatalError(commandError, err: Error | null, options) {
+    this.flushQueue(err, options);
+    this.silentEmit("error", err);
+    this.disconnect(true);
+  }
+
+  handleReconnection(err: Error, item: ICommandItem) {
+    let needReconnect: ReturnType<ReconnectOnError> = false;
+    if (this.options.reconnectOnError) {
+      needReconnect = this.options.reconnectOnError(err);
+    }
+
+    switch (needReconnect) {
+      case 1:
+      case true:
+        if (this.status !== "reconnecting") {
+          this.disconnect(true);
+        }
+        item.command.reject(err);
+        break;
+      case 2:
+        if (this.status !== "reconnecting") {
+          this.disconnect(true);
+        }
+        if (
+          this.condition.select !== item.select &&
+          item.command.name !== "select"
+        ) {
+          // @ts-expect-error
+          this.select(item.select);
+        }
+        // TODO
+        // @ts-expect-error
+        this.sendCommand(item.command);
+        break;
+      default:
+        item.command.reject(err);
+    }
+  }
+
+  /**
+   * Flush offline queue and command queue with error.
+   *
+   * @param {Error} error - The error object to send to the commands
+   * @param {object} options
+   */
+  private flushQueue(error: Error, options?: RedisOptions) {
+    options = defaults({}, options, {
+      offlineQueue: true,
+      commandQueue: true,
+    });
+
+    let item;
+    if (options.offlineQueue) {
+      while (this.offlineQueue.length > 0) {
+        item = this.offlineQueue.shift();
+        item.command.reject(error);
+      }
+    }
+
+    if (options.commandQueue) {
+      if (this.commandQueue.length > 0) {
+        if (this.stream) {
+          this.stream.removeAllListeners("data");
+        }
+        while (this.commandQueue.length > 0) {
+          item = this.commandQueue.shift();
+          item.command.reject(error);
+        }
+      }
+    }
+  }
+
+  /**
+   * Check whether Redis has finished loading the persistent data and is able to
+   * process commands.
+   */
+  private _readyCheck(callback: CallbackFunction) {
+    const _this = this;
+    // @ts-expect-error
+    this.info(function (err: Error | null, res: string) {
+      if (err) {
+        return callback(err);
+      }
+      if (typeof res !== "string") {
+        return callback(null, res);
+      }
+
+      const info: { [key: string]: any } = {};
+
+      const lines = res.split("\r\n");
+      for (let i = 0; i < lines.length; ++i) {
+        const [fieldName, ...fieldValueParts] = lines[i].split(":");
+        const fieldValue = fieldValueParts.join(":");
+        if (fieldValue) {
+          info[fieldName] = fieldValue;
+        }
+      }
+
+      if (!info.loading || info.loading === "0") {
+        callback(null, info);
+      } else {
+        const loadingEtaMs = (info.loading_eta_seconds || 1) * 1000;
+        const retryTime =
+          _this.options.maxLoadingRetryTime &&
+          _this.options.maxLoadingRetryTime < loadingEtaMs
+            ? _this.options.maxLoadingRetryTime
+            : loadingEtaMs;
+        debug(
+          "Redis server still loading, trying again in " + retryTime + "ms"
+        );
+        setTimeout(function () {
+          _this._readyCheck(callback);
+        }, retryTime);
+      }
+    });
+  }
+
+  /**
+   * Emit only when there's at least one listener.
+   *
+   * @return {boolean} Returns true if event had listeners, false otherwise.
+   */
+  silentEmit(eventName: string, arg?: unknown): boolean {
+    let error: unknown;
+    if (eventName === "error") {
+      error = arg;
+
+      if (this.status === "end") {
+        return;
+      }
+
+      if (this.manuallyClosing) {
+        // ignore connection related errors when manually disconnecting
+        if (
+          error instanceof Error &&
+          (error.message === CONNECTION_CLOSED_ERROR_MSG ||
+            // @ts-expect-error
+            error.syscall === "connect" ||
+            // @ts-expect-error
+            error.syscall === "read")
+        ) {
+          return;
+        }
+      }
+    }
+    if (this.listeners(eventName).length > 0) {
+      return this.emit.apply(this, arguments);
+    }
+    if (error && error instanceof Error) {
+      console.error("[ioredis] Unhandled error event:", error.stack);
+    }
+    return false;
+  }
+
+  /**
+   * Listen for all requests received by the server in real time.
+   *
+   * This command will create a new connection to Redis and send a
+   * MONITOR command via the new connection in order to avoid disturbing
+   * the current connection.
+   *
+   * @param {function} [callback] The callback function. If omit, a promise will be returned.
+   * @example
+   * ```js
+   * var redis = new Redis();
+   * redis.monitor(function (err, monitor) {
+   *   // Entering monitoring mode.
+   *   monitor.on('monitor', function (time, args, source, database) {
+   *     console.log(time + ": " + util.inspect(args));
+   *   });
+   * });
+   *
+   * // supports promise as well as other commands
+   * redis.monitor().then(function (monitor) {
+   *   monitor.on('monitor', function (time, args, source, database) {
+   *     console.log(time + ": " + util.inspect(args));
+   *   });
+   * });
+   * ```
+   */
+  monitor(callback: CallbackFunction<Redis>): Promise<Redis> {
+    const monitorInstance = this.duplicate({
+      monitor: true,
+      lazyConnect: false,
+    });
+
+    return asCallback(
+      new Promise(function (resolve) {
+        monitorInstance.once("monitoring", function () {
+          resolve(monitorInstance);
+        });
+      }),
+      callback
+    );
+  }
+
+  /**
+   * Send a command to Redis
+   *
+   * This method is used internally by the `Redis#set`, `Redis#lpush` etc.
+   * Most of the time you won't invoke this method directly.
+   * However when you want to send a command that is not supported by ioredis yet,
+   * this command will be useful.
+   *
+   * @example
+   * ```js
+   * const redis = new Redis();
+   *
+   * // Use callback
+   * const get = new Command('get', ['foo'], 'utf8', function (err, result) {
+   *   console.log(result);
+   * });
+   * redis.sendCommand(get);
+   *
+   * // Use promise
+   * const set = new Command('set', ['foo', 'bar'], 'utf8');
+   * set.promise.then(function (result) {
+   *   console.log(result);
+   * });
+   * redis.sendCommand(set);
+   * ```
+   */
+  sendCommand(command: Command, stream?: NetStream): unknown {
+    if (this.status === "wait") {
+      this.connect().catch(noop);
+    }
+    if (this.status === "end") {
+      command.reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
+      return command.promise;
+    }
+    if (
+      this.condition.subscriber &&
+      !Command.checkFlag("VALID_IN_SUBSCRIBER_MODE", command.name)
+    ) {
+      command.reject(
+        new Error(
+          "Connection in subscriber mode, only subscriber commands may be used"
+        )
+      );
+      return command.promise;
+    }
+
+    if (typeof this.options.commandTimeout === "number") {
+      command.setTimeout(this.options.commandTimeout);
+    }
+
+    if (command.name === "quit") {
+      this.clearAddedScriptHashesCleanInterval();
+    }
+
+    let writable =
+      this.status === "ready" ||
+      (!stream &&
+        this.status === "connect" &&
+        commands.exists(command.name) &&
+        commands.hasFlag(command.name, "loading"));
+    if (!this.stream) {
+      writable = false;
+    } else if (!this.stream.writable) {
+      writable = false;
+      // @ts-expect-error
+    } else if (this.stream._writableState && this.stream._writableState.ended) {
+      // TODO: We should be able to remove this as the PR has already been merged.
+      // https://github.com/iojs/io.js/pull/1217
+      writable = false;
+    }
+
+    if (!writable && !this.options.enableOfflineQueue) {
+      command.reject(
+        new Error(
+          "Stream isn't writeable and enableOfflineQueue options is false"
+        )
+      );
+      return command.promise;
+    }
+
+    if (
+      !writable &&
+      command.name === "quit" &&
+      this.offlineQueue.length === 0
+    ) {
+      this.disconnect();
+      command.resolve(Buffer.from("OK"));
+      return command.promise;
+    }
+
+    if (writable) {
+      // @ts-expect-error
+      if (debug.enabled) {
+        debug(
+          "write command[%s]: %d -> %s(%o)",
+          this._getDescription(),
+          this.condition.select,
+          command.name,
+          command.args
+        );
+      }
+      (stream || this.stream).write(command.toWritable());
+
+      this.commandQueue.push({
+        command: command,
+        stream: stream,
+        select: this.condition.select,
+      });
+
+      if (Command.checkFlag("WILL_DISCONNECT", command.name)) {
+        this.manuallyClosing = true;
+      }
+    } else if (this.options.enableOfflineQueue) {
+      // @ts-expect-error
+      if (debug.enabled) {
+        debug(
+          "queue command[%s]: %d -> %s(%o)",
+          this._getDescription(),
+          this.condition.select,
+          command.name,
+          command.args
+        );
+      }
+      this.offlineQueue.push({
+        command: command,
+        stream: stream,
+        select: this.condition.select,
+      });
+    }
+
+    if (command.name === "select" && isInt(command.args[0])) {
+      const db = parseInt(command.args[0], 10);
+      if (this.condition.select !== db) {
+        this.condition.select = db;
+        this.emit("select", db);
+        debug("switch to db [%d]", this.condition.select);
+      }
+    }
+
+    return command.promise;
+  }
+
+  /**
+   * Get description of the connection. Used for debugging.
+   */
+  private _getDescription() {
+    let description;
+    if ("path" in this.options && this.options.path) {
+      description = this.options.path;
+    } else if (
+      this.stream &&
+      this.stream.remoteAddress &&
+      this.stream.remotePort
+    ) {
+      description = this.stream.remoteAddress + ":" + this.stream.remotePort;
+    } else if ("host" in this.options && this.options.host) {
+      description = this.options.host + ":" + this.options.port;
+    } else {
+      // Unexpected
+      description = "";
+    }
+    if (this.options.connectionName) {
+      description += ` (${this.options.connectionName})`;
+    }
+    return description;
+  }
+}
+
+interface Redis extends EventEmitter {}
+applyMixin(Redis, EventEmitter);
+
+[
+  "scan",
+  "sscan",
+  "hscan",
+  "zscan",
+  "scanBuffer",
+  "sscanBuffer",
+  "hscanBuffer",
+  "zscanBuffer",
+].forEach((command) => {
+  Redis.prototype[command + "Stream"] = function (
+    key: string,
+    options: unknown
+  ) {
+    if (command === "scan" || command === "scanBuffer") {
+      options = key;
+      key = null;
+    }
+    return new ScanStream(
+      defaults(
+        {
+          objectMode: true,
+          key: key,
+          redis: this,
+          command: command,
+        },
+        options
+      )
+    );
+  };
+});
+
+addTransactionSupport(Redis.prototype);
+
+export default Redis;

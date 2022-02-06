@@ -11,7 +11,7 @@ export default abstract class AbstractConnector {
   protected stream: NetStream;
   public firstError?: Error;
 
-  protected constructor(disconnectTimeout: number) {
+  constructor(disconnectTimeout: number) {
     this.disconnectTimeout = disconnectTimeout;
   }
 

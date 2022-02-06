@@ -8,8 +8,8 @@ describe("cluster:dnsLookup", () => {
       [0, 1000, ["127.0.0.1", 30001]],
       [1001, 16383, ["127.0.0.1", 30002]],
     ];
-    new MockServer(30001, (argv, c) => {}, slotTable);
-    new MockServer(30002, (argv, c) => {}, slotTable);
+    new MockServer(30001, () => {}, slotTable);
+    new MockServer(30002, () => {}, slotTable);
 
     const cluster = new Cluster([{ host: "localhost", port: "30001" }]);
     cluster.on("ready", () => {

@@ -1,4 +1,4 @@
-import Redis from "../../lib/redis";
+import Redis from "../../lib/Redis";
 import MockServer from "../helpers/mock_server";
 
 describe("sentinel_nat", function () {

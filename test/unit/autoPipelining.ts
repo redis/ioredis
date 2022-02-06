@@ -16,23 +16,23 @@ describe("autoPipelining", function () {
     expectGetFirstValueIs(["key", "value"], "key");
     expectGetFirstValueIs([[], "key"], "key");
     expectGetFirstValueIs([["key"]], "key");
-    // @ts-ignore
+    // @ts-expect-error
     expectGetFirstValueIs([[["key"]]], ["key"]);
-    // @ts-ignore
+    // @ts-expect-error
     expectGetFirstValueIs([0, 1, 2, 3, 4], 0);
-    // @ts-ignore
+    // @ts-expect-error
     expectGetFirstValueIs([[true]], true);
-    // @ts-ignore
+    // @ts-expect-error
     expectGetFirstValueIs([Buffer.from("test")], Buffer.from("test"));
-    // @ts-ignore
+    // @ts-expect-error
     expectGetFirstValueIs([{}], {});
     // lodash.isArguments is true for this legacy js way to get argument lists
     const createArguments = function () {
       return arguments;
     };
-    // @ts-ignore
+    // @ts-expect-error
     expectGetFirstValueIs([createArguments(), createArguments("key")], "key");
-    // @ts-ignore
+    // @ts-expect-error
     expectGetFirstValueIs([createArguments("")], "");
   });
 });

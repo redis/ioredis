@@ -1,6 +1,6 @@
 import { Socket } from "net";
 
-import Redis from "../../lib/redis";
+import Redis from "../../lib/Redis";
 import MockServer from "../helpers/mock_server";
 import { once } from "../helpers/once";
 import { expect } from "chai";

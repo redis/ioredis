@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { createConnection } from "net";
+import { createConnection, TcpNetConnectOpts } from "net";
 import { INatMap } from "../../cluster/ClusterOptions";
 import {
   CONNECTION_CLOSED_ERROR_MSG,
@@ -8,16 +8,12 @@ import {
   Debug,
 } from "../../utils";
 import { connect as createTLSConnection, ConnectionOptions } from "tls";
-import {
-  ITcpConnectionOptions,
-  isIIpcConnectionOptions,
-} from "../StandaloneConnector";
 import SentinelIterator from "./SentinelIterator";
 import { IRedisClient, ISentinelAddress, ISentinel } from "./types";
 import AbstractConnector, { ErrorEmitter } from "../AbstractConnector";
 import { NetStream } from "../../types";
-import Redis from "../../redis";
-import { IRedisOptions } from "../../redis/RedisOptions";
+import Redis from "../../Redis";
+import { RedisOptions } from "../../redis/RedisOptions";
 import { FailoverDetector } from "./FailoverDetector";
 
 const debug = Debug("SentinelConnector");
@@ -35,12 +31,13 @@ type PreferredSlaves =
 
 export { ISentinelAddress, SentinelIterator };
 
-export interface ISentinelConnectionOptions extends ITcpConnectionOptions {
-  role: "master" | "slave";
-  name: string;
+export interface SentinelConnectionOptions {
+  name?: string;
+  role?: "master" | "slave";
+  tls?: ConnectionOptions;
   sentinelUsername?: string;
   sentinelPassword?: string;
-  sentinels: Array<Partial<ISentinelAddress>>;
+  sentinels?: Array<Partial<ISentinelAddress>>;
   sentinelRetryStrategy?: (retryAttempts: number) => number | void | null;
   sentinelReconnectStrategy?: (retryAttempts: number) => number | void | null;
   preferredSlaves?: PreferredSlaves;
@@ -61,7 +58,7 @@ export default class SentinelConnector extends AbstractConnector {
   protected sentinelIterator: SentinelIterator;
   public emitter: EventEmitter | null = null;
 
-  constructor(protected options: ISentinelConnectionOptions) {
+  constructor(protected options: SentinelConnectionOptions) {
     super(options.disconnectTimeout);
 
     if (!this.options.sentinels.length) {
@@ -137,7 +134,7 @@ export default class SentinelConnector extends AbstractConnector {
         }
       }
 
-      let resolved: ITcpConnectionOptions | null = null;
+      let resolved: TcpNetConnectOpts | null = null;
       let err: Error | null = null;
 
       try {
@@ -234,7 +231,7 @@ export default class SentinelConnector extends AbstractConnector {
 
   private async resolveMaster(
     client: IRedisClient
-  ): Promise<ITcpConnectionOptions | null> {
+  ): Promise<TcpNetConnectOpts | null> {
     const result = await client.sentinel(
       "get-master-addr-by-name",
       this.options.name
@@ -251,7 +248,7 @@ export default class SentinelConnector extends AbstractConnector {
 
   private async resolveSlave(
     client: IRedisClient
-  ): Promise<ITcpConnectionOptions | null> {
+  ): Promise<TcpNetConnectOpts | null> {
     const result = await client.sentinel("slaves", this.options.name);
 
     if (!Array.isArray(result)) {
@@ -280,18 +277,20 @@ export default class SentinelConnector extends AbstractConnector {
 
   private connectToSentinel(
     endpoint: Partial<ISentinelAddress>,
-    options?: Partial<IRedisOptions>
+    options?: Partial<RedisOptions>
   ): IRedisClient {
-    return new Redis({
+    const redis = new Redis({
       port: endpoint.port || 26379,
       host: endpoint.host,
       username: this.options.sentinelUsername || null,
       password: this.options.sentinelPassword || null,
       family:
         endpoint.family ||
-        (isIIpcConnectionOptions(this.options)
+        // @ts-expect-error
+        ("path" in this.options && this.options.path
           ? undefined
-          : this.options.family),
+          : // @ts-expect-error
+            this.options.family),
       tls: this.options.sentinelTLS,
       retryStrategy: null,
       enableReadyCheck: false,
@@ -300,11 +299,13 @@ export default class SentinelConnector extends AbstractConnector {
       dropBufferSupport: true,
       ...options,
     });
+    // @ts-expect-error
+    return redis;
   }
 
   private async resolve(
     endpoint: Partial<ISentinelAddress>
-  ): Promise<ITcpConnectionOptions | null> {
+  ): Promise<TcpNetConnectOpts | null> {
     const client = this.connectToSentinel(endpoint);
 
     // ignore the errors since resolve* methods will handle them

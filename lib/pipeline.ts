@@ -1,12 +1,13 @@
-import Command from "./command";
-import { deprecate } from "util";
-import asCallback from "standard-as-callback";
-import { exists, hasFlag } from "redis-commands";
 import * as calculateSlot from "cluster-key-slot";
 import * as pMap from "p-map";
+import { exists, hasFlag } from "redis-commands";
+import asCallback from "standard-as-callback";
+import { deprecate } from "util";
+import Redis, { Cluster } from ".";
+import Command from "./command";
+import Commander from "./utils/Commander";
 import * as PromiseContainer from "./promiseContainer";
 import { CallbackFunction } from "./types";
-import Commander from "./commander";
 import { noop } from "./utils";
 
 /*
@@ -27,212 +28,228 @@ function generateMultiWithNodes(redis, keys) {
   return slot;
 }
 
-export default function Pipeline(redis) {
-  Commander.call(this);
+class Pipeline extends Commander {
+  isCluster: boolean;
+  isPipeline = true;
+  leftRedirections: { ttl?: number };
+  private replyPending = 0;
+  private _queue = [];
+  private _result = [];
+  private _transactions = 0;
+  private _shaToScript = {};
+  private preferKey: string;
+  promise: Promise<unknown>;
+  resolve: (result: unknown) => void;
+  reject: (error: Error) => void;
 
-  this.redis = redis;
-  this.isCluster =
-    this.redis.constructor.name === "Cluster" || this.redis.isCluster;
-  this.isPipeline = true;
-  this.options = redis.options;
-  this._queue = [];
-  this._result = [];
-  this._transactions = 0;
-  this._shaToScript = {};
+  constructor(public redis: Redis | Cluster) {
+    super();
+    this.isCluster =
+      this.redis.constructor.name === "Cluster" || this.redis.isCluster;
+    this.options = redis.options;
 
-  Object.keys(redis.scriptsSet).forEach((name) => {
-    const script = redis.scriptsSet[name];
-    this._shaToScript[script.sha] = script;
-    this[name] = redis[name];
-    this[name + "Buffer"] = redis[name + "Buffer"];
-  });
-
-  redis.addedBuiltinSet.forEach((name) => {
-    this[name] = redis[name];
-    this[name + "Buffer"] = redis[name + "Buffer"];
-  });
-
-  const Promise = PromiseContainer.get();
-  this.promise = new Promise((resolve, reject) => {
-    this.resolve = resolve;
-    this.reject = reject;
-  });
-
-  const _this = this;
-  Object.defineProperty(this, "length", {
-    get: function () {
-      return _this._queue.length;
-    },
-  });
-}
-
-Object.assign(Pipeline.prototype, Commander.prototype);
-
-Pipeline.prototype.fillResult = function (value, position) {
-  if (this._queue[position].name === "exec" && Array.isArray(value[1])) {
-    const execLength = value[1].length;
-    for (let i = 0; i < execLength; i++) {
-      if (value[1][i] instanceof Error) {
-        continue;
-      }
-      const cmd = this._queue[position - (execLength - i)];
-      try {
-        value[1][i] = cmd.transformReply(value[1][i]);
-      } catch (err) {
-        value[1][i] = err;
-      }
-    }
-  }
-  this._result[position] = value;
-
-  if (--this.replyPending) {
-    return;
-  }
-
-  if (this.isCluster) {
-    let retriable = true;
-    let commonError: { name: string; message: string };
-    for (let i = 0; i < this._result.length; ++i) {
-      const error = this._result[i][0];
-      const command = this._queue[i];
-      if (error) {
-        if (
-          command.name === "exec" &&
-          error.message ===
-            "EXECABORT Transaction discarded because of previous errors."
-        ) {
-          continue;
-        }
-        if (!commonError) {
-          commonError = {
-            name: error.name,
-            message: error.message,
-          };
-        } else if (
-          commonError.name !== error.name ||
-          commonError.message !== error.message
-        ) {
-          retriable = false;
-          break;
-        }
-      } else if (!command.inTransaction) {
-        const isReadOnly =
-          exists(command.name) && hasFlag(command.name, "readonly");
-        if (!isReadOnly) {
-          retriable = false;
-          break;
-        }
-      }
-    }
-    if (commonError && retriable) {
-      const _this = this;
-      const errv = commonError.message.split(" ");
-      const queue = this._queue;
-      let inTransaction = false;
-      this._queue = [];
-      for (let i = 0; i < queue.length; ++i) {
-        if (
-          errv[0] === "ASK" &&
-          !inTransaction &&
-          queue[i].name !== "asking" &&
-          (!queue[i - 1] || queue[i - 1].name !== "asking")
-        ) {
-          const asking = new Command("asking");
-          asking.ignore = true;
-          this.sendCommand(asking);
-        }
-        queue[i].initPromise();
-        this.sendCommand(queue[i]);
-        inTransaction = queue[i].inTransaction;
-      }
-
-      let matched = true;
-      if (typeof this.leftRedirections === "undefined") {
-        this.leftRedirections = {};
-      }
-      const exec = function () {
-        _this.exec();
-      };
-      this.redis.handleError(commonError, this.leftRedirections, {
-        moved: function (slot, key) {
-          _this.preferKey = key;
-          _this.redis.slots[errv[1]] = [key];
-          _this.redis._groupsBySlot[errv[1]] =
-            _this.redis._groupsIds[_this.redis.slots[errv[1]].join(";")];
-          _this.redis.refreshSlotsCache();
-          _this.exec();
-        },
-        ask: function (slot, key) {
-          _this.preferKey = key;
-          _this.exec();
-        },
-        tryagain: exec,
-        clusterDown: exec,
-        connectionClosed: exec,
-        maxRedirections: () => {
-          matched = false;
-        },
-        defaults: () => {
-          matched = false;
-        },
-      });
-      if (matched) {
-        return;
-      }
-    }
-  }
-
-  let ignoredCount = 0;
-  for (let i = 0; i < this._queue.length - ignoredCount; ++i) {
-    if (this._queue[i + ignoredCount].ignore) {
-      ignoredCount += 1;
-    }
-    this._result[i] = this._result[i + ignoredCount];
-  }
-  this.resolve(this._result.slice(0, this._result.length - ignoredCount));
-};
-
-Pipeline.prototype.sendCommand = function (command) {
-  if (this._transactions > 0) {
-    command.inTransaction = true;
-  }
-
-  const position = this._queue.length;
-  command.pipelineIndex = position;
-
-  command.promise
-    .then((result) => {
-      this.fillResult([null, result], position);
-    })
-    .catch((error) => {
-      this.fillResult([error], position);
+    Object.keys(redis.scriptsSet).forEach((name) => {
+      const script = redis.scriptsSet[name];
+      this._shaToScript[script.sha] = script;
+      this[name] = redis[name];
+      this[name + "Buffer"] = redis[name + "Buffer"];
     });
 
-  this._queue.push(command);
+    redis.addedBuiltinSet.forEach((name) => {
+      this[name] = redis[name];
+      this[name + "Buffer"] = redis[name + "Buffer"];
+    });
 
-  return this;
-};
+    this.promise = new Promise((resolve, reject) => {
+      this.resolve = resolve;
+      this.reject = reject;
+    });
 
-Pipeline.prototype.addBatch = function (commands) {
-  let command, commandName, args;
-  for (let i = 0; i < commands.length; ++i) {
-    command = commands[i];
-    commandName = command[0];
-    args = command.slice(1);
-    this[commandName].apply(this, args);
+    const _this = this;
+    Object.defineProperty(this, "length", {
+      get: function () {
+        return _this._queue.length;
+      },
+    });
   }
 
-  return this;
-};
+  fillResult(value: unknown[], position: number) {
+    if (this._queue[position].name === "exec" && Array.isArray(value[1])) {
+      const execLength = value[1].length;
+      for (let i = 0; i < execLength; i++) {
+        if (value[1][i] instanceof Error) {
+          continue;
+        }
+        const cmd = this._queue[position - (execLength - i)];
+        try {
+          value[1][i] = cmd.transformReply(value[1][i]);
+        } catch (err) {
+          value[1][i] = err;
+        }
+      }
+    }
+    this._result[position] = value;
 
+    if (--this.replyPending) {
+      return;
+    }
+
+    if (this.isCluster) {
+      let retriable = true;
+      let commonError: { name: string; message: string };
+      for (let i = 0; i < this._result.length; ++i) {
+        const error = this._result[i][0];
+        const command = this._queue[i];
+        if (error) {
+          if (
+            command.name === "exec" &&
+            error.message ===
+              "EXECABORT Transaction discarded because of previous errors."
+          ) {
+            continue;
+          }
+          if (!commonError) {
+            commonError = {
+              name: error.name,
+              message: error.message,
+            };
+          } else if (
+            commonError.name !== error.name ||
+            commonError.message !== error.message
+          ) {
+            retriable = false;
+            break;
+          }
+        } else if (!command.inTransaction) {
+          const isReadOnly =
+            exists(command.name) && hasFlag(command.name, "readonly");
+          if (!isReadOnly) {
+            retriable = false;
+            break;
+          }
+        }
+      }
+      if (commonError && retriable) {
+        const _this = this;
+        const errv = commonError.message.split(" ");
+        const queue = this._queue;
+        let inTransaction = false;
+        this._queue = [];
+        for (let i = 0; i < queue.length; ++i) {
+          if (
+            errv[0] === "ASK" &&
+            !inTransaction &&
+            queue[i].name !== "asking" &&
+            (!queue[i - 1] || queue[i - 1].name !== "asking")
+          ) {
+            const asking = new Command("asking");
+            asking.ignore = true;
+            this.sendCommand(asking);
+          }
+          queue[i].initPromise();
+          this.sendCommand(queue[i]);
+          inTransaction = queue[i].inTransaction;
+        }
+
+        let matched = true;
+        if (typeof this.leftRedirections === "undefined") {
+          this.leftRedirections = {};
+        }
+        const exec = function () {
+          // @ts-expect-error
+          _this.exec();
+        };
+        const cluster = this.redis as Cluster;
+        cluster.handleError(commonError, this.leftRedirections, {
+          moved: function (_slot: string, key: string) {
+            _this.preferKey = key;
+            cluster.slots[errv[1]] = [key];
+            cluster._groupsBySlot[errv[1]] =
+              cluster._groupsIds[cluster.slots[errv[1]].join(";")];
+            cluster.refreshSlotsCache();
+            // @ts-expect-error
+            _this.exec();
+          },
+          ask: function (_slot: string, key: string) {
+            _this.preferKey = key;
+            // @ts-expect-error
+            _this.exec();
+          },
+          tryagain: exec,
+          clusterDown: exec,
+          connectionClosed: exec,
+          maxRedirections: () => {
+            matched = false;
+          },
+          defaults: () => {
+            matched = false;
+          },
+        });
+        if (matched) {
+          return;
+        }
+      }
+    }
+
+    let ignoredCount = 0;
+    for (let i = 0; i < this._queue.length - ignoredCount; ++i) {
+      if (this._queue[i + ignoredCount].ignore) {
+        ignoredCount += 1;
+      }
+      this._result[i] = this._result[i + ignoredCount];
+    }
+    this.resolve(this._result.slice(0, this._result.length - ignoredCount));
+  }
+
+  sendCommand(command: Command): unknown {
+    if (this._transactions > 0) {
+      command.inTransaction = true;
+    }
+
+    const position = this._queue.length;
+    command.pipelineIndex = position;
+
+    command.promise
+      .then((result) => {
+        this.fillResult([null, result], position);
+      })
+      .catch((error) => {
+        this.fillResult([error], position);
+      });
+
+    this._queue.push(command);
+
+    return this;
+  }
+
+  addBatch(commands) {
+    let command, commandName, args;
+    for (let i = 0; i < commands.length; ++i) {
+      command = commands[i];
+      commandName = command[0];
+      args = command.slice(1);
+      this[commandName].apply(this, args);
+    }
+
+    return this;
+  }
+}
+
+export default Pipeline;
+
+// @ts-expect-error
 const multi = Pipeline.prototype.multi;
+// @ts-expect-error
 Pipeline.prototype.multi = function () {
   this._transactions += 1;
   return multi.apply(this, arguments);
 };
 
+// @ts-expect-error
 const execBuffer = Pipeline.prototype.execBuffer;
+// @ts-expect-error
 const exec = Pipeline.prototype.exec;
+// @ts-expect-error
 Pipeline.prototype.execBuffer = deprecate(function () {
   if (this._transactions > 0) {
     this._transactions -= 1;
@@ -246,6 +263,7 @@ Pipeline.prototype.execBuffer = deprecate(function () {
 //
 // If a different promise instance were returned, that promise would cause its own unhandled promise rejection
 // errors, even if that promise unconditionally resolved to **the resolved value of** this.promise.
+// @ts-expect-error
 Pipeline.prototype.exec = function (
   callback: CallbackFunction
 ): Promise<Array<any>> {

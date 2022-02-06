@@ -1,15 +1,12 @@
-import { IClusterOptions } from "../cluster/ClusterOptions";
-import { ICommanderOptions } from "../commander";
-import AbstractConnector from "../connectors/AbstractConnector";
-import { ISentinelConnectionOptions } from "../connectors/SentinelConnector";
+import { CommanderOptions } from "../utils/Commander";
+import ConnectorConstructor from "../connectors/ConnectorConstructor";
+import { SentinelConnectionOptions } from "../connectors/SentinelConnector";
+import { StandaloneConnectionOptions } from "../connectors/StandaloneConnector";
 
 export type ReconnectOnError = (err: Error) => boolean | 1 | 2;
 
-export interface IRedisOptions
-  extends Partial<ISentinelConnectionOptions>,
-    Partial<ICommanderOptions>,
-    Partial<IClusterOptions> {
-  Connector?: typeof AbstractConnector;
+interface CommonRedisOptions extends CommanderOptions {
+  Connector?: ConnectorConstructor;
   retryStrategy?: (times: number) => number | void | null;
   commandTimeout?: number;
   keepAlive?: number;
@@ -21,10 +18,11 @@ export interface IRedisOptions
   dropBufferSupport?: boolean;
   autoResubscribe?: boolean;
   autoResendUnfulfilledCommands?: boolean;
-  keyPrefix?: string;
   reconnectOnError?: ReconnectOnError;
   readOnly?: boolean;
   stringNumbers?: boolean;
+  connectTimeout?: number;
+  monitor?: boolean;
   maxRetriesPerRequest?: number;
   maxLoadingRetryTime?: number;
   enableAutoPipelining?: boolean;
@@ -32,9 +30,16 @@ export interface IRedisOptions
   maxScriptsCachingTime?: number;
   offlineQueue?: boolean;
   commandQueue?: boolean;
+  enableOfflineQueue?: boolean;
+  enableReadyCheck?: boolean;
+  lazyConnect?: boolean;
 }
 
-export const DEFAULT_REDIS_OPTIONS: IRedisOptions = {
+export type RedisOptions =
+  | (CommonRedisOptions & SentinelConnectionOptions)
+  | (CommonRedisOptions & StandaloneConnectionOptions);
+
+export const DEFAULT_REDIS_OPTIONS: RedisOptions = {
   // Connection
   port: 6379,
   host: "localhost",

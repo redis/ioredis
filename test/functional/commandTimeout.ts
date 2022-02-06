@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import * as sinon from "sinon";
-import Redis from "../../lib/redis";
+import Redis from "../../lib/Redis";
 import MockServer from "../helpers/mock_server";
 
 describe("commandTimeout", function () {

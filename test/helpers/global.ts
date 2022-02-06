@@ -1,5 +1,5 @@
 import * as sinon from "sinon";
-import Redis from "../../lib/redis";
+import Redis from "../../lib/Redis";
 
 afterEach(function (done) {
   sinon.restore();

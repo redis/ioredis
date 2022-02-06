@@ -4,7 +4,7 @@ import { defaults, noop, Debug } from "../utils";
 import ConnectionPool from "./ConnectionPool";
 import {
   NodeKey,
-  IRedisOptions,
+  RedisOptions,
   normalizeNodeOptions,
   NodeRole,
   getUniqueHostnamesFromOptions,
@@ -19,8 +19,8 @@ import ScanStream from "../ScanStream";
 import { AbortError, RedisError } from "redis-errors";
 import asCallback from "standard-as-callback";
 import * as PromiseContainer from "../promiseContainer";
-import { CallbackFunction } from "../types";
-import { IClusterOptions, DEFAULT_CLUSTER_OPTIONS } from "./ClusterOptions";
+import { CallbackFunction, NetStream } from "../types";
+import { ClusterOptions, DEFAULT_CLUSTER_OPTIONS } from "./ClusterOptions";
 import {
   sample,
   CONNECTION_CLOSED_ERROR_MSG,
@@ -30,10 +30,11 @@ import {
 } from "../utils";
 import * as commands from "redis-commands";
 import Command from "../command";
-import Redis from "../redis";
-import Commander from "../commander";
+import Redis from "../Redis";
+import Commander from "../utils/Commander";
 import Deque = require("denque");
 import { Pipeline } from "..";
+import applyMixin from "../utils/applyMixin";
 
 const debug = Debug("cluster");
 
@@ -51,13 +52,12 @@ type ClusterStatus =
  * Client for the official Redis Cluster
  *
  * @class Cluster
- * @extends {EventEmitter}
  */
-class Cluster extends EventEmitter {
-  private options: IClusterOptions;
+class Cluster extends Commander {
+  options: ClusterOptions;
   private startupNodes: (string | number | object)[];
   private connectionPool: ConnectionPool;
-  private slots: NodeKey[][] = [];
+  slots: NodeKey[][] = [];
   private manuallyClosing: boolean;
   private retryAttempts = 0;
   private delayQueue: DelayQueue = new DelayQueue();
@@ -69,8 +69,8 @@ class Cluster extends EventEmitter {
   private isRefreshing = false;
   public isCluster = true;
   private _autoPipelines: Map<string, typeof Pipeline> = new Map();
-  private _groupsIds: { [key: string]: number } = {};
-  private _groupsBySlot: number[] = Array(16384);
+  _groupsIds: { [key: string]: number } = {};
+  _groupsBySlot: number[] = Array(16384);
   private _runningAutoPipelines: Set<string> = new Set();
   private _readyDelayedCallbacks: CallbackFunction[] = [];
   public _addedScriptHashes: { [key: string]: any } = {};
@@ -92,15 +92,15 @@ class Cluster extends EventEmitter {
    * Creates an instance of Cluster.
    *
    * @param {((string | number | object)[])} startupNodes
-   * @param {IClusterOptions} [options={}]
+   * @param {ClusterOptions} [options={}]
    * @memberof Cluster
    */
   constructor(
     startupNodes: (string | number | object)[],
-    options: IClusterOptions = {}
+    options: ClusterOptions = {}
   ) {
     super();
-    Commander.call(this);
+    EventEmitter.call(this);
 
     this.startupNodes = startupNodes;
     this.options = defaults({}, options, DEFAULT_CLUSTER_OPTIONS, this.options);
@@ -436,7 +436,7 @@ class Cluster extends EventEmitter {
    *
    * @public
    * @param {((string | number | object)[])} [overrideStartupNodes=[]]
-   * @param {IClusterOptions} [overrideOptions={}]
+   * @param {ClusterOptions} [overrideOptions={}]
    * @memberof Cluster
    */
   public duplicate(overrideStartupNodes = [], overrideOptions = {}) {
@@ -501,12 +501,8 @@ class Cluster extends EventEmitter {
 
   /**
    * Refresh the slot cache
-   *
-   * @private
-   * @param {CallbackFunction} [callback]
-   * @memberof Cluster
    */
-  private refreshSlotsCache(callback?: CallbackFunction<void>): void {
+  refreshSlotsCache(callback?: CallbackFunction<void>): void {
     if (this.isRefreshing) {
       if (typeof callback === "function") {
         process.nextTick(callback);
@@ -586,7 +582,7 @@ class Cluster extends EventEmitter {
     }
   }
 
-  natMapper(nodeKey: NodeKey | IRedisOptions): IRedisOptions {
+  natMapper(nodeKey: NodeKey | RedisOptions): RedisOptions {
     if (this.options.natMap && typeof this.options.natMap === "object") {
       const key =
         typeof nodeKey === "string"
@@ -603,7 +599,7 @@ class Cluster extends EventEmitter {
       : nodeKey;
   }
 
-  sendCommand(command, stream, node) {
+  sendCommand(command: Command, stream?: NetStream, node?: any): unknown {
     if (this.status === "wait") {
       this.connect().catch(noop);
     }
@@ -625,8 +621,10 @@ class Cluster extends EventEmitter {
     let targetSlot = node ? node.slot : command.getSlot();
     const ttl = {};
     const _this = this;
+    // @ts-expect-error
     if (!node && !command.__is_reject_overwritten) {
-      // eslint-disable-next-line @typescript-eslint/camelcase
+      // TODO WeakMap
+      // @ts-expect-error
       command.__is_reject_overwritten = true;
       const reject = command.reject;
       command.reject = function (err) {
@@ -941,7 +939,7 @@ class Cluster extends EventEmitter {
     });
   }
 
-  private resolveSrv(hostname: string): Promise<IRedisOptions> {
+  private resolveSrv(hostname: string): Promise<RedisOptions> {
     return new Promise((resolve, reject) => {
       this.options.resolveSrv(hostname, (err, records) => {
         if (err) {
@@ -1007,9 +1005,9 @@ class Cluster extends EventEmitter {
    * #startupNodes and DNS records may chanage.
    *
    * @private
-   * @returns {Promise<IRedisOptions[]>}
+   * @returns {Promise<RedisOptions[]>}
    */
-  private resolveStartupNodeHostnames(): Promise<IRedisOptions[]> {
+  private resolveStartupNodeHostnames(): Promise<RedisOptions[]> {
     if (!Array.isArray(this.startupNodes) || this.startupNodes.length === 0) {
       return Promise.reject(
         new Error("`startupNodes` should contain at least one node.")
@@ -1045,11 +1043,8 @@ class Cluster extends EventEmitter {
   }
 }
 
-Object.getOwnPropertyNames(Commander.prototype).forEach((name) => {
-  if (!Cluster.prototype.hasOwnProperty(name)) {
-    Cluster.prototype[name] = Commander.prototype[name];
-  }
-});
+interface Cluster extends EventEmitter {}
+applyMixin(Cluster, EventEmitter);
 
 const scanCommands = [
   "sscan",

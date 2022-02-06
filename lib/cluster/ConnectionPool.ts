@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
 import { sample, Debug, noop, defaults } from "../utils";
-import { IRedisOptions, getNodeKey, NodeKey, NodeRole } from "./util";
-import Redis from "../redis";
+import { RedisOptions, getNodeKey, NodeKey, NodeRole } from "./util";
+import Redis from "../Redis";
 
 const debug = Debug("cluster:connectionPool");
 
@@ -39,12 +39,12 @@ export default class ConnectionPool extends EventEmitter {
   /**
    * Find or create a connection to the node
    *
-   * @param {IRedisOptions} node
+   * @param {RedisOptions} node
    * @param {boolean} [readOnly=false]
    * @returns {*}
    * @memberof ConnectionPool
    */
-  public findOrCreate(node: IRedisOptions, readOnly = false): any {
+  public findOrCreate(node: RedisOptions, readOnly = false): any {
     const key = getNodeKey(node);
     readOnly = Boolean(readOnly);
 
@@ -130,7 +130,7 @@ export default class ConnectionPool extends EventEmitter {
    * @param {(Array<string | number | object>)} nodes
    * @memberof ConnectionPool
    */
-  public reset(nodes: IRedisOptions[]): void {
+  public reset(nodes: RedisOptions[]): void {
     debug("Reset with %O", nodes);
     const newNodes = {};
     nodes.forEach((node) => {

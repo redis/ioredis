@@ -1,5 +1,5 @@
 import { cronometro } from "cronometro";
-import Redis from "../lib/redis";
+import Redis from "../lib/Redis";
 
 let redis;
 

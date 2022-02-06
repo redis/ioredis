@@ -1,4 +1,4 @@
-import Redis from "../../lib/redis";
+import Redis from "../../lib/Redis";
 import { expect } from "chai";
 import { Readable } from "stream";
 import * as sinon from "sinon";
@@ -265,9 +265,9 @@ describe("*scanStream", function () {
       const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
 
       let keys = [];
-      // @ts-ignore
+      // @ts-expect-error
       cluster.sadd("set", serverKeys, function () {
-        // @ts-ignore
+        // @ts-expect-error
         const stream = cluster.sscanStream("set");
         stream.on("data", function (data) {
           keys = keys.concat(data);

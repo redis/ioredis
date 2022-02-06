@@ -1,4 +1,4 @@
-import Redis from "../../lib/redis";
+import Redis from "../../lib/Redis";
 import { noop } from "../../lib/utils";
 import * as sinon from "sinon";
 
@@ -9,7 +9,7 @@ describe("ready_check", function () {
     sinon.stub(redis, "info").callsFake((callback) => {
       callback(null, "loading:1\r\nloading_eta_seconds:7");
     });
-    // @ts-ignore
+    // @ts-expect-error
     const stub = sinon.stub(global, "setTimeout").callsFake((body, ms) => {
       if (ms === 7000) {
         redis.info.restore();

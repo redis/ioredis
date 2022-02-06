@@ -16,7 +16,6 @@ describe("cluster", function () {
     const options = Object.freeze({ maxRedirections: 1000 });
     const cluster = new Cluster([{ port: 7777 }], options);
     expect(cluster.options).to.have.property("maxRedirections", 1000);
-    expect(cluster.options).to.have.property("showFriendlyErrorStack", false);
     expect(cluster.options).to.have.property("scaleReads", "master");
   });
 

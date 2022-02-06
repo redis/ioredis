@@ -1,4 +1,4 @@
-import Redis from "../../lib/redis";
+import Redis from "../../lib/Redis";
 import { expect } from "chai";
 import Command from "../../lib/command";
 
@@ -166,7 +166,7 @@ describe("transaction", function () {
 
     it("should handle custom transformer exception", function (done) {
       const transformError = "transformer error";
-      // @ts-ignore
+      // @ts-expect-error
       Command._transformer.reply.get = function () {
         throw new Error(transformError);
       };
@@ -177,7 +177,7 @@ describe("transaction", function () {
         .get("foo")
         .exec(function (err, res) {
           expect(res[0][0]).to.have.property("message", transformError);
-          // @ts-ignore
+          // @ts-expect-error
           delete Command._transformer.reply.get;
           done();
         });

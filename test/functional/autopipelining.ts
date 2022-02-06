@@ -1,5 +1,5 @@
 import { expect, use } from "chai";
-import Redis from "../../lib/redis";
+import Redis from "../../lib/Redis";
 
 use(require("chai-as-promised"));
 
