@@ -323,6 +323,10 @@ Redis.prototype.connect = function (callback) {
     // Make sure only one timer is active at a time
     this.clearAddedScriptHashesCleanInterval();
 
+    // Scripts need to get reset on reconnect as redis
+    // might have been restarted or some failover happened
+    this._addedScriptHashes = {};
+
     // Start the script cache cleaning
     this._addedScriptHashesCleanInterval = setInterval(() => {
       this._addedScriptHashes = {};
