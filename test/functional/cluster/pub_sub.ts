@@ -2,7 +2,7 @@ import MockServer, { getConnectionName } from "../../helpers/mock_server";
 import { expect } from "chai";
 import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
-import Redis from "../../../lib/redis";
+import Redis from "../../../lib/Redis";
 import { noop } from "../../../lib/utils";
 
 describe("cluster:pub/sub", function () {

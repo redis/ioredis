@@ -1,4 +1,4 @@
-import { IRedisOptions } from "../../redis/RedisOptions";
+import { RedisOptions } from "../../redis/RedisOptions";
 
 export interface ISentinelAddress {
   port: number;
@@ -8,7 +8,7 @@ export interface ISentinelAddress {
 
 // TODO: A proper typedef. This one only declares a small subset of all the members.
 export interface IRedisClient {
-  options: IRedisOptions;
+  options: RedisOptions;
   sentinel(subcommand: "sentinels", name: string): Promise<string[]>;
   sentinel(
     subcommand: "get-master-addr-by-name",

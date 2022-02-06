@@ -1,4 +1,4 @@
-import Redis from "../../lib/redis";
+import Redis from "../../lib/Redis";
 import { expect } from "chai";
 
 describe("send command", function () {
@@ -51,12 +51,14 @@ describe("send command", function () {
 
   it("should support get & set buffer via `call`", function (done) {
     const redis = new Redis();
-    redis.call("set", Buffer.from("foo"), Buffer.from("bar"), function (
-      err,
-      res
-    ) {
-      expect(res).to.eql("OK");
-    });
+    redis.call(
+      "set",
+      Buffer.from("foo"),
+      Buffer.from("bar"),
+      function (err, res) {
+        expect(res).to.eql("OK");
+      }
+    );
     redis.callBuffer("get", Buffer.from("foo"), function (err, result) {
       expect(result).to.be.instanceof(Buffer);
       expect(result.toString()).to.eql("bar");
@@ -154,16 +156,22 @@ describe("send command", function () {
     redis.zadd("zset2", 1, "one");
     redis.zadd("zset2", 2, "two");
     redis.zadd("zset2", 3, "three");
-    redis.zunionstore("out", 2, "zset1", "zset2", "WEIGHTS", 2, 3, function (
-      err,
-      result
-    ) {
-      expect(result).to.eql(3);
-      redis.keys("*", function (err, result) {
-        expect(result).to.have.members(["foo:zset1", "foo:zset2", "foo:out"]);
-        done();
-      });
-    });
+    redis.zunionstore(
+      "out",
+      2,
+      "zset1",
+      "zset2",
+      "WEIGHTS",
+      2,
+      3,
+      function (err, result) {
+        expect(result).to.eql(3);
+        redis.keys("*", function (err, result) {
+          expect(result).to.have.members(["foo:zset1", "foo:zset2", "foo:out"]);
+          done();
+        });
+      }
+    );
   });
 
   it("should support key prefixing for sort", function (done) {

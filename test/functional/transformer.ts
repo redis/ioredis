@@ -1,4 +1,4 @@
-import Redis from "../../lib/redis";
+import Redis from "../../lib/Redis";
 import { getRedisVersion } from "../helpers/util";
 import { expect } from "chai";
 

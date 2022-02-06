@@ -110,7 +110,6 @@ export default class MockServer extends EventEmitter {
       });
 
       c.on("data", (data) => {
-        // @ts-ignore
         parser.execute(data);
       });
     });
@@ -119,8 +118,8 @@ export default class MockServer extends EventEmitter {
     enableDestroy(this.socket);
   }
 
-  disconnect(callback?: Function) {
-    // @ts-ignore
+  disconnect(callback?: () => void) {
+    // @ts-expect-error
     this.socket.destroy(callback);
   }
 

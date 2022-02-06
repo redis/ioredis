@@ -1,14 +1,15 @@
-import { defaults } from "./utils/lodash";
-import Command from "./command";
-import Script from "./script";
-import * as PromiseContainer from "./promiseContainer";
 import asCallback from "standard-as-callback";
 import {
   executeWithAutoPipelining,
   shouldUseAutoPipelining,
-} from "./autoPipelining";
+} from "../autoPipelining";
+import Command from "../command";
+import * as PromiseContainer from "../promiseContainer";
+import Script from "../script";
+import { NetStream } from "../types";
 
-export interface ICommanderOptions {
+export interface CommanderOptions {
+  keyPrefix?: string;
   showFriendlyErrorStack?: boolean;
 }
 
@@ -26,59 +27,82 @@ const DROP_BUFFER_SUPPORT_ERROR =
  * Will decrease the performance significantly.
  * @constructor
  */
-export default function Commander() {
-  this.options = defaults({}, this.options || {}, {
-    showFriendlyErrorStack: false,
-  });
-  this.scriptsSet = {};
-  this.addedBuiltinSet = new Set();
+class Commander {
+  options: CommanderOptions = {};
+  scriptsSet = {};
+  addedBuiltinSet = new Set<string>();
+
+  /**
+   * Return supported builtin commands
+   *
+   * @return {string[]} command list
+   */
+  getBuiltinCommands() {
+    return commands.slice(0);
+  }
+
+  /**
+   * Create a builtin command
+   *
+   * @param {string} commandName - command name
+   * @return {object} functions
+   */
+  createBuiltinCommand(commandName: string) {
+    return {
+      string: generateFunction(null, commandName, "utf8"),
+      buffer: generateFunction(null, commandName, null),
+    };
+  }
+
+  /**
+   * Create add builtin command
+   */
+  addBuiltinCommand(commandName: string) {
+    this.addedBuiltinSet.add(commandName);
+    this[commandName] = generateFunction(commandName, commandName, "utf8");
+    this[commandName + "Buffer"] = generateFunction(
+      commandName + "Buffer",
+      commandName,
+      null
+    );
+  }
+
+  /**
+   * Define a custom command using lua script
+   *
+   * @param {string} name - the command name
+   * @param {object} definition
+   * @param {string} definition.lua - the lua code
+   * @param {number} [definition.numberOfKeys=null] - the number of keys.
+   * @param {boolean} [definition.readOnly=false] - force this script to be readonly so it executes on slaves as well.
+   * If omit, you have to pass the number of keys as the first argument every time you invoke the command
+   */
+  defineCommand(name, definition) {
+    const script = new Script(
+      definition.lua,
+      definition.numberOfKeys,
+      this.options.keyPrefix,
+      definition.readOnly
+    );
+    this.scriptsSet[name] = script;
+    this[name] = generateScriptingFunction(name, name, script, "utf8");
+    this[name + "Buffer"] = generateScriptingFunction(
+      name + "Buffer",
+      name,
+      script,
+      null
+    );
+  }
+
+  sendCommand(command: Command, stream?: NetStream, node?: unknown): unknown {
+    throw new Error('"sendCommand" is not implemented');
+  }
 }
 
 const commands = require("redis-commands").list.filter(function (command) {
   return command !== "monitor";
 });
 commands.push("sentinel");
-
-/**
- * Return supported builtin commands
- *
- * @return {string[]} command list
- * @public
- */
-Commander.prototype.getBuiltinCommands = function () {
-  return commands.slice(0);
-};
-
-/**
- * Create a builtin command
- *
- * @param {string} commandName - command name
- * @return {object} functions
- * @public
- */
-Commander.prototype.createBuiltinCommand = function (commandName) {
-  return {
-    string: generateFunction(null, commandName, "utf8"),
-    buffer: generateFunction(null, commandName, null),
-  };
-};
-
-/**
- * Create add builtin command
- *
- * @param {string} commandName - command name
- * @return {object} functions
- * @public
- */
-Commander.prototype.addBuiltinCommand = function (commandName) {
-  this.addedBuiltinSet.add(commandName);
-  this[commandName] = generateFunction(commandName, commandName, "utf8");
-  this[commandName + "Buffer"] = generateFunction(
-    commandName + "Buffer",
-    commandName,
-    null
-  );
-};
 
 commands.forEach(function (commandName) {
   Commander.prototype[commandName] = generateFunction(
@@ -93,45 +117,12 @@ commands.forEach(function (commandName) {
   );
 });
 
+// @ts-expect-error
 Commander.prototype.call = generateFunction("call", "utf8");
+// @ts-expect-error
 Commander.prototype.callBuffer = generateFunction("callBuffer", null);
-// eslint-disable-next-line @typescript-eslint/camelcase
+// @ts-expect-error
 Commander.prototype.send_command = Commander.prototype.call;
-
-/**
- * Define a custom command using lua script
- *
- * @param {string} name - the command name
- * @param {object} definition
- * @param {string} definition.lua - the lua code
- * @param {number} [definition.numberOfKeys=null] - the number of keys.
- * @param {boolean} [definition.readOnly=false] - force this script to be readonly so it executes on slaves as well.
- * If omit, you have to pass the number of keys as the first argument every time you invoke the command
- */
-Commander.prototype.defineCommand = function (name, definition) {
-  const script = new Script(
-    definition.lua,
-    definition.numberOfKeys,
-    this.options.keyPrefix,
-    definition.readOnly
-  );
-  this.scriptsSet[name] = script;
-  this[name] = generateScriptingFunction(name, name, script, "utf8");
-  this[name + "Buffer"] = generateScriptingFunction(
-    name + "Buffer",
-    name,
-    script,
-    null
-  );
-};
-
-/**
- * Send a command
- *
- * @abstract
- * @public
- */
-Commander.prototype.sendCommand = function () {};
 
 function generateFunction(functionName: string | null, _encoding: string);
 function generateFunction(
@@ -242,3 +233,5 @@ function generateScriptingFunction(
     );
   };
 }
+
+export default Commander;

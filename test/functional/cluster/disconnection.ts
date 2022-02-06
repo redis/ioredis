@@ -1,4 +1,3 @@
-import Redis from "../../../lib/redis";
 import * as sinon from "sinon";
 import { expect } from "chai";
 import { Cluster } from "../../../lib";

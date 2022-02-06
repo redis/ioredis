@@ -1,6 +1,6 @@
 import * as sinon from "sinon";
 import { expect } from "chai";
-import Redis from "../../lib/redis";
+import Redis from "../../lib/Redis";
 
 describe("Redis", function () {
   describe("constructor", function () {
@@ -103,7 +103,7 @@ describe("Redis", function () {
       stub.restore();
 
       function getOption(...args) {
-        // @ts-ignore
+        // @ts-expect-error
         const redis = new Redis(...args);
         return redis.options;
       }
@@ -111,7 +111,7 @@ describe("Redis", function () {
 
     it("should throw when arguments is invalid", function () {
       expect(function () {
-        // @ts-ignore
+        // @ts-expect-error
         new Redis(function () {});
       }).to.throw(Error);
     });

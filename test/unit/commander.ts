@@ -1,6 +1,6 @@
 import * as sinon from "sinon";
 import { expect } from "chai";
-import Commander from "../../lib/commander";
+import Commander from "../../lib/utils/Commander";
 
 describe("Commander", function () {
   describe("#getBuiltinCommands()", () => {
@@ -14,7 +14,7 @@ describe("Commander", function () {
   });
 
   describe("#addBuiltinCommand()", () => {
-    beforeEach(() => sinon.spy(Commander.prototype, "sendCommand"));
+    beforeEach(() => sinon.stub(Commander.prototype, "sendCommand"));
     afterEach(() => sinon.restore());
     it("adds string command", () => {
       const c = new Commander();

@@ -15,7 +15,7 @@ docker run --rm  \
     -v $PWD/test:/code/test:ro \
     -v $PWD/tsconfig.json:/code/tsconfig.json:ro \
     -v $PWD/.eslintignore:/code/.eslintignore:ro \
-    -v $PWD/.eslintrc.yml:/code/.eslintrc.yml:ro \
+    -v $PWD/.eslintrc.json:/code/.eslintrc.json:ro \
     --entrypoint=/bin/bash \
     $IMAGE_NAME \
     test/docker/worker.sh

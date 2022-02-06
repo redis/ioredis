@@ -5,7 +5,7 @@ import { SrvRecord } from "dns";
 export type NodeKey = string;
 export type NodeRole = "master" | "slave" | "all";
 
-export interface IRedisOptions {
+export interface RedisOptions {
   port: number;
   host: string;
   username?: string;
@@ -22,13 +22,13 @@ export interface IGroupedSrvRecords {
   [key: number]: ISrvRecordsGroup;
 }
 
-export function getNodeKey(node: IRedisOptions): NodeKey {
+export function getNodeKey(node: RedisOptions): NodeKey {
   node.port = node.port || 6379;
   node.host = node.host || "127.0.0.1";
   return node.host + ":" + node.port;
 }
 
-export function nodeKeyToRedisOptions(nodeKey: NodeKey): IRedisOptions {
+export function nodeKeyToRedisOptions(nodeKey: NodeKey): RedisOptions {
   const portIndex = nodeKey.lastIndexOf(":");
   if (portIndex === -1) {
     throw new Error(`Invalid node key ${nodeKey}`);
@@ -41,7 +41,7 @@ export function nodeKeyToRedisOptions(nodeKey: NodeKey): IRedisOptions {
 
 export function normalizeNodeOptions(
   nodes: Array<string | number | object>
-): IRedisOptions[] {
+): RedisOptions[] {
   return nodes.map((node) => {
     const options: any = {};
     if (typeof node === "object") {
@@ -71,9 +71,7 @@ export function normalizeNodeOptions(
   });
 }
 
-export function getUniqueHostnamesFromOptions(
-  nodes: IRedisOptions[]
-): string[] {
+export function getUniqueHostnamesFromOptions(nodes: RedisOptions[]): string[] {
   const uniqueHostsMap = {};
   nodes.forEach((node) => {
     uniqueHostsMap[node.host] = true;

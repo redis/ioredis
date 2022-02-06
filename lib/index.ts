@@ -1,6 +1,5 @@
-exports = module.exports = require("./redis").default;
+import Redis from "./Redis";
 
-export { default } from "./redis";
 export { default as Cluster } from "./cluster";
 export { default as Command } from "./command";
 export { default as ScanStream } from "./ScanStream";
@@ -13,7 +12,7 @@ export {
 
 // Type Exports
 export { ISentinelAddress } from "./connectors/SentinelConnector";
-export { IRedisOptions } from "./redis/RedisOptions";
+export { RedisOptions } from "./redis/RedisOptions";
 
 // No TS typings
 export const ReplyError = require("redis-errors").ReplyError;
@@ -35,3 +34,5 @@ export function print(err: Error | null, reply?: any) {
     console.log("Reply: " + reply);
   }
 }
+
+export default Redis;

@@ -1,7 +1,7 @@
 import { cronometro } from "cronometro";
 import { readFileSync } from "fs";
 import { join } from "path";
-import Redis from "../lib/redis";
+import Redis from "../lib/Redis";
 
 const iterations = parseInt(process.env.ITERATIONS || "10000", 10);
 const batchSize = parseInt(process.env.BATCH_SIZE || "1000", 10);

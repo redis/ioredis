@@ -1,6 +1,6 @@
 import MockServer from "../helpers/mock_server";
 import { expect } from "chai";
-import Redis from "../../lib/redis";
+import Redis from "../../lib/Redis";
 import * as sinon from "sinon";
 
 describe("auth", function () {

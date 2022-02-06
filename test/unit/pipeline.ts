@@ -1,8 +1,8 @@
 import * as sinon from "sinon";
 import { expect } from "chai";
 import Pipeline from "../../lib/pipeline";
-import Commander from "../../lib/commander";
-import Redis from "../../lib/redis";
+import Commander from "../../lib/utils/Commander";
+import Redis from "../../lib/Redis";
 
 describe("Pipeline", function () {
   beforeEach(() => {

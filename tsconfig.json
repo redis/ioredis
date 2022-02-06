@@ -1,16 +1,10 @@
 {
   "compilerOptions": {
-    "outDir": "./built",
-    "allowJs": true,
-    "target": "es6",
-    "lib": ["es6"],
+    "target": "es2018",
+    "lib": ["es2018"],
     "moduleResolution": "node",
-    "types": ["node", "mocha"],
-    "typeRoots": ["node_modules/@types"],
-    "module": "commonjs"
+    "module": "commonjs",
+    "outDir": "./built"
   },
-  "include": [
-    "./lib/**/*"
-    ]
+  "include": ["./lib/**/*"]
 }
-

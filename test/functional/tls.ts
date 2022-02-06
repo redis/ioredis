@@ -1,6 +1,6 @@
 import * as tls from "tls";
 import * as net from "net";
-import Redis from "../../lib/redis";
+import Redis from "../../lib/Redis";
 import { expect } from "chai";
 import * as sinon from "sinon";
 import MockServer from "../helpers/mock_server";
@@ -10,15 +10,15 @@ describe("tls option", () => {
     it("supports tls", (done) => {
       let redis;
 
-      // @ts-ignore
+      // @ts-expect-error
       const stub = sinon.stub(tls, "connect").callsFake((op) => {
-        // @ts-ignore
+        // @ts-expect-error
         expect(op.ca).to.eql("123");
-        // @ts-ignore
+        // @ts-expect-error
         expect(op.servername).to.eql("localhost");
-        // @ts-ignore
+        // @ts-expect-error
         expect(op.rejectUnauthorized).to.eql(false);
-        // @ts-ignore
+        // @ts-expect-error
         expect(op.port).to.eql(6379);
         const stream = net.createConnection(op);
         stream.on("connect", (data) => {
@@ -72,11 +72,11 @@ describe("tls option", () => {
       let redis;
 
       const stub = sinon.stub(tls, "connect").callsFake((op) => {
-        // @ts-ignore
+        // @ts-expect-error
         expect(op.ca).to.eql("123");
-        // @ts-ignore
+        // @ts-expect-error
         expect(op.servername).to.eql("localhost");
-        // @ts-ignore
+        // @ts-expect-error
         expect(op.rejectUnauthorized).to.eql(false);
         redis.disconnect();
         stub.restore();
@@ -101,15 +101,15 @@ describe("tls option", () => {
 
       let redis;
 
-      // @ts-ignore
+      // @ts-expect-error
       const stub = sinon.stub(tls, "connect").callsFake((op) => {
-        // @ts-ignore
+        // @ts-expect-error
         expect(op.ca).to.eql("123");
-        // @ts-ignore
+        // @ts-expect-error
         expect(op.servername).to.eql("localhost");
-        // @ts-ignore
+        // @ts-expect-error
         expect(op.rejectUnauthorized).to.eql(false);
-        // @ts-ignore
+        // @ts-expect-error
         expect(op.port).to.eql(27379);
         const stream = net.createConnection(op);
         stream.on("connect", (data) => {

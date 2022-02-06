@@ -4,27 +4,13 @@ import { CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import AbstractConnector, { ErrorEmitter } from "./AbstractConnector";
 import { NetStream } from "../types";
 
-export function isIIpcConnectionOptions(
-  value: any
-): value is IIpcConnectionOptions {
-  return value.path;
-}
-
-export interface ITcpConnectionOptions extends TcpNetConnectOpts {
-  tls?: ConnectionOptions;
-}
-
-export interface IIpcConnectionOptions extends IpcNetConnectOpts {
-  tls?: ConnectionOptions;
-}
-
-type IStandaloneConnectionOptions = (
-  | ITcpConnectionOptions
-  | IIpcConnectionOptions
-) & { disconnectTimeout: number };
+export type StandaloneConnectionOptions = (
+  | TcpNetConnectOpts
+  | IpcNetConnectOpts
+) & { disconnectTimeout: number; tls?: ConnectionOptions };
 
 export default class StandaloneConnector extends AbstractConnector {
-  constructor(protected options: IStandaloneConnectionOptions) {
+  constructor(protected options: StandaloneConnectionOptions) {
     super(options.disconnectTimeout);
   }
 
@@ -33,19 +19,19 @@ export default class StandaloneConnector extends AbstractConnector {
     this.connecting = true;
 
     let connectionOptions: any;
-    if (isIIpcConnectionOptions(options)) {
+    if ("path" in options && options.path) {
       connectionOptions = {
         path: options.path,
       };
     } else {
       connectionOptions = {};
-      if (options.port != null) {
+      if ("port" in options && options.port != null) {
         connectionOptions.port = options.port;
       }
-      if (options.host != null) {
+      if ("host" in options && options.host != null) {
         connectionOptions.host = options.host;
       }
-      if (options.family != null) {
+      if ("family" in options && options.family != null) {
         connectionOptions.family = options.family;
       }
     }

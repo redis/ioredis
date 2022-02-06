@@ -2,7 +2,7 @@ import { EventEmitter } from "events";
 import ConnectionPool from "./ConnectionPool";
 import { getConnectionName, getNodeKey } from "./util";
 import { sample, noop, Debug } from "../utils";
-import Redis from "../redis";
+import Redis from "../Redis";
 
 const debug = Debug("cluster:subscriber");
 
@@ -94,9 +94,8 @@ export default class ClusterSubscriber {
         lastActiveSubscriber.condition || lastActiveSubscriber.prevCondition;
       if (condition && condition.subscriber) {
         previousChannels.subscribe = condition.subscriber.channels("subscribe");
-        previousChannels.psubscribe = condition.subscriber.channels(
-          "psubscribe"
-        );
+        previousChannels.psubscribe =
+          condition.subscriber.channels("psubscribe");
       }
     }
     if (

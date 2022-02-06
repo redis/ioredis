@@ -12,7 +12,7 @@
 
 A robust, performance-focused and full-featured [Redis](http://redis.io) client for [Node.js](https://nodejs.org).
 
-Supports Redis >= 2.6.12 and (Node.js >= 6). Completely compatible with Redis 6.x.
+Supports Redis >= 2.6.12 and (Node.js >= 10.12.0). Completely compatible with Redis 6.x.
 
 # Features
 

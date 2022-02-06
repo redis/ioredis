@@ -44,12 +44,12 @@ describe("utils/debug", function () {
       const logspy = sinon.spy();
       const fn = debug("debugtest");
 
-      // @ts-ignore
+      // @ts-expect-error
       fn.log = logspy;
 
-      // @ts-ignore
+      // @ts-expect-error
       expect(fn.enabled).to.equal(true);
-      // @ts-ignore
+      // @ts-expect-error
       expect(fn.namespace).to.equal(dbgNS);
 
       let data = [],

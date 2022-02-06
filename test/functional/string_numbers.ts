@@ -1,4 +1,4 @@
-import Redis from "../../lib/redis";
+import Redis from "../../lib/Redis";
 import { expect } from "chai";
 
 const MAX_NUMBER = 9007199254740991; // Number.MAX_SAFE_INTEGER

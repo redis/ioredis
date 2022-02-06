@@ -1,9 +1,8 @@
 import * as net from "net";
-import Redis from "../../lib/redis";
+import Redis from "../../lib/Redis";
 import * as sinon from "sinon";
 import { expect } from "chai";
 import MockServer from "../helpers/mock_server";
-import * as Bluebird from "bluebird";
 import { StandaloneConnector } from "../../lib/connectors";
 import { CONNECTION_CLOSED_ERROR_MSG } from "../../lib/utils";
 
@@ -107,7 +106,7 @@ describe("connection", function () {
       // TODO: use spy
       const stub = sinon
         .stub(net.Socket.prototype, "setTimeout")
-        // @ts-ignore
+        // @ts-expect-error
         .callsFake((timeout) => {
           if (timeout === connectTimeout) {
             set = true;
@@ -133,7 +132,7 @@ describe("connection", function () {
       // TODO: use spy
       sinon
         .stub(net.Socket.prototype, "setTimeout")
-        // @ts-ignore
+        // @ts-expect-error
         .callsFake((timeout, callback) => {
           if (timeout === 0) {
             if (!isReady) {
@@ -450,18 +449,6 @@ describe("connection", function () {
   });
 
   describe("sync connection", () => {
-    it("works with synchronous connection", (done) => {
-      // @ts-ignore
-      Redis.Promise = Bluebird;
-      const redis = new Redis("/data");
-      redis.on("error", () => {
-        // @ts-ignore
-        Redis.Promise = Promise;
-        redis.disconnect();
-        done();
-      });
-    });
-
     it("works when connection established before promise is resolved", (done) => {
       const socket = new net.Socket();
       sinon.stub(StandaloneConnector.prototype, "connect").resolves(socket);
