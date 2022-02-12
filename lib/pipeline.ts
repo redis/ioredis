@@ -6,7 +6,6 @@ import { deprecate } from "util";
 import Redis, { Cluster } from ".";
 import Command from "./command";
 import Commander from "./utils/Commander";
-import * as PromiseContainer from "./promiseContainer";
 import { CallbackFunction } from "./types";
 import { noop } from "./utils";
 
@@ -388,7 +387,6 @@ Pipeline.prototype.exec = function (
           pending.push(scripts[i]);
         }
       }
-      const Promise = PromiseContainer.get();
       return Promise.all(
         pending.map(function (script) {
           return _this.redis.script("load", script.lua);
