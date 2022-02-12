@@ -6,43 +6,14 @@ import Debug from "./debug";
 import TLSProfiles from "../constants/TLSProfiles";
 
 /**
- * Test if two buffers are equal
- *
- * @export
- * @param {Buffer} a
- * @param {Buffer} b
- * @returns {boolean} Whether the two buffers are equal
- */
-export function bufferEqual(a: Buffer, b: Buffer): boolean {
-  if (typeof a.equals === "function") {
-    return a.equals(b);
-  }
-
-  if (a.length !== b.length) {
-    return false;
-  }
-
-  for (let i = 0; i < a.length; ++i) {
-    if (a[i] !== b[i]) {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
  * Convert a buffer to string, supports buffer array
  *
- * @param {*} value - The input value
- * @param {string} encoding - string encoding
- * @return {*} The result
  * @example
  * ```js
- * var input = [Buffer.from('foo'), [Buffer.from('bar')]]
- * var res = convertBufferToString(input, 'utf8')
+ * const input = [Buffer.from('foo'), [Buffer.from('bar')]]
+ * const res = convertBufferToString(input, 'utf8')
  * expect(res).to.eql(['foo', ['bar']])
  * ```
- * @private
  */
 export function convertBufferToString(value: any, encoding?: string) {
   if (value instanceof Buffer) {
@@ -65,17 +36,14 @@ export function convertBufferToString(value: any, encoding?: string) {
 /**
  * Convert a list of results to node-style
  *
- * @param {Array} arr - The input value
- * @return {Array} The output value
  * @example
  * ```js
- * var input = ['a', 'b', new Error('c'), 'd']
- * var output = exports.wrapMultiResult(input)
+ * const input = ['a', 'b', new Error('c'), 'd']
+ * const output = exports.wrapMultiResult(input)
  * expect(output).to.eql([[null, 'a'], [null, 'b'], [new Error('c')], [null, 'd'])
  * ```
- * @private
  */
-export function wrapMultiResult(arr: any[] | null): any[][] {
+export function wrapMultiResult(arr: unknown[] | null): unknown[][] {
   // When using WATCH/EXEC transactions, the EXEC will return
   // a null instead of an array
   if (!arr) {
@@ -96,9 +64,6 @@ export function wrapMultiResult(arr: any[] | null): any[][] {
 
 /**
  * Detect if the argument is a int
- *
- * @param {string} value
- * @return {boolean} Whether the value is a int
  * @example
  * ```js
  * > isInt('123')
@@ -122,8 +87,6 @@ export function isInt(value: any): value is string {
 /**
  * Pack an array to an Object
  *
- * @param {array} array
- * @return {object}
  * @example
  * ```js
  * > packObject(['a', 'b', 'c', 'd'])
@@ -143,10 +106,6 @@ export function packObject(array: any[]): Record<string, any> {
 
 /**
  * Return a callback with timeout
- *
- * @param {function} callback
- * @param {number} timeout
- * @return {function}
  */
 export function timeout(callback: CallbackFunction, timeout: number) {
   let timer: NodeJS.Timeout;
@@ -163,9 +122,6 @@ export function timeout(callback: CallbackFunction, timeout: number) {
 
 /**
  * Convert an object to an array
- *
- * @param {object} obj
- * @return {array}
  * @example
  * ```js
  * > convertObjectToArray({ a: '1' })
@@ -174,7 +130,7 @@ export function timeout(callback: CallbackFunction, timeout: number) {
  */
 export function convertObjectToArray<T>(
   obj: Record<string, T>
-): Array<string | T> {
+): (string | T)[] {
   const result = [];
   const keys = Object.keys(obj); // Object.entries requires node 7+
 
@@ -186,16 +142,13 @@ export function convertObjectToArray<T>(
 
 /**
  * Convert a map to an array
- *
- * @param {Map} map
- * @return {array}
  * @example
  * ```js
  * > convertMapToArray(new Map([[1, '2']]))
  * [1, '2']
  * ```
  */
-export function convertMapToArray<K, V>(map: Map<K, V>): Array<K | V> {
+export function convertMapToArray<K, V>(map: Map<K, V>): (K | V)[] {
   const result: Array<K | V> = [];
   let pos = 0;
   map.forEach(function (value, key) {
@@ -208,9 +161,6 @@ export function convertMapToArray<K, V>(map: Map<K, V>): Array<K | V> {
 
 /**
  * Convert a non-string arg to a string
- *
- * @param {*} arg
- * @return {string}
  */
 export function toArg(arg: any): string {
   if (arg === null || typeof arg === "undefined") {
@@ -298,7 +248,7 @@ export function parseURL(url: string) {
   return result;
 }
 
-interface ITLSOptions {
+interface TLSOptions {
   port: number;
   host: string;
   [key: string]: any;
@@ -310,7 +260,7 @@ interface ITLSOptions {
  * @param {Object} options - the redis connection options
  * @return {Object}
  */
-export function resolveTLSProfile(options: ITLSOptions): ITLSOptions {
+export function resolveTLSProfile(options: TLSOptions): TLSOptions {
   let tls = options?.tls;
 
   if (typeof tls === "string") tls = { profile: tls };
