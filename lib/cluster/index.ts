@@ -18,7 +18,6 @@ import DelayQueue from "./DelayQueue";
 import ScanStream from "../ScanStream";
 import { AbortError, RedisError } from "redis-errors";
 import asCallback from "standard-as-callback";
-import * as PromiseContainer from "../promiseContainer";
 import { CallbackFunction, NetStream } from "../types";
 import { ClusterOptions, DEFAULT_CLUSTER_OPTIONS } from "./ClusterOptions";
 import {
@@ -186,7 +185,6 @@ class Cluster extends Commander {
    * @memberof Cluster
    */
   public connect(): Promise<void> {
-    const Promise = PromiseContainer.get();
     return new Promise((resolve, reject) => {
       if (
         this.status === "connecting" ||
@@ -393,7 +391,6 @@ class Cluster extends Commander {
 
     this.subscriber.stop();
 
-    const Promise = PromiseContainer.get();
     if (status === "wait") {
       const ret = asCallback(Promise.resolve<"OK">("OK"), callback);
 

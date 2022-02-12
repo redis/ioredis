@@ -1330,24 +1330,6 @@ This time the stack tells you that the error happens on the third line in your c
 However, it would decrease the performance significantly to optimize the error stack. So by
 default, this option is disabled and can only be used for debugging purposes. You **shouldn't** use this feature in a production environment.
 
-# Plugging in your own Promises Library
-
-If you're an advanced user, you may want to plug in your own promise library like [bluebird](https://www.npmjs.com/package/bluebird). Just set Redis.Promise to your favorite ES6-style promise constructor and ioredis will use it.
-
-```javascript
-const Redis = require("ioredis");
-Redis.Promise = require("bluebird");
-
-const redis = new Redis();
-
-// Use bluebird
-assert.equal(redis.get().constructor, require("bluebird"));
-
-// You can change the Promise implementation at any time:
-Redis.Promise = global.Promise;
-assert.equal(redis.get().constructor, global.Promise);
-```
-
 # Running tests
 
 Start a Redis server on 127.0.0.1:6379, and then:

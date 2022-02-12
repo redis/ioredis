@@ -4,7 +4,6 @@ import {
   shouldUseAutoPipelining,
 } from "../autoPipelining";
 import Command from "../command";
-import * as PromiseContainer from "../promiseContainer";
 import Script from "../script";
 import { NetStream } from "../types";
 
@@ -158,7 +157,7 @@ function generateFunction(
 
     if (this.options.dropBufferSupport && !_encoding) {
       return asCallback(
-        PromiseContainer.get().reject(new Error(DROP_BUFFER_SUPPORT_ERROR)),
+        Promise.reject(new Error(DROP_BUFFER_SUPPORT_ERROR)),
         callback
       );
     }
@@ -205,7 +204,7 @@ function generateScriptingFunction(
     if (this.options.dropBufferSupport) {
       if (!encoding) {
         return asCallback(
-          PromiseContainer.get().reject(new Error(DROP_BUFFER_SUPPORT_ERROR)),
+          Promise.reject(new Error(DROP_BUFFER_SUPPORT_ERROR)),
           callback
         );
       }
