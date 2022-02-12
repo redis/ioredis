@@ -1,4 +1,3 @@
-import * as PromiseContainer from "./promiseContainer";
 import { flatten, isArguments, noop } from "./utils/lodash";
 import * as calculateSlot from "cluster-key-slot";
 import asCallback from "standard-as-callback";
@@ -120,13 +119,11 @@ export function executeWithAutoPipelining(
   args: (string | string[])[],
   callback
 ) {
-  const CustomPromise = PromiseContainer.get();
-
   // On cluster mode let's wait for slots to be available
   if (client.isCluster && !client.slots.length) {
     if (client.status === "wait") client.connect().catch(noop);
     return asCallback(
-      new CustomPromise(function (resolve, reject) {
+      new Promise(function (resolve, reject) {
         client.delayUntilReady((err) => {
           if (err) {
             reject(err);
@@ -180,7 +177,7 @@ export function executeWithAutoPipelining(
   }
 
   // Create the promise which will execute the command in the pipeline.
-  const autoPipelinePromise = new CustomPromise(function (resolve, reject) {
+  const autoPipelinePromise = new Promise(function (resolve, reject) {
     pipeline[kCallbacks].push(function (err: Error | null, value: any) {
       if (err) {
         reject(err);

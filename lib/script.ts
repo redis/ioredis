@@ -1,8 +1,15 @@
 import { createHash } from "crypto";
-import { isPromise } from "./promiseContainer";
 import Command from "./command";
 import asCallback from "standard-as-callback";
 import { CallbackFunction } from "./types";
+
+function isPromise(obj: any): boolean {
+  return (
+    !!obj &&
+    (typeof obj === "object" || typeof obj === "function") &&
+    typeof obj.then === "function"
+  );
+}
 
 export default class Script {
   private sha: string;

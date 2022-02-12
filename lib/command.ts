@@ -9,7 +9,6 @@ import {
   convertObjectToArray,
 } from "./utils";
 import { flatten } from "./utils/lodash";
-import { get as getPromise } from "./promiseContainer";
 import { CallbackFunction, ICommand, CommandParameter } from "./types";
 
 interface ICommandOptions {
@@ -204,7 +203,6 @@ export default class Command implements ICommand {
   }
 
   private initPromise() {
-    const Promise = getPromise();
     const promise = new Promise((resolve, reject) => {
       if (!this.transformed) {
         this.transformed = true;

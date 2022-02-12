@@ -17,13 +17,17 @@ export { RedisOptions } from "./redis/RedisOptions";
 // No TS typings
 export const ReplyError = require("redis-errors").ReplyError;
 
-const PromiseContainer = require("./promiseContainer");
 Object.defineProperty(exports, "Promise", {
   get() {
-    return PromiseContainer.get();
+    console.warn(
+      "ioredis v5 does not support plugging third-party Promise library anymore. Native Promise will be used."
+    );
+    return Promise;
   },
-  set(lib) {
-    PromiseContainer.set(lib);
+  set(lib: unknown) {
+    console.warn(
+      "ioredis v5 does not support plugging third-party Promise library anymore. Native Promise will be used."
+    );
   },
 });
 
