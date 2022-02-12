@@ -4,37 +4,6 @@ import * as utils from "../../lib/utils";
 import TLSProfiles from "../../lib/constants/TLSProfiles";
 
 describe("utils", function () {
-  describe(".bufferEqual", function () {
-    it("should return correctly", function () {
-      expect(utils.bufferEqual(Buffer.from("123"), Buffer.from("abc"))).to.eql(
-        false
-      );
-      expect(utils.bufferEqual(Buffer.from("abc"), Buffer.from("abc"))).to.eql(
-        true
-      );
-      expect(utils.bufferEqual(Buffer.from("bc"), Buffer.from("abc"))).to.eql(
-        false
-      );
-      expect(utils.bufferEqual(Buffer.from(""), Buffer.from(""))).to.eql(true);
-    });
-
-    it("should work when Buffer#equals not exists", function () {
-      const equals = Buffer.prototype.equals;
-      delete Buffer.prototype.equals;
-      expect(utils.bufferEqual(Buffer.from("123"), Buffer.from("abc"))).to.eql(
-        false
-      );
-      expect(utils.bufferEqual(Buffer.from("abc"), Buffer.from("abc"))).to.eql(
-        true
-      );
-      expect(utils.bufferEqual(Buffer.from("bc"), Buffer.from("abc"))).to.eql(
-        false
-      );
-      expect(utils.bufferEqual(Buffer.from(""), Buffer.from(""))).to.eql(true);
-      Buffer.prototype.equals = equals;
-    });
-  });
-
   describe(".convertBufferToString", function () {
     it("should return correctly", function () {
       expect(utils.convertBufferToString(Buffer.from("123"))).to.eql("123");
@@ -283,13 +252,13 @@ describe("utils", function () {
   describe(".resolveTLSProfile", function () {
     it("should leave options alone when no tls profile is set", function () {
       [
-        {},
-        { tls: true },
-        { tls: false },
-        { tls: "foo" },
-        { tls: {} },
-        { tls: { ca: "foo" } },
-        { tls: { profile: "foo" } },
+        { host: "localhost", port: 6379 },
+        { host: "localhost", port: 6379, tls: true },
+        { host: "localhost", port: 6379, tls: false },
+        { host: "localhost", port: 6379, tls: "foo" },
+        { host: "localhost", port: 6379, tls: {} },
+        { host: "localhost", port: 6379, tls: { ca: "foo" } },
+        { host: "localhost", port: 6379, tls: { profile: "foo" } },
       ].forEach((options) => {
         expect(utils.resolveTLSProfile(options)).to.eql(options);
       });
@@ -301,23 +270,48 @@ describe("utils", function () {
     });
 
     it("should read profile from options.tls.profile", function () {
-      const input = { tls: { profile: "RedisCloudFixed" } };
-      const expected = { tls: TLSProfiles.RedisCloudFixed };
+      const input = {
+        host: "localhost",
+        port: 6379,
+        tls: { profile: "RedisCloudFixed" },
+      };
+      const expected = {
+        host: "localhost",
+        port: 6379,
+        tls: TLSProfiles.RedisCloudFixed,
+      };
 
       expect(utils.resolveTLSProfile(input)).to.eql(expected);
     });
 
     it("should read profile from options.tls", function () {
-      const input = { tls: "RedisCloudFixed" };
-      const expected = { tls: TLSProfiles.RedisCloudFixed };
+      const input = {
+        host: "localhost",
+        port: 6379,
+        tls: "RedisCloudFixed",
+      };
+      const expected = {
+        host: "localhost",
+        port: 6379,
+        tls: TLSProfiles.RedisCloudFixed,
+      };
 
       expect(utils.resolveTLSProfile(input)).to.eql(expected);
     });
 
     it("supports extra options when using options.tls.profile", function () {
-      const input = { tls: { profile: "RedisCloudFixed", key: "foo" } };
+      const input = {
+        host: "localhost",
+        port: 6379,
+        tls: { profile: "RedisCloudFixed", key: "foo" },
+      };
       const expected = {
-        tls: { ...TLSProfiles.RedisCloudFixed, key: "foo" },
+        tls: {
+          host: "localhost",
+          port: 6379,
+          ...TLSProfiles.RedisCloudFixed,
+          key: "foo",
+        },
       };
 
       expect(utils.resolveTLSProfile(input)).to.eql(expected);

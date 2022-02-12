@@ -11,6 +11,12 @@ import {
 import { flatten } from "./utils/lodash";
 import { CallbackFunction, ICommand, CommandParameter } from "./types";
 
+export type ArgumentType =
+  | string
+  | Buffer
+  | number
+  | (string | Buffer | number | any[])[];
+
 interface ICommandOptions {
   /**
    * Set the encoding of the reply, by default buffer will be returned.
@@ -179,9 +185,7 @@ export default class Command implements ICommand {
    */
   constructor(
     public name: string,
-    args: Array<
-      string | Buffer | number | Array<string | Buffer | number | any[]>
-    > = [],
+    args: Array<ArgumentType> = [],
     options: ICommandOptions = {},
     callback?: CallbackFunction
   ) {

@@ -3,9 +3,9 @@ import {
   executeWithAutoPipelining,
   shouldUseAutoPipelining,
 } from "../autoPipelining";
-import Command from "../command";
+import Command, { ArgumentType } from "../command";
 import Script from "../script";
-import { NetStream } from "../types";
+import { CallbackFunction, NetStream } from "../types";
 
 export interface CommanderOptions {
   keyPrefix?: string;
@@ -33,8 +33,6 @@ class Commander {
 
   /**
    * Return supported builtin commands
-   *
-   * @return {string[]} command list
    */
   getBuiltinCommands() {
     return commands.slice(0);
@@ -42,9 +40,6 @@ class Commander {
 
   /**
    * Create a builtin command
-   *
-   * @param {string} commandName - command name
-   * @return {object} functions
    */
   createBuiltinCommand(commandName: string) {
     return {
@@ -69,14 +64,16 @@ class Commander {
   /**
    * Define a custom command using lua script
    *
-   * @param {string} name - the command name
    * @param {object} definition
    * @param {string} definition.lua - the lua code
    * @param {number} [definition.numberOfKeys=null] - the number of keys.
    * @param {boolean} [definition.readOnly=false] - force this script to be readonly so it executes on slaves as well.
    * If omit, you have to pass the number of keys as the first argument every time you invoke the command
    */
-  defineCommand(name, definition) {
+  defineCommand(
+    name: string,
+    definition: { lua: string; numberOfKeys?: number; readOnly?: boolean }
+  ) {
     const script = new Script(
       definition.lua,
       definition.numberOfKeys,
@@ -139,8 +136,10 @@ function generateFunction(
     _commandName = null;
   }
 
-  return function (...args) {
-    const commandName = _commandName || args.shift();
+  return function (
+    ...args: ArgumentType[] | [...ArgumentType[], CallbackFunction]
+  ) {
+    const commandName = (_commandName || args.shift()) as string;
     let callback = args[args.length - 1];
 
     if (typeof callback === "function") {
@@ -158,13 +157,14 @@ function generateFunction(
     if (this.options.dropBufferSupport && !_encoding) {
       return asCallback(
         Promise.reject(new Error(DROP_BUFFER_SUPPORT_ERROR)),
-        callback
+        callback as CallbackFunction | undefined
       );
     }
 
     // No auto pipeline, use regular command sending
     if (!shouldUseAutoPipelining(this, functionName, commandName)) {
       return this.sendCommand(
+        // @ts-expect-error
         new Command(commandName, args, options, callback)
       );
     }
@@ -174,6 +174,7 @@ function generateFunction(
       this,
       functionName,
       commandName,
+      // @ts-expect-error
       args,
       callback
     );
@@ -181,10 +182,10 @@ function generateFunction(
 }
 
 function generateScriptingFunction(
-  functionName,
-  commandName,
-  script,
-  encoding
+  functionName: string,
+  commandName: string,
+  script: Script,
+  encoding: unknown
 ) {
   return function () {
     let length = arguments.length;

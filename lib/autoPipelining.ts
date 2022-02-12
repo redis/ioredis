@@ -1,6 +1,7 @@
 import { flatten, isArguments, noop } from "./utils/lodash";
 import * as calculateSlot from "cluster-key-slot";
 import asCallback from "standard-as-callback";
+import { ArgumentType } from "./command";
 
 export const kExec = Symbol("exec");
 export const kCallbacks = Symbol("callbacks");
@@ -92,7 +93,7 @@ export function shouldUseAutoPipelining(
  * @private
  */
 export function getFirstValueInFlattenedArray(
-  args: (string | string[])[]
+  args: ArgumentType[]
 ): string | undefined {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -106,7 +107,7 @@ export function getFirstValueInFlattenedArray(
     }
     const flattened = flatten([arg]);
     if (flattened.length > 0) {
-      return flattened[0];
+      return String(flattened[0]);
     }
   }
   return undefined;
@@ -116,7 +117,7 @@ export function executeWithAutoPipelining(
   client,
   functionName: string,
   commandName: string,
-  args: (string | string[])[],
+  args: ArgumentType[],
   callback
 ) {
   // On cluster mode let's wait for slots to be available
