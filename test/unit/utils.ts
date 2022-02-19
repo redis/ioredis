@@ -306,9 +306,9 @@ describe("utils", function () {
         tls: { profile: "RedisCloudFixed", key: "foo" },
       };
       const expected = {
+        host: "localhost",
+        port: 6379,
         tls: {
-          host: "localhost",
-          port: 6379,
           ...TLSProfiles.RedisCloudFixed,
           key: "foo",
         },

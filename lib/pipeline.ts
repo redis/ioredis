@@ -27,7 +27,7 @@ function generateMultiWithNodes(redis, keys) {
   return slot;
 }
 
-class Pipeline extends Commander {
+class Pipeline extends Commander<{ type: "pipeline" }> {
   isCluster: boolean;
   isPipeline = true;
   leftRedirections: { ttl?: number };
@@ -155,7 +155,6 @@ class Pipeline extends Commander {
           this.leftRedirections = {};
         }
         const exec = function () {
-          // @ts-expect-error
           _this.exec();
         };
         const cluster = this.redis as Cluster;
@@ -166,12 +165,10 @@ class Pipeline extends Commander {
             cluster._groupsBySlot[errv[1]] =
               cluster._groupsIds[cluster.slots[errv[1]].join(";")];
             cluster.refreshSlotsCache();
-            // @ts-expect-error
             _this.exec();
           },
           ask: function (_slot: string, key: string) {
             _this.preferKey = key;
-            // @ts-expect-error
             _this.exec();
           },
           tryagain: exec,
@@ -236,19 +233,14 @@ class Pipeline extends Commander {
 
 export default Pipeline;
 
-// @ts-expect-error
 const multi = Pipeline.prototype.multi;
-// @ts-expect-error
 Pipeline.prototype.multi = function () {
   this._transactions += 1;
   return multi.apply(this, arguments);
 };
 
-// @ts-expect-error
 const execBuffer = Pipeline.prototype.execBuffer;
-// @ts-expect-error
 const exec = Pipeline.prototype.exec;
-// @ts-expect-error
 Pipeline.prototype.execBuffer = deprecate(function () {
   if (this._transactions > 0) {
     this._transactions -= 1;

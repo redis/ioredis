@@ -2,7 +2,6 @@ import { EventEmitter } from "events";
 import * as commands from "redis-commands";
 import asCallback from "standard-as-callback";
 import { AbstractConnector, Command, ScanStream, SentinelConnector } from ".";
-import Commander from "./utils/Commander";
 import { StandaloneConnector } from "./connectors";
 import * as eventHandler from "./redis/event_handler";
 import {
@@ -10,7 +9,7 @@ import {
   ReconnectOnError,
   RedisOptions,
 } from "./redis/RedisOptions";
-import { addTransactionSupport } from "./transaction";
+import { addTransactionSupport, Transaction } from "./transaction";
 import { CallbackFunction, ICommandItem, NetStream } from "./types";
 import {
   CONNECTION_CLOSED_ERROR_MSG,
@@ -20,6 +19,7 @@ import {
   resolveTLSProfile,
 } from "./utils";
 import applyMixin from "./utils/applyMixin";
+import Commander from "./utils/Commander";
 import { defaults, noop } from "./utils/lodash";
 import Deque = require("denque");
 const debug = Debug("redis");
@@ -409,7 +409,6 @@ class Redis extends Commander {
           this.condition.select !== item.select &&
           item.command.name !== "select"
         ) {
-          // @ts-expect-error
           this.select(item.select);
         }
         // TODO
@@ -460,8 +459,7 @@ class Redis extends Commander {
    */
   private _readyCheck(callback: CallbackFunction) {
     const _this = this;
-    // @ts-expect-error
-    this.info(function (err: Error | null, res: string) {
+    this.info(function (err, res) {
       if (err) {
         return callback(err);
       }
@@ -782,5 +780,6 @@ applyMixin(Redis, EventEmitter);
 });
 
 addTransactionSupport(Redis.prototype);
+interface Redis extends Transaction {}
 
 export default Redis;
