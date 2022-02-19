@@ -94,7 +94,7 @@ export function shouldUseAutoPipelining(
  */
 export function getFirstValueInFlattenedArray(
   args: ArgumentType[]
-): string | undefined {
+): string | Buffer | number | null | undefined {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (typeof arg === "string") {
@@ -107,7 +107,7 @@ export function getFirstValueInFlattenedArray(
     }
     const flattened = flatten([arg]);
     if (flattened.length > 0) {
-      return String(flattened[0]);
+      return flattened[0];
     }
   }
   return undefined;

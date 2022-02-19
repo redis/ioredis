@@ -5,6 +5,7 @@
     "plugin:@typescript-eslint/eslint-recommended",
     "prettier"
   ],
+  "ignorePatterns": ["bin/generateRedisCommander/template.ts"],
   "parser": "@typescript-eslint/parser",
   "plugins": ["@typescript-eslint"],
   "env": { "node": true },
@@ -18,6 +19,7 @@
     "@typescript-eslint/no-this-alias": 0,
     "@typescript-eslint/ban-ts-ignore": 0,
     "@typescript-eslint/ban-ts-comment": 0,
+    "@typescript-eslint/adjacent-overload-signatures": 0,
     "@typescript-eslint/ban-types": 0,
     "@typescript-eslint/no-empty-interface": 0,
     "@typescript-eslint/no-empty-function": 0,

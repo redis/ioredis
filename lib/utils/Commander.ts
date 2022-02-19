@@ -6,6 +6,7 @@ import {
 import Command, { ArgumentType } from "../command";
 import Script from "../script";
 import { CallbackFunction, NetStream } from "../types";
+import RedisCommander, { ClientContext } from "./RedisCommander";
 
 export interface CommanderOptions {
   keyPrefix?: string;
@@ -26,7 +27,9 @@ const DROP_BUFFER_SUPPORT_ERROR =
  * Will decrease the performance significantly.
  * @constructor
  */
-class Commander {
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+class Commander<Context extends ClientContext = { type: "default" }> {
   options: CommanderOptions = {};
   scriptsSet = {};
   addedBuiltinSet = new Set<string>();
@@ -94,6 +97,8 @@ class Commander {
     throw new Error('"sendCommand" is not implemented');
   }
 }
+
+interface Commander<Context> extends RedisCommander<Context> {}
 
 const commands = require("redis-commands").list.filter(function (command) {
   return command !== "monitor";

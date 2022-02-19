@@ -2,6 +2,12 @@ import { wrapMultiResult, noop } from "./utils";
 import asCallback from "standard-as-callback";
 import Pipeline from "./pipeline";
 import { CallbackFunction } from "./types";
+import { ChainableCommander } from "./utils/RedisCommander";
+
+export interface Transaction {
+  pipeline(): ChainableCommander;
+  multi(): ChainableCommander;
+}
 
 export function addTransactionSupport(redis) {
   redis.pipeline = function (commands) {
@@ -22,14 +28,11 @@ export function addTransactionSupport(redis) {
       return multi.call(this);
     }
     const pipeline = new Pipeline(this);
-    // @ts-expect-error
     pipeline.multi();
     if (Array.isArray(commands)) {
       pipeline.addBatch(commands);
     }
-    // @ts-expect-error
     const exec = pipeline.exec;
-    // @ts-expect-error
     pipeline.exec = function (callback: CallbackFunction) {
       // Wait for the cluster to be connected, since we need nodes information before continuing
       if (this.isCluster && !this.redis.slots.length) {
@@ -82,14 +85,11 @@ export function addTransactionSupport(redis) {
       );
     };
 
-    // @ts-expect-error
     const { execBuffer } = pipeline;
-    // @ts-expect-error
     pipeline.execBuffer = function (callback: CallbackFunction) {
       if (this._transactions > 0) {
         execBuffer.call(pipeline);
       }
-      // @ts-expect-error
       return pipeline.exec(callback);
     };
     return pipeline;
