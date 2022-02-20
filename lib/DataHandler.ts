@@ -1,4 +1,4 @@
-import { NetStream, ICommandItem, ICommand } from "./types";
+import { NetStream, CommandItem, ICommand } from "./types";
 import Deque = require("denque");
 import { EventEmitter } from "events";
 import Command from "./command";
@@ -25,11 +25,11 @@ interface IDataHandledable extends EventEmitter {
   stream: NetStream;
   status: string;
   condition: ICondition;
-  commandQueue: Deque<ICommandItem>;
+  commandQueue: Deque<CommandItem>;
 
   disconnect(reconnect: boolean): void;
   recoverFromFatalError(commandError: Error, err: Error, options: any): void;
-  handleReconnection(err: Error, item: ICommandItem): void;
+  handleReconnection(err: Error, item: CommandItem): void;
 }
 
 interface IParserOptions {
@@ -119,7 +119,11 @@ export default class DataHandler {
       case "message":
         if (this.redis.listeners("message").length > 0) {
           // Check if there're listeners to avoid unnecessary `toString()`.
-          this.redis.emit("message", reply[1].toString(), reply[2] ? reply[2].toString() : '');
+          this.redis.emit(
+            "message",
+            reply[1].toString(),
+            reply[2] ? reply[2].toString() : ""
+          );
         }
         this.redis.emit("messageBuffer", reply[1], reply[2]);
         break;
@@ -208,7 +212,7 @@ export default class DataHandler {
     return true;
   }
 
-  private shiftCommand(reply: ReplyData | Error): ICommandItem | null {
+  private shiftCommand(reply: ReplyData | Error): CommandItem | null {
     const item = this.redis.commandQueue.shift();
     if (!item) {
       const message =

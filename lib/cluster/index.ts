@@ -1,39 +1,41 @@
 import { EventEmitter } from "events";
-import ClusterAllFailedError from "../errors/ClusterAllFailedError";
-import { defaults, noop, Debug } from "../utils";
-import ConnectionPool from "./ConnectionPool";
-import {
-  NodeKey,
-  RedisOptions,
-  normalizeNodeOptions,
-  NodeRole,
-  getUniqueHostnamesFromOptions,
-  nodeKeyToRedisOptions,
-  groupSrvRecords,
-  weightSrvRecords,
-  getConnectionName,
-} from "./util";
-import ClusterSubscriber from "./ClusterSubscriber";
-import DelayQueue from "./DelayQueue";
-import ScanStream from "../ScanStream";
+import * as commands from "redis-commands";
 import { AbortError, RedisError } from "redis-errors";
 import asCallback from "standard-as-callback";
-import { CallbackFunction, NetStream } from "../types";
-import { ClusterOptions, DEFAULT_CLUSTER_OPTIONS } from "./ClusterOptions";
+import { Pipeline } from "..";
+import Command from "../command";
+import ClusterAllFailedError from "../errors/ClusterAllFailedError";
+import Redis from "../Redis";
+import ScanStream from "../ScanStream";
+import { CallbackFunction, WriteableStream } from "../types";
 import {
-  sample,
   CONNECTION_CLOSED_ERROR_MSG,
+  Debug,
+  defaults,
+  noop,
+  sample,
   shuffle,
   timeout,
   zipMap,
 } from "../utils";
-import * as commands from "redis-commands";
-import Command from "../command";
-import Redis from "../Redis";
-import Commander from "../utils/Commander";
-import Deque = require("denque");
-import { Pipeline } from "..";
 import applyMixin from "../utils/applyMixin";
+import Commander from "../utils/Commander";
+import { ClusterOptions, DEFAULT_CLUSTER_OPTIONS } from "./ClusterOptions";
+import ClusterSubscriber from "./ClusterSubscriber";
+import ConnectionPool from "./ConnectionPool";
+import DelayQueue from "./DelayQueue";
+import {
+  getConnectionName,
+  getUniqueHostnamesFromOptions,
+  groupSrvRecords,
+  NodeKey,
+  nodeKeyToRedisOptions,
+  NodeRole,
+  normalizeNodeOptions,
+  RedisOptions,
+  weightSrvRecords,
+} from "./util";
+import Deque = require("denque");
 
 const debug = Debug("cluster");
 
@@ -573,7 +575,7 @@ class Cluster extends Commander {
       : nodeKey;
   }
 
-  sendCommand(command: Command, stream?: NetStream, node?: any): unknown {
+  sendCommand(command: Command, stream?: WriteableStream, node?: any): unknown {
     if (this.status === "wait") {
       this.connect().catch(noop);
     }

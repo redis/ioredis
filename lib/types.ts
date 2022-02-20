@@ -15,8 +15,16 @@ export interface ICommand {
   reject(error: Error): void;
 }
 
-export interface ICommandItem {
+export interface PipelineWriteableStream {
+  isPipeline: true;
+  write(data: string | Buffer): unknown;
+  destination: { redis: { stream: NetStream } };
+}
+
+export type WriteableStream = NetStream | PipelineWriteableStream;
+
+export interface CommandItem {
   command: ICommand;
-  stream: NetStream;
+  stream: WriteableStream;
   select: number;
 }

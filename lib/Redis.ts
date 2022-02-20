@@ -10,7 +10,12 @@ import {
   RedisOptions,
 } from "./redis/RedisOptions";
 import { addTransactionSupport, Transaction } from "./transaction";
-import { CallbackFunction, ICommandItem, NetStream } from "./types";
+import {
+  CallbackFunction,
+  CommandItem,
+  NetStream,
+  WriteableStream,
+} from "./types";
 import {
   CONNECTION_CLOSED_ERROR_MSG,
   Debug,
@@ -53,7 +58,7 @@ class Redis extends Commander {
 
   options: RedisOptions;
   status: RedisStatus = "wait";
-  commandQueue: Deque;
+  commandQueue: Deque<CommandItem>;
   offlineQueue: Deque;
   connectionEpoch = 0;
   connector: AbstractConnector;
@@ -360,7 +365,7 @@ class Redis extends Commander {
     this.disconnect(true);
   }
 
-  handleReconnection(err: Error, item: ICommandItem) {
+  handleReconnection(err: Error, item: CommandItem) {
     let needReconnect: ReturnType<ReconnectOnError> = false;
     if (this.options.reconnectOnError) {
       needReconnect = this.options.reconnectOnError(err);
@@ -575,7 +580,7 @@ class Redis extends Commander {
    * redis.sendCommand(set);
    * ```
    */
-  sendCommand(command: Command, stream?: NetStream): unknown {
+  sendCommand(command: Command, stream?: WriteableStream): unknown {
     if (this.status === "wait") {
       this.connect().catch(noop);
     }
@@ -648,7 +653,7 @@ class Redis extends Commander {
       }
 
       if (stream) {
-        if (stream.isPipeline) {
+        if ("isPipeline" in stream && stream.isPipeline) {
           stream.write(command.toWritable(stream.destination.redis.stream));
         } else {
           stream.write(command.toWritable(stream));
