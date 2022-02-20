@@ -3,13 +3,7 @@ import Deque = require("denque");
 
 const debug = Debug("delayqueue");
 
-/**
- * Options for DelayQueue
- *
- * @export
- * @interface IDelayQueueOptions
- */
-export interface IDelayQueueOptions {
+export interface DelayQueueOptions {
   callback?: Function;
   timeout: number;
 }
@@ -29,13 +23,13 @@ export default class DelayQueue {
    *
    * @param {string} bucket bucket name
    * @param {Function} item function that will run later
-   * @param {IDelayQueueOptions} options
+   * @param {DelayQueueOptions} options
    * @memberof DelayQueue
    */
   public push(
     bucket: string,
     item: Function,
-    options: IDelayQueueOptions
+    options: DelayQueueOptions
   ): void {
     const callback = options.callback || process.nextTick;
     if (!this.queues[bucket]) {

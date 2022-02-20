@@ -8,7 +8,7 @@ import {
   convertMapToArray,
   convertObjectToArray,
 } from "./utils";
-import { CallbackFunction, ICommand, CommandParameter } from "./types";
+import { CallbackFunction, Respondable, CommandParameter } from "./types";
 
 export type ArgumentType =
   | string
@@ -16,12 +16,9 @@ export type ArgumentType =
   | number
   | (string | Buffer | number | any[])[];
 
-interface ICommandOptions {
+interface CommandOptions {
   /**
    * Set the encoding of the reply, by default buffer will be returned.
-   *
-   * @type {(string | null)}
-   * @memberof ICommandOptions
    */
   replyEncoding?: BufferEncoding | null;
   errorStack?: Error;
@@ -34,11 +31,11 @@ interface ICommandOptions {
 
 type ArgumentTransformer = (args: any[]) => any[];
 type ReplyTransformer = (reply: any) => any;
-interface IFlagMap {
+interface FlagMap {
   [flag: string]: { [command: string]: true };
 }
 
-export interface ICommandNameFlags {
+export interface CommandNameFlags {
   // Commands that can be processed when client is in the subscriber mode
   VALID_IN_SUBSCRIBER_MODE: [
     "subscribe",
@@ -83,9 +80,9 @@ export interface ICommandNameFlags {
  * ```
  * @see {@link Redis#sendCommand} which can send a Command instance to Redis
  */
-export default class Command implements ICommand {
+export default class Command implements Respondable {
   public static FLAGS: {
-    [key in keyof ICommandNameFlags]: ICommandNameFlags[key];
+    [key in keyof CommandNameFlags]: CommandNameFlags[key];
   } = {
     VALID_IN_SUBSCRIBER_MODE: [
       "subscribe",
@@ -101,12 +98,12 @@ export default class Command implements ICommand {
     WILL_DISCONNECT: ["quit"],
   };
 
-  private static flagMap?: IFlagMap;
+  private static flagMap?: FlagMap;
 
-  private static getFlagMap(): IFlagMap {
+  private static getFlagMap(): FlagMap {
     if (!this.flagMap) {
       this.flagMap = Object.keys(Command.FLAGS).reduce(
-        (map: IFlagMap, flagName: string) => {
+        (map: FlagMap, flagName: string) => {
           map[flagName] = {};
           Command.FLAGS[flagName].forEach((commandName: string) => {
             map[flagName][commandName] = true;
@@ -126,10 +123,10 @@ export default class Command implements ICommand {
    * @param {string} commandName
    * @return {boolean}
    */
-  public static checkFlag<T extends keyof ICommandNameFlags>(
+  public static checkFlag<T extends keyof CommandNameFlags>(
     flagName: T,
     commandName: string
-  ): commandName is ICommandNameFlags[T][number] {
+  ): commandName is CommandNameFlags[T][number] {
     return !!this.getFlagMap()[flagName][commandName];
   }
 
@@ -177,7 +174,7 @@ export default class Command implements ICommand {
    * Creates an instance of Command.
    * @param {string} name Command name
    * @param {(Array<string | Buffer | number>)} [args=[]] An array of command arguments
-   * @param {ICommandOptions} [options={}]
+   * @param {CommandOptions} [options={}]
    * @param {CallbackFunction} [callback] The callback that handles the response.
    * If omit, the response will be handled via Promise
    * @memberof Command
@@ -185,7 +182,7 @@ export default class Command implements ICommand {
   constructor(
     public name: string,
     args: Array<ArgumentType> = [],
-    options: ICommandOptions = {},
+    options: CommandOptions = {},
     callback?: CallbackFunction
   ) {
     this.replyEncoding = options.replyEncoding;

@@ -13,13 +13,13 @@ export interface RedisOptions {
   [key: string]: any;
 }
 
-export interface ISrvRecordsGroup {
+export interface SrvRecordsGroup {
   totalWeight: number;
   records: SrvRecord[];
 }
 
-export interface IGroupedSrvRecords {
-  [key: number]: ISrvRecordsGroup;
+export interface GroupedSrvRecords {
+  [key: number]: SrvRecordsGroup;
 }
 
 export function getNodeKey(node: RedisOptions): NodeKey {
@@ -80,7 +80,7 @@ export function getUniqueHostnamesFromOptions(nodes: RedisOptions[]): string[] {
   return Object.keys(uniqueHostsMap).filter((host) => !isIP(host));
 }
 
-export function groupSrvRecords(records: SrvRecord[]): IGroupedSrvRecords {
+export function groupSrvRecords(records: SrvRecord[]): GroupedSrvRecords {
   const recordsByPriority = {};
   for (const record of records) {
     if (!recordsByPriority.hasOwnProperty(record.priority)) {
@@ -97,7 +97,7 @@ export function groupSrvRecords(records: SrvRecord[]): IGroupedSrvRecords {
   return recordsByPriority;
 }
 
-export function weightSrvRecords(recordsGroup: ISrvRecordsGroup): SrvRecord {
+export function weightSrvRecords(recordsGroup: SrvRecordsGroup): SrvRecord {
   if (recordsGroup.records.length === 1) {
     recordsGroup.totalWeight = 0;
     return recordsGroup.records.shift();

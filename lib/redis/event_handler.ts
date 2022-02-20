@@ -4,7 +4,7 @@ import Deque = require("denque");
 import { AbortError } from "redis-errors";
 import Command from "../command";
 import { MaxRetriesPerRequestError } from "../errors";
-import { CommandItem, ICommand } from "../types";
+import { CommandItem, Respondable } from "../types";
 import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import DataHandler from "../DataHandler";
 
@@ -100,7 +100,7 @@ export function connectHandler(self) {
   };
 }
 
-function abortError(command: ICommand) {
+function abortError(command: Respondable) {
   const err = new AbortError("Command aborted due to connection close");
   (err as any).command = {
     name: command.name,

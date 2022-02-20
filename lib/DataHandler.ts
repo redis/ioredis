@@ -1,4 +1,4 @@
-import { NetStream, CommandItem, ICommand } from "./types";
+import { NetStream, CommandItem, Respondable } from "./types";
 import Deque = require("denque");
 import { EventEmitter } from "events";
 import Command from "./command";
@@ -10,21 +10,16 @@ const debug = Debug("dataHandler");
 
 type ReplyData = string | Buffer | number | Array<string | Buffer | number>;
 
-export interface IDataHandlerOptions {
-  stringNumbers: boolean;
-  dropBufferSupport: boolean;
-}
-
-interface ICondition {
+interface Condition {
   select: number;
   auth: string;
   subscriber: false | SubscriptionSet;
 }
 
-interface IDataHandledable extends EventEmitter {
+interface DataHandledable extends EventEmitter {
   stream: NetStream;
   status: string;
-  condition: ICondition;
+  condition: Condition;
   commandQueue: Deque<CommandItem>;
 
   disconnect(reconnect: boolean): void;
@@ -32,13 +27,13 @@ interface IDataHandledable extends EventEmitter {
   handleReconnection(err: Error, item: CommandItem): void;
 }
 
-interface IParserOptions {
+interface ParserOptions {
   stringNumbers: boolean;
   dropBufferSupport: boolean;
 }
 
 export default class DataHandler {
-  constructor(private redis: IDataHandledable, parserOptions: IParserOptions) {
+  constructor(private redis: DataHandledable, parserOptions: ParserOptions) {
     const parser = new RedisParser({
       stringNumbers: parserOptions.stringNumbers,
       returnBuffers: !parserOptions.dropBufferSupport,
@@ -230,32 +225,43 @@ export default class DataHandler {
   }
 }
 
-function fillSubCommand(command: ICommand, count: number) {
-  // TODO: use WeakMap here
-  if (typeof (command as any).remainReplies === "undefined") {
-    (command as any).remainReplies = command.args.length;
-  }
-  if (--(command as any).remainReplies === 0) {
+const remainingRepliesMap = new WeakMap<Respondable, number>();
+
+function fillSubCommand(command: Respondable, count: number) {
+  let remainingReplies = remainingRepliesMap.has(command)
+    ? remainingRepliesMap.get(command)
+    : command.args.length;
+
+  remainingReplies -= 1;
+
+  if (remainingReplies <= 0) {
     command.resolve(count);
+    remainingRepliesMap.delete(command);
     return true;
   }
+  remainingRepliesMap.set(command, remainingReplies);
   return false;
 }
 
-function fillUnsubCommand(command: ICommand, count: number) {
-  if (typeof (command as any).remainReplies === "undefined") {
-    (command as any).remainReplies = command.args.length;
-  }
-  if ((command as any).remainReplies === 0) {
+function fillUnsubCommand(command: Respondable, count: number) {
+  let remainingReplies = remainingRepliesMap.has(command)
+    ? remainingRepliesMap.get(command)
+    : command.args.length;
+
+  if (remainingReplies === 0) {
     if (count === 0) {
+      remainingRepliesMap.delete(command);
       command.resolve(count);
       return true;
     }
     return false;
   }
-  if (--(command as any).remainReplies === 0) {
+
+  remainingReplies -= 1;
+  if (remainingReplies <= 0) {
     command.resolve(count);
     return true;
   }
+  remainingRepliesMap.set(command, remainingReplies);
   return false;
 }

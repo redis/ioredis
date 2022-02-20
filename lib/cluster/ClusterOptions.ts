@@ -18,7 +18,7 @@ export type DNSLookupFunction = (
     family?: number
   ) => void
 ) => void;
-export interface INatMap {
+export interface NatMap {
   [key: string]: { host: string; port: number };
 }
 
@@ -166,7 +166,7 @@ export interface ClusterOptions extends CommanderOptions {
    * @default require('dns').lookup
    */
   dnsLookup?: DNSLookupFunction;
-  natMap?: INatMap;
+  natMap?: NatMap;
 
   /**
    * See Redis class.

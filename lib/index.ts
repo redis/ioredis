@@ -11,7 +11,7 @@ export {
 } from "./connectors/SentinelConnector";
 
 // Type Exports
-export { ISentinelAddress } from "./connectors/SentinelConnector";
+export { SentinelAddress } from "./connectors/SentinelConnector";
 export { RedisOptions } from "./redis/RedisOptions";
 
 // No TS typings
