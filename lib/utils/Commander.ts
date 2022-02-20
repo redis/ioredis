@@ -196,19 +196,8 @@ function generateScriptingFunction(
   script: Script,
   encoding: unknown
 ) {
-  return function () {
-    let length = arguments.length;
-    const lastArgIndex = length - 1;
-    let callback = arguments[lastArgIndex];
-    if (typeof callback !== "function") {
-      callback = undefined;
-    } else {
-      length = lastArgIndex;
-    }
-    const args = new Array(length);
-    for (let i = 0; i < length; i++) {
-      args[i] = arguments[i];
-    }
+  return function (...args) {
+    const callback = typeof args[args.length - 1] === "function" ? args.pop() : undefined;
 
     let options;
     if (this.options.dropBufferSupport) {

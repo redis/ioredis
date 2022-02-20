@@ -58,7 +58,7 @@ export default class Script {
 
     const evalsha = new this.Command(
       "evalsha",
-      [this.sha].concat(args),
+      [this.sha, ...args],
       options
     );
     evalsha.isCustomCommand = true;
@@ -72,7 +72,7 @@ export default class Script {
       // in case it's not loaded yet on the connectionDo an eval as fallback, redis will hash and load it
       const resend = new this.Command(
         "evalsha",
-        [this.sha].concat(args),
+        [this.sha, ...args],
         options
       );
       resend.isCustomCommand = true;
