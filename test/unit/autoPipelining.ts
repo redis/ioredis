@@ -1,13 +1,12 @@
 import { expect } from "chai";
 import { getFirstValueInFlattenedArray } from "../../lib/autoPipelining";
-import { flatten } from "../../lib/utils/lodash";
 
 describe("autoPipelining", function () {
   const expectGetFirstValueIs = (values, expected) => {
     expect(getFirstValueInFlattenedArray(values)).to.eql(expected);
-    // getFirstValueInFlattenedArray should behave the same way as flatten(args)[0]
+    // getFirstValueInFlattenedArray should behave the same way as args.flat()[0]
     // but be much more efficient.
-    expect(flatten(values)[0]).to.eql(expected);
+    expect(values.flat()[0]).to.eql(expected);
   };
 
   it("should be able to efficiently get array args", function () {

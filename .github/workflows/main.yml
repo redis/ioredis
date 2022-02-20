@@ -29,7 +29,6 @@ jobs:
       matrix:
         include:
           # Need a new enough git version to install the npm husky module.
-          - NODE_VERSION: 10-buster
           - NODE_VERSION: 12-bullseye
           - NODE_VERSION: 14-bullseye
           - NODE_VERSION: 16-bullseye
