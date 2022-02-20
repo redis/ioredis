@@ -23,7 +23,7 @@ interface ICommandOptions {
    * @type {(string | null)}
    * @memberof ICommandOptions
    */
-  replyEncoding?: string | null;
+  replyEncoding?: BufferEncoding | null;
   errorStack?: Error;
   keyPrefix?: string;
   /**
@@ -155,7 +155,7 @@ export default class Command implements ICommand {
   public ignore?: boolean;
   public isReadOnly?: boolean;
 
-  private replyEncoding: string | null;
+  private replyEncoding: BufferEncoding | null;
   private errorStack: Error;
   public args: CommandParameter[];
   private callback: CallbackFunction;

@@ -4,9 +4,6 @@ import { getFirstValueInFlattenedArray } from "../../lib/autoPipelining";
 describe("autoPipelining", function () {
   const expectGetFirstValueIs = (values, expected) => {
     expect(getFirstValueInFlattenedArray(values)).to.eql(expected);
-    // getFirstValueInFlattenedArray should behave the same way as args.flat()[0]
-    // but be much more efficient.
-    expect(values.flat()[0]).to.eql(expected);
   };
 
   it("should be able to efficiently get array args", function () {

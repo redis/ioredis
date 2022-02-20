@@ -1,5 +1,5 @@
 import { parse as urllibParse } from "url";
-import { defaults, noop, flatten } from "./lodash";
+import { defaults, noop } from "./lodash";
 import { CallbackFunction } from "../types";
 import Debug from "./debug";
 
@@ -15,7 +15,7 @@ import TLSProfiles from "../constants/TLSProfiles";
  * expect(res).to.eql(['foo', ['bar']])
  * ```
  */
-export function convertBufferToString(value: any, encoding?: string) {
+export function convertBufferToString(value: any, encoding?: BufferEncoding) {
   if (value instanceof Buffer) {
     return value.toString(encoding);
   }
@@ -116,6 +116,7 @@ export function timeout(callback: CallbackFunction, timeout: number) {
       callback.apply(this, arguments);
     }
   };
+  // @ts-expect-error we are using `arguments`
   timer = setTimeout(run, timeout, new Error("timeout"));
   return run;
 }
@@ -332,4 +333,4 @@ export function zipMap<K, V>(keys: K[], values: V[]): Map<K, V> {
   return map;
 }
 
-export { Debug, defaults, noop, flatten };
+export { Debug, defaults, noop };
