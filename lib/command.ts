@@ -154,6 +154,7 @@ export default class Command implements Respondable {
 
   private replyEncoding: BufferEncoding | null;
   private errorStack: Error;
+  private bufferMode: boolean;
   public args: CommandParameter[];
   private callback: CallbackFunction;
   private transformed = false;
@@ -270,14 +271,6 @@ export default class Command implements Respondable {
    * @public
    */
   public toWritable(_socket: object): string | Buffer {
-    let bufferMode = false;
-    for (const arg of this.args) {
-      if (arg instanceof Buffer) {
-        bufferMode = true;
-        break;
-      }
-    }
-
     let result;
     const commandStr =
       "*" +
@@ -287,10 +280,12 @@ export default class Command implements Respondable {
       "\r\n" +
       this.name +
       "\r\n";
-    if (bufferMode) {
+
+    if (this.bufferMode) {
       const buffers = new MixedBuffers();
       buffers.push(commandStr);
-      for (const arg of this.args) {
+      for (let i = 0; i < this.args.length; ++i) {
+        const arg = this.args[i];
         if (arg instanceof Buffer) {
           if (arg.length === 0) {
             buffers.push("$0\r\n\r\n");
@@ -312,7 +307,8 @@ export default class Command implements Respondable {
       result = buffers.toBuffer();
     } else {
       result = commandStr;
-      for (const arg of this.args) {
+      for (let i = 0; i < this.args.length; ++i) {
+        const arg = this.args[i];
         result +=
           "$" +
           Buffer.byteLength(arg as string | Buffer) +
@@ -327,7 +323,11 @@ export default class Command implements Respondable {
   stringifyArguments(): void {
     for (let i = 0; i < this.args.length; ++i) {
       const arg = this.args[i];
-      if (!(arg instanceof Buffer) && typeof arg !== "string") {
+      if (typeof arg === 'string') {
+        // buffers and strings don't need any transformation
+      } else if (arg instanceof Buffer) {
+        this.bufferMode = true;
+      } else {
         this.args[i] = toArg(arg);
       }
     }
