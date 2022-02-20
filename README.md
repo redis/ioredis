@@ -550,12 +550,12 @@ const Redis = require("ioredis");
 // hmset('key', 'k1', 'v1', 'k2', 'v2')
 Redis.Command.setArgumentTransformer("hmset", (args) => {
   if (args.length === 2) {
-    if (typeof Map !== "undefined" && args[1] instanceof Map) {
+    if (args[1] instanceof Map) {
       // utils is a internal module of ioredis
-      return [args[0]].concat(utils.convertMapToArray(args[1]));
+      return [args[0], ...utils.convertMapToArray(args[1])];
     }
     if (typeof args[1] === "object" && args[1] !== null) {
-      return [args[0]].concat(utils.convertObjectToArray(args[1]));
+      return [args[0], ...utils.convertObjectToArray(args[1])];
     }
   }
   return args;

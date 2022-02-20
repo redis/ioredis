@@ -105,18 +105,16 @@ describe("utils", function () {
 
   describe(".convertMapToArray", function () {
     it("should return correctly", function () {
-      if (typeof Map !== "undefined") {
-        expect(utils.convertMapToArray(new Map([["1", 2]]))).to.eql(["1", 2]);
-        expect(utils.convertMapToArray(new Map([[1, 2]]))).to.eql([1, 2]);
-        expect(
-          utils.convertMapToArray(
-            new Map<number | string, string>([
-              [1, "2"],
-              ["abc", "def"],
-            ])
-          )
-        ).to.eql([1, "2", "abc", "def"]);
-      }
+      expect(utils.convertMapToArray(new Map([["1", 2]]))).to.eql(["1", 2]);
+      expect(utils.convertMapToArray(new Map([[1, 2]]))).to.eql([1, 2]);
+      expect(
+        utils.convertMapToArray(
+          new Map<number | string, string>([
+            [1, "2"],
+            ["abc", "def"],
+          ])
+        )
+      ).to.eql([1, "2", "abc", "def"]);
     });
   });
 
