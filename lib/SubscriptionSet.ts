@@ -1,7 +1,7 @@
-import { ICommandNameFlags } from "./command";
+import { CommandNameFlags } from "./command";
 
-type AddSet = ICommandNameFlags["ENTER_SUBSCRIBER_MODE"][number];
-type DelSet = ICommandNameFlags["EXIT_SUBSCRIBER_MODE"][number];
+type AddSet = CommandNameFlags["ENTER_SUBSCRIBER_MODE"][number];
+type DelSet = CommandNameFlags["EXIT_SUBSCRIBER_MODE"][number];
 
 /**
  * Tiny class to simplify dealing with subscription set

@@ -1,6 +1,6 @@
 import { Debug } from "../../utils";
 import SentinelConnector from "./index";
-import { ISentinel } from "./types";
+import { Sentinel } from "./types";
 
 const debug = Debug("FailoverDetector");
 
@@ -8,11 +8,11 @@ const CHANNEL_NAME = "+switch-master";
 
 export class FailoverDetector {
   private connector: SentinelConnector;
-  private sentinels: ISentinel[];
+  private sentinels: Sentinel[];
   private isDisconnected = false;
 
   // sentinels can't be used for regular commands after this
-  constructor(connector: SentinelConnector, sentinels: ISentinel[]) {
+  constructor(connector: SentinelConnector, sentinels: Sentinel[]) {
     this.connector = connector;
     this.sentinels = sentinels;
   }

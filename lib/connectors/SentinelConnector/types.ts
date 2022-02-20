@@ -1,13 +1,13 @@
 import { RedisOptions } from "../../redis/RedisOptions";
 
-export interface ISentinelAddress {
+export interface SentinelAddress {
   port: number;
   host: string;
   family?: number;
 }
 
 // TODO: A proper typedef. This one only declares a small subset of all the members.
-export interface IRedisClient {
+export interface RedisClient {
   options: RedisOptions;
   sentinel(subcommand: "sentinels", name: string): Promise<string[]>;
   sentinel(
@@ -25,7 +25,7 @@ export interface IRedisClient {
   disconnect(): void;
 }
 
-export interface ISentinel {
-  address: Partial<ISentinelAddress>;
-  client: IRedisClient;
+export interface Sentinel {
+  address: Partial<SentinelAddress>;
+  client: RedisClient;
 }

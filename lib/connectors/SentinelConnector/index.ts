@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import { createConnection, TcpNetConnectOpts } from "net";
-import { INatMap } from "../../cluster/ClusterOptions";
+import { NatMap } from "../../cluster/ClusterOptions";
 import {
   CONNECTION_CLOSED_ERROR_MSG,
   packObject,
@@ -9,7 +9,7 @@ import {
 } from "../../utils";
 import { connect as createTLSConnection, ConnectionOptions } from "tls";
 import SentinelIterator from "./SentinelIterator";
-import { IRedisClient, ISentinelAddress, ISentinel } from "./types";
+import { RedisClient, SentinelAddress, Sentinel } from "./types";
 import AbstractConnector, { ErrorEmitter } from "../AbstractConnector";
 import { NetStream } from "../../types";
 import Redis from "../../Redis";
@@ -18,18 +18,18 @@ import { FailoverDetector } from "./FailoverDetector";
 
 const debug = Debug("SentinelConnector");
 
-interface IAddressFromResponse {
+interface AddressFromResponse {
   port: string;
   ip: string;
   flags?: string;
 }
 
 type PreferredSlaves =
-  | ((slaves: IAddressFromResponse[]) => IAddressFromResponse | null)
+  | ((slaves: AddressFromResponse[]) => AddressFromResponse | null)
   | Array<{ port: string; ip: string; prio?: number }>
   | { port: string; ip: string; prio?: number };
 
-export { ISentinelAddress, SentinelIterator };
+export { SentinelAddress, SentinelIterator };
 
 export interface SentinelConnectionOptions {
   name?: string;
@@ -37,7 +37,7 @@ export interface SentinelConnectionOptions {
   tls?: ConnectionOptions;
   sentinelUsername?: string;
   sentinelPassword?: string;
-  sentinels?: Array<Partial<ISentinelAddress>>;
+  sentinels?: Array<Partial<SentinelAddress>>;
   sentinelRetryStrategy?: (retryAttempts: number) => number | void | null;
   sentinelReconnectStrategy?: (retryAttempts: number) => number | void | null;
   preferredSlaves?: PreferredSlaves;
@@ -46,7 +46,7 @@ export interface SentinelConnectionOptions {
   sentinelCommandTimeout?: number;
   enableTLSForSentinelMode?: boolean;
   sentinelTLS?: ConnectionOptions;
-  natMap?: INatMap;
+  natMap?: NatMap;
   updateSentinels?: boolean;
   sentinelMaxConnections?: number;
   failoverDetector?: boolean;
@@ -196,7 +196,7 @@ export default class SentinelConnector extends AbstractConnector {
     return connectToNext();
   }
 
-  private async updateSentinels(client: IRedisClient): Promise<void> {
+  private async updateSentinels(client: RedisClient): Promise<void> {
     if (!this.options.updateSentinels) {
       return;
     }
@@ -208,8 +208,8 @@ export default class SentinelConnector extends AbstractConnector {
     }
 
     result
-      .map<IAddressFromResponse>(
-        packObject as (value: any) => IAddressFromResponse
+      .map<AddressFromResponse>(
+        packObject as (value: any) => AddressFromResponse
       )
       .forEach((sentinel) => {
         const flags = sentinel.flags ? sentinel.flags.split(",") : [];
@@ -230,7 +230,7 @@ export default class SentinelConnector extends AbstractConnector {
   }
 
   private async resolveMaster(
-    client: IRedisClient
+    client: RedisClient
   ): Promise<TcpNetConnectOpts | null> {
     const result = await client.sentinel(
       "get-master-addr-by-name",
@@ -247,7 +247,7 @@ export default class SentinelConnector extends AbstractConnector {
   }
 
   private async resolveSlave(
-    client: IRedisClient
+    client: RedisClient
   ): Promise<TcpNetConnectOpts | null> {
     const result = await client.sentinel("slaves", this.options.name);
 
@@ -256,8 +256,8 @@ export default class SentinelConnector extends AbstractConnector {
     }
 
     const availableSlaves = result
-      .map<IAddressFromResponse>(
-        packObject as (value: any) => IAddressFromResponse
+      .map<AddressFromResponse>(
+        packObject as (value: any) => AddressFromResponse
       )
       .filter(
         (slave) =>
@@ -269,16 +269,16 @@ export default class SentinelConnector extends AbstractConnector {
     );
   }
 
-  sentinelNatResolve(item: ISentinelAddress | null) {
+  sentinelNatResolve(item: SentinelAddress | null) {
     if (!item || !this.options.natMap) return item;
 
     return this.options.natMap[`${item.host}:${item.port}`] || item;
   }
 
   private connectToSentinel(
-    endpoint: Partial<ISentinelAddress>,
+    endpoint: Partial<SentinelAddress>,
     options?: Partial<RedisOptions>
-  ): IRedisClient {
+  ): RedisClient {
     const redis = new Redis({
       port: endpoint.port || 26379,
       host: endpoint.host,
@@ -304,7 +304,7 @@ export default class SentinelConnector extends AbstractConnector {
   }
 
   private async resolve(
-    endpoint: Partial<ISentinelAddress>
+    endpoint: Partial<SentinelAddress>
   ): Promise<TcpNetConnectOpts | null> {
     const client = this.connectToSentinel(endpoint);
 
@@ -329,7 +329,7 @@ export default class SentinelConnector extends AbstractConnector {
     // Move the current sentinel to the first position
     this.sentinelIterator.reset(true);
 
-    const sentinels: ISentinel[] = [];
+    const sentinels: Sentinel[] = [];
 
     // In case of a large amount of sentinels, limit the number of concurrent connections
     while (sentinels.length < this.options.sentinelMaxConnections) {
@@ -368,14 +368,14 @@ export default class SentinelConnector extends AbstractConnector {
 }
 
 function selectPreferredSentinel(
-  availableSlaves: IAddressFromResponse[],
+  availableSlaves: AddressFromResponse[],
   preferredSlaves?: PreferredSlaves
-): ISentinelAddress | null {
+): SentinelAddress | null {
   if (availableSlaves.length === 0) {
     return null;
   }
 
-  let selectedSlave: IAddressFromResponse;
+  let selectedSlave: AddressFromResponse;
   if (typeof preferredSlaves === "function") {
     selectedSlave = preferredSlaves(availableSlaves);
   } else if (preferredSlaves !== null && typeof preferredSlaves === "object") {
@@ -427,9 +427,7 @@ function selectPreferredSentinel(
   return addressResponseToAddress(selectedSlave);
 }
 
-function addressResponseToAddress(
-  input: IAddressFromResponse
-): ISentinelAddress {
+function addressResponseToAddress(input: AddressFromResponse): SentinelAddress {
   return { host: input.ip, port: Number(input.port) };
 }
 

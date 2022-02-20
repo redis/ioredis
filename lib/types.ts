@@ -8,7 +8,7 @@ export type CallbackFunction<T = any> = (
 export type NetStream = Socket | TLSSocket;
 
 export type CommandParameter = string | Buffer | number | any[];
-export interface ICommand {
+export interface Respondable {
   name: string;
   args: CommandParameter[];
   resolve(result: any): void;
@@ -24,7 +24,7 @@ export interface PipelineWriteableStream {
 export type WriteableStream = NetStream | PipelineWriteableStream;
 
 export interface CommandItem {
-  command: ICommand;
+  command: Respondable;
   stream: WriteableStream;
   select: number;
 }

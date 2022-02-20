@@ -110,27 +110,18 @@ describe("pub/sub", function () {
     });
   });
 
-  it("should exit subscriber mode using punsubscribe", function (done) {
+  it("should exit subscriber mode using punsubscribe", async () => {
     const redis = new Redis();
-    redis.psubscribe("f?oo", "b?ar", function () {
-      redis.punsubscribe("f?oo", "b?ar", function (err, count) {
-        expect(count).to.eql(0);
-        redis.set("foo", "bar", function (err) {
-          expect(err).to.eql(null);
+    await redis.psubscribe("f?oo", "b?ar");
+    const count = await redis.punsubscribe("f?oo", "b?ar");
+    expect(count).to.eql(0);
 
-          redis.psubscribe("z?oo", "f?oo", function () {
-            redis.punsubscribe(function (err, count) {
-              expect(count).to.eql(0);
-              redis.set("foo", "bar", function (err) {
-                expect(err).to.eql(null);
-                redis.disconnect();
-                done();
-              });
-            });
-          });
-        });
-      });
-    });
+    await redis.set("foo", "bar");
+    await redis.psubscribe("z?oo", "f?oo");
+    const newCount = await redis.punsubscribe();
+    expect(newCount).to.eql(0);
+    await redis.set("foo", "bar");
+    redis.disconnect();
   });
 
   it("should be able to send quit command in the subscriber mode", function (done) {
@@ -168,7 +159,7 @@ describe("pub/sub", function () {
           pub.publish("bar", "hi2");
         });
       });
-      redis.disconnect({ reconnect: true });
+      redis.disconnect(true);
     });
   });
 
@@ -190,7 +181,7 @@ describe("pub/sub", function () {
           pub.publish("ba1r", "hi2");
         });
       });
-      redis.disconnect({ reconnect: true });
+      redis.disconnect(true);
     });
   });
 });

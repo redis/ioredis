@@ -1,8 +1,8 @@
-import { ISentinelAddress } from "./types";
+import { SentinelAddress } from "./types";
 
 function isSentinelEql(
-  a: Partial<ISentinelAddress>,
-  b: Partial<ISentinelAddress>
+  a: Partial<SentinelAddress>,
+  b: Partial<SentinelAddress>
 ): boolean {
   return (
     (a.host || "127.0.0.1") === (b.host || "127.0.0.1") &&
@@ -11,11 +11,12 @@ function isSentinelEql(
 }
 
 export default class SentinelIterator
-  implements Iterator<Partial<ISentinelAddress>> {
+  implements Iterator<Partial<SentinelAddress>>
+{
   private cursor = 0;
-  private sentinels: Array<Partial<ISentinelAddress>>;
+  private sentinels: Array<Partial<SentinelAddress>>;
 
-  constructor(sentinels: Array<Partial<ISentinelAddress>>) {
+  constructor(sentinels: Array<Partial<SentinelAddress>>) {
     this.sentinels = sentinels.slice(0);
   }
 
@@ -35,7 +36,7 @@ export default class SentinelIterator
     this.cursor = 0;
   }
 
-  add(sentinel: ISentinelAddress): boolean {
+  add(sentinel: SentinelAddress): boolean {
     for (let i = 0; i < this.sentinels.length; i++) {
       if (isSentinelEql(sentinel, this.sentinels[i])) {
         return false;
