@@ -16,9 +16,6 @@ describe("transformer", function () {
         });
       });
       it("should support Map", function (done) {
-        if (typeof Map === "undefined") {
-          return done();
-        }
         const redis = new Redis();
         const map = new Map();
         map.set("a", 1);
@@ -55,9 +52,6 @@ describe("transformer", function () {
         });
       });
       it("should support Map", function (done) {
-        if (typeof Map === "undefined") {
-          return done();
-        }
         const redis = new Redis();
         const map = new Map();
         map.set("a", 1);
@@ -105,9 +99,6 @@ describe("transformer", function () {
         });
       });
       it("should support Map", function (done) {
-        if (typeof Map === "undefined") {
-          return done();
-        }
         const redis = new Redis();
         const map = new Map();
         map.set("a", 1);
@@ -187,9 +178,6 @@ describe("transformer", function () {
         });
       });
       it("should support Map", async function () {
-        if (typeof Map === "undefined") {
-          return;
-        }
         const redis = new Redis();
         const [major] = await getRedisVersion(redis);
         if (major < 4) {
