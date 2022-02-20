@@ -2,7 +2,6 @@
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
-    "plugin:@typescript-eslint/eslint-recommended",
     "prettier"
   ],
   "ignorePatterns": ["bin/generateRedisCommander/template.ts"],

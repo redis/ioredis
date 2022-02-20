@@ -6,8 +6,8 @@ afterEach(function (done) {
   new Redis()
     .pipeline()
     .flushall()
-    .script("flush")
-    .client("kill", "normal")
+    .script("FLUSH")
+    .client("KILL", "normal")
     .exec(done);
 });
 

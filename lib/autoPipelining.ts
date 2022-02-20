@@ -1,4 +1,4 @@
-import { flatten, isArguments, noop } from "./utils/lodash";
+import { isArguments, noop } from "./utils/lodash";
 import * as calculateSlot from "cluster-key-slot";
 import asCallback from "standard-as-callback";
 import { ArgumentType } from "./command";
@@ -105,7 +105,7 @@ export function getFirstValueInFlattenedArray(
       }
       return arg[0];
     }
-    const flattened = flatten([arg]);
+    const flattened = [arg].flat();
     if (flattened.length > 0) {
       return flattened[0];
     }

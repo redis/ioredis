@@ -38,7 +38,7 @@ describe("auth", function () {
     var redis = new Redis({ port: 17379, password: "pass" });
     redis.once("ready", function () {
       begin = true;
-      redis.disconnect({ reconnect: true });
+      redis.disconnect(true);
       redis.get("foo").catch(function () {});
     });
   });
