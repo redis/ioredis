@@ -4,7 +4,7 @@ import Deque = require("denque");
 import { AbortError } from "redis-errors";
 import Command from "../command";
 import { MaxRetriesPerRequestError } from "../errors";
-import { ICommandItem, ICommand } from "../types";
+import { CommandItem, ICommand } from "../types";
 import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import DataHandler from "../DataHandler";
 
@@ -115,7 +115,7 @@ function abortError(command: ICommand) {
 // the connection close and those pipelined commands must be aborted. For
 // example, if the queue looks like this: [2, 3, 4, 0, 1, 2] then after
 // aborting and purging we'll have a queue that looks like this: [0, 1, 2]
-function abortIncompletePipelines(commandQueue: Deque<ICommandItem>) {
+function abortIncompletePipelines(commandQueue: Deque<CommandItem>) {
   let expectedIndex = 0;
   for (let i = 0; i < commandQueue.length; ) {
     const command = commandQueue.peekAt(i).command as Command;
@@ -135,7 +135,7 @@ function abortIncompletePipelines(commandQueue: Deque<ICommandItem>) {
 // If only a partial transaction result was received before connection close,
 // we have to abort any transaction fragments that may have ended up in the
 // offline queue
-function abortTransactionFragments(commandQueue: Deque<ICommandItem>) {
+function abortTransactionFragments(commandQueue: Deque<CommandItem>) {
   for (let i = 0; i < commandQueue.length; ) {
     const command = commandQueue.peekAt(i).command as Command;
     if (command.name === "multi") {

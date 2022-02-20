@@ -4,9 +4,9 @@ import asCallback from "standard-as-callback";
 import { deprecate } from "util";
 import Redis, { Cluster } from ".";
 import Command from "./command";
-import Commander from "./utils/Commander";
-import { CallbackFunction } from "./types";
+import { CallbackFunction, PipelineWriteableStream } from "./types";
 import { noop } from "./utils";
+import Commander from "./utils/Commander";
 
 /*
   This function derives from the cluster-key-slot implementation.
@@ -344,7 +344,7 @@ Pipeline.prototype.exec = function (
     }
     let bufferMode = false;
 
-    const stream = {
+    const stream: PipelineWriteableStream = {
       isPipeline: true,
       destination: _this.isCluster ? node : { redis: _this.redis },
       write: function (writable) {

@@ -1,10 +1,10 @@
 import { createHash } from "crypto";
 import Command from "./command";
 import asCallback from "standard-as-callback";
-import { CallbackFunction, NetStream } from "./types";
+import { CallbackFunction } from "./types";
 export default class Script {
   private sha: string;
-  private Command;
+  private Command: new (...args: any[]) => Command;
 
   constructor(
     private lua: string,
@@ -17,7 +17,7 @@ export default class Script {
     const sha = this.sha;
     const socketHasScriptLoaded = new WeakSet();
     this.Command = class CustomScriptCommand extends Command {
-      public toWritable(socket: NetStream): string | Buffer {
+      public toWritable(socket: object): string | Buffer {
         const origReject = this.reject;
         this.reject = (err) => {
           if (err.toString().indexOf("NOSCRIPT") !== -1) {

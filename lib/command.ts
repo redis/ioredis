@@ -9,7 +9,7 @@ import {
   convertObjectToArray,
 } from "./utils";
 import { flatten } from "./utils/lodash";
-import { CallbackFunction, ICommand, CommandParameter, NetStream } from "./types";
+import { CallbackFunction, ICommand, CommandParameter } from "./types";
 
 export type ArgumentType =
   | string
@@ -273,7 +273,7 @@ export default class Command implements ICommand {
    * @see {@link Redis#sendCommand}
    * @public
    */
-  public toWritable(socket: NetStream): string | Buffer {
+  public toWritable(_socket: object): string | Buffer {
     let bufferMode = false;
     for (const arg of this.args) {
       if (arg instanceof Buffer) {

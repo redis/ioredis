@@ -5,7 +5,7 @@ import {
 } from "../autoPipelining";
 import Command, { ArgumentType } from "../command";
 import Script from "../script";
-import { CallbackFunction, NetStream } from "../types";
+import { CallbackFunction, WriteableStream } from "../types";
 import RedisCommander, { ClientContext } from "./RedisCommander";
 
 export interface CommanderOptions {
@@ -93,7 +93,11 @@ class Commander<Context extends ClientContext = { type: "default" }> {
     );
   }
 
-  sendCommand(command: Command, stream?: NetStream, node?: unknown): unknown {
+  sendCommand(
+    command: Command,
+    stream?: WriteableStream,
+    node?: unknown
+  ): unknown {
     throw new Error('"sendCommand" is not implemented');
   }
 }
