@@ -355,8 +355,8 @@ class Redis extends Commander {
    * var anotherRedis = redis.duplicate();
    * ```
    */
-  duplicate(override: RedisOptions) {
-    return new Redis(Object.assign({}, this.options, override || {}));
+  duplicate(override?: Partial<RedisOptions>) {
+    return new Redis({ ...this.options, ...override });
   }
 
   recoverFromFatalError(commandError, err: Error | null, options) {
