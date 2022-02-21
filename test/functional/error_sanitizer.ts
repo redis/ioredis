@@ -6,7 +6,7 @@ import * as sinon from "sinon";
 const warn = sinon.spy(console, "warn");
 
 describe("sanitizeErrors: true", () => {
-  it(`should immutably omit command.args from emitted errors`, (done) => {
+  it(`should omit command.args from emitted errors`, (done) => {
     const originalError: any = new Error("Wrong password");
     new MockServer(43215, ([name, ...args]) => {
       if (name === "auth") {
@@ -23,8 +23,8 @@ describe("sanitizeErrors: true", () => {
     redis.once("error", (error) => {
       expect(error.command.name).to.eql("auth");
       expect(error.command.args).to.be.undefined;
-      expect(typeof error).to.eql(typeof originalError);
-      expect(originalError.command.args).to.eql(["secret"]);
+      expect(error).to.equal(originalError);
+      expect(typeof error.stack).to.eql("string");
       done();
     });
   });

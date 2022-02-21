@@ -1,23 +1,12 @@
-type RedisError = Error & {
-  command?: Record<string, any>;
-};
-
-function clone(instance) {
-  return Object.assign(
-    Object.create(Object.getPrototypeOf(instance)),
-    instance
-  );
+interface RedisError extends Error {
+  command?: Record<string, unknown>;
 }
 
-export function sanitizeError(originalError: RedisError): RedisError {
-  if (!originalError?.command?.args) {
-    return originalError;
+export function sanitizeError(error: RedisError): RedisError {
+  if (error?.command?.args) {
+    const { args, ...commandWithoutArgs } = error.command;
+    error.command = commandWithoutArgs;
   }
-  const error = clone(originalError);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { args, ...commandWithoutArgs } = error.command;
-  error.command = commandWithoutArgs;
-
   return error;
 }
 
