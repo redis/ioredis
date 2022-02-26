@@ -242,8 +242,10 @@ Pipeline.prototype.multi = function () {
   return multi.apply(this, arguments);
 };
 
+// @ts-expect-error
 const execBuffer = Pipeline.prototype.execBuffer;
 const exec = Pipeline.prototype.exec;
+// @ts-expect-error
 Pipeline.prototype.execBuffer = deprecate(function () {
   if (this._transactions > 0) {
     this._transactions -= 1;
@@ -257,7 +259,6 @@ Pipeline.prototype.execBuffer = deprecate(function () {
 //
 // If a different promise instance were returned, that promise would cause its own unhandled promise rejection
 // errors, even if that promise unconditionally resolved to **the resolved value of** this.promise.
-// @ts-expect-error
 Pipeline.prototype.exec = function (
   callback: CallbackFunction
 ): Promise<Array<any>> {

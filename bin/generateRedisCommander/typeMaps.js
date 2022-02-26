@@ -11,6 +11,8 @@ module.exports = {
       "threshold",
       "start",
       "end",
+      "max",
+      "min",
     ].some((pattern) => name.toLowerCase().includes(pattern))
       ? "string | Buffer | number"
       : "string | Buffer",
