@@ -63,20 +63,21 @@ class Redis extends Commander {
 
   options: RedisOptions;
   status: RedisStatus = "wait";
-  commandQueue: Deque<CommandItem>;
-  offlineQueue: Deque;
-  connectionEpoch = 0;
-  connector: AbstractConnector;
-  condition: {
+  stream: NetStream;
+  isCluster = false;
+
+  private connector: AbstractConnector;
+  private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+  private condition: {
     select: number;
     auth?: string | [string, string];
     subscriber: boolean;
   };
-  stream: NetStream;
-  manuallyClosing = false;
-  retryAttempts = 0;
-  reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
-  isCluster = false;
+  private commandQueue: Deque<CommandItem>;
+  private offlineQueue: Deque;
+  private connectionEpoch = 0;
+  private retryAttempts = 0;
+  private manuallyClosing = false;
 
   // Prepare autopipelines structures
   private _autoPipelines = new Map();
@@ -127,51 +128,6 @@ class Redis extends Commander {
     }
 
     return queued;
-  }
-
-  parseOptions(...args: unknown[]) {
-    const options: Record<string, unknown> = {};
-    let isTls = false;
-    for (let i = 0; i < args.length; ++i) {
-      const arg = args[i];
-      if (arg === null || typeof arg === "undefined") {
-        continue;
-      }
-      if (typeof arg === "object") {
-        defaults(options, arg);
-      } else if (typeof arg === "string") {
-        defaults(options, parseURL(arg));
-        if (arg.startsWith("rediss://")) {
-          isTls = true;
-        }
-      } else if (typeof arg === "number") {
-        options.port = arg;
-      } else {
-        throw new Error("Invalid argument " + arg);
-      }
-    }
-    if (isTls) {
-      defaults(options, { tls: true });
-    }
-    defaults(options, Redis.defaultOptions);
-
-    if (typeof options.port === "string") {
-      options.port = parseInt(options.port, 10);
-    }
-    if (typeof options.db === "string") {
-      options.db = parseInt(options.db, 10);
-    }
-
-    // @ts-expect-error
-    this.options = resolveTLSProfile(options);
-  }
-
-  resetCommandQueue() {
-    this.commandQueue = new Deque();
-  }
-
-  resetOfflineQueue() {
-    this.offlineQueue = new Deque();
   }
 
   /**
@@ -345,80 +301,6 @@ class Redis extends Commander {
    */
   duplicate(override?: Partial<RedisOptions>) {
     return new Redis({ ...this.options, ...override });
-  }
-
-  recoverFromFatalError(commandError, err: Error | null, options) {
-    this.flushQueue(err, options);
-    this.silentEmit("error", err);
-    this.disconnect(true);
-  }
-
-  handleReconnection(err: Error, item: CommandItem) {
-    let needReconnect: ReturnType<ReconnectOnError> = false;
-    if (this.options.reconnectOnError) {
-      needReconnect = this.options.reconnectOnError(err);
-    }
-
-    switch (needReconnect) {
-      case 1:
-      case true:
-        if (this.status !== "reconnecting") {
-          this.disconnect(true);
-        }
-        item.command.reject(err);
-        break;
-      case 2:
-        if (this.status !== "reconnecting") {
-          this.disconnect(true);
-        }
-        if (
-          this.condition.select !== item.select &&
-          item.command.name !== "select"
-        ) {
-          this.select(item.select);
-        }
-        // TODO
-        // @ts-expect-error
-        this.sendCommand(item.command);
-        break;
-      default:
-        item.command.reject(err);
-    }
-  }
-
-  /**
-   * Emit only when there's at least one listener.
-   */
-  silentEmit(eventName: string, arg?: unknown): boolean {
-    let error: unknown;
-    if (eventName === "error") {
-      error = arg;
-
-      if (this.status === "end") {
-        return;
-      }
-
-      if (this.manuallyClosing) {
-        // ignore connection related errors when manually disconnecting
-        if (
-          error instanceof Error &&
-          (error.message === CONNECTION_CLOSED_ERROR_MSG ||
-            // @ts-expect-error
-            error.syscall === "connect" ||
-            // @ts-expect-error
-            error.syscall === "read")
-        ) {
-          return;
-        }
-      }
-    }
-    if (this.listeners(eventName).length > 0) {
-      return this.emit.apply(this, arguments);
-    }
-    if (error && error instanceof Error) {
-      console.error("[ioredis] Unhandled error event:", error.stack);
-    }
-    return false;
   }
 
   /**
@@ -643,6 +525,41 @@ class Redis extends Commander {
   }
 
   /**
+   * Emit only when there's at least one listener.
+   */
+  silentEmit(eventName: string, arg?: unknown): boolean {
+    let error: unknown;
+    if (eventName === "error") {
+      error = arg;
+
+      if (this.status === "end") {
+        return;
+      }
+
+      if (this.manuallyClosing) {
+        // ignore connection related errors when manually disconnecting
+        if (
+          error instanceof Error &&
+          (error.message === CONNECTION_CLOSED_ERROR_MSG ||
+            // @ts-expect-error
+            error.syscall === "connect" ||
+            // @ts-expect-error
+            error.syscall === "read")
+        ) {
+          return;
+        }
+      }
+    }
+    if (this.listeners(eventName).length > 0) {
+      return this.emit.apply(this, arguments);
+    }
+    if (error && error instanceof Error) {
+      console.error("[ioredis] Unhandled error event:", error.stack);
+    }
+    return false;
+  }
+
+  /**
    * Get description of the connection. Used for debugging.
    */
   private _getDescription() {
@@ -665,6 +582,90 @@ class Redis extends Commander {
       description += ` (${this.options.connectionName})`;
     }
     return description;
+  }
+
+  private resetCommandQueue() {
+    this.commandQueue = new Deque();
+  }
+
+  private resetOfflineQueue() {
+    this.offlineQueue = new Deque();
+  }
+
+  private recoverFromFatalError(commandError, err: Error | null, options) {
+    this.flushQueue(err, options);
+    this.silentEmit("error", err);
+    this.disconnect(true);
+  }
+
+  private handleReconnection(err: Error, item: CommandItem) {
+    let needReconnect: ReturnType<ReconnectOnError> = false;
+    if (this.options.reconnectOnError) {
+      needReconnect = this.options.reconnectOnError(err);
+    }
+
+    switch (needReconnect) {
+      case 1:
+      case true:
+        if (this.status !== "reconnecting") {
+          this.disconnect(true);
+        }
+        item.command.reject(err);
+        break;
+      case 2:
+        if (this.status !== "reconnecting") {
+          this.disconnect(true);
+        }
+        if (
+          this.condition.select !== item.select &&
+          item.command.name !== "select"
+        ) {
+          this.select(item.select);
+        }
+        // TODO
+        // @ts-expect-error
+        this.sendCommand(item.command);
+        break;
+      default:
+        item.command.reject(err);
+    }
+  }
+
+  private parseOptions(...args: unknown[]) {
+    const options: Record<string, unknown> = {};
+    let isTls = false;
+    for (let i = 0; i < args.length; ++i) {
+      const arg = args[i];
+      if (arg === null || typeof arg === "undefined") {
+        continue;
+      }
+      if (typeof arg === "object") {
+        defaults(options, arg);
+      } else if (typeof arg === "string") {
+        defaults(options, parseURL(arg));
+        if (arg.startsWith("rediss://")) {
+          isTls = true;
+        }
+      } else if (typeof arg === "number") {
+        options.port = arg;
+      } else {
+        throw new Error("Invalid argument " + arg);
+      }
+    }
+    if (isTls) {
+      defaults(options, { tls: true });
+    }
+    defaults(options, Redis.defaultOptions);
+
+    if (typeof options.port === "string") {
+      options.port = parseInt(options.port, 10);
+    }
+    if (typeof options.db === "string") {
+      options.db = parseInt(options.db, 10);
+    }
+
+    // @ts-expect-error
+    this.options = resolveTLSProfile(options);
   }
 
   /**
