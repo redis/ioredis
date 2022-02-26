@@ -1,6 +1,6 @@
 import { parse as urllibParse } from "url";
 import { defaults, noop } from "./lodash";
-import { CallbackFunction } from "../types";
+import { Callback } from "../types";
 import Debug from "./debug";
 
 import TLSProfiles from "../constants/TLSProfiles";
@@ -106,7 +106,7 @@ export function packObject(array: any[]): Record<string, any> {
 /**
  * Return a callback with timeout
  */
-export function timeout(callback: CallbackFunction, timeout: number) {
+export function timeout(callback: Callback, timeout: number) {
   let timer: NodeJS.Timeout;
   const run = function () {
     if (timer) {

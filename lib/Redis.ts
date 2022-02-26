@@ -17,7 +17,7 @@ import {
 } from "./redis/RedisOptions";
 import { addTransactionSupport, Transaction } from "./transaction";
 import {
-  CallbackFunction,
+  Callback,
   CommandItem,
   NetStream,
   ScanStreamOptions,
@@ -182,7 +182,7 @@ class Redis extends Commander {
    * When calling this method manually, a Promise is returned, which will
    * be resolved when the connection status is ready.
    */
-  connect(callback?: CallbackFunction<void>): Promise<void> {
+  connect(callback?: Callback<void>): Promise<void> {
     const promise = new Promise<void>((resolve, reject) => {
       if (
         this.status === "connecting" ||
@@ -447,7 +447,7 @@ class Redis extends Commander {
    * });
    * ```
    */
-  monitor(callback: CallbackFunction<Redis>): Promise<Redis> {
+  monitor(callback: Callback<Redis>): Promise<Redis> {
     const monitorInstance = this.duplicate({
       monitor: true,
       lazyConnect: false,
@@ -734,7 +734,7 @@ class Redis extends Commander {
    * Check whether Redis has finished loading the persistent data and is able to
    * process commands.
    */
-  private _readyCheck(callback: CallbackFunction) {
+  private _readyCheck(callback: Callback) {
     const _this = this;
     this.info(function (err, res) {
       if (err) {

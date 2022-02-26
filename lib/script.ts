@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 import Command from "./command";
 import asCallback from "standard-as-callback";
-import { CallbackFunction } from "./types";
+import { Callback } from "./types";
 export default class Script {
   private sha: string;
   private Command: new (...args: any[]) => Command;
@@ -40,12 +40,7 @@ export default class Script {
     };
   }
 
-  execute(
-    container: any,
-    args: any[],
-    options: any,
-    callback?: CallbackFunction
-  ) {
+  execute(container: any, args: any[], options: any, callback?: Callback) {
     if (typeof this.numberOfKeys === "number") {
       args.unshift(this.numberOfKeys);
     }
@@ -56,11 +51,7 @@ export default class Script {
       options.readOnly = true;
     }
 
-    const evalsha = new this.Command(
-      "evalsha",
-      [this.sha, ...args],
-      options
-    );
+    const evalsha = new this.Command("evalsha", [this.sha, ...args], options);
     evalsha.isCustomCommand = true;
 
     evalsha.promise = evalsha.promise.catch((err: Error) => {
@@ -70,11 +61,7 @@ export default class Script {
 
       // Resend the same custom evalsha command that gets transformed to an eval
       // in case it's not loaded yet on the connectionDo an eval as fallback, redis will hash and load it
-      const resend = new this.Command(
-        "evalsha",
-        [this.sha, ...args],
-        options
-      );
+      const resend = new this.Command("evalsha", [this.sha, ...args], options);
       resend.isCustomCommand = true;
 
       const client = container.isPipeline ? container.redis : container;

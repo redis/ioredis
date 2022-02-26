@@ -5,6 +5,7 @@ const redis = new Redis();
 
 // GET
 expectType<Promise<string | null>>(redis.get("key"));
+expectType<Promise<Buffer | null>>(redis.getBuffer("key"));
 expectError(redis.get("key", "bar"));
 
 // SET
@@ -13,6 +14,11 @@ expectType<Promise<"OK">>(redis.set("key", "bar", "EX", 100));
 expectError(redis.set("key", "bar", "EX", "NX"));
 expectType<Promise<"OK" | null>>(redis.set("key", "bar", "EX", 100, "NX")); // NX can fail thus `null` is returned
 expectType<Promise<string | null>>(redis.set("key", "bar", "GET"));
+
+// DEL
+expectType<Promise<number>>(redis.del("key"));
+expectType<Promise<number>>(redis.del(["key1", "key2"]));
+expectType<Promise<number>>(redis.del("key1", "key2"));
 
 // INCR
 expectType<Promise<number>>(redis.incr("key"));
@@ -39,3 +45,32 @@ expectType<Promise<number[]>>(
 // ZADD
 expectType<Promise<number>>(redis.zadd("key", 1, "member"));
 expectType<Promise<number>>(redis.zadd("key", "CH", 1, "member"));
+
+// GETRANGE
+expectType<Promise<Buffer>>(redis.getrangeBuffer("foo", 0, 1));
+
+// Callbacks
+redis.getBuffer("foo", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<Buffer | null | undefined>(res);
+});
+
+redis.set("foo", "bar", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<"OK" | undefined>(res);
+});
+
+redis.set("foo", "bar", "GET", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<string | null | undefined>(res);
+});
+
+redis.del("key1", "key2", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<number | undefined>(res);
+});
+
+redis.del(["key1", "key2"], (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<number | undefined>(res);
+});

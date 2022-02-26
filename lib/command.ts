@@ -8,7 +8,7 @@ import {
   convertMapToArray,
   convertObjectToArray,
 } from "./utils";
-import { CallbackFunction, Respondable, CommandParameter } from "./types";
+import { Callback, Respondable, CommandParameter } from "./types";
 
 export type ArgumentType =
   | string
@@ -157,7 +157,7 @@ export default class Command implements Respondable {
   private replyEncoding: BufferEncoding | null;
   private errorStack: Error;
   private bufferMode: boolean;
-  private callback: CallbackFunction;
+  private callback: Callback;
   private transformed = false;
   private _commandTimeoutTimer?: NodeJS.Timeout;
 
@@ -176,7 +176,7 @@ export default class Command implements Respondable {
     public name: string,
     args: Array<ArgumentType> = [],
     options: CommandOptions = {},
-    callback?: CallbackFunction
+    callback?: Callback
   ) {
     this.replyEncoding = options.replyEncoding;
     this.errorStack = options.errorStack;
