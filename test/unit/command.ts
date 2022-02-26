@@ -1,23 +1,23 @@
 import { expect } from "chai";
 import Command from "../../lib/command";
 
-describe("Command", function () {
-  describe("constructor()", function () {
-    it("should flatten the args", function () {
+describe("Command", () => {
+  describe("constructor()", () => {
+    it("should flatten the args", () => {
       const command = new Command("get", ["foo", ["bar", ["zoo", "zoo"]]]);
       expect(command.args).to.eql(["foo", "bar", "zoo,zoo"]);
     });
   });
 
-  describe("#toWritable()", function () {
-    it("should return correct string", function () {
+  describe("#toWritable()", () => {
+    it("should return correct string", () => {
       const command = new Command("get", ["foo", "bar", "zooo"]);
       expect(command.toWritable()).to.eql(
         "*4\r\n$3\r\nget\r\n$3\r\nfoo\r\n$3\r\nbar\r\n$4\r\nzooo\r\n"
       );
     });
 
-    it("should return buffer when there's at least one arg is a buffer", function () {
+    it("should return buffer when there's at least one arg is a buffer", () => {
       const command = new Command("get", ["foo", Buffer.from("bar"), "zooo"]);
       const result = command.toWritable();
       expect(result).to.be.instanceof(Buffer);
@@ -27,8 +27,8 @@ describe("Command", function () {
     });
   });
 
-  describe("#resolve()", function () {
-    it("should return buffer when replyEncoding is not set", function (done) {
+  describe("#resolve()", () => {
+    it("should return buffer when replyEncoding is not set", (done) => {
       const command = new Command(
         "get",
         ["foo"],
@@ -42,7 +42,7 @@ describe("Command", function () {
       command.resolve(Buffer.from("foo"));
     });
 
-    it("should covert result to string if replyEncoding is specified", function (done) {
+    it("should covert result to string if replyEncoding is specified", (done) => {
       const command = new Command(
         "get",
         ["foo"],
@@ -55,7 +55,7 @@ describe("Command", function () {
       command.resolve(Buffer.from("foo"));
     });
 
-    it("should regard replyEncoding", function (done) {
+    it("should regard replyEncoding", (done) => {
       const base64 = Buffer.from("foo").toString("base64");
       const command = new Command(
         "get",
@@ -70,8 +70,8 @@ describe("Command", function () {
     });
   });
 
-  describe("#getKeys()", function () {
-    it("should return keys", function () {
+  describe("#getKeys()", () => {
+    it("should return keys", () => {
       expect(getKeys("get", ["foo"])).to.eql(["foo"]);
       expect(getKeys("mget", ["foo", "bar"])).to.eql(["foo", "bar"]);
       expect(getKeys("mset", ["foo", "v1", "bar", "v2"])).to.eql([
@@ -129,12 +129,12 @@ describe("Command", function () {
     });
   });
 
-  describe("#getSlot()", function () {
+  describe("#getSlot()", () => {
     function expectSlot(key: any, slot: number) {
       expect(new Command("get", [key]).getSlot()).to.eql(slot);
     }
 
-    it("should return correctly", function () {
+    it("should return correctly", () => {
       expectSlot("123", 5970);
       expectSlot(123, 5970);
       expectSlot("ab{c", 4619);
@@ -155,8 +155,8 @@ describe("Command", function () {
     });
   });
 
-  describe(".checkFlag()", function () {
-    it("should return correct result", function () {
+  describe(".checkFlag()", () => {
+    it("should return correct result", () => {
       expect(Command.checkFlag("VALID_IN_SUBSCRIBER_MODE", "ping")).to.eql(
         true
       );

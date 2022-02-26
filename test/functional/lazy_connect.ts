@@ -4,8 +4,8 @@ import * as sinon from "sinon";
 import { Cluster } from "../../lib";
 import Pipeline from "../../lib/pipeline";
 
-describe("lazy connect", function () {
-  it("should not call `connect` when init", function () {
+describe("lazy connect", () => {
+  it("should not call `connect` when init", () => {
     // TODO: use spy
     const stub = sinon
       .stub(Redis.prototype, "connect")
@@ -15,7 +15,7 @@ describe("lazy connect", function () {
     stub.restore();
   });
 
-  it("should connect when calling a command", function (done) {
+  it("should connect when calling a command", (done) => {
     const redis = new Redis({ lazyConnect: true });
     redis.set("foo", "bar");
     redis.get("foo", function (err, result) {
@@ -24,9 +24,9 @@ describe("lazy connect", function () {
     });
   });
 
-  it("should not try to reconnect when disconnected manually", function (done) {
+  it("should not try to reconnect when disconnected manually", (done) => {
     const redis = new Redis({ lazyConnect: true });
-    redis.get("foo", function () {
+    redis.get("foo", () => {
       redis.disconnect();
       redis.get("foo", function (err) {
         expect(err.message).to.match(/Connection is closed/);
@@ -35,16 +35,16 @@ describe("lazy connect", function () {
     });
   });
 
-  it("should be able to disconnect", function (done) {
+  it("should be able to disconnect", (done) => {
     const redis = new Redis({ lazyConnect: true });
-    redis.on("end", function () {
+    redis.on("end", () => {
       done();
     });
     redis.disconnect();
   });
 
-  describe("Cluster", function () {
-    it("should not call `connect` when init", function () {
+  describe("Cluster", () => {
+    it("should not call `connect` when init", () => {
       const stub = sinon
         .stub(Cluster.prototype, "connect")
         .throws(new Error("`connect` should not be called"));
@@ -74,14 +74,14 @@ describe("lazy connect", function () {
         .exec(() => {});
     });
 
-    it('should quit before "close" being emited', function (done) {
+    it('should quit before "close" being emited', (done) => {
       const stub = sinon
         .stub(Cluster.prototype, "connect")
         .throws(new Error("`connect` should not be called"));
       const cluster = new Cluster([], { lazyConnect: true });
-      cluster.quit(function () {
-        cluster.once("close", function () {
-          cluster.once("end", function () {
+      cluster.quit(() => {
+        cluster.once("close", () => {
+          cluster.once("end", () => {
             stub.restore();
             done();
           });
@@ -89,32 +89,32 @@ describe("lazy connect", function () {
       });
     });
 
-    it('should disconnect before "close" being emited', function (done) {
+    it('should disconnect before "close" being emited', (done) => {
       const stub = sinon
         .stub(Cluster.prototype, "connect")
         .throws(new Error("`connect` should not be called"));
       const cluster = new Cluster([], { lazyConnect: true });
       cluster.disconnect();
-      cluster.once("close", function () {
-        cluster.once("end", function () {
+      cluster.once("close", () => {
+        cluster.once("end", () => {
           stub.restore();
           done();
         });
       });
     });
 
-    it("should support disconnecting with reconnect", function (done) {
+    it("should support disconnecting with reconnect", (done) => {
       let stub = sinon
         .stub(Cluster.prototype, "connect")
         .throws(new Error("`connect` should not be called"));
       const cluster = new Cluster([], {
         lazyConnect: true,
-        clusterRetryStrategy: function () {
+        clusterRetryStrategy: () => {
           return 1;
         },
       });
       cluster.disconnect(true);
-      cluster.once("close", function () {
+      cluster.once("close", () => {
         stub.restore();
         stub = sinon.stub(Cluster.prototype, "connect").callsFake(() => {
           stub.restore();

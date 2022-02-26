@@ -10,7 +10,7 @@ describe("cluster:duplicate", () => {
       { host: "127.0.0.1", port: "30001" },
     ]);
 
-    node.once("connect", function () {
+    node.once("connect", () => {
       expect(duplicatedCluster.nodes()).to.have.lengthOf(1);
       expect(duplicatedCluster.nodes()[0].options.port).to.eql(30001);
       cluster.disconnect();

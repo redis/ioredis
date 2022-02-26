@@ -1,18 +1,18 @@
 import MockServer from "../../helpers/mock_server";
 import { Cluster } from "../../../lib";
 
-describe("cluster:TRYAGAIN", function () {
-  it("should retry the command", function (done) {
+describe("cluster:TRYAGAIN", () => {
+  it("should retry the command", (done) => {
     let cluster;
     let times = 0;
     const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {
         if (times++ === 1) {
-          process.nextTick(function () {
+          process.nextTick(() => {
             cluster.disconnect();
             done();
           });

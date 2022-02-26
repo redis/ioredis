@@ -2,9 +2,9 @@ import * as sinon from "sinon";
 import { expect } from "chai";
 import Redis from "../../lib/Redis";
 
-describe("Redis", function () {
-  describe("constructor", function () {
-    it("should parse options correctly", function () {
+describe("Redis", () => {
+  describe("constructor", () => {
+    it("should parse options correctly", () => {
       const stub = sinon
         .stub(Redis.prototype, "connect")
         .returns(Promise.resolve());
@@ -109,24 +109,24 @@ describe("Redis", function () {
       }
     });
 
-    it("should throw when arguments is invalid", function () {
-      expect(function () {
+    it("should throw when arguments is invalid", () => {
+      expect(() => {
         // @ts-expect-error
-        new Redis(function () {});
+        new Redis(() => {});
       }).to.throw(Error);
     });
   });
 
-  describe(".createClient", function () {
-    it("should redirect to constructor", function () {
+  describe(".createClient", () => {
+    it("should redirect to constructor", () => {
       const redis = Redis.createClient({ name: "pass", lazyConnect: true });
       expect(redis.options).to.have.property("name", "pass");
       expect(redis.options).to.have.property("lazyConnect", true);
     });
   });
 
-  describe("#end", function () {
-    it("should redirect to #disconnect", function (done) {
+  describe("#end", () => {
+    it("should redirect to #disconnect", (done) => {
       const redis = new Redis({ lazyConnect: true });
       const stub = sinon.stub(redis, "disconnect").callsFake(() => {
         stub.restore();
@@ -136,12 +136,12 @@ describe("Redis", function () {
     });
   });
 
-  describe("#flushQueue", function () {
-    it("should flush all queues by default", function () {
+  describe("#flushQueue", () => {
+    it("should flush all queues by default", () => {
       const flushQueue = Redis.prototype.flushQueue;
       const redis = {
-        offlineQueue: [{ command: { reject: function () {} } }],
-        commandQueue: [{ command: { reject: function () {} } }],
+        offlineQueue: [{ command: { reject: () => {} } }],
+        commandQueue: [{ command: { reject: () => {} } }],
       };
       const offline = sinon.mock(redis.offlineQueue[0].command);
       const command = sinon.mock(redis.commandQueue[0].command);
@@ -152,11 +152,11 @@ describe("Redis", function () {
       command.verify();
     });
 
-    it("should be able to ignore a queue", function () {
+    it("should be able to ignore a queue", () => {
       const flushQueue = Redis.prototype.flushQueue;
       const redis = {
-        offlineQueue: [{ command: { reject: function () {} } }],
-        commandQueue: [{ command: { reject: function () {} } }],
+        offlineQueue: [{ command: { reject: () => {} } }],
+        commandQueue: [{ command: { reject: () => {} } }],
       };
       const offline = sinon.mock(redis.offlineQueue[0].command);
       const command = sinon.mock(redis.commandQueue[0].command);

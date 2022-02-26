@@ -6,7 +6,7 @@ import Redis from "../../../lib/Redis";
 import { noop } from "../../../lib/utils";
 
 describe("cluster:pub/sub", function () {
-  it("should receive messages", function (done) {
+  it("should receive messages", (done) => {
     const handler = function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return [
@@ -36,7 +36,7 @@ describe("cluster:pub/sub", function () {
     });
   });
 
-  it("should works when sending regular commands", function (done) {
+  it("should works when sending regular commands", (done) => {
     const handler = function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return [[0, 16383, ["127.0.0.1", 30001]]];
@@ -54,7 +54,7 @@ describe("cluster:pub/sub", function () {
     });
   });
 
-  it("supports password", function (done) {
+  it("supports password", (done) => {
     const handler = function (argv, c) {
       if (argv[0] === "auth") {
         c.password = argv[1];
@@ -77,7 +77,7 @@ describe("cluster:pub/sub", function () {
     });
   });
 
-  it("should re-subscribe after reconnection", function (done) {
+  it("should re-subscribe after reconnection", (done) => {
     new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return [[0, 16383, ["127.0.0.1", 30001]]];
@@ -104,7 +104,7 @@ describe("cluster:pub/sub", function () {
     });
   });
 
-  it("should re-psubscribe after reconnection", function (done) {
+  it("should re-psubscribe after reconnection", (done) => {
     new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return [[0, 16383, ["127.0.0.1", 30001]]];

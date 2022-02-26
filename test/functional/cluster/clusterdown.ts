@@ -2,13 +2,13 @@ import MockServer from "../../helpers/mock_server";
 import { expect } from "chai";
 import { Cluster } from "../../../lib";
 
-describe("cluster:CLUSTERDOWN", function () {
-  it("should redirect the command to a random node", function (done) {
+describe("cluster:CLUSTERDOWN", () => {
+  it("should redirect the command to a random node", (done) => {
     const slotTable = [
       [0, 1, ["127.0.0.1", 30001]],
       [2, 16383, ["127.0.0.1", 30002]],
     ];
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -16,7 +16,7 @@ describe("cluster:CLUSTERDOWN", function () {
         return "bar";
       }
     });
-    new MockServer(30002, function (argv) {
+    new MockServer(30002, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }

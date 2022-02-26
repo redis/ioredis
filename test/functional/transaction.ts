@@ -2,8 +2,8 @@ import Redis from "../../lib/Redis";
 import { expect } from "chai";
 import Command from "../../lib/command";
 
-describe("transaction", function () {
-  it("should works like pipeline by default", function (done) {
+describe("transaction", () => {
+  it("should works like pipeline by default", (done) => {
     const redis = new Redis();
     redis
       .multi()
@@ -19,7 +19,7 @@ describe("transaction", function () {
       });
   });
 
-  it("should handle runtime errors correctly", function (done) {
+  it("should handle runtime errors correctly", (done) => {
     const redis = new Redis();
     redis
       .multi()
@@ -35,7 +35,7 @@ describe("transaction", function () {
       });
   });
 
-  it("should handle compile-time errors correctly", function (done) {
+  it("should handle compile-time errors correctly", (done) => {
     const redis = new Redis();
     redis
       .multi()
@@ -50,7 +50,7 @@ describe("transaction", function () {
       });
   });
 
-  it("should also support command callbacks", function (done) {
+  it("should also support command callbacks", (done) => {
     const redis = new Redis();
     let pending = 1;
     redis
@@ -70,7 +70,7 @@ describe("transaction", function () {
       });
   });
 
-  it("should also handle errors in command callbacks", function (done) {
+  it("should also handle errors in command callbacks", (done) => {
     const redis = new Redis();
     let pending = 1;
     redis
@@ -89,7 +89,7 @@ describe("transaction", function () {
       });
   });
 
-  it("should work without pipeline", function (done) {
+  it("should work without pipeline", (done) => {
     const redis = new Redis();
     redis.multi({ pipeline: false });
     redis.set("foo", "bar");
@@ -103,8 +103,8 @@ describe("transaction", function () {
     });
   });
 
-  describe("transformer", function () {
-    it("should trigger transformer", function (done) {
+  describe("transformer", () => {
+    it("should trigger transformer", (done) => {
       const redis = new Redis();
       let pending = 2;
       const data = { name: "Bob", age: "17" };
@@ -142,7 +142,7 @@ describe("transaction", function () {
         });
     });
 
-    it("should trigger transformer inside pipeline", function (done) {
+    it("should trigger transformer inside pipeline", (done) => {
       const redis = new Redis();
       const data = { name: "Bob", age: "17" };
       redis
@@ -164,10 +164,10 @@ describe("transaction", function () {
         });
     });
 
-    it("should handle custom transformer exception", function (done) {
+    it("should handle custom transformer exception", (done) => {
       const transformError = "transformer error";
       // @ts-expect-error
-      Command._transformer.reply.get = function () {
+      Command._transformer.reply.get = () => {
         throw new Error(transformError);
       };
 
@@ -184,8 +184,8 @@ describe("transaction", function () {
     });
   });
 
-  describe("#addBatch", function () {
-    it("should accept commands in constructor", function (done) {
+  describe("#addBatch", () => {
+    it("should accept commands in constructor", (done) => {
       const redis = new Redis();
       let pending = 1;
       redis
@@ -208,10 +208,10 @@ describe("transaction", function () {
     });
   });
 
-  describe("#exec", function () {
-    it("should batch all commands before ready event", function (done) {
+  describe("#exec", () => {
+    it("should batch all commands before ready event", (done) => {
       const redis = new Redis();
-      redis.on("connect", function () {
+      redis.on("connect", () => {
         redis
           .multi()
           .info()

@@ -3,7 +3,7 @@ import Redis from "../../lib/Redis";
 
 use(require("chai-as-promised"));
 
-describe("autoPipelining for single node", function () {
+describe("autoPipelining for single node", () => {
   it("should automatic add commands to auto pipelines", async () => {
     const redis = new Redis({ enableAutoPipelining: true });
 

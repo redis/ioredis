@@ -4,10 +4,10 @@ import { Cluster, default as Redis } from "../../../lib";
 import * as utils from "../../../lib/utils";
 import * as sinon from "sinon";
 
-describe("cluster", function () {
-  it("should return the error successfully", function (done) {
+describe("cluster", () => {
+  it("should return the error successfully", (done) => {
     let called = false;
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return [[0, 16383, ["127.0.0.1", 30001]]];
       }
@@ -26,8 +26,8 @@ describe("cluster", function () {
     });
   });
 
-  it("should get value successfully", function (done) {
-    new MockServer(30001, function (argv) {
+  it("should get value successfully", (done) => {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return [
           [0, 1, ["127.0.0.1", 30001]],
@@ -35,7 +35,7 @@ describe("cluster", function () {
         ];
       }
     });
-    new MockServer(30002, function (argv) {
+    new MockServer(30002, (argv) => {
       if (argv[0] === "get" && argv[1] === "foo") {
         return "bar";
       }
@@ -49,10 +49,10 @@ describe("cluster", function () {
     });
   });
 
-  describe("enableReadyCheck", function () {
-    it("should reconnect when cluster state is not ok", function (done) {
+  describe("enableReadyCheck", () => {
+    it("should reconnect when cluster state is not ok", (done) => {
       let state = "fail";
-      new MockServer(30001, function (argv) {
+      new MockServer(30001, (argv) => {
         if (argv[0] === "cluster" && argv[1] === "slots") {
           return [[0, 16383, ["127.0.0.1", 30001]]];
         } else if (argv[0] === "cluster" && argv[1] === "info") {
@@ -77,16 +77,16 @@ describe("cluster", function () {
           },
         }
       );
-      client.on("ready", function () {
+      client.on("ready", () => {
         client.disconnect();
         done();
       });
     });
   });
 
-  describe("startupNodes", function () {
-    it("should allow updating startupNodes", function (done) {
-      new MockServer(30001, function (argv) {
+  describe("startupNodes", () => {
+    it("should allow updating startupNodes", (done) => {
+      new MockServer(30001, (argv) => {
         if (argv[0] === "cluster" && argv[1] === "slots") {
           return [[0, 16383, ["127.0.0.1", 30001]]];
         }
@@ -109,7 +109,7 @@ describe("cluster", function () {
         }
       );
       let hasDone = false;
-      new MockServer(30002, function () {
+      new MockServer(30002, () => {
         if (hasDone) {
           return;
         }
@@ -120,7 +120,7 @@ describe("cluster", function () {
     });
   });
 
-  describe("scaleReads", function () {
+  describe("scaleReads", () => {
     beforeEach(function () {
       function handler(port, argv) {
         if (argv[0] === "cluster" && argv[1] === "slots") {
@@ -143,10 +143,10 @@ describe("cluster", function () {
       this.node4 = new MockServer(30004, handler.bind(null, 30004));
     });
 
-    context("master", function () {
-      it("should only send reads to master", function (done) {
+    context("master", () => {
+      it("should only send reads to master", (done) => {
         const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
-        cluster.on("ready", function () {
+        cluster.on("ready", () => {
           const stub = sinon.stub(utils, "sample").throws("sample is called");
           cluster.get("foo", function (err, res) {
             stub.restore();
@@ -158,12 +158,12 @@ describe("cluster", function () {
       });
     });
 
-    context("slave", function () {
-      it("should only send reads to slave", function (done) {
+    context("slave", () => {
+      it("should only send reads to slave", (done) => {
         const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
           scaleReads: "slave",
         });
-        cluster.on("ready", function () {
+        cluster.on("ready", () => {
           const stub = sinon.stub(utils, "sample").callsFake((array, from) => {
             expect(array).to.eql([
               "127.0.0.1:30001",
@@ -182,11 +182,11 @@ describe("cluster", function () {
         });
       });
 
-      it("should send writes to masters", function (done) {
+      it("should send writes to masters", (done) => {
         const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
           scaleReads: "slave",
         });
-        cluster.on("ready", function () {
+        cluster.on("ready", () => {
           const stub = sinon.stub(utils, "sample").throws("sample is called");
           cluster.set("foo", "bar", function (err, res) {
             stub.restore();
@@ -197,11 +197,11 @@ describe("cluster", function () {
         });
       });
 
-      it("should send custom readOnly scripts to a slave", function (done) {
+      it("should send custom readOnly scripts to a slave", (done) => {
         const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
           scaleReads: "slave",
         });
-        cluster.on("ready", function () {
+        cluster.on("ready", () => {
           const redis: Redis = cluster;
           redis.defineCommand("test", {
             numberOfKeys: 1,
@@ -222,8 +222,8 @@ describe("cluster", function () {
       });
     });
 
-    context("custom", function () {
-      it("should send to selected slave", function (done) {
+    context("custom", () => {
+      it("should send to selected slave", (done) => {
         const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
           scaleReads: function (node, command) {
             if (command.name === "get") {
@@ -232,7 +232,7 @@ describe("cluster", function () {
             return node[2];
           },
         });
-        cluster.on("ready", function () {
+        cluster.on("ready", () => {
           const stub = sinon.stub(utils, "sample").callsFake((array, from) => {
             expect(array).to.eql([
               "127.0.0.1:30001",
@@ -251,7 +251,7 @@ describe("cluster", function () {
         });
       });
 
-      it("should send writes to masters", function (done) {
+      it("should send writes to masters", (done) => {
         const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
           scaleReads: function (node, command) {
             if (command.name === "get") {
@@ -260,7 +260,7 @@ describe("cluster", function () {
             return node[2];
           },
         });
-        cluster.on("ready", function () {
+        cluster.on("ready", () => {
           const stub = sinon.stub(utils, "sample").throws("sample is called");
           cluster.set("foo", "bar", function (err, res) {
             stub.restore();
@@ -272,12 +272,12 @@ describe("cluster", function () {
       });
     });
 
-    context("all", function () {
-      it("should send reads to all nodes randomly", function (done) {
+    context("all", () => {
+      it("should send reads to all nodes randomly", (done) => {
         const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
           scaleReads: "all",
         });
-        cluster.on("ready", function () {
+        cluster.on("ready", () => {
           const stub = sinon.stub(utils, "sample").callsFake((array, from) => {
             expect(array).to.eql([
               "127.0.0.1:30001",
@@ -298,24 +298,24 @@ describe("cluster", function () {
     });
   });
 
-  describe("#nodes()", function () {
-    it("should return the corrent nodes", function (done) {
+  describe("#nodes()", () => {
+    it("should return the corrent nodes", (done) => {
       const slotTable = [
         [0, 16381, ["127.0.0.1", 30001], ["127.0.0.1", 30003]],
         [16382, 16383, ["127.0.0.1", 30002]],
       ];
-      const node = new MockServer(30001, function (argv) {
+      const node = new MockServer(30001, (argv) => {
         if (argv[0] === "cluster" && argv[1] === "slots") {
           return slotTable;
         }
       });
-      new MockServer(30002, function (argv) {
+      new MockServer(30002, (argv) => {
         if (argv[0] === "cluster" && argv[1] === "slots") {
           return slotTable;
         }
       });
 
-      new MockServer(30003, function (argv) {
+      new MockServer(30003, (argv) => {
         if (argv[0] === "cluster" && argv[1] === "slots") {
           return slotTable;
         }
@@ -323,13 +323,13 @@ describe("cluster", function () {
 
       const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
       // Make sure 30001 has been connected
-      cluster.get("foo", function () {
+      cluster.get("foo", () => {
         expect(cluster.nodes()).to.have.lengthOf(3);
         expect(cluster.nodes("all")).to.have.lengthOf(3);
         expect(cluster.nodes("master")).to.have.lengthOf(2);
         expect(cluster.nodes("slave")).to.have.lengthOf(1);
 
-        cluster.once("-node", function () {
+        cluster.once("-node", () => {
           expect(cluster.nodes()).to.have.lengthOf(2);
           expect(cluster.nodes("all")).to.have.lengthOf(2);
           expect(cluster.nodes("master")).to.have.lengthOf(1);
@@ -342,24 +342,24 @@ describe("cluster", function () {
     });
   });
 
-  describe("#getInfoFromNode", function () {
-    it("should refresh master nodes", function (done) {
+  describe("#getInfoFromNode", () => {
+    it("should refresh master nodes", (done) => {
       let slotTable = [
         [0, 5460, ["127.0.0.1", 30001], ["127.0.0.1", 30003]],
         [5461, 10922, ["127.0.0.1", 30002]],
       ];
-      new MockServer(30001, function (argv) {
+      new MockServer(30001, (argv) => {
         if (argv[0] === "cluster" && argv[1] === "slots") {
           return slotTable;
         }
       });
-      new MockServer(30002, function (argv) {
+      new MockServer(30002, (argv) => {
         if (argv[0] === "cluster" && argv[1] === "slots") {
           return slotTable;
         }
       });
 
-      new MockServer(30003, function (argv) {
+      new MockServer(30003, (argv) => {
         if (argv[0] === "cluster" && argv[1] === "slots") {
           return slotTable;
         }
@@ -368,13 +368,13 @@ describe("cluster", function () {
       const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
         redisOptions: { showFriendlyErrorStack: true },
       });
-      cluster.on("ready", function () {
+      cluster.on("ready", () => {
         expect(cluster.nodes("master")).to.have.lengthOf(2);
         slotTable = [
           [0, 5460, ["127.0.0.1", 30003]],
           [5461, 10922, ["127.0.0.1", 30002]],
         ];
-        cluster.refreshSlotsCache(function () {
+        cluster.refreshSlotsCache(() => {
           cluster.once("-node", function (removed) {
             expect(removed.options.port).to.eql(30001);
             expect(cluster.nodes("master")).to.have.lengthOf(2);
@@ -395,8 +395,8 @@ describe("cluster", function () {
     });
   });
 
-  describe("#quit()", function () {
-    it("should quit the connection gracefully", function (done) {
+  describe("#quit()", () => {
+    it("should quit the connection gracefully", (done) => {
       const slotTable = [
         [0, 1, ["127.0.0.1", 30001]],
         [2, 16383, ["127.0.0.1", 30002], ["127.0.0.1", 30003]],
@@ -413,8 +413,8 @@ describe("cluster", function () {
       const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
 
       let setCommandHandled = false;
-      cluster.on("ready", function () {
-        cluster.set("foo", "bar", function () {
+      cluster.on("ready", () => {
+        cluster.set("foo", "bar", () => {
           setCommandHandled = true;
         });
         cluster.quit(function (err, state) {

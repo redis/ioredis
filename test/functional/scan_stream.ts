@@ -6,79 +6,49 @@ import MockServer from "../helpers/mock_server";
 import { getRedisVersion } from "../helpers/util";
 import { Cluster } from "../../lib";
 
-describe("*scanStream", function () {
-  describe("scanStream", function () {
-    it("should return a readable stream", function () {
+describe("*scanStream", () => {
+  describe("scanStream", () => {
+    it("should return a readable stream", () => {
       const redis = new Redis();
       const stream = redis.scanStream();
       expect(stream instanceof Readable).to.eql(true);
     });
 
-    it("should iterate all keys", function (done) {
+    it("should iterate all keys", (done) => {
       let keys = [];
       const redis = new Redis();
-      redis.mset(
-        "foo1",
-        1,
-        "foo2",
-        1,
-        "foo3",
-        1,
-        "foo4",
-        1,
-        "foo10",
-        1,
-        function () {
-          const stream = redis.scanStream();
-          stream.on("data", function (data) {
-            keys = keys.concat(data);
-          });
-          stream.on("end", function () {
-            expect(keys.sort()).to.eql([
-              "foo1",
-              "foo10",
-              "foo2",
-              "foo3",
-              "foo4",
-            ]);
-            redis.disconnect();
-            done();
-          });
-        }
-      );
+      redis.mset("foo1", 1, "foo2", 1, "foo3", 1, "foo4", 1, "foo10", 1, () => {
+        const stream = redis.scanStream();
+        stream.on("data", function (data) {
+          keys = keys.concat(data);
+        });
+        stream.on("end", () => {
+          expect(keys.sort()).to.eql(["foo1", "foo10", "foo2", "foo3", "foo4"]);
+          redis.disconnect();
+          done();
+        });
+      });
     });
 
-    it("should recognize `MATCH`", function (done) {
+    it("should recognize `MATCH`", (done) => {
       let keys = [];
       const redis = new Redis();
-      redis.mset(
-        "foo1",
-        1,
-        "foo2",
-        1,
-        "foo3",
-        1,
-        "foo4",
-        1,
-        "foo10",
-        1,
-        function () {
-          const stream = redis.scanStream({
-            match: "foo??",
-          });
-          stream.on("data", function (data) {
-            keys = keys.concat(data);
-          });
-          stream.on("end", function () {
-            expect(keys).to.eql(["foo10"]);
-            redis.disconnect();
-            done();
-          });
-        }
-      );
+      redis.mset("foo1", 1, "foo2", 1, "foo3", 1, "foo4", 1, "foo10", 1, () => {
+        const stream = redis.scanStream({
+          match: "foo??",
+        });
+        stream.on("data", function (data) {
+          keys = keys.concat(data);
+        });
+        stream.on("end", () => {
+          expect(keys).to.eql(["foo10"]);
+          redis.disconnect();
+          done();
+        });
+      });
     });
 
-    it("should recognize `TYPE`", async function () {
+    it("should recognize `TYPE`", async () => {
       let keys = [];
       const redis = new Redis();
       const [major] = await getRedisVersion(redis);
@@ -98,7 +68,7 @@ describe("*scanStream", function () {
         keys = keys.concat(data);
       });
       return new Promise((resolve) => {
-        stream.on("end", function () {
+        stream.on("end", () => {
           expect(keys.sort()).to.eql(["loo1", "loo2", "loo3"]);
           redis.disconnect();
           resolve();
@@ -106,130 +76,88 @@ describe("*scanStream", function () {
       });
     });
 
-    it("should recognize `COUNT`", function (done) {
+    it("should recognize `COUNT`", (done) => {
       let keys = [];
       const redis = new Redis();
       sinon.spy(Redis.prototype, "scan");
-      redis.mset(
-        "foo1",
-        1,
-        "foo2",
-        1,
-        "foo3",
-        1,
-        "foo4",
-        1,
-        "foo10",
-        1,
-        function () {
-          const stream = redis.scanStream({
-            count: 2,
-          });
-          stream.on("data", function (data) {
-            keys = keys.concat(data);
-          });
-          stream.on("end", function () {
-            expect(keys.sort()).to.eql([
-              "foo1",
-              "foo10",
-              "foo2",
-              "foo3",
-              "foo4",
-            ]);
-            const [args] = Redis.prototype.scan.getCall(0).args;
-            let count;
-            for (let i = 0; i < args.length; ++i) {
-              if (
-                typeof args[i] === "string" &&
-                args[i].toUpperCase() === "COUNT"
-              ) {
-                count = args[i + 1];
-                break;
-              }
+      redis.mset("foo1", 1, "foo2", 1, "foo3", 1, "foo4", 1, "foo10", 1, () => {
+        const stream = redis.scanStream({
+          count: 2,
+        });
+        stream.on("data", function (data) {
+          keys = keys.concat(data);
+        });
+        stream.on("end", () => {
+          expect(keys.sort()).to.eql(["foo1", "foo10", "foo2", "foo3", "foo4"]);
+          const [args] = Redis.prototype.scan.getCall(0).args;
+          let count;
+          for (let i = 0; i < args.length; ++i) {
+            if (
+              typeof args[i] === "string" &&
+              args[i].toUpperCase() === "COUNT"
+            ) {
+              count = args[i + 1];
+              break;
             }
-            expect(count).to.eql("2");
-            redis.disconnect();
-            done();
-          });
-        }
-      );
-    });
-
-    it("should emit an error when connection is down", function (done) {
-      let keys = [];
-      const redis = new Redis();
-      redis.mset(
-        "foo1",
-        1,
-        "foo2",
-        1,
-        "foo3",
-        1,
-        "foo4",
-        1,
-        "foo10",
-        1,
-        function () {
+          }
+          expect(count).to.eql("2");
           redis.disconnect();
-          const stream = redis.scanStream({ count: 1 });
-          stream.on("data", function (data) {
-            keys = keys.concat(data);
-          });
-          stream.on("error", function (err) {
-            expect(err.message).to.eql("Connection is closed.");
-            done();
-          });
-        }
-      );
+          done();
+        });
+      });
+    });
+
+    it("should emit an error when connection is down", (done) => {
+      let keys = [];
+      const redis = new Redis();
+      redis.mset("foo1", 1, "foo2", 1, "foo3", 1, "foo4", 1, "foo10", 1, () => {
+        redis.disconnect();
+        const stream = redis.scanStream({ count: 1 });
+        stream.on("data", function (data) {
+          keys = keys.concat(data);
+        });
+        stream.on("error", function (err) {
+          expect(err.message).to.eql("Connection is closed.");
+          done();
+        });
+      });
     });
   });
 
-  describe("scanBufferStream", function () {
-    it("should return buffer", function (done) {
+  describe("scanBufferStream", () => {
+    it("should return buffer", (done) => {
       let keys = [];
       const redis = new Redis();
-      redis.mset(
-        "foo1",
-        1,
-        "foo2",
-        1,
-        "foo3",
-        1,
-        "foo4",
-        1,
-        "foo10",
-        1,
-        function () {
-          const stream = redis.scanBufferStream();
-          stream.on("data", function (data) {
-            keys = keys.concat(data);
-          });
-          stream.on("end", function () {
-            expect(keys.sort()).to.eql([
-              Buffer.from("foo1"),
-              Buffer.from("foo10"),
-              Buffer.from("foo2"),
-              Buffer.from("foo3"),
-              Buffer.from("foo4"),
-            ]);
-            redis.disconnect();
-            done();
-          });
-        }
-      );
+      redis.mset("foo1", 1, "foo2", 1, "foo3", 1, "foo4", 1, "foo10", 1, () => {
+        const stream = redis.scanBufferStream();
+        stream.on("data", function (data) {
+          keys = keys.concat(data);
+        });
+        stream.on("end", () => {
+          expect(keys.sort()).to.eql([
+            Buffer.from("foo1"),
+            Buffer.from("foo10"),
+            Buffer.from("foo2"),
+            Buffer.from("foo3"),
+            Buffer.from("foo4"),
+          ]);
+          redis.disconnect();
+          done();
+        });
+      });
     });
   });
 
-  describe("sscanStream", function () {
-    it("should iterate all values in the set", function (done) {
+  describe("sscanStream", () => {
+    it("should iterate all values in the set", (done) => {
       let keys = [];
       const redis = new Redis();
-      redis.sadd("set", "foo1", "foo2", "foo3", "foo4", "foo10", function () {
+      redis.sadd("set", "foo1", "foo2", "foo3", "foo4", "foo10", () => {
         const stream = redis.sscanStream("set", { match: "foo??" });
         stream.on("data", function (data) {
           keys = keys.concat(data);
         });
-        stream.on("end", function () {
+        stream.on("end", () => {
           expect(keys).to.eql(["foo10"]);
           redis.disconnect();
           done();
@@ -238,8 +166,8 @@ describe("*scanStream", function () {
     });
   });
 
-  describe("Cluster", function () {
-    it("should work in cluster mode", function (done) {
+  describe("Cluster", () => {
+    it("should work in cluster mode", (done) => {
       const slotTable = [
         [0, 5460, ["127.0.0.1", 30001]],
         [5461, 10922, ["127.0.0.1", 30002]],
@@ -266,13 +194,13 @@ describe("*scanStream", function () {
 
       let keys = [];
       // @ts-expect-error
-      cluster.sadd("set", serverKeys, function () {
+      cluster.sadd("set", serverKeys, () => {
         // @ts-expect-error
         const stream = cluster.sscanStream("set");
         stream.on("data", function (data) {
           keys = keys.concat(data);
         });
-        stream.on("end", function () {
+        stream.on("end", () => {
           expect(keys).to.eql(serverKeys);
           cluster.disconnect();
           done();

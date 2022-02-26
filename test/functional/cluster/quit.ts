@@ -39,7 +39,7 @@ describe("cluster:quit", () => {
     });
   });
 
-  it("failed when quit returns error", function (done) {
+  it("failed when quit returns error", (done) => {
     const ERROR_MESSAGE = "quit random error";
     const slotTable = [
       [0, 16381, ["127.0.0.1", 30001]],

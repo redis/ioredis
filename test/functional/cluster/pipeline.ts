@@ -4,18 +4,18 @@ import { expect } from "chai";
 import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
 
-describe("cluster:pipeline", function () {
-  it("should throw when not all keys in a pipeline command belong to the same slot", function (done) {
+describe("cluster:pipeline", () => {
+  it("should throw when not all keys in a pipeline command belong to the same slot", (done) => {
     const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
     });
-    new MockServer(30002, function (argv) {
+    new MockServer(30002, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -36,17 +36,17 @@ describe("cluster:pipeline", function () {
       });
   });
 
-  it("should throw when not all keys in different pipeline commands belong to the same allocation group", function (done) {
+  it("should throw when not all keys in different pipeline commands belong to the same allocation group", (done) => {
     const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
     });
-    new MockServer(30002, function (argv) {
+    new MockServer(30002, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -67,13 +67,13 @@ describe("cluster:pipeline", function () {
       });
   });
 
-  it("should auto redirect commands on MOVED", function (done) {
+  it("should auto redirect commands on MOVED", (done) => {
     let moved = false;
     const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -81,7 +81,7 @@ describe("cluster:pipeline", function () {
         return "bar";
       }
     });
-    new MockServer(30002, function (argv) {
+    new MockServer(30002, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -108,13 +108,13 @@ describe("cluster:pipeline", function () {
       });
   });
 
-  it("should auto redirect commands on ASK", function (done) {
+  it("should auto redirect commands on ASK", (done) => {
     let asked = false;
     const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -129,7 +129,7 @@ describe("cluster:pipeline", function () {
         asked = false;
       }
     });
-    new MockServer(30002, function (argv) {
+    new MockServer(30002, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -152,10 +152,10 @@ describe("cluster:pipeline", function () {
       });
   });
 
-  it("should retry the command on TRYAGAIN", function (done) {
+  it("should retry the command on TRYAGAIN", (done) => {
     let times = 0;
     const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -183,12 +183,12 @@ describe("cluster:pipeline", function () {
       });
   });
 
-  it("should not redirect commands on a non-readonly command is successful", function (done) {
+  it("should not redirect commands on a non-readonly command is successful", (done) => {
     const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -196,7 +196,7 @@ describe("cluster:pipeline", function () {
         return "bar";
       }
     });
-    new MockServer(30002, function (argv) {
+    new MockServer(30002, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -219,17 +219,17 @@ describe("cluster:pipeline", function () {
       });
   });
 
-  it("should retry when redis is down", function (done) {
+  it("should retry when redis is down", (done) => {
     const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
     });
-    const node2 = new MockServer(30002, function (argv) {
+    const node2 = new MockServer(30002, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }

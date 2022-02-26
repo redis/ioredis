@@ -2,8 +2,8 @@ import Redis from "../../lib/Redis";
 import { expect } from "chai";
 import { MaxRetriesPerRequestError } from "../../lib/errors";
 
-describe("maxRetriesPerRequest", function () {
-  it("throw the correct error when reached the limit", function (done) {
+describe("maxRetriesPerRequest", () => {
+  it("throw the correct error when reached the limit", (done) => {
     const redis = new Redis(9999, {
       connectTimeout: 1,
       retryStrategy() {
@@ -17,7 +17,7 @@ describe("maxRetriesPerRequest", function () {
     });
   });
 
-  it("defaults to max 20 retries", function (done) {
+  it("defaults to max 20 retries", (done) => {
     const redis = new Redis(9999, {
       connectTimeout: 1,
       retryStrategy() {
@@ -34,7 +34,7 @@ describe("maxRetriesPerRequest", function () {
     });
   });
 
-  it("can be changed", function (done) {
+  it("can be changed", (done) => {
     const redis = new Redis(9999, {
       maxRetriesPerRequest: 1,
       retryStrategy() {
@@ -51,7 +51,7 @@ describe("maxRetriesPerRequest", function () {
     });
   });
 
-  it("allows 0", function (done) {
+  it("allows 0", (done) => {
     const redis = new Redis(9999, {
       maxRetriesPerRequest: 0,
       retryStrategy() {

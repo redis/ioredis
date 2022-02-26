@@ -3,10 +3,10 @@ import { expect } from "chai";
 import * as sinon from "sinon";
 import { waitForMonitorReady } from "../helpers/util";
 
-describe("monitor", function () {
-  it("should receive commands", function (done) {
+describe("monitor", () => {
+  it("should receive commands", (done) => {
     const redis = new Redis();
-    redis.on("ready", function () {
+    redis.on("ready", () => {
       redis.monitor(async (err, monitor) => {
         if (err) {
           done(err);
@@ -26,7 +26,7 @@ describe("monitor", function () {
     });
   });
 
-  it("should reject processing commands", function (done) {
+  it("should reject processing commands", (done) => {
     const redis = new Redis();
     redis.monitor(async (err, monitor) => {
       await waitForMonitorReady(monitor);
@@ -61,9 +61,9 @@ describe("monitor", function () {
     });
   });
 
-  it("should wait for the ready event before monitoring", function (done) {
+  it("should wait for the ready event before monitoring", (done) => {
     const redis = new Redis();
-    redis.on("ready", function () {
+    redis.on("ready", () => {
       const readyCheck = sinon.spy(Redis.prototype, "_readyCheck");
       redis.monitor(function (err, monitor) {
         expect(readyCheck.callCount).to.eql(1);

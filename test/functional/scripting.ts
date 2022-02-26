@@ -3,9 +3,9 @@ import { expect } from "chai";
 import * as sinon from "sinon";
 import { getCommandsFromMonitor } from "../helpers/util";
 
-describe("scripting", function () {
-  describe("#numberOfKeys", function () {
-    it("should recognize the numberOfKeys property", function (done) {
+describe("scripting", () => {
+  describe("#numberOfKeys", () => {
+    it("should recognize the numberOfKeys property", (done) => {
       const redis = new Redis();
 
       redis.defineCommand("test", {
@@ -20,7 +20,7 @@ describe("scripting", function () {
       });
     });
 
-    it("should support dynamic key count", function (done) {
+    it("should support dynamic key count", (done) => {
       const redis = new Redis();
 
       redis.defineCommand("test", {
@@ -34,7 +34,7 @@ describe("scripting", function () {
       });
     });
 
-    it("should support numberOfKeys being 0", function (done) {
+    it("should support numberOfKeys being 0", (done) => {
       const redis = new Redis();
 
       redis.defineCommand("test", {
@@ -49,7 +49,7 @@ describe("scripting", function () {
       });
     });
 
-    it("should throw when numberOfKeys is omit", function (done) {
+    it("should throw when numberOfKeys is omit", (done) => {
       const redis = new Redis();
 
       redis.defineCommand("test", {
@@ -65,7 +65,7 @@ describe("scripting", function () {
     });
   });
 
-  it("should have a buffer version", function (done) {
+  it("should have a buffer version", (done) => {
     const redis = new Redis();
 
     redis.defineCommand("test", {
@@ -85,7 +85,7 @@ describe("scripting", function () {
     });
   });
 
-  it("should work well with pipeline", function (done) {
+  it("should work well with pipeline", (done) => {
     const redis = new Redis();
 
     redis.defineCommand("test", {
@@ -107,7 +107,7 @@ describe("scripting", function () {
       });
   });
 
-  it("should following pipeline style when throw", function (done) {
+  it("should following pipeline style when throw", (done) => {
     const redis = new Redis();
 
     redis.defineCommand("test", {
@@ -127,7 +127,7 @@ describe("scripting", function () {
       });
   });
 
-  it("should use evalsha when script is loaded", async function () {
+  it("should use evalsha when script is loaded", async () => {
     const redis = new Redis();
 
     redis.defineCommand("test", { lua: "return 1" });
@@ -144,7 +144,7 @@ describe("scripting", function () {
     ]);
   });
 
-  it("should try to use EVALSHA and fallback to EVAL if fails", async function () {
+  it("should try to use EVALSHA and fallback to EVAL if fails", async () => {
     const redis = new Redis();
 
     redis.defineCommand("test", {
@@ -164,7 +164,7 @@ describe("scripting", function () {
     expect(commands.map((c) => c[0])).to.eql(expectedComands);
   });
 
-  it("should load scripts first before execution of pipeline", async function () {
+  it("should load scripts first before execution of pipeline", async () => {
     const redis = new Redis();
 
     redis.defineCommand("testGet", {
@@ -188,7 +188,7 @@ describe("scripting", function () {
     expect(commands.map((c) => c[0])).to.eql(expectedComands);
   });
 
-  it("does not fallback to EVAL in regular transaction", async function () {
+  it("does not fallback to EVAL in regular transaction", async () => {
     const redis = new Redis();
 
     redis.defineCommand("test", {
@@ -215,7 +215,7 @@ describe("scripting", function () {
     expect(commands.map((c) => c[0])).to.eql(expectedComands);
   });
 
-  it("does not fallback to EVAL in manual transaction", async function () {
+  it("does not fallback to EVAL in manual transaction", async () => {
     const redis = new Redis();
 
     redis.defineCommand("test", {
@@ -237,7 +237,7 @@ describe("scripting", function () {
     expect(commands.map((c) => c[0])).to.eql(expectedComands);
   });
 
-  it("should support key prefixing", function (done) {
+  it("should support key prefixing", (done) => {
     const redis = new Redis({ keyPrefix: "foo:" });
 
     redis.defineCommand("echo", {

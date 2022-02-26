@@ -3,8 +3,8 @@ import { expect } from "chai";
 import * as sinon from "sinon";
 import { getCommandsFromMonitor } from "../helpers/util";
 
-describe("pipeline", function () {
-  it("should return correct result", function (done) {
+describe("pipeline", () => {
+  it("should return correct result", (done) => {
     const redis = new Redis();
     redis
       .pipeline()
@@ -27,7 +27,7 @@ describe("pipeline", function () {
       });
   });
 
-  it("should return an empty array on empty pipeline", function (done) {
+  it("should return an empty array on empty pipeline", (done) => {
     const redis = new Redis();
     redis.pipeline().exec(function (err, results) {
       expect(err).to.eql(null);
@@ -37,7 +37,7 @@ describe("pipeline", function () {
     });
   });
 
-  it("should support mix string command and buffer command", function (done) {
+  it("should support mix string command and buffer command", (done) => {
     const redis = new Redis();
     redis
       .pipeline()
@@ -58,7 +58,7 @@ describe("pipeline", function () {
       });
   });
 
-  it("should handle error correctly", function (done) {
+  it("should handle error correctly", (done) => {
     const redis = new Redis();
     redis
       .pipeline()
@@ -73,7 +73,7 @@ describe("pipeline", function () {
       });
   });
 
-  it("should also invoke the command's callback", function (done) {
+  it("should also invoke the command's callback", (done) => {
     const redis = new Redis();
     let pending = 1;
     redis
@@ -91,7 +91,7 @@ describe("pipeline", function () {
       });
   });
 
-  it("should support inline transaction", function (done) {
+  it("should support inline transaction", (done) => {
     const redis = new Redis();
 
     redis
@@ -110,14 +110,14 @@ describe("pipeline", function () {
       });
   });
 
-  it("should have the same options as its container", function () {
+  it("should have the same options as its container", () => {
     const redis = new Redis({ showFriendlyErrorStack: true });
     const pipeline = redis.pipeline();
     expect(pipeline.options).to.have.property("showFriendlyErrorStack", true);
     redis.disconnect();
   });
 
-  it("should support key prefixing", function (done) {
+  it("should support key prefixing", (done) => {
     const redis = new Redis({ keyPrefix: "foo:" });
     redis
       .pipeline()
@@ -150,10 +150,10 @@ describe("pipeline", function () {
     expect(result).to.eql([[null, "OK"]]);
   });
 
-  describe("custom commands", function () {
+  describe("custom commands", () => {
     let redis;
 
-    beforeEach(function () {
+    beforeEach(() => {
       redis = new Redis();
       redis.defineCommand("echo", {
         numberOfKeys: 2,
@@ -161,11 +161,11 @@ describe("pipeline", function () {
       });
     });
 
-    afterEach(function () {
+    afterEach(() => {
       redis.disconnect();
     });
 
-    it("should work", function (done) {
+    it("should work", (done) => {
       redis
         .pipeline()
         .echo("foo", "bar", "123", "abc")
@@ -176,7 +176,7 @@ describe("pipeline", function () {
         });
     });
 
-    it("should support callbacks", function (done) {
+    it("should support callbacks", (done) => {
       let pending = 1;
       redis
         .pipeline()
@@ -193,7 +193,7 @@ describe("pipeline", function () {
         });
     });
 
-    it("should be supported in transaction blocks", function (done) {
+    it("should be supported in transaction blocks", (done) => {
       redis
         .pipeline()
         .multi()
@@ -210,8 +210,8 @@ describe("pipeline", function () {
     });
   });
 
-  describe("#addBatch", function () {
-    it("should accept commands in constructor", function (done) {
+  describe("#addBatch", () => {
+    it("should accept commands in constructor", (done) => {
       const redis = new Redis();
       let pending = 1;
       redis
@@ -235,19 +235,19 @@ describe("pipeline", function () {
     });
   });
 
-  describe("exec", function () {
-    it("should group results", function (done) {
+  describe("exec", () => {
+    it("should group results", (done) => {
       const redis = new Redis();
       redis.multi({ pipeline: false });
       redis.set("foo", "bar");
       redis.get("foo");
-      redis.exec().then(function () {
+      redis.exec().then(() => {
         redis.disconnect();
         done();
       });
     });
 
-    it("should allow omitting callback", function (done) {
+    it("should allow omitting callback", (done) => {
       const redis = new Redis();
       redis.exec().catch(function (err) {
         expect(err.message).to.eql("ERR EXEC without MULTI");
@@ -256,9 +256,9 @@ describe("pipeline", function () {
       });
     });
 
-    it("should batch all commands before ready event", function (done) {
+    it("should batch all commands before ready event", (done) => {
       const redis = new Redis();
-      redis.on("connect", function () {
+      redis.on("connect", () => {
         redis
           .pipeline()
           .info()
@@ -276,7 +276,7 @@ describe("pipeline", function () {
       });
     });
 
-    it("should check and load uniq scripts only", async function () {
+    it("should check and load uniq scripts only", async () => {
       const redis = new Redis();
       redis.defineCommand("test", {
         numberOfKeys: 2,
@@ -327,7 +327,7 @@ describe("pipeline", function () {
       });
     });
 
-    it("should support parallel script execution", function (done) {
+    it("should support parallel script execution", (done) => {
       const random = `${Math.random()}`;
       const redis = new Redis();
       redis.defineCommand("something", {
@@ -349,7 +349,7 @@ describe("pipeline", function () {
         .catch(done);
     });
 
-    it("should reload scripts on redis restart (reconnect)", async function () {
+    it("should reload scripts on redis restart (reconnect)", async () => {
       const redis = new Redis({ connectionName: "load-script-on-reconnect" });
       const redis2 = new Redis();
       redis.defineCommand("execafterreconnect", {
@@ -394,8 +394,8 @@ describe("pipeline", function () {
     });
   });
 
-  describe("#length", function () {
-    it("return the command count", function () {
+  describe("#length", () => {
+    it("return the command count", () => {
       const redis = new Redis();
 
       const pipeline1 = redis

@@ -3,8 +3,8 @@ import { expect } from "chai";
 import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
 
-describe("cluster:connect", function () {
-  it("should flush the queue when all startup nodes are unreachable", function (done) {
+describe("cluster:connect", () => {
+  it("should flush the queue when all startup nodes are unreachable", (done) => {
     const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
       clusterRetryStrategy: null,
     });
@@ -16,7 +16,7 @@ describe("cluster:connect", function () {
     });
   });
 
-  it("should invoke clusterRetryStrategy when all startup nodes are unreachable", function (done) {
+  it("should invoke clusterRetryStrategy when all startup nodes are unreachable", (done) => {
     let t = 0;
     const cluster = new Cluster(
       [
@@ -42,7 +42,7 @@ describe("cluster:connect", function () {
     });
   });
 
-  it("should invoke clusterRetryStrategy when none nodes are ready", function (done) {
+  it("should invoke clusterRetryStrategy when none nodes are ready", (done) => {
     const argvHandler = function (argv) {
       if (argv[0] === "cluster") {
         return new Error("CLUSTERDOWN");
@@ -71,18 +71,18 @@ describe("cluster:connect", function () {
     );
   });
 
-  it("should connect to cluster successfully", function (done) {
+  it("should connect to cluster successfully", (done) => {
     const node = new MockServer(30001);
 
     const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
 
-    node.once("connect", function () {
+    node.once("connect", () => {
       cluster.disconnect();
       done();
     });
   });
 
-  it("should wait for ready state before resolving", function (done) {
+  it("should wait for ready state before resolving", (done) => {
     const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
     const argvHandler = function (argv) {
       if (argv[0] === "info") {
@@ -101,36 +101,36 @@ describe("cluster:connect", function () {
       lazyConnect: true,
     });
 
-    cluster.connect().then(function () {
+    cluster.connect().then(() => {
       expect(cluster.status).to.eql("ready");
       cluster.disconnect();
       done();
     });
   });
 
-  it("should support url schema", function (done) {
+  it("should support url schema", (done) => {
     const node = new MockServer(30001);
 
     const cluster = new Cluster(["redis://127.0.0.1:30001"]);
 
-    node.once("connect", function () {
+    node.once("connect", () => {
       cluster.disconnect();
       done();
     });
   });
 
-  it("should support a single port", function (done) {
+  it("should support a single port", (done) => {
     const node = new MockServer(30001);
 
     const cluster = new Cluster([30001]);
 
-    node.once("connect", function () {
+    node.once("connect", () => {
       cluster.disconnect();
       done();
     });
   });
 
-  it("should return a promise to be resolved when connected", function (done) {
+  it("should return a promise to be resolved when connected", (done) => {
     const slotTable = [
       [0, 5460, ["127.0.0.1", 30001]],
       [5461, 10922, ["127.0.0.1", 30002]],
@@ -151,45 +151,45 @@ describe("cluster:connect", function () {
     });
     Cluster.prototype.connect.restore();
 
-    cluster.connect().then(function () {
+    cluster.connect().then(() => {
       cluster.disconnect();
       done();
     });
   });
 
-  it("should return a promise to be rejected when closed", function (done) {
+  it("should return a promise to be rejected when closed", (done) => {
     sinon.stub(Cluster.prototype, "connect").callsFake(() => Promise.resolve());
     const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
       lazyConnect: false,
     });
     Cluster.prototype.connect.restore();
 
-    cluster.connect().catch(function () {
+    cluster.connect().catch(() => {
       cluster.disconnect();
       done();
     });
   });
 
-  it("should stop reconnecting when disconnected", function (done) {
+  it("should stop reconnecting when disconnected", (done) => {
     const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
-      clusterRetryStrategy: function () {
+      clusterRetryStrategy: () => {
         return 0;
       },
     });
 
-    cluster.on("close", function () {
+    cluster.on("close", () => {
       cluster.disconnect();
       const stub = sinon
         .stub(Cluster.prototype, "connect")
         .throws(new Error("`connect` should not be called"));
-      setTimeout(function () {
+      setTimeout(() => {
         stub.restore();
         done();
       }, 1);
     });
   });
 
-  it("should discover other nodes automatically", function (done) {
+  it("should discover other nodes automatically", (done) => {
     const slotTable = [
       [0, 5460, ["127.0.0.1", 30001]],
       [5461, 10922, ["127.0.0.1", 30002]],
@@ -221,8 +221,8 @@ describe("cluster:connect", function () {
     }
   });
 
-  it("should send command to the correct node", function (done) {
-    new MockServer(30001, function (argv) {
+  it("should send command to the correct node", (done) => {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return [
           [0, 1, ["127.0.0.1", 30001]],
@@ -230,9 +230,9 @@ describe("cluster:connect", function () {
         ];
       }
     });
-    new MockServer(30002, function (argv) {
+    new MockServer(30002, (argv) => {
       if (argv[0] === "get" && argv[1] === "foo") {
-        process.nextTick(function () {
+        process.nextTick(() => {
           cluster.disconnect();
           done();
         });
@@ -245,7 +245,7 @@ describe("cluster:connect", function () {
     cluster.get("foo");
   });
 
-  it("should emit errors when cluster cannot be connected", function (done) {
+  it("should emit errors when cluster cannot be connected", (done) => {
     const errorMessage = "ERR This instance has cluster support disabled";
     const argvHandler = function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
@@ -263,7 +263,7 @@ describe("cluster:connect", function () {
         { host: "127.0.0.1", port: "30002" },
       ],
       {
-        clusterRetryStrategy: function () {
+        clusterRetryStrategy: () => {
           cluster.once("error", function (err) {
             retry = false;
             expect(err.message).to.eql("Failed to refresh slots cache.");
@@ -289,7 +289,7 @@ describe("cluster:connect", function () {
     }
   });
 
-  it("should using the specified password", function (done) {
+  it("should using the specified password", (done) => {
     let cluster;
     const slotTable = [
       [0, 5460, ["127.0.0.1", 30001]],
@@ -326,7 +326,7 @@ describe("cluster:connect", function () {
     );
   });
 
-  it("should discover other nodes automatically every slotsRefreshInterval", function (done) {
+  it("should discover other nodes automatically every slotsRefreshInterval", (done) => {
     let times = 0;
     let cluster;
     const argvHandler = function (argv) {
@@ -350,8 +350,8 @@ describe("cluster:connect", function () {
     const node1 = new MockServer(30001, argvHandler);
     const node2 = new MockServer(30002, argvHandler);
 
-    node1.once("connect", function () {
-      node2.once("connect", function () {
+    node1.once("connect", () => {
+      node2.once("connect", () => {
         cluster.disconnect();
         done();
       });
@@ -385,23 +385,23 @@ describe("cluster:connect", function () {
     });
   });
 
-  describe("multiple reconnect", function () {
-    it("should reconnect after multiple consecutive disconnect(true) are called", function (done) {
+  describe("multiple reconnect", () => {
+    it("should reconnect after multiple consecutive disconnect(true) are called", (done) => {
       new MockServer(30001);
       const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
         enableReadyCheck: false,
       });
-      cluster.once("reconnecting", function () {
+      cluster.once("reconnecting", () => {
         cluster.disconnect(true);
       });
-      cluster.once("ready", function () {
+      cluster.once("ready", () => {
         cluster.disconnect(true);
-        const rejectTimeout = setTimeout(function () {
+        const rejectTimeout = setTimeout(() => {
           cluster.disconnect();
           done(new Error("second disconnect(true) didn't reconnect redis"));
         }, 1000);
-        process.nextTick(function () {
-          cluster.once("ready", function () {
+        process.nextTick(() => {
+          cluster.once("ready", () => {
             clearTimeout(rejectTimeout);
             cluster.disconnect();
             done();

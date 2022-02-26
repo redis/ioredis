@@ -12,42 +12,42 @@ function triggerParseError(socket: Socket) {
   socket.write("A");
 }
 
-describe("sentinel", function () {
-  describe("connect", function () {
-    it("should connect to sentinel successfully", function (done) {
+describe("sentinel", () => {
+  describe("connect", () => {
+    it("should connect to sentinel successfully", (done) => {
       const sentinel = new MockServer(27379);
-      sentinel.once("connect", function () {
+      sentinel.once("connect", () => {
         redis.disconnect();
         sentinel.disconnect(done);
       });
 
-      var redis = new Redis({
+      const redis = new Redis({
         sentinels: [{ host: "127.0.0.1", port: 27379 }],
         name: "master",
       });
     });
 
-    it("should default to the default sentinel port", function (done) {
+    it("should default to the default sentinel port", (done) => {
       const sentinel = new MockServer(26379);
-      sentinel.once("connect", function () {
+      sentinel.once("connect", () => {
         redis.disconnect();
         sentinel.disconnect(done);
       });
 
-      var redis = new Redis({
+      const redis = new Redis({
         sentinels: [{ host: "127.0.0.1" }],
         name: "master",
       });
     });
 
-    it("should try to connect to all sentinel", function (done) {
+    it("should try to connect to all sentinel", (done) => {
       const sentinel = new MockServer(27380);
-      sentinel.once("connect", function () {
+      sentinel.once("connect", () => {
         redis.disconnect();
         sentinel.disconnect(done);
       });
 
-      var redis = new Redis({
+      const redis = new Redis({
         sentinels: [
           { host: "127.0.0.1", port: 27379 },
           { host: "127.0.0.1", port: 27380 },
@@ -56,12 +56,12 @@ describe("sentinel", function () {
       });
     });
 
-    it("should skip an unresponsive sentinel", async function () {
-      const sentinel1 = new MockServer(27379, function (argv, socket, flags) {
+    it("should skip an unresponsive sentinel", async () => {
+      const sentinel1 = new MockServer(27379, (_argv, _socket, flags) => {
         flags.hang = true;
       });
 
-      const sentinel2 = new MockServer(27380, function (argv) {
+      const sentinel2 = new MockServer(27380, (argv) => {
         if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
           return ["127.0.0.1", "17380"];
         }
@@ -91,9 +91,9 @@ describe("sentinel", function () {
       ]);
     });
 
-    it("should call sentinelRetryStrategy when all sentinels are unreachable", function (done) {
+    it("should call sentinelRetryStrategy when all sentinels are unreachable", (done) => {
       let t = 0;
-      var redis = new Redis({
+      const redis = new Redis({
         sentinels: [
           { host: "127.0.0.1", port: 27379 },
           { host: "127.0.0.1", port: 27380 },
@@ -101,7 +101,7 @@ describe("sentinel", function () {
         sentinelRetryStrategy: function (times) {
           expect(times).to.eql(++t);
           const sentinel = new MockServer(27380);
-          sentinel.once("connect", function () {
+          sentinel.once("connect", () => {
             redis.disconnect();
             sentinel.disconnect(done);
           });
@@ -111,7 +111,7 @@ describe("sentinel", function () {
       });
     });
 
-    it("should raise error when all sentinel are unreachable and retry is disabled", function (done) {
+    it("should raise error when all sentinel are unreachable and retry is disabled", (done) => {
       const redis = new Redis({
         sentinels: [
           { host: "127.0.0.1", port: 27379 },
@@ -121,17 +121,17 @@ describe("sentinel", function () {
         name: "master",
       });
 
-      redis.get("foo", function (error) {
+      redis.get("foo", (error) => {
         finish();
         expect(error.message).to.match(/are unreachable/);
       });
 
-      redis.on("error", function (error) {
+      redis.on("error", (error) => {
         expect(error.message).to.match(/are unreachable/);
         finish();
       });
 
-      redis.on("end", function () {
+      redis.on("end", () => {
         finish();
       });
 
@@ -144,20 +144,20 @@ describe("sentinel", function () {
       }
     });
 
-    it("should close the connection to the sentinel when resolving unsuccessfully", function (done) {
+    it("should close the connection to the sentinel when resolving unsuccessfully", (done) => {
       const sentinel = new MockServer(27379); // Does not respond properly to get-master-addr-by-name
-      sentinel.once("disconnect", function () {
+      sentinel.once("disconnect", () => {
         redis.disconnect();
         sentinel.disconnect(done);
       });
 
-      var redis = new Redis({
+      const redis = new Redis({
         sentinels: [{ host: "127.0.0.1", port: 27379 }],
         name: "master",
       });
     });
 
-    it("should add additionally discovered sentinels when resolving successfully", function (done) {
+    it("should add additionally discovered sentinels when resolving successfully", (done) => {
       const sentinels = [{ host: "127.0.0.1", port: 27379 }];
       let cloned;
 
@@ -166,7 +166,7 @@ describe("sentinel", function () {
         return cloned;
       });
 
-      const sentinel = new MockServer(27379, function (argv) {
+      const sentinel = new MockServer(27379, (argv) => {
         if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
           return ["127.0.0.1", "17380"];
         } else if (argv[0] === "sentinel" && argv[1] === "sentinels") {
@@ -183,19 +183,19 @@ describe("sentinel", function () {
         name: "master",
       });
 
-      redis.on("ready", function () {
+      redis.on("ready", () => {
         redis.disconnect();
-        master.disconnect(function () {
+        master.disconnect(() => {
           expect(cloned.length).to.eql(2);
           sentinel.disconnect(done);
         });
       });
     });
 
-    it("should skip additionally discovered sentinels even if they are resolved successfully", function (done) {
+    it("should skip additionally discovered sentinels even if they are resolved successfully", (done) => {
       const sentinels = [{ host: "127.0.0.1", port: 27379 }];
 
-      const sentinel = new MockServer(27379, function (argv) {
+      const sentinel = new MockServer(27379, (argv) => {
         if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
           return ["127.0.0.1", "17380"];
         } else if (argv[0] === "sentinel" && argv[1] === "sentinels") {
@@ -213,9 +213,9 @@ describe("sentinel", function () {
         name: "master",
       });
 
-      redis.on("ready", function () {
+      redis.on("ready", () => {
         redis.disconnect();
-        master.disconnect(function () {
+        master.disconnect(() => {
           expect(sentinels.length).to.eql(1);
           expect(sentinels[0].port).to.eql(27379);
           sentinel.disconnect(done);
@@ -223,9 +223,9 @@ describe("sentinel", function () {
       });
     });
 
-    it("should connect to sentinel with authentication successfully", function (done) {
+    it("should connect to sentinel with authentication successfully", (done) => {
       let authed = false;
-      var redisServer = new MockServer(17380, function (argv) {
+      var redisServer = new MockServer(17380, (argv) => {
         if (argv[0] === "auth" && argv[1] === "pass") {
           authed = true;
         } else if (argv[0] === "get" && argv[1] === "foo") {
@@ -234,7 +234,7 @@ describe("sentinel", function () {
           done();
         }
       });
-      var sentinel = new MockServer(27379, function (argv) {
+      var sentinel = new MockServer(27379, (argv) => {
         if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
           sentinel.disconnect(done);
           return ["127.0.0.1", "17380"];
@@ -246,33 +246,33 @@ describe("sentinel", function () {
         sentinels: [{ host: "127.0.0.1", port: 27379 }],
         name: "master",
       });
-      redis.get("foo").catch(function () {});
+      redis.get("foo").catch(() => {});
     });
   });
 
-  describe("master", function () {
-    it("should connect to the master successfully", function (done) {
-      const sentinel = new MockServer(27379, function (argv) {
+  describe("master", () => {
+    it("should connect to the master successfully", (done) => {
+      const sentinel = new MockServer(27379, (argv) => {
         if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
           return ["127.0.0.1", "17380"];
         }
       });
       const master = new MockServer(17380);
-      master.on("connect", function () {
+      master.on("connect", () => {
         redis.disconnect();
-        sentinel.disconnect(function () {
+        sentinel.disconnect(() => {
           master.disconnect(done);
         });
       });
 
-      var redis = new Redis({
+      const redis = new Redis({
         sentinels: [{ host: "127.0.0.1", port: 27379 }],
         name: "master",
       });
     });
 
-    it("should reject when sentinel is rejected", function (done) {
-      const sentinel = new MockServer(27379, function (argv) {
+    it("should reject when sentinel is rejected", (done) => {
+      const sentinel = new MockServer(27379, (argv) => {
         if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
           return new Error("just rejected");
         }
@@ -287,7 +287,7 @@ describe("sentinel", function () {
 
       redis
         .connect()
-        .then(function () {
+        .then(() => {
           throw new Error("Expect `connect` to be thrown");
         })
         .catch(function (err) {
@@ -299,22 +299,22 @@ describe("sentinel", function () {
         });
     });
 
-    it("should connect to the next sentinel if getting master failed", function (done) {
-      const sentinel = new MockServer(27379, function (argv) {
+    it("should connect to the next sentinel if getting master failed", (done) => {
+      const sentinel = new MockServer(27379, (argv) => {
         if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
           return null;
         }
       });
 
       const sentinel2 = new MockServer(27380);
-      sentinel2.on("connect", function () {
+      sentinel2.on("connect", () => {
         redis.disconnect();
-        sentinel.disconnect(function () {
+        sentinel.disconnect(() => {
           sentinel2.disconnect(done);
         });
       });
 
-      var redis = new Redis({
+      const redis = new Redis({
         sentinels: [
           { host: "127.0.0.1", port: 27379 },
           { host: "127.0.0.1", port: 27380 },
@@ -323,8 +323,8 @@ describe("sentinel", function () {
       });
     });
 
-    it("should connect to the next sentinel if the role is wrong", function (done) {
-      const sentinel = new MockServer(27379, function (argv) {
+    it("should connect to the next sentinel if the role is wrong", (done) => {
+      const sentinel = new MockServer(27379, (argv) => {
         if (
           argv[0] === "sentinel" &&
           argv[1] === "get-master-addr-by-name" &&
@@ -335,20 +335,20 @@ describe("sentinel", function () {
       });
 
       const sentinel2 = new MockServer(27380);
-      sentinel.on("connect", function () {
+      sentinel.on("connect", () => {
         redis.disconnect();
-        sentinel.disconnect(function () {
+        sentinel.disconnect(() => {
           sentinel2.disconnect(done);
         });
       });
 
-      new MockServer(17380, function (argv) {
+      new MockServer(17380, (argv) => {
         if (argv[0] === "info") {
           return "role:slave";
         }
       });
 
-      var redis = new Redis({
+      const redis = new Redis({
         sentinels: [
           { host: "127.0.0.1", port: 27379 },
           { host: "127.0.0.1", port: 27380 },
@@ -358,9 +358,9 @@ describe("sentinel", function () {
     });
   });
 
-  describe("slave", function () {
-    it("should connect to the slave successfully", function (done) {
-      const sentinel = new MockServer(27379, function (argv) {
+  describe("slave", () => {
+    it("should connect to the slave successfully", (done) => {
+      const sentinel = new MockServer(27379, (argv) => {
         if (
           argv[0] === "sentinel" &&
           argv[1] === "slaves" &&
@@ -370,14 +370,14 @@ describe("sentinel", function () {
         }
       });
       const slave = new MockServer(17381);
-      slave.on("connect", function () {
+      slave.on("connect", () => {
         redis.disconnect();
-        sentinel.disconnect(function () {
+        sentinel.disconnect(() => {
           slave.disconnect(done);
         });
       });
 
-      var redis = new Redis({
+      const redis = new Redis({
         sentinels: [{ host: "127.0.0.1", port: 27379 }],
         name: "master",
         role: "slave",
@@ -385,8 +385,8 @@ describe("sentinel", function () {
       });
     });
 
-    it("should connect to the slave successfully based on preferred slave priority", function (done) {
-      const sentinel = new MockServer(27379, function (argv) {
+    it("should connect to the slave successfully based on preferred slave priority", (done) => {
+      const sentinel = new MockServer(27379, (argv) => {
         if (
           argv[0] === "sentinel" &&
           argv[1] === "slaves" &&
@@ -400,14 +400,14 @@ describe("sentinel", function () {
         }
       });
       const slave = new MockServer(17381);
-      slave.on("connect", function () {
+      slave.on("connect", () => {
         redis.disconnect();
-        sentinel.disconnect(function () {
+        sentinel.disconnect(() => {
           slave.disconnect(done);
         });
       });
 
-      var redis = new Redis({
+      const redis = new Redis({
         sentinels: [{ host: "127.0.0.1", port: 27379 }],
         name: "master",
         role: "slave",
@@ -422,8 +422,8 @@ describe("sentinel", function () {
       });
     });
 
-    it("should connect to the slave successfully based on preferred slave filter function", function (done) {
-      new MockServer(27379, function (argv) {
+    it("should connect to the slave successfully based on preferred slave filter function", (done) => {
+      new MockServer(27379, (argv) => {
         if (
           argv[0] === "sentinel" &&
           argv[1] === "slaves" &&
@@ -434,12 +434,12 @@ describe("sentinel", function () {
       });
       // only one running slave, which we will prefer
       const slave = new MockServer(17381);
-      slave.on("connect", function () {
+      slave.on("connect", () => {
         redis.disconnect();
         done();
       });
 
-      var redis = new Redis({
+      const redis = new Redis({
         sentinels: [{ host: "127.0.0.1", port: 27379 }],
         name: "master",
         role: "slave",
@@ -455,8 +455,8 @@ describe("sentinel", function () {
       });
     });
 
-    it("should connect to the next sentinel if getting slave failed", function (done) {
-      const sentinel = new MockServer(27379, function (argv) {
+    it("should connect to the next sentinel if getting slave failed", (done) => {
+      const sentinel = new MockServer(27379, (argv) => {
         if (
           argv[0] === "sentinel" &&
           argv[1] === "slaves" &&
@@ -467,14 +467,14 @@ describe("sentinel", function () {
       });
 
       const sentinel2 = new MockServer(27380);
-      sentinel2.on("connect", function () {
+      sentinel2.on("connect", () => {
         redis.disconnect();
-        sentinel.disconnect(function () {
+        sentinel.disconnect(() => {
           sentinel2.disconnect(done);
         });
       });
 
-      var redis = new Redis({
+      const redis = new Redis({
         sentinels: [
           { host: "127.0.0.1", port: 27379 },
           { host: "127.0.0.1", port: 27380 },
@@ -484,8 +484,8 @@ describe("sentinel", function () {
       });
     });
 
-    it("should connect to the next sentinel if the role is wrong", function (done) {
-      const sentinel = new MockServer(27379, function (argv) {
+    it("should connect to the next sentinel if the role is wrong", (done) => {
+      const sentinel = new MockServer(27379, (argv) => {
         if (
           argv[0] === "sentinel" &&
           argv[1] === "slaves" &&
@@ -498,20 +498,20 @@ describe("sentinel", function () {
       const sentinel2 = new MockServer(27380);
       sentinel2.on("connect", function (c) {
         redis.disconnect();
-        sentinel.disconnect(function () {
-          slave.disconnect(function () {
+        sentinel.disconnect(() => {
+          slave.disconnect(() => {
             sentinel2.disconnect(done);
           });
         });
       });
 
-      var slave = new MockServer(17381, function (argv) {
+      var slave = new MockServer(17381, (argv) => {
         if (argv[0] === "info") {
           return "role:master";
         }
       });
 
-      var redis = new Redis({
+      const redis = new Redis({
         sentinels: [
           { host: "127.0.0.1", port: 27379 },
           { host: "127.0.0.1", port: 27380 },
@@ -522,9 +522,9 @@ describe("sentinel", function () {
     });
   });
 
-  describe("failover", function () {
-    it("should switch to new master automatically without any commands being lost", function (done) {
-      const sentinel = new MockServer(27379, function (argv) {
+  describe("failover", () => {
+    it("should switch to new master automatically without any commands being lost", (done) => {
+      const sentinel = new MockServer(27379, (argv) => {
         if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
           return ["127.0.0.1", "17380"];
         }
@@ -536,11 +536,11 @@ describe("sentinel", function () {
         redis.get("foo", function (err, res) {
           expect(res).to.eql("bar");
           redis.disconnect();
-          newMaster.disconnect(function () {
+          newMaster.disconnect(() => {
             sentinel.disconnect(done);
           });
         });
-        var newMaster = new MockServer(17381, function (argv) {
+        var newMaster = new MockServer(17381, (argv) => {
           if (argv[0] === "get" && argv[1] === "foo") {
             return "bar";
           }
@@ -552,15 +552,15 @@ describe("sentinel", function () {
         };
       });
 
-      var redis = new Redis({
+      const redis = new Redis({
         sentinels: [{ host: "127.0.0.1", port: 27379 }],
         name: "master",
       });
     });
 
     describe("failoverDetector", () => {
-      it("should connect to new master after +switch-master", async function () {
-        const sentinel = new MockServer(27379, function (argv) {
+      it("should connect to new master after +switch-master", async () => {
+        const sentinel = new MockServer(27379, (argv) => {
           if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
             return ["127.0.0.1", "17380"];
           }
@@ -606,8 +606,8 @@ describe("sentinel", function () {
         ]);
       });
 
-      it("should detect failover from secondary sentinel", async function () {
-        const sentinel1 = new MockServer(27379, function (argv) {
+      it("should detect failover from secondary sentinel", async () => {
+        const sentinel1 = new MockServer(27379, (argv) => {
           if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
             return ["127.0.0.1", "17380"];
           }
@@ -660,9 +660,9 @@ describe("sentinel", function () {
         ]);
       });
 
-      it("should detect failover when some sentinels fail", async function () {
+      it("should detect failover when some sentinels fail", async () => {
         // Will disconnect before failover
-        const sentinel1 = new MockServer(27379, function (argv) {
+        const sentinel1 = new MockServer(27379, (argv) => {
           if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
             return ["127.0.0.1", "17380"];
           }
@@ -670,12 +670,12 @@ describe("sentinel", function () {
 
         // Will emit an error before failover
         let sentinel2Socket: Socket | null = null;
-        const sentinel2 = new MockServer(27380, function (argv, socket) {
+        const sentinel2 = new MockServer(27380, (argv, socket) => {
           sentinel2Socket = socket;
         });
 
         // Fails to subscribe
-        const sentinel3 = new MockServer(27381, function (argv, socket, flags) {
+        const sentinel3 = new MockServer(27381, (argv, socket, flags) => {
           if (argv[0] === "subscribe") {
             triggerParseError(socket);
           }
@@ -739,8 +739,8 @@ describe("sentinel", function () {
         ]);
       });
 
-      it("should detect failover after sentinel disconnects and reconnects", async function () {
-        const sentinel = new MockServer(27379, function (argv) {
+      it("should detect failover after sentinel disconnects and reconnects", async () => {
+        const sentinel = new MockServer(27379, (argv) => {
           if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
             return ["127.0.0.1", "17380"];
           }

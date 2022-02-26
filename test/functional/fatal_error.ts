@@ -2,8 +2,8 @@ import Redis from "../../lib/Redis";
 import { expect } from "chai";
 import MockServer from "../helpers/mock_server";
 
-describe("fatal_error", function () {
-  it("should handle fatal error of parser", function (done) {
+describe("fatal_error", () => {
+  it("should handle fatal error of parser", (done) => {
     let recovered = false;
     new MockServer(30000, (argv) => {
       if (recovered) {

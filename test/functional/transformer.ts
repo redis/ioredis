@@ -2,10 +2,10 @@ import Redis from "../../lib/Redis";
 import { getRedisVersion } from "../helpers/util";
 import { expect } from "chai";
 
-describe("transformer", function () {
-  describe("default transformer", function () {
-    describe("hmset", function () {
-      it("should support object", function (done) {
+describe("transformer", () => {
+  describe("default transformer", () => {
+    describe("hmset", () => {
+      it("should support object", (done) => {
         const redis = new Redis();
         redis.hmset("foo", { a: 1, b: "2" }, function (err, result) {
           expect(result).to.eql("OK");
@@ -15,7 +15,7 @@ describe("transformer", function () {
           });
         });
       });
-      it("should support Map", function (done) {
+      it("should support Map", (done) => {
         const redis = new Redis();
         const map = new Map();
         map.set("a", 1);
@@ -28,7 +28,7 @@ describe("transformer", function () {
           });
         });
       });
-      it("should not affect the old way", function (done) {
+      it("should not affect the old way", (done) => {
         const redis = new Redis();
         redis.hmset("foo", "a", 1, "b", "2", function (err, result) {
           expect(result).to.eql("OK");
@@ -40,8 +40,8 @@ describe("transformer", function () {
       });
     });
 
-    describe("mset", function () {
-      it("should support object", function (done) {
+    describe("mset", () => {
+      it("should support object", (done) => {
         const redis = new Redis();
         redis.mset({ a: 1, b: "2" }, function (err, result) {
           expect(result).to.eql("OK");
@@ -51,7 +51,7 @@ describe("transformer", function () {
           });
         });
       });
-      it("should support Map", function (done) {
+      it("should support Map", (done) => {
         const redis = new Redis();
         const map = new Map();
         map.set("a", 1);
@@ -64,7 +64,7 @@ describe("transformer", function () {
           });
         });
       });
-      it("should not affect the old way", function (done) {
+      it("should not affect the old way", (done) => {
         const redis = new Redis();
         redis.mset("a", 1, "b", "2", function (err, result) {
           expect(result).to.eql("OK");
@@ -74,7 +74,7 @@ describe("transformer", function () {
           });
         });
       });
-      it("should work with keyPrefix option", function (done) {
+      it("should work with keyPrefix option", (done) => {
         const redis = new Redis({ keyPrefix: "foo:" });
         redis.mset({ a: 1, b: "2" }, function (err, result) {
           expect(result).to.eql("OK");
@@ -87,8 +87,8 @@ describe("transformer", function () {
       });
     });
 
-    describe("msetnx", function () {
-      it("should support object", function (done) {
+    describe("msetnx", () => {
+      it("should support object", (done) => {
         const redis = new Redis();
         redis.msetnx({ a: 1, b: "2" }, function (err, result) {
           expect(result).to.eql(1);
@@ -98,7 +98,7 @@ describe("transformer", function () {
           });
         });
       });
-      it("should support Map", function (done) {
+      it("should support Map", (done) => {
         const redis = new Redis();
         const map = new Map();
         map.set("a", 1);
@@ -111,7 +111,7 @@ describe("transformer", function () {
           });
         });
       });
-      it("should not affect the old way", function (done) {
+      it("should not affect the old way", (done) => {
         const redis = new Redis();
         redis.msetnx("a", 1, "b", "2", function (err, result) {
           expect(result).to.eql(1);
@@ -121,7 +121,7 @@ describe("transformer", function () {
           });
         });
       });
-      it("should work with keyPrefix option", function (done) {
+      it("should work with keyPrefix option", (done) => {
         const redis = new Redis({ keyPrefix: "foo:" });
         redis.msetnx({ a: 1, b: "2" }, function (err, result) {
           expect(result).to.eql(1);
@@ -134,10 +134,10 @@ describe("transformer", function () {
       });
     });
 
-    describe("hgetall", function () {
-      it("should return an object", function (done) {
+    describe("hgetall", () => {
+      it("should return an object", (done) => {
         const redis = new Redis();
-        redis.hmset("foo", "k1", "v1", "k2", "v2", function () {
+        redis.hmset("foo", "k1", "v1", "k2", "v2", () => {
           redis.hgetall("foo", function (err, result) {
             expect(result).to.eql({ k1: "v1", k2: "v2" });
             done();
@@ -145,7 +145,7 @@ describe("transformer", function () {
         });
       });
 
-      it("should return {} when key not exists", function (done) {
+      it("should return {} when key not exists", (done) => {
         const redis = new Redis();
         redis.hgetall("foo", function (err, result) {
           expect(result).to.eql({});
@@ -154,8 +154,8 @@ describe("transformer", function () {
       });
     });
 
-    describe("hset", function () {
-      it("should support object", async function () {
+    describe("hset", () => {
+      it("should support object", async () => {
         const redis = new Redis();
         const [major] = await getRedisVersion(redis);
         if (major < 4) {
@@ -177,7 +177,7 @@ describe("transformer", function () {
           });
         });
       });
-      it("should support Map", async function () {
+      it("should support Map", async () => {
         const redis = new Redis();
         const [major] = await getRedisVersion(redis);
         if (major < 4) {
@@ -203,7 +203,7 @@ describe("transformer", function () {
           });
         });
       });
-      it("should affect the old way", async function () {
+      it("should affect the old way", async () => {
         const redis = new Redis();
         const [major] = await getRedisVersion(redis);
         if (major < 4) {

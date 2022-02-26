@@ -40,7 +40,7 @@ describe("tls option", () => {
 
   describe("Sentinel", () => {
     it("does not use tls option by default", (done) => {
-      new MockServer(27379, function (argv) {
+      new MockServer(27379, (argv) => {
         if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
           return ["127.0.0.1", "6379"];
         }
@@ -63,7 +63,7 @@ describe("tls option", () => {
     });
 
     it("can be enabled by `enableTLSForSentinelMode`", (done) => {
-      new MockServer(27379, function (argv) {
+      new MockServer(27379, (argv) => {
         if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
           return ["127.0.0.1", "6379"];
         }
@@ -93,7 +93,7 @@ describe("tls option", () => {
     });
 
     it("supports sentinelTLS", (done) => {
-      new MockServer(27379, function (argv) {
+      new MockServer(27379, (argv) => {
         if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
           return ["127.0.0.1", "6379"];
         }

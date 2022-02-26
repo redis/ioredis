@@ -1,12 +1,12 @@
 import Redis from "../../lib/Redis";
 import { expect } from "chai";
 
-describe("watch-exec", function () {
-  it("should support watch/exec transactions", function () {
+describe("watch-exec", () => {
+  it("should support watch/exec transactions", () => {
     const redis1 = new Redis();
     return redis1
       .watch("watchkey")
-      .then(function () {
+      .then(() => {
         return redis1.multi().set("watchkey", "1").exec();
       })
       .then(function (result) {
@@ -15,15 +15,15 @@ describe("watch-exec", function () {
       });
   });
 
-  it("should support watch/exec transaction rollback", function () {
+  it("should support watch/exec transaction rollback", () => {
     const redis1 = new Redis();
     const redis2 = new Redis();
     return redis1
       .watch("watchkey")
-      .then(function () {
+      .then(() => {
         return redis2.set("watchkey", "2");
       })
-      .then(function () {
+      .then(() => {
         return redis1.multi().set("watchkey", "1").exec();
       })
       .then(function (result) {
