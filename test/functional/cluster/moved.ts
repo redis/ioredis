@@ -4,8 +4,8 @@ import { expect } from "chai";
 import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
 
-describe("cluster:MOVED", function () {
-  it("should auto redirect the command to the correct nodes", function (done) {
+describe("cluster:MOVED", () => {
+  it("should auto redirect the command to the correct nodes", (done) => {
     let cluster = undefined;
     let moved = false;
     let times = 0;
@@ -13,21 +13,21 @@ describe("cluster:MOVED", function () {
       [0, 1, ["127.0.0.1", 30001]],
       [2, 16383, ["127.0.0.1", 30002]],
     ];
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {
         if (times++ === 1) {
           expect(moved).to.eql(true);
-          process.nextTick(function () {
+          process.nextTick(() => {
             cluster.disconnect();
             done();
           });
         }
       }
     });
-    new MockServer(30002, function (argv) {
+    new MockServer(30002, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -41,13 +41,13 @@ describe("cluster:MOVED", function () {
     });
 
     cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
-    cluster.get("foo", function () {
+    cluster.get("foo", () => {
       cluster.get("foo");
     });
   });
 
-  it("should be able to redirect a command to a unknown node", function (done) {
-    new MockServer(30001, function (argv) {
+  it("should be able to redirect a command to a unknown node", (done) => {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return [[0, 16383, ["127.0.0.1", 30001]]];
       }
@@ -55,7 +55,7 @@ describe("cluster:MOVED", function () {
         return new Error("MOVED " + calculateSlot("foo") + " 127.0.0.1:30002");
       }
     });
-    new MockServer(30002, function (argv) {
+    new MockServer(30002, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return [
           [0, 16381, ["127.0.0.1", 30001]],
@@ -76,7 +76,7 @@ describe("cluster:MOVED", function () {
     });
   });
 
-  it("should auto redirect the command within a pipeline", function (done) {
+  it("should auto redirect the command within a pipeline", (done) => {
     let cluster = undefined;
     let moved = false;
     let times = 0;
@@ -84,21 +84,21 @@ describe("cluster:MOVED", function () {
       [0, 1, ["127.0.0.1", 30001]],
       [2, 16383, ["127.0.0.1", 30002]],
     ];
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {
         if (times++ === 1) {
           expect(moved).to.eql(true);
-          process.nextTick(function () {
+          process.nextTick(() => {
             cluster.disconnect();
             done();
           });
         }
       }
     });
-    new MockServer(30002, function (argv) {
+    new MockServer(30002, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -114,7 +114,7 @@ describe("cluster:MOVED", function () {
     cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
       lazyConnect: false,
     });
-    cluster.get("foo", function () {
+    cluster.get("foo", () => {
       cluster.get("foo");
     });
   });
@@ -122,7 +122,7 @@ describe("cluster:MOVED", function () {
   it("should supports retryDelayOnMoved", (done) => {
     let cluster = undefined;
     const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -131,7 +131,7 @@ describe("cluster:MOVED", function () {
       }
     });
 
-    new MockServer(30002, function (argv) {
+    new MockServer(30002, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -145,7 +145,7 @@ describe("cluster:MOVED", function () {
     cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
       retryDelayOnMoved,
     });
-    cluster.on("ready", function () {
+    cluster.on("ready", () => {
       sinon.stub(global, "setTimeout").callsFake((body, ms) => {
         if (ms === retryDelayOnMoved) {
           process.nextTick(() => {

@@ -7,7 +7,7 @@ import Parser = require("redis-parser");
 let createdMockServers: MockServer[] = [];
 const RAW_DATA_KEY = "___IOREDIS_MOCK_ROW_DATA___";
 
-afterEach(function (done) {
+afterEach((done) => {
   if (createdMockServers.length === 0) {
     done();
     return;
@@ -101,7 +101,7 @@ export default class MockServer extends EventEmitter {
             this.disconnect();
           }
         },
-        returnError: function () {},
+        returnError: () => {},
       });
 
       c.on("end", () => {

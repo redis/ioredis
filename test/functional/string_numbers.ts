@@ -3,8 +3,8 @@ import { expect } from "chai";
 
 const MAX_NUMBER = 9007199254740991; // Number.MAX_SAFE_INTEGER
 
-describe("stringNumbers", function () {
-  context("enabled", function () {
+describe("stringNumbers", () => {
+  context("enabled", () => {
     it("returns numbers as strings", async () => {
       const redis = new Redis({
         stringNumbers: true,
@@ -30,8 +30,8 @@ describe("stringNumbers", function () {
     });
   });
 
-  context("disabled", function () {
-    it("returns numbers", function (done) {
+  context("disabled", () => {
+    it("returns numbers", (done) => {
       const redis = new Redis();
 
       redis.set("foo", "123");

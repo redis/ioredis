@@ -3,9 +3,9 @@ import * as sinon from "sinon";
 import Redis from "../../lib/Redis";
 import MockServer from "../helpers/mock_server";
 
-describe("commandTimeout", function () {
-  it("rejects if command timed out", function (done) {
-    const server = new MockServer(30001, function (argv, socket, flags) {
+describe("commandTimeout", () => {
+  it("rejects if command timed out", (done) => {
+    const server = new MockServer(30001, (argv, socket, flags) => {
       if (argv[0] === "hget") {
         flags.hang = true;
         return;
@@ -23,7 +23,7 @@ describe("commandTimeout", function () {
     clock.tick(1000);
   });
 
-  it("does not leak timers for commands in offline queue", async function () {
+  it("does not leak timers for commands in offline queue", async () => {
     const server = new MockServer(30001);
 
     const redis = new Redis({ port: 30001, commandTimeout: 1000 });

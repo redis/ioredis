@@ -4,7 +4,7 @@ import Pipeline from "../../lib/pipeline";
 import Commander from "../../lib/utils/Commander";
 import Redis from "../../lib/Redis";
 
-describe("Pipeline", function () {
+describe("Pipeline", () => {
   beforeEach(() => {
     sinon.stub(Redis.prototype, "connect").resolves();
     sinon.stub(Commander.prototype, "sendCommand").callsFake((command) => {
@@ -16,7 +16,7 @@ describe("Pipeline", function () {
     sinon.restore();
   });
 
-  it("should properly mark commands as transactions", function () {
+  it("should properly mark commands as transactions", () => {
     const redis = new Redis();
     const p = new Pipeline(redis);
     let i = 0;
@@ -44,7 +44,7 @@ describe("Pipeline", function () {
     validate("get", false);
   });
 
-  it("should properly set pipelineIndex on commands", function () {
+  it("should properly set pipelineIndex on commands", () => {
     const redis = new Redis();
     const p = new Pipeline(redis);
     let i = 0;

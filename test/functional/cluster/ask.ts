@@ -3,15 +3,15 @@ import * as calculateSlot from "cluster-key-slot";
 import { expect } from "chai";
 import { Cluster } from "../../../lib";
 
-describe("cluster:ASK", function () {
-  it("should support ASK", function (done) {
+describe("cluster:ASK", () => {
+  it("should support ASK", (done) => {
     let asked = false;
     let times = 0;
     const slotTable = [
       [0, 1, ["127.0.0.1", 30001]],
       [2, 16383, ["127.0.0.1", 30002]],
     ];
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -21,13 +21,13 @@ describe("cluster:ASK", function () {
         asked = true;
       }
     });
-    new MockServer(30002, function (argv) {
+    new MockServer(30002, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {
         if (++times === 2) {
-          process.nextTick(function () {
+          process.nextTick(() => {
             cluster.disconnect();
             done();
           });
@@ -40,15 +40,15 @@ describe("cluster:ASK", function () {
     var cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
       lazyConnect: false,
     });
-    cluster.get("foo", function () {
+    cluster.get("foo", () => {
       cluster.get("foo");
     });
   });
 
-  it("should be able to redirect a command to a unknown node", function (done) {
+  it("should be able to redirect a command to a unknown node", (done) => {
     let asked = false;
     const slotTable = [[0, 16383, ["127.0.0.1", 30002]]];
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "get" && argv[1] === "foo") {
         expect(asked).to.eql(true);
         return "bar";
@@ -56,7 +56,7 @@ describe("cluster:ASK", function () {
         asked = true;
       }
     });
-    new MockServer(30002, function (argv) {
+    new MockServer(30002, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }

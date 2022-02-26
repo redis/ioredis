@@ -1,8 +1,8 @@
 import Redis from "../../lib/Redis";
 import { expect } from "chai";
 
-describe("send command", function () {
-  it("should support callback", function (done) {
+describe("send command", () => {
+  it("should support callback", (done) => {
     const redis = new Redis();
     redis.set("foo", "bar");
     redis.get("foo", function (err, result) {
@@ -11,7 +11,7 @@ describe("send command", function () {
     });
   });
 
-  it("should support promise", function () {
+  it("should support promise", () => {
     const redis = new Redis();
     redis.set("foo", "bar");
     return redis.get("foo").then(function (result) {
@@ -19,25 +19,25 @@ describe("send command", function () {
     });
   });
 
-  it("should keep the response order when mix using callback & promise", function (done) {
+  it("should keep the response order when mix using callback & promise", (done) => {
     const redis = new Redis();
     let order = 0;
-    redis.get("foo").then(function () {
+    redis.get("foo").then(() => {
       expect(++order).to.eql(1);
     });
-    redis.get("foo", function () {
+    redis.get("foo", () => {
       expect(++order).to.eql(2);
     });
-    redis.get("foo").then(function () {
+    redis.get("foo").then(() => {
       expect(++order).to.eql(3);
     });
-    redis.get("foo", function () {
+    redis.get("foo", () => {
       expect(++order).to.eql(4);
       done();
     });
   });
 
-  it("should support get & set buffer", function (done) {
+  it("should support get & set buffer", (done) => {
     const redis = new Redis();
     redis.set(Buffer.from("foo"), Buffer.from("bar"), function (err, res) {
       expect(res).to.eql("OK");
@@ -49,7 +49,7 @@ describe("send command", function () {
     });
   });
 
-  it("should support get & set buffer via `call`", function (done) {
+  it("should support get & set buffer via `call`", (done) => {
     const redis = new Redis();
     redis.call(
       "set",
@@ -66,7 +66,7 @@ describe("send command", function () {
     });
   });
 
-  it("should handle empty buffer", function (done) {
+  it("should handle empty buffer", (done) => {
     const redis = new Redis();
     redis.set(Buffer.from("foo"), Buffer.from(""));
     redis.getBuffer(Buffer.from("foo"), function (err, result) {
@@ -76,7 +76,7 @@ describe("send command", function () {
     });
   });
 
-  it("should support utf8", function (done) {
+  it("should support utf8", (done) => {
     const redis = new Redis();
     redis.set(Buffer.from("你好"), String("你好"));
     redis.getBuffer("你好", function (err, result) {
@@ -88,9 +88,9 @@ describe("send command", function () {
     });
   });
 
-  it("should consider null as empty str", function (done) {
+  it("should consider null as empty str", (done) => {
     const redis = new Redis();
-    redis.set("foo", null, function () {
+    redis.set("foo", null, () => {
       redis.get("foo", function (err, res) {
         expect(res).to.eql("");
         done();
@@ -98,7 +98,7 @@ describe("send command", function () {
     });
   });
 
-  it("should support return int value", function (done) {
+  it("should support return int value", (done) => {
     const redis = new Redis();
     redis.exists("foo", function (err, exists) {
       expect(typeof exists).to.eql("number");
@@ -106,7 +106,7 @@ describe("send command", function () {
     });
   });
 
-  it("should reject when disconnected", function (done) {
+  it("should reject when disconnected", (done) => {
     const redis = new Redis();
     redis.disconnect();
     redis.get("foo", function (err) {
@@ -115,7 +115,7 @@ describe("send command", function () {
     });
   });
 
-  it("should reject when enableOfflineQueue is disabled", function (done) {
+  it("should reject when enableOfflineQueue is disabled", (done) => {
     const redis = new Redis({ enableOfflineQueue: false });
     redis.get("foo", function (err) {
       expect(err.message).to.match(/enableOfflineQueue options is false/);
@@ -123,7 +123,7 @@ describe("send command", function () {
     });
   });
 
-  it("should support key prefixing", function (done) {
+  it("should support key prefixing", (done) => {
     const redis = new Redis({ keyPrefix: "foo:" });
     redis.set("bar", "baz");
     redis.get("bar", function (err, result) {
@@ -135,7 +135,7 @@ describe("send command", function () {
     });
   });
 
-  it("should support key prefixing with multiple keys", function (done) {
+  it("should support key prefixing with multiple keys", (done) => {
     const redis = new Redis({ keyPrefix: "foo:" });
     redis.lpush("app1", "test1");
     redis.lpush("app2", "test2");
@@ -149,7 +149,7 @@ describe("send command", function () {
     });
   });
 
-  it("should support key prefixing for zunionstore", function (done) {
+  it("should support key prefixing for zunionstore", (done) => {
     const redis = new Redis({ keyPrefix: "foo:" });
     redis.zadd("zset1", 1, "one");
     redis.zadd("zset1", 2, "two");
@@ -174,7 +174,7 @@ describe("send command", function () {
     );
   });
 
-  it("should support key prefixing for sort", function (done) {
+  it("should support key prefixing for sort", (done) => {
     const redis = new Redis({ keyPrefix: "foo:" });
     redis.hset("object_1", "name", "better");
     redis.hset("weight_1", "value", "20");
@@ -212,9 +212,9 @@ describe("send command", function () {
     );
   });
 
-  it("should allow sending the loading valid commands in connect event", function (done) {
+  it("should allow sending the loading valid commands in connect event", (done) => {
     const redis = new Redis({ enableOfflineQueue: false });
-    redis.on("connect", function () {
+    redis.on("connect", () => {
       redis.select(2, function (err, res) {
         expect(res).to.eql("OK");
         done();
@@ -222,9 +222,9 @@ describe("send command", function () {
     });
   });
 
-  it("should reject loading invalid commands in connect event", function (done) {
+  it("should reject loading invalid commands in connect event", (done) => {
     const redis = new Redis({ enableOfflineQueue: false });
-    redis.on("connect", function () {
+    redis.on("connect", () => {
       redis.get("foo", function (err) {
         expect(err.message).to.eql(
           "Stream isn't writeable and enableOfflineQueue options is false"

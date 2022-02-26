@@ -46,8 +46,8 @@ function expectAbortError(err) {
   expect(err.message).to.eql("Command aborted due to connection close");
 }
 
-describe("elasticache", function () {
-  it("should abort a failed transaction when connection is lost", function (done) {
+describe("elasticache", () => {
+  it("should abort a failed transaction when connection is lost", (done) => {
     const redis = simulateElasticache({ reconnectOnErrorValue: true });
 
     redis
@@ -80,7 +80,7 @@ describe("elasticache", function () {
       });
   });
 
-  it("should not resend failed transaction commands", function (done) {
+  it("should not resend failed transaction commands", (done) => {
     const redis = simulateElasticache({ reconnectOnErrorValue: 2 });
     redis
       .multi()
@@ -112,7 +112,7 @@ describe("elasticache", function () {
       });
   });
 
-  it("should resend intact pipelines", function (done) {
+  it("should resend intact pipelines", (done) => {
     const redis = simulateElasticache({ reconnectOnErrorValue: true });
 
     let p1Result;

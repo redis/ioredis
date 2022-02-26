@@ -1,9 +1,9 @@
 import Redis from "../../lib/Redis";
 import MockServer from "../helpers/mock_server";
 
-describe("sentinel_nat", function () {
-  it("connects to server as expected", function (done) {
-    const sentinel = new MockServer(27379, function (argv) {
+describe("sentinel_nat", () => {
+  it("connects to server as expected", (done) => {
+    const sentinel = new MockServer(27379, (argv) => {
       if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
         return ["127.0.0.1", "17380"];
       }
@@ -23,15 +23,15 @@ describe("sentinel_nat", function () {
 
     redis.connect(function (err) {
       if (err) {
-        sentinel.disconnect(function () {});
+        sentinel.disconnect(() => {});
         return done(err);
       }
       sentinel.disconnect(done);
     });
   });
 
-  it("rejects connection if host is not defined in map", function (done) {
-    const sentinel = new MockServer(27379, function (argv) {
+  it("rejects connection if host is not defined in map", (done) => {
+    const sentinel = new MockServer(27379, (argv) => {
       if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
         return ["127.0.0.1", "17380"];
       }
@@ -60,7 +60,7 @@ describe("sentinel_nat", function () {
 
     redis
       .connect()
-      .then(function () {
+      .then(() => {
         throw new Error("Should not call");
       })
       .catch(function (err) {

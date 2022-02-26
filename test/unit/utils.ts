@@ -3,9 +3,9 @@ import { expect } from "chai";
 import * as utils from "../../lib/utils";
 import TLSProfiles from "../../lib/constants/TLSProfiles";
 
-describe("utils", function () {
-  describe(".convertBufferToString", function () {
-    it("should return correctly", function () {
+describe("utils", () => {
+  describe(".convertBufferToString", () => {
+    it("should return correctly", () => {
       expect(utils.convertBufferToString(Buffer.from("123"))).to.eql("123");
       expect(
         utils.convertBufferToString([Buffer.from("abc"), Buffer.from("abc")])
@@ -27,8 +27,8 @@ describe("utils", function () {
     });
   });
 
-  describe(".wrapMultiResult", function () {
-    it("should return correctly", function () {
+  describe(".wrapMultiResult", () => {
+    it("should return correctly", () => {
       expect(utils.wrapMultiResult(null)).to.eql(null);
       expect(utils.wrapMultiResult([1, 2])).to.eql([
         [null, 1],
@@ -44,8 +44,8 @@ describe("utils", function () {
     });
   });
 
-  describe(".isInt", function () {
-    it("should return correctly", function () {
+  describe(".isInt", () => {
+    it("should return correctly", () => {
       expect(utils.isInt(2)).to.eql(true);
       expect(utils.isInt("2231")).to.eql(true);
       expect(utils.isInt("s")).to.eql(false);
@@ -54,8 +54,8 @@ describe("utils", function () {
     });
   });
 
-  describe(".packObject", function () {
-    it("should return correctly", function () {
+  describe(".packObject", () => {
+    it("should return correctly", () => {
       expect(utils.packObject([1, 2])).to.eql({ 1: 2 });
       expect(utils.packObject([1, "2"])).to.eql({ 1: "2" });
       expect(utils.packObject([1, "2", "abc", "def"])).to.eql({
@@ -65,10 +65,10 @@ describe("utils", function () {
     });
   });
 
-  describe(".timeout", function () {
-    it("should return a callback", function (done) {
+  describe(".timeout", () => {
+    it("should return a callback", (done) => {
       let invoked = false;
-      const wrappedCallback1 = utils.timeout(function () {
+      const wrappedCallback1 = utils.timeout(() => {
         invoked = true;
       }, 0);
       wrappedCallback1();
@@ -78,7 +78,7 @@ describe("utils", function () {
         expect(err.message).to.match(/timeout/);
         invokedTimes += 1;
         wrappedCallback2();
-        setTimeout(function () {
+        setTimeout(() => {
           expect(invoked).to.eql(true);
           expect(invokedTimes).to.eql(1);
           done();
@@ -87,8 +87,8 @@ describe("utils", function () {
     });
   });
 
-  describe(".convertObjectToArray", function () {
-    it("should return correctly", function () {
+  describe(".convertObjectToArray", () => {
+    it("should return correctly", () => {
       const nullObject = Object.create(null);
       nullObject.abc = "def";
       expect(utils.convertObjectToArray(nullObject)).to.eql(["abc", "def"]);
@@ -103,8 +103,8 @@ describe("utils", function () {
     });
   });
 
-  describe(".convertMapToArray", function () {
-    it("should return correctly", function () {
+  describe(".convertMapToArray", () => {
+    it("should return correctly", () => {
       expect(utils.convertMapToArray(new Map([["1", 2]]))).to.eql(["1", 2]);
       expect(utils.convertMapToArray(new Map([[1, 2]]))).to.eql([1, 2]);
       expect(
@@ -118,8 +118,8 @@ describe("utils", function () {
     });
   });
 
-  describe(".toArg", function () {
-    it("should return correctly", function () {
+  describe(".toArg", () => {
+    it("should return correctly", () => {
       expect(utils.toArg(null)).to.eql("");
       expect(utils.toArg(undefined)).to.eql("");
       expect(utils.toArg("abc")).to.eql("abc");
@@ -127,8 +127,8 @@ describe("utils", function () {
     });
   });
 
-  describe(".optimizeErrorStack", function () {
-    it("should return correctly", function () {
+  describe(".optimizeErrorStack", () => {
+    it("should return correctly", () => {
       const error = new Error();
       const res = utils.optimizeErrorStack(
         error,
@@ -139,8 +139,8 @@ describe("utils", function () {
     });
   });
 
-  describe(".parseURL", function () {
-    it("should return correctly", function () {
+  describe(".parseURL", () => {
+    it("should return correctly", () => {
       expect(utils.parseURL("/tmp.sock")).to.eql({ path: "/tmp.sock" });
       expect(utils.parseURL("127.0.0.1")).to.eql({ host: "127.0.0.1" });
       expect(utils.parseURL("6379")).to.eql({ port: "6379" });
@@ -193,7 +193,7 @@ describe("utils", function () {
       });
     });
 
-    it("supports allowUsernameInURI", function () {
+    it("supports allowUsernameInURI", () => {
       expect(
         utils.parseURL(
           "redis://user:pass@127.0.0.1:6380/4?allowUsernameInURI=true"
@@ -247,8 +247,8 @@ describe("utils", function () {
     });
   });
 
-  describe(".resolveTLSProfile", function () {
-    it("should leave options alone when no tls profile is set", function () {
+  describe(".resolveTLSProfile", () => {
+    it("should leave options alone when no tls profile is set", () => {
       [
         { host: "localhost", port: 6379 },
         { host: "localhost", port: 6379, tls: true },
@@ -262,12 +262,12 @@ describe("utils", function () {
       });
     });
 
-    it("should have redis.com profiles defined", function () {
+    it("should have redis.com profiles defined", () => {
       expect(TLSProfiles).to.have.property("RedisCloudFixed");
       expect(TLSProfiles).to.have.property("RedisCloudFlexible");
     });
 
-    it("should read profile from options.tls.profile", function () {
+    it("should read profile from options.tls.profile", () => {
       const input = {
         host: "localhost",
         port: 6379,
@@ -282,7 +282,7 @@ describe("utils", function () {
       expect(utils.resolveTLSProfile(input)).to.eql(expected);
     });
 
-    it("should read profile from options.tls", function () {
+    it("should read profile from options.tls", () => {
       const input = {
         host: "localhost",
         port: 6379,
@@ -297,7 +297,7 @@ describe("utils", function () {
       expect(utils.resolveTLSProfile(input)).to.eql(expected);
     });
 
-    it("supports extra options when using options.tls.profile", function () {
+    it("supports extra options when using options.tls.profile", () => {
       const input = {
         host: "localhost",
         port: 6379,
@@ -316,8 +316,8 @@ describe("utils", function () {
     });
   });
 
-  describe(".sample", function () {
-    it("should return a random value", function () {
+  describe(".sample", () => {
+    it("should return a random value", () => {
       let stub = sinon.stub(Math, "random").callsFake(() => 0);
       expect(utils.sample([1, 2, 3])).to.eql(1);
       expect(utils.sample([1, 2, 3], 1)).to.eql(2);
@@ -332,7 +332,7 @@ describe("utils", function () {
     });
   });
 
-  describe(".shuffle", function () {
+  describe(".shuffle", () => {
     function compareArray(arr1, arr2) {
       if (arr1.length !== arr2.length) {
         return false;

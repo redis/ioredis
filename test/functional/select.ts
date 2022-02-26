@@ -2,7 +2,7 @@ import Redis from "../../lib/Redis";
 import { expect } from "chai";
 
 describe("select", function () {
-  it("should support auto select", function (done) {
+  it("should support auto select", (done) => {
     const redis = new Redis({ db: 2 });
     redis.set("foo", "2");
     redis.select("2");
@@ -13,7 +13,7 @@ describe("select", function () {
     });
   });
 
-  it("should resend commands to the correct db", function (done) {
+  it("should resend commands to the correct db", (done) => {
     const redis = new Redis();
     redis.once("ready", function () {
       redis.set("foo", "2", function () {
@@ -34,7 +34,7 @@ describe("select", function () {
     });
   });
 
-  it("should re-select the current db when reconnect", function (done) {
+  it("should re-select the current db when reconnect", (done) => {
     const redis = new Redis();
 
     redis.once("ready", function () {
@@ -51,7 +51,7 @@ describe("select", function () {
     });
   });
 
-  it('should emit "select" event when db changes', function (done) {
+  it('should emit "select" event when db changes', (done) => {
     const changes = [];
     const redis = new Redis();
     redis.on("select", function (db) {
@@ -70,7 +70,7 @@ describe("select", function () {
     });
   });
 
-  it("should be sent on the connect event", function (done) {
+  it("should be sent on the connect event", (done) => {
     const redis = new Redis({ db: 2 });
     const select = redis.select;
     redis.select = function () {

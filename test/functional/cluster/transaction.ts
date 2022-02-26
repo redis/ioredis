@@ -3,14 +3,14 @@ import MockServer from "../../helpers/mock_server";
 import { expect } from "chai";
 import { Cluster } from "../../../lib";
 
-describe("cluster:transaction", function () {
-  it("should auto redirect commands on MOVED", function (done) {
+describe("cluster:transaction", () => {
+  it("should auto redirect commands on MOVED", (done) => {
     let moved = false;
     const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -22,7 +22,7 @@ describe("cluster:transaction", function () {
         return ["bar", "OK"];
       }
     });
-    new MockServer(30002, function (argv) {
+    new MockServer(30002, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -52,13 +52,13 @@ describe("cluster:transaction", function () {
       });
   });
 
-  it("should auto redirect commands on ASK", function (done) {
+  it("should auto redirect commands on ASK", (done) => {
     let asked = false;
     const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -80,7 +80,7 @@ describe("cluster:transaction", function () {
         asked = false;
       }
     });
-    new MockServer(30002, function (argv) {
+    new MockServer(30002, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -108,7 +108,7 @@ describe("cluster:transaction", function () {
       });
   });
 
-  it("should not print unhandled warnings", function (done) {
+  it("should not print unhandled warnings", (done) => {
     const errorMessage = "Connection is closed.";
     const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
     new MockServer(
@@ -144,7 +144,7 @@ describe("cluster:transaction", function () {
       .set("foo", "bar")
       .exec(function (err) {
         expect(err).to.have.property("message", errorMessage);
-        cluster.on("end", function () {
+        cluster.on("end", () => {
           // Wait for the end event to ensure the transaction
           // promise has been resolved.
           wrapDone();

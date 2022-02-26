@@ -10,7 +10,7 @@ use(require("chai-as-promised"));
   In this suite, foo1 and foo5 are usually served by the same node in a 3-nodes cluster.
   Instead foo1 and foo2 are usually served by different nodes in a 3-nodes cluster.
 */
-describe("autoPipelining for cluster", function () {
+describe("autoPipelining for cluster", () => {
   function changeSlot(cluster, from, to) {
     cluster.slots[from] = cluster.slots[to];
     cluster._groupsBySlot[from] = cluster._groupsBySlot[to];
@@ -23,7 +23,7 @@ describe("autoPipelining for cluster", function () {
       [10000, 16383, ["127.0.0.1", 30003]],
     ];
 
-    new MockServer(30001, function (argv) {
+    new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -41,7 +41,7 @@ describe("autoPipelining for cluster", function () {
       }
     });
 
-    new MockServer(30002, function (argv) {
+    new MockServer(30002, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }
@@ -55,7 +55,7 @@ describe("autoPipelining for cluster", function () {
       }
     });
 
-    new MockServer(30003, function (argv) {
+    new MockServer(30003, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return slotTable;
       }

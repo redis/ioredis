@@ -3,8 +3,8 @@ import { expect } from "chai";
 
 const CUSTOM_PROPERTY = "_myCustomProperty";
 
-describe("hgetall", function () {
-  beforeEach(function () {
+describe("hgetall", () => {
+  beforeEach(() => {
     Object.defineProperty(Object.prototype, CUSTOM_PROPERTY, {
       value: false,
       configurable: true,
@@ -13,11 +13,11 @@ describe("hgetall", function () {
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     delete (Object.prototype as any)[CUSTOM_PROPERTY];
   });
 
-  it("should handle special field names", async function () {
+  it("should handle special field names", async () => {
     const redis = new Redis();
     await redis.hmset(
       "test_key",

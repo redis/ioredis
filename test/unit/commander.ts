@@ -2,7 +2,7 @@ import * as sinon from "sinon";
 import { expect } from "chai";
 import Commander from "../../lib/utils/Commander";
 
-describe("Commander", function () {
+describe("Commander", () => {
   describe("#getBuiltinCommands()", () => {
     it("returns a new copy of commands", () => {
       const c = new Commander();
@@ -35,7 +35,7 @@ describe("Commander", function () {
     });
   });
 
-  it("should pass the correct arguments", function () {
+  it("should pass the correct arguments", () => {
     sinon.stub(Commander.prototype, "sendCommand").callsFake((command) => {
       return command;
     });
@@ -53,11 +53,11 @@ describe("Commander", function () {
     expect(command.args[0]).to.eql("foo");
     expect(command.args[1]).to.eql("bar");
 
-    command = c.call("set", "foo", "bar", function () {});
+    command = c.call("set", "foo", "bar", () => {});
     expect(command.name).to.eql("set");
     expect(command.args.length).to.eql(2);
 
-    command = c.callBuffer("set", "foo", "bar", function () {});
+    command = c.callBuffer("set", "foo", "bar", () => {});
     expect(command.name).to.eql("set");
     expect(command.args.length).to.eql(2);
 

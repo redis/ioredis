@@ -3,39 +3,39 @@ import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
 import { expect } from "chai";
 
-describe("cluster", function () {
-  beforeEach(function () {
+describe("cluster", () => {
+  beforeEach(() => {
     sinon.stub(Cluster.prototype, "connect").callsFake(() => Promise.resolve());
   });
 
-  afterEach(function () {
+  afterEach(() => {
     Cluster.prototype.connect.restore();
   });
 
-  it("should support frozen options", function () {
+  it("should support frozen options", () => {
     const options = Object.freeze({ maxRedirections: 1000 });
     const cluster = new Cluster([{ port: 7777 }], options);
     expect(cluster.options).to.have.property("maxRedirections", 1000);
     expect(cluster.options).to.have.property("scaleReads", "master");
   });
 
-  it("should allow overriding Commander options", function () {
+  it("should allow overriding Commander options", () => {
     const cluster = new Cluster([{ port: 7777 }], {
       showFriendlyErrorStack: true,
     });
     expect(cluster.options).to.have.property("showFriendlyErrorStack", true);
   });
 
-  it("throws when scaleReads is invalid", function () {
-    expect(function () {
+  it("throws when scaleReads is invalid", () => {
+    expect(() => {
       new Cluster([{}], { scaleReads: "invalid" });
     }).to.throw(/Invalid option scaleReads/);
   });
 
-  describe("#nodes()", function () {
-    it("throws when role is invalid", function () {
+  describe("#nodes()", () => {
+    it("throws when role is invalid", () => {
       const cluster = new Cluster([{}]);
-      expect(function () {
+      expect(() => {
         cluster.nodes("invalid");
       }).to.throw(/Invalid role/);
     });

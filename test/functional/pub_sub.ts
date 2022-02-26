@@ -2,7 +2,7 @@ import Redis from "../../lib/Redis";
 import { expect } from "chai";
 
 describe("pub/sub", function () {
-  it("should invoke the callback when subscribe successfully", function (done) {
+  it("should invoke the callback when subscribe successfully", (done) => {
     const redis = new Redis();
     let pending = 1;
     redis.subscribe("foo", "bar", function (err, count) {
@@ -17,7 +17,7 @@ describe("pub/sub", function () {
     });
   });
 
-  it("should reject when issue a command in the subscriber mode", function (done) {
+  it("should reject when issue a command in the subscriber mode", (done) => {
     const redis = new Redis();
     redis.subscribe("foo", function () {
       redis.set("foo", "bar", function (err) {
@@ -29,7 +29,7 @@ describe("pub/sub", function () {
     });
   });
 
-  it("should exit subscriber mode using unsubscribe", function (done) {
+  it("should exit subscriber mode using unsubscribe", (done) => {
     const redis = new Redis();
     redis.subscribe("foo", "bar", function () {
       redis.unsubscribe("foo", "bar", function (err, count) {
@@ -52,7 +52,7 @@ describe("pub/sub", function () {
     });
   });
 
-  it("should receive messages when subscribe a channel", function (done) {
+  it("should receive messages when subscribe a channel", (done) => {
     const redis = new Redis();
     const pub = new Redis();
     let pending = 2;
@@ -79,7 +79,7 @@ describe("pub/sub", function () {
     });
   });
 
-  it("should receive messages when psubscribe a pattern", function (done) {
+  it("should receive messages when psubscribe a pattern", (done) => {
     const redis = new Redis();
     const pub = new Redis();
     let pending = 2;
@@ -124,7 +124,7 @@ describe("pub/sub", function () {
     redis.disconnect();
   });
 
-  it("should be able to send quit command in the subscriber mode", function (done) {
+  it("should be able to send quit command in the subscriber mode", (done) => {
     const redis = new Redis();
     let pending = 1;
     redis.subscribe("foo", function () {
@@ -139,7 +139,7 @@ describe("pub/sub", function () {
     });
   });
 
-  it("should restore subscription after reconnecting(subscribe)", function (done) {
+  it("should restore subscription after reconnecting(subscribe)", (done) => {
     const redis = new Redis();
     const pub = new Redis();
     redis.subscribe("foo", "bar", function () {
@@ -163,7 +163,7 @@ describe("pub/sub", function () {
     });
   });
 
-  it("should restore subscription after reconnecting(psubscribe)", function (done) {
+  it("should restore subscription after reconnecting(psubscribe)", (done) => {
     const redis = new Redis();
     const pub = new Redis();
     redis.psubscribe("fo?o", "ba?r", function () {

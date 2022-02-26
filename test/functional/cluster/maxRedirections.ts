@@ -3,8 +3,8 @@ import MockServer from "../../helpers/mock_server";
 import { expect } from "chai";
 import { Cluster } from "../../../lib";
 
-describe("cluster:maxRedirections", function () {
-  it("should return error when reached max redirection", function (done) {
+describe("cluster:maxRedirections", () => {
+  it("should return error when reached max redirection", (done) => {
     let redirectTimes = 0;
     const argvHandler = function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {

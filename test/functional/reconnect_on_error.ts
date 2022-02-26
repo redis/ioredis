@@ -2,8 +2,8 @@ import Redis from "../../lib/Redis";
 import { expect } from "chai";
 import * as sinon from "sinon";
 
-describe("reconnectOnError", function () {
-  it("should pass the error as the first param", function (done) {
+describe("reconnectOnError", () => {
+  it("should pass the error as the first param", (done) => {
     let pending = 2;
     function assert(err) {
       expect(err.name).to.eql("ReplyError");
@@ -25,14 +25,14 @@ describe("reconnectOnError", function () {
     });
   });
 
-  it("should not reconnect if reconnectOnError returns false", function (done) {
+  it("should not reconnect if reconnectOnError returns false", (done) => {
     const redis = new Redis({
       reconnectOnError: function (err) {
         return false;
       },
     });
 
-    redis.disconnect = function () {
+    redis.disconnect = () => {
       throw new Error("should not disconnect");
     };
 
@@ -41,23 +41,23 @@ describe("reconnectOnError", function () {
     });
   });
 
-  it("should reconnect if reconnectOnError returns true or 1", function (done) {
+  it("should reconnect if reconnectOnError returns true or 1", (done) => {
     const redis = new Redis({
-      reconnectOnError: function () {
+      reconnectOnError: () => {
         return true;
       },
     });
 
-    redis.set("foo", function () {
-      redis.on("ready", function () {
+    redis.set("foo", () => {
+      redis.on("ready", () => {
         done();
       });
     });
   });
 
-  it("should reconnect and retry the command if reconnectOnError returns 2", function (done) {
-    var redis = new Redis({
-      reconnectOnError: function () {
+  it("should reconnect and retry the command if reconnectOnError returns 2", (done) => {
+    const redis = new Redis({
+      reconnectOnError: () => {
         redis.del("foo");
         return 2;
       },
@@ -70,9 +70,9 @@ describe("reconnectOnError", function () {
     });
   });
 
-  it("should select the currect database", function (done) {
-    var redis = new Redis({
-      reconnectOnError: function () {
+  it("should select the currect database", (done) => {
+    const redis = new Redis({
+      reconnectOnError: () => {
         redis.select(3);
         redis.del("foo");
         redis.select(0);
@@ -92,9 +92,9 @@ describe("reconnectOnError", function () {
     });
   });
 
-  it("should work with pipeline", function (done) {
-    var redis = new Redis({
-      reconnectOnError: function () {
+  it("should work with pipeline", (done) => {
+    const redis = new Redis({
+      reconnectOnError: () => {
         redis.del("foo");
         return 2;
       },
@@ -114,9 +114,9 @@ describe("reconnectOnError", function () {
       });
   });
 
-  it("should work with pipelined multi", function (done) {
-    var redis = new Redis({
-      reconnectOnError: function () {
+  it("should work with pipelined multi", (done) => {
+    const redis = new Redis({
+      reconnectOnError: () => {
         // deleting foo allows sadd below to succeed on the second try
         redis.del("foo");
         return 2;

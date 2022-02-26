@@ -6,13 +6,13 @@ import debug, {
   MAX_ARGUMENT_LENGTH,
 } from "../../lib/utils/debug";
 
-describe("utils/debug", function () {
-  afterEach(function () {
+describe("utils/debug", () => {
+  afterEach(() => {
     rDebug.enable(process.env.DEBUG || "");
   });
 
-  describe(".exports.getStringValue", function () {
-    it("should return a string or undefined", function () {
+  describe(".exports.getStringValue", () => {
+    it("should return a string or undefined", () => {
       expect(getStringValue(true)).to.be.undefined;
       expect(getStringValue(undefined)).to.be.undefined;
       expect(getStringValue(null)).to.be.undefined;
@@ -31,12 +31,12 @@ describe("utils/debug", function () {
     });
   });
 
-  describe(".exports", function () {
-    it("should return a function", function () {
+  describe(".exports", () => {
+    it("should return a function", () => {
       expect(debug("test")).to.be.a("function");
     });
 
-    it("should output to console if DEBUG is set", function () {
+    it("should output to console if DEBUG is set", () => {
       const dbgNS = "ioredis:debugtest";
 
       rDebug.enable(dbgNS);

@@ -2,8 +2,8 @@ import Redis from "../../lib/Redis";
 import { noop } from "../../lib/utils";
 import * as sinon from "sinon";
 
-describe("ready_check", function () {
-  it("should retry when redis is not ready", function (done) {
+describe("ready_check", () => {
+  it("should retry when redis is not ready", (done) => {
     const redis = new Redis({ lazyConnect: true });
 
     sinon.stub(redis, "info").callsFake((callback) => {
@@ -20,10 +20,10 @@ describe("ready_check", function () {
     redis.connect().catch(noop);
   });
 
-  it("should reconnect when info return a error", function (done) {
+  it("should reconnect when info return a error", (done) => {
     const redis = new Redis({
       lazyConnect: true,
-      retryStrategy: function () {
+      retryStrategy: () => {
         done();
         return;
       },
