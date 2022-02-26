@@ -33,7 +33,7 @@ module.exports = {
   exec: {
     overwrite: true,
     defs: [
-      "exec(callback?: Callback<[error: Error, result: unknown][] | null>): Promise<[error: Error, result: unknown][] | null>;",
+      "exec(callback?: Callback<[error: Error | null, result: unknown][] | null>): Promise<[error: Error | null, result: unknown][] | null>;",
     ],
   },
 };

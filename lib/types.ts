@@ -1,7 +1,7 @@
 import { Socket } from "net";
 import { TLSSocket } from "tls";
 
-export type CallbackFunction<T = any> = (err?: Error | null, result?: T) => void;
+export type Callback<T = any> = (err?: Error | null, result?: T) => void;
 export type NetStream = Socket | TLSSocket;
 
 export type CommandParameter = string | Buffer | number | any[];

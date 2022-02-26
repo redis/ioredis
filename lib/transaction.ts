@@ -1,20 +1,15 @@
 import { wrapMultiResult, noop } from "./utils";
 import asCallback from "standard-as-callback";
 import Pipeline from "./pipeline";
-import { CallbackFunction } from "./types";
+import { Callback } from "./types";
 import { ChainableCommander } from "./utils/RedisCommander";
-
-interface MultiOptions {
-  pipeline: boolean;
-}
 
 export interface Transaction {
   pipeline(commands?: [name: string, ...args: unknown[]][]): ChainableCommander;
-  multi(options?: MultiOptions): ChainableCommander;
-  multi(
-    commands?: [name: string, ...args: unknown[]][],
-    options?: MultiOptions
-  ): ChainableCommander;
+  multi(options: { pipeline: false }): Promise<"OK">;
+  multi(): ChainableCommander;
+  multi(options: { pipeline: true }): ChainableCommander;
+  multi(commands?: [name: string, ...args: unknown[]][]): ChainableCommander;
 }
 
 export function addTransactionSupport(redis) {
@@ -42,7 +37,7 @@ export function addTransactionSupport(redis) {
       pipeline.addBatch(commands);
     }
     const exec = pipeline.exec;
-    pipeline.exec = function (callback: CallbackFunction) {
+    pipeline.exec = function (callback: Callback) {
       // Wait for the cluster to be connected, since we need nodes information before continuing
       if (this.isCluster && !this.redis.slots.length) {
         if (this.redis.status === "wait") this.redis.connect().catch(noop);
@@ -97,7 +92,7 @@ export function addTransactionSupport(redis) {
     // @ts-expect-error
     const { execBuffer } = pipeline;
     // @ts-expect-error
-    pipeline.execBuffer = function (callback: CallbackFunction) {
+    pipeline.execBuffer = function (callback: Callback) {
       if (this._transactions > 0) {
         execBuffer.call(pipeline);
       }
@@ -107,7 +102,7 @@ export function addTransactionSupport(redis) {
   };
 
   const { exec } = redis;
-  redis.exec = function (callback: CallbackFunction): Promise<any[] | null> {
+  redis.exec = function (callback: Callback): Promise<any[] | null> {
     return asCallback(
       exec.call(this).then(function (results: any[] | null) {
         if (Array.isArray(results)) {

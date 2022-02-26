@@ -4,7 +4,7 @@ import asCallback from "standard-as-callback";
 import { deprecate } from "util";
 import Redis, { Cluster } from ".";
 import Command from "./command";
-import { CallbackFunction, PipelineWriteableStream } from "./types";
+import { Callback, PipelineWriteableStream } from "./types";
 import { noop } from "./utils";
 import Commander from "./utils/Commander";
 
@@ -259,9 +259,7 @@ Pipeline.prototype.execBuffer = deprecate(function () {
 //
 // If a different promise instance were returned, that promise would cause its own unhandled promise rejection
 // errors, even if that promise unconditionally resolved to **the resolved value of** this.promise.
-Pipeline.prototype.exec = function (
-  callback: CallbackFunction
-): Promise<Array<any>> {
+Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
   // Wait for the cluster to be connected, since we need nodes information before continuing
   if (this.isCluster && !this.redis.slots.length) {
     if (this.redis.status === "wait") this.redis.connect().catch(noop);

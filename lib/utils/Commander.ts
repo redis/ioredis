@@ -5,7 +5,7 @@ import {
 } from "../autoPipelining";
 import Command, { ArgumentType } from "../command";
 import Script from "../script";
-import { CallbackFunction, WriteableStream } from "../types";
+import { Callback, WriteableStream } from "../types";
 import RedisCommander, { ClientContext } from "./RedisCommander";
 
 export interface CommanderOptions {
@@ -129,9 +129,7 @@ function generateFunction(
     _commandName = null;
   }
 
-  return function (
-    ...args: ArgumentType[] | [...ArgumentType[], CallbackFunction]
-  ) {
+  return function (...args: ArgumentType[] | [...ArgumentType[], Callback]) {
     const commandName = (_commandName || args.shift()) as string;
     let callback = args[args.length - 1];
 
@@ -150,7 +148,7 @@ function generateFunction(
     if (this.options.dropBufferSupport && !_encoding) {
       return asCallback(
         Promise.reject(new Error(DROP_BUFFER_SUPPORT_ERROR)),
-        callback as CallbackFunction | undefined
+        callback as Callback | undefined
       );
     }
 

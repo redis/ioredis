@@ -7,7 +7,7 @@ import Command from "../command";
 import ClusterAllFailedError from "../errors/ClusterAllFailedError";
 import Redis from "../Redis";
 import ScanStream from "../ScanStream";
-import { CallbackFunction, ScanStreamOptions, WriteableStream } from "../types";
+import { Callback, ScanStreamOptions, WriteableStream } from "../types";
 import {
   CONNECTION_CLOSED_ERROR_MSG,
   Debug,
@@ -74,7 +74,7 @@ class Cluster extends Commander {
   private isRefreshing = false;
   private _autoPipelines: Map<string, typeof Pipeline> = new Map();
   private _runningAutoPipelines: Set<string> = new Set();
-  private _readyDelayedCallbacks: CallbackFunction[] = [];
+  private _readyDelayedCallbacks: Callback[] = [];
 
   /**
    * Every time Cluster#connect() is called, this value will be
@@ -299,7 +299,7 @@ class Cluster extends Commander {
   /**
    * Quit the cluster gracefully.
    */
-  quit(callback?: CallbackFunction<"OK">): Promise<"OK"> {
+  quit(callback?: Callback<"OK">): Promise<"OK"> {
     const status = this.status;
     this.setStatus("disconnecting");
 
@@ -375,7 +375,7 @@ class Cluster extends Commander {
   }
 
   // This is needed in order not to install a listener for each auto pipeline
-  delayUntilReady(callback: CallbackFunction) {
+  delayUntilReady(callback: Callback) {
     this._readyDelayedCallbacks.push(callback);
   }
 
@@ -397,7 +397,7 @@ class Cluster extends Commander {
   /**
    * Refresh the slot cache
    */
-  refreshSlotsCache(callback?: CallbackFunction<void>): void {
+  refreshSlotsCache(callback?: Callback<void>): void {
     if (this.isRefreshing) {
       if (typeof callback === "function") {
         process.nextTick(callback);
@@ -872,7 +872,7 @@ class Cluster extends Commander {
   /**
    * Check whether Cluster is able to process commands
    */
-  private readyCheck(callback: CallbackFunction<void | "fail">): void {
+  private readyCheck(callback: Callback<void | "fail">): void {
     (this as any).cluster("info", function (err, res) {
       if (err) {
         return callback(err);

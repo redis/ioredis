@@ -1,6 +1,7 @@
+import { Callback } from "../types";
+
 type RedisKey = string | Buffer;
 type RedisValue = string | Buffer | number;
-type Callback<T> = (err: Error | null | undefined, res?: T) => void;
 
 // Inspired by https://github.com/mmkal/handy-redis/blob/main/src/generated/interface.ts.
 // Should be fixed with https://github.com/Microsoft/TypeScript/issues/1213
