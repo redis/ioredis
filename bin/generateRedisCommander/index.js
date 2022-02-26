@@ -1,6 +1,7 @@
 const returnTypes = require("./returnTypes");
 const argumentTypes = require("./argumentTypes");
 const typeMaps = require("./typeMaps");
+const overrides = require("./overrides");
 const { getCommanderInterface } = require("@ioredis/interface-generator");
 
 const ignoredCommands = ["monitor", "multi"];
@@ -20,6 +21,7 @@ async function main() {
     redisOpts: {
       port: process.env.REDIS_PORT,
     },
+    overrides,
     returnTypes,
     argumentTypes,
     typeMaps: typeMaps,

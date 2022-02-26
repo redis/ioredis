@@ -47,6 +47,7 @@ type RedisStatus =
 
 class Redis extends Commander {
   static Cluster = Cluster;
+  static Command = Command;
   /**
    * Default options
    */
@@ -698,7 +699,7 @@ class Redis extends Commander {
 
   /**
    * Flush offline queue and command queue with error.
-   * 
+   *
    * @param error The error object to send to the commands
    * @param options options
    */

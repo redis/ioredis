@@ -4,11 +4,16 @@ import Pipeline from "./pipeline";
 import { CallbackFunction } from "./types";
 import { ChainableCommander } from "./utils/RedisCommander";
 
+interface MultiOptions {
+  pipeline: boolean;
+}
+
 export interface Transaction {
   pipeline(commands?: [name: string, ...args: unknown[]][]): ChainableCommander;
+  multi(options?: MultiOptions): ChainableCommander;
   multi(
     commands?: [name: string, ...args: unknown[]][],
-    options?: { pipeline: boolean }
+    options?: MultiOptions
   ): ChainableCommander;
 }
 
@@ -89,7 +94,9 @@ export function addTransactionSupport(redis) {
       );
     };
 
+    // @ts-expect-error
     const { execBuffer } = pipeline;
+    // @ts-expect-error
     pipeline.execBuffer = function (callback: CallbackFunction) {
       if (this._transactions > 0) {
         execBuffer.call(pipeline);

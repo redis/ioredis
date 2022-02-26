@@ -81,6 +81,7 @@ module.exports = {
   hello: "unknown[]",
   hexists: "number",
   hget: "string | null",
+  hgetall: "[field: string, value: string][]",
   hincrby: "number",
   hincrbyfloat: "string",
   hkeys: "string[]",
@@ -89,6 +90,28 @@ module.exports = {
   hmset: "'OK'",
   hset: "number",
   hsetnx: "number",
+  acl: (types) => {
+    if (matchSubcommand(types, "SAVE")) return '"OK"';
+    if (matchSubcommand(types, "DELUSER")) return "number";
+    if (matchSubcommand(types, "WHOAMI")) return "string";
+    if (matchSubcommand(types, "DRYRUN")) return "string";
+    if (matchSubcommand(types, "GENPASS")) return "string";
+    if (matchSubcommand(types, "GETUSER")) return "string[] | null";
+    if (matchSubcommand(types, "LIST")) return "string[]";
+    if (matchSubcommand(types, "USERS")) return "string[]";
+    if (matchSubcommand(types, "LOAD")) return '"OK"';
+    if (matchSubcommand(types, "SETUSER")) return '"OK"';
+  },
+  client: (types) => {
+    if (matchSubcommand(types, "CACHING")) return '"OK"';
+    if (matchSubcommand(types, "PAUSE")) return '"OK"';
+    if (matchSubcommand(types, "UNPAUSE")) return '"OK"';
+    if (matchSubcommand(types, "SETNAME")) return '"OK"';
+    if (matchSubcommand(types, "GETNAME")) return "string | null";
+    if (matchSubcommand(types, "GETREDIR")) return "number";
+    if (matchSubcommand(types, "INFO")) return "string";
+    if (matchSubcommand(types, "ID")) return "number";
+  },
   memory: (types) => {
     if (matchSubcommand(types, "MALLOC-STATS")) return "string";
     if (matchSubcommand(types, "PURGE")) return '"OK"';
@@ -227,8 +250,8 @@ module.exports = {
   zrevrangebyscore: "string[]",
   zrevrank: "number | null",
   zscore: "string",
-  zunion: "unknown[]",
-  zmscore: "unknown[] | null",
+  zunion: "string[]",
+  zmscore: "(string | null)[]",
   zunionstore: "number",
   scan: "[cursor: string, elements: string[]]",
   sscan: "[cursor: string, elements: string[]]",
