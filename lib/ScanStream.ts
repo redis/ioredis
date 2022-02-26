@@ -1,6 +1,6 @@
 import { Readable, ReadableOptions } from "stream";
 
-export interface ScanStreamOptions extends ReadableOptions {
+interface Options extends ReadableOptions {
   key?: string;
   match?: string;
   type?: string;
@@ -20,7 +20,7 @@ export default class ScanStream extends Readable {
   private _redisCursor = "0";
   private _redisDrained = false;
 
-  constructor(private opt: ScanStreamOptions) {
+  constructor(private opt: Options) {
     super(opt);
   }
 

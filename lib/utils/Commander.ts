@@ -18,16 +18,6 @@ const DROP_BUFFER_SUPPORT_ERROR =
   'because "dropBufferSupport" option is enabled.' +
   "Refer to https://github.com/luin/ioredis/wiki/Improve-Performance for more details.";
 
-/**
- * Commander
- *
- * This is the base class of Redis, Redis.Cluster and Pipeline
- *
- * @param {boolean} [options.showFriendlyErrorStack=false] - Whether to show a friendly error stack.
- * Will decrease the performance significantly.
- * @constructor
- */
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class Commander<Context extends ClientContext = { type: "default" }> {
   options: CommanderOptions = {};
@@ -66,12 +56,6 @@ class Commander<Context extends ClientContext = { type: "default" }> {
 
   /**
    * Define a custom command using lua script
-   *
-   * @param {object} definition
-   * @param {string} definition.lua - the lua code
-   * @param {number} [definition.numberOfKeys=null] - the number of keys.
-   * @param {boolean} [definition.readOnly=false] - force this script to be readonly so it executes on slaves as well.
-   * If omit, you have to pass the number of keys as the first argument every time you invoke the command
    */
   defineCommand(
     name: string,

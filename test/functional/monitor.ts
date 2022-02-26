@@ -1,12 +1,13 @@
 import Redis from "../../lib/Redis";
 import { expect } from "chai";
 import * as sinon from "sinon";
+import { waitForMonitorReady } from "../helpers/util";
 
 describe("monitor", function () {
   it("should receive commands", function (done) {
     const redis = new Redis();
     redis.on("ready", function () {
-      redis.monitor(function (err, monitor) {
+      redis.monitor(async (err, monitor) => {
         if (err) {
           done(err);
           return;
@@ -18,6 +19,8 @@ describe("monitor", function () {
           monitor.disconnect();
           done();
         });
+
+        await waitForMonitorReady(monitor);
         redis.get("foo");
       });
     });
@@ -25,7 +28,8 @@ describe("monitor", function () {
 
   it("should reject processing commands", function (done) {
     const redis = new Redis();
-    redis.monitor(function (err, monitor) {
+    redis.monitor(async (err, monitor) => {
+      await waitForMonitorReady(monitor);
       monitor.get("foo", function (err) {
         expect(err.message).to.match(/Connection is in monitoring mode/);
         redis.disconnect();
@@ -35,14 +39,14 @@ describe("monitor", function () {
     });
   });
 
-  it("should continue monitoring after reconnection", function (done) {
+  it("should continue monitoring after reconnection", (done) => {
     const redis = new Redis();
-    redis.monitor(function (err, monitor) {
+    redis.monitor((err, monitor) => {
       if (err) {
         done(err);
         return;
       }
-      monitor.on("monitor", function (time, args) {
+      monitor.on("monitor", (_time, args) => {
         if (args[0] === "set") {
           redis.disconnect();
           monitor.disconnect();
@@ -50,7 +54,8 @@ describe("monitor", function () {
         }
       });
       monitor.disconnect(true);
-      monitor.on("ready", function () {
+      monitor.on("ready", async () => {
+        await waitForMonitorReady(monitor);
         redis.set("foo", "bar");
       });
     });

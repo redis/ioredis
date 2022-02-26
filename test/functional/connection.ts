@@ -77,27 +77,6 @@ describe("connection", function () {
   });
 
   describe("connectTimeout", () => {
-    it("should close the connection when timeout", function (done) {
-      const redis = new Redis(6379, "192.0.0.0", {
-        connectTimeout: 1,
-        retryStrategy: null,
-      });
-      let pending = 2;
-      redis.on("error", function (err) {
-        expect(err.message).to.eql("connect ETIMEDOUT");
-        if (!--pending) {
-          done();
-        }
-      });
-      redis.get("foo", function (err) {
-        expect(err.message).to.match(/Connection is closed/);
-        if (!--pending) {
-          redis.disconnect();
-          done();
-        }
-      });
-    });
-
     it("should clear the timeout when connected", function (done) {
       const connectTimeout = 10000;
       const redis = new Redis({ connectTimeout });

@@ -14,7 +14,7 @@ export default class StandaloneConnector extends AbstractConnector {
     super(options.disconnectTimeout);
   }
 
-  public connect(_: ErrorEmitter) {
+  connect(_: ErrorEmitter) {
     const { options } = this;
     this.connecting = true;
 

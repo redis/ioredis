@@ -1,7 +1,7 @@
 const returnTypes = require("./returnTypes");
 const argumentTypes = require("./argumentTypes");
 const typeMaps = require("./typeMaps");
-const { getCommanderInterface } = require("ioredis-interface-generator");
+const { getCommanderInterface } = require("@ioredis/interface-generator");
 
 const ignoredCommands = ["monitor", "multi"];
 const commands = require("redis-commands").list.filter(
@@ -23,6 +23,14 @@ async function main() {
     returnTypes,
     argumentTypes,
     typeMaps: typeMaps,
+    ignoredBufferVariant: [
+      "incrbyfloat",
+      "type",
+      "info",
+      "latency",
+      "lolwut",
+      "memory",
+    ],
   });
 
   fs.writeFileSync(

@@ -53,10 +53,10 @@ export interface SentinelConnectionOptions {
 }
 
 export default class SentinelConnector extends AbstractConnector {
+  emitter: EventEmitter | null = null;
+  protected sentinelIterator: SentinelIterator;
   private retryAttempts: number;
   private failoverDetector: FailoverDetector | null = null;
-  protected sentinelIterator: SentinelIterator;
-  public emitter: EventEmitter | null = null;
 
   constructor(protected options: SentinelConnectionOptions) {
     super(options.disconnectTimeout);
@@ -71,7 +71,7 @@ export default class SentinelConnector extends AbstractConnector {
     this.sentinelIterator = new SentinelIterator(this.options.sentinels);
   }
 
-  public check(info: { role?: string }): boolean {
+  check(info: { role?: string }): boolean {
     const roleMatches: boolean = !info.role || this.options.role === info.role;
     if (!roleMatches) {
       debug(
@@ -89,7 +89,7 @@ export default class SentinelConnector extends AbstractConnector {
     return roleMatches;
   }
 
-  public disconnect(): void {
+  disconnect(): void {
     super.disconnect();
 
     if (this.failoverDetector) {
@@ -97,7 +97,7 @@ export default class SentinelConnector extends AbstractConnector {
     }
   }
 
-  public connect(eventEmitter: ErrorEmitter): Promise<NetStream> {
+  connect(eventEmitter: ErrorEmitter): Promise<NetStream> {
     this.connecting = true;
     this.retryAttempts = 0;
 
@@ -269,7 +269,7 @@ export default class SentinelConnector extends AbstractConnector {
     );
   }
 
-  sentinelNatResolve(item: SentinelAddress | null) {
+  private sentinelNatResolve(item: SentinelAddress | null) {
     if (!item || !this.options.natMap) return item;
 
     return this.options.natMap[`${item.host}:${item.port}`] || item;

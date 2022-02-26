@@ -1,17 +1,35 @@
+const hasToken = (types, token) => {
+  if (Array.isArray(token)) return token.some((t) => hasToken(types, t));
+  return types.find((type) => type.includes(token));
+};
+
+const matchSubcommand = (types, subcommand) => {
+  if (Array.isArray(subcommand))
+    return subcommand.some((s) => matchSubcommand(types, s));
+  return types[0].includes(subcommand);
+};
+
 module.exports = {
   multi: "ChainableCommander",
   get: "string | null",
   set: (types) => {
-    if (types.find((type) => type.includes("GET"))) {
-      return "string | null";
-    }
-    if (types.find((type) => type.includes("NX") || type.includes("XX"))) {
-      return "'OK' | null";
-    }
+    if (hasToken(types, "GET")) return "string | null";
+    if (hasToken(types, ["NX", "XX"])) return "'OK' | null";
     return "'OK'";
   },
   ping: (types) => {
     return types.length ? "string" : "'PONG'";
+  },
+  latency: (types) => {
+    if (matchSubcommand(types, ["HELP", "LATEST", "HISTORY"])) {
+      return "unknown[]";
+    }
+    if (matchSubcommand(types, "RESET")) {
+      return "number";
+    }
+    if (matchSubcommand(types, ["DOCTOR", "GRAPH"])) {
+      return "string";
+    }
   },
   append: "number",
   asking: "'OK'",
@@ -71,6 +89,14 @@ module.exports = {
   hmset: "'OK'",
   hset: "number",
   hsetnx: "number",
+  memory: (types) => {
+    if (matchSubcommand(types, "MALLOC-STATS")) return "string";
+    if (matchSubcommand(types, "PURGE")) return '"OK"';
+    if (matchSubcommand(types, "HELP")) return "unknown[]";
+    if (matchSubcommand(types, "STATS")) return "unknown[]";
+    if (matchSubcommand(types, "USAGE")) return "number | null";
+    if (matchSubcommand(types, "DOCTOR")) return "string";
+  },
   hrandfield: "string | unknown[] | null",
   hstrlen: "number",
   hvals: "string[]",
@@ -84,8 +110,12 @@ module.exports = {
   lindex: "string | null",
   linsert: "number",
   llen: "number",
-  lpop: "string" | "unknown[] | null",
-  lpos: null,
+  lpop: (types) => {
+    return types.includes("number") ? "string[] | null" : "string | null";
+  },
+  lpos: (types) => {
+    return hasToken(types, "COUNT") ? "number[]" : "number | null";
+  },
   lpush: "number",
   lpushx: "number",
   lrange: "string[]",
@@ -116,7 +146,9 @@ module.exports = {
   reset: "'OK'",
   restore: "'OK'",
   role: "unknown[]",
-  rpop: "string" | "unknown[] | null",
+  rpop: (types) => {
+    return types.includes("number") ? "string[] | null" : "string | null";
+  },
   rpoplpush: "string",
   lmove: "string",
   rpush: "number",
@@ -144,7 +176,7 @@ module.exports = {
   sort: "number" | "unknown[]",
   sortRo: "unknown[]",
   spop: (types) => (types.length > 1 ? "string[]" : "string | null"),
-  srandmember: "string" | "unknown[] | null",
+  srandmember: "string | unknown[] | null",
   srem: "number",
   strlen: "number",
   sunion: "string[]",

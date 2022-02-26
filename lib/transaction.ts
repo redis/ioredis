@@ -5,8 +5,11 @@ import { CallbackFunction } from "./types";
 import { ChainableCommander } from "./utils/RedisCommander";
 
 export interface Transaction {
-  pipeline(): ChainableCommander;
-  multi(): ChainableCommander;
+  pipeline(commands?: [name: string, ...args: unknown[]][]): ChainableCommander;
+  multi(
+    commands?: [name: string, ...args: unknown[]][],
+    options?: { pipeline: boolean }
+  ): ChainableCommander;
 }
 
 export function addTransactionSupport(redis) {
@@ -28,6 +31,7 @@ export function addTransactionSupport(redis) {
       return multi.call(this);
     }
     const pipeline = new Pipeline(this);
+    // @ts-expect-error
     pipeline.multi();
     if (Array.isArray(commands)) {
       pipeline.addBatch(commands);
