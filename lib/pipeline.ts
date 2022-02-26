@@ -30,15 +30,17 @@ class Pipeline extends Commander<{ type: "pipeline" }> {
   isCluster: boolean;
   isPipeline = true;
   leftRedirections: { ttl?: number };
+
+  promise: Promise<unknown>;
+  resolve: (result: unknown) => void;
+  reject: (error: Error) => void;
+
   private replyPending = 0;
   private _queue = [];
   private _result = [];
   private _transactions = 0;
   private _shaToScript = {};
   private preferKey: string;
-  promise: Promise<unknown>;
-  resolve: (result: unknown) => void;
-  reject: (error: Error) => void;
 
   constructor(public redis: Redis | Cluster) {
     super();
@@ -232,7 +234,9 @@ class Pipeline extends Commander<{ type: "pipeline" }> {
 
 export default Pipeline;
 
+// @ts-expect-error
 const multi = Pipeline.prototype.multi;
+// @ts-expect-error
 Pipeline.prototype.multi = function () {
   this._transactions += 1;
   return multi.apply(this, arguments);

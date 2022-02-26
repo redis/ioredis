@@ -20,6 +20,35 @@
     "@typescript-eslint/ban-ts-comment": 0,
     "@typescript-eslint/adjacent-overload-signatures": 0,
     "@typescript-eslint/ban-types": 0,
+    "@typescript-eslint/member-ordering": [
+      1,
+      {
+        "default": {
+          "memberTypes": [
+            "public-static-field",
+            "protected-static-field",
+            "private-static-field",
+
+            "public-static-method",
+            "protected-static-method",
+            "private-static-method",
+
+            "public-instance-field",
+            "protected-instance-field",
+            "private-instance-field",
+
+            "public-constructor",
+            "private-constructor",
+            "protected-constructor",
+
+            "public-instance-method",
+            "protected-instance-method",
+            "private-instance-method"
+          ]
+        }
+      }
+    ],
+    "@typescript-eslint/explicit-member-accessibility": [1, { "accessibility": "no-public" }],
     "@typescript-eslint/no-empty-interface": 0,
     "@typescript-eslint/no-empty-function": 0,
     "@typescript-eslint/no-unused-vars": [

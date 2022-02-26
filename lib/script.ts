@@ -17,7 +17,7 @@ export default class Script {
     const sha = this.sha;
     const socketHasScriptLoaded = new WeakSet();
     this.Command = class CustomScriptCommand extends Command {
-      public toWritable(socket: object): string | Buffer {
+      toWritable(socket: object): string | Buffer {
         const origReject = this.reject;
         this.reject = (err) => {
           if (err.toString().indexOf("NOSCRIPT") !== -1) {

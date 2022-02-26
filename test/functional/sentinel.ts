@@ -2,7 +2,7 @@ import { Socket } from "net";
 
 import Redis from "../../lib/Redis";
 import MockServer from "../helpers/mock_server";
-import { once } from "../helpers/once";
+import { once } from "events";
 import { expect } from "chai";
 import * as sinon from "sinon";
 

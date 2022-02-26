@@ -21,16 +21,16 @@ export default class ConnectionPool extends EventEmitter {
     super();
   }
 
-  public getNodes(role: NodeRole = "all"): any[] {
+  getNodes(role: NodeRole = "all"): any[] {
     const nodes = this.nodes[role];
     return Object.keys(nodes).map((key) => nodes[key]);
   }
 
-  public getInstanceByKey(key: NodeKey): any {
+  getInstanceByKey(key: NodeKey): any {
     return this.nodes.all[key];
   }
 
-  public getSampleInstance(role: NodeRole): any {
+  getSampleInstance(role: NodeRole): any {
     const keys = Object.keys(this.nodes[role]);
     const sampleKey = sample(keys);
     return this.nodes[role][sampleKey];
@@ -38,13 +38,8 @@ export default class ConnectionPool extends EventEmitter {
 
   /**
    * Find or create a connection to the node
-   *
-   * @param {RedisOptions} node
-   * @param {boolean} [readOnly=false]
-   * @returns {*}
-   * @memberof ConnectionPool
    */
-  public findOrCreate(node: RedisOptions, readOnly = false): any {
+  findOrCreate(node: RedisOptions, readOnly = false): any {
     const key = getNodeKey(node);
     readOnly = Boolean(readOnly);
 
@@ -111,26 +106,10 @@ export default class ConnectionPool extends EventEmitter {
   }
 
   /**
-   * Remove a node from the pool.
-   */
-  private removeNode(key: string): void {
-    const { nodes } = this;
-    if (nodes.all[key]) {
-      debug("Remove %s from the pool", key);
-      delete nodes.all[key];
-    }
-    delete nodes.master[key];
-    delete nodes.slave[key];
-  }
-
-  /**
    * Reset the pool with a set of nodes.
    * The old node will be removed.
-   *
-   * @param {(Array<string | number | object>)} nodes
-   * @memberof ConnectionPool
    */
-  public reset(nodes: RedisOptions[]): void {
+  reset(nodes: RedisOptions[]): void {
     debug("Reset with %O", nodes);
     const newNodes = {};
     nodes.forEach((node) => {
@@ -154,5 +133,18 @@ export default class ConnectionPool extends EventEmitter {
       const node = newNodes[key];
       this.findOrCreate(node, node.readOnly);
     });
+  }
+
+  /**
+   * Remove a node from the pool.
+   */
+  private removeNode(key: string): void {
+    const { nodes } = this;
+    if (nodes.all[key]) {
+      debug("Remove %s from the pool", key);
+      delete nodes.all[key];
+    }
+    delete nodes.master[key];
+    delete nodes.slave[key];
   }
 }

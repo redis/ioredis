@@ -1,7 +1,13 @@
 import { EventEmitter } from "events";
 import * as commands from "redis-commands";
 import asCallback from "standard-as-callback";
-import { AbstractConnector, Command, ScanStream, SentinelConnector } from ".";
+import {
+  AbstractConnector,
+  Cluster,
+  Command,
+  ScanStream,
+  SentinelConnector,
+} from ".";
 import { StandaloneConnector } from "./connectors";
 import * as eventHandler from "./redis/event_handler";
 import {
@@ -14,6 +20,7 @@ import {
   CallbackFunction,
   CommandItem,
   NetStream,
+  ScanStreamOptions,
   WriteableStream,
 } from "./types";
 import {
@@ -39,20 +46,17 @@ type RedisStatus =
   | "end";
 
 class Redis extends Commander {
+  static Cluster = Cluster;
   /**
    * Default options
-   *
-   * @var defaultOptions
    */
   private static defaultOptions = DEFAULT_REDIS_OPTIONS;
 
   /**
-   * Create a Redis instance
-   *
-   * @deprecated
+   * Create a Redis instance.
+   * This is the same as `new Redis()` but is included for compatibility with node-redis.
    */
-  static createClient(...args: unknown[]): Redis {
-    // @ts-expect-error
+  static createClient(...args: ConstructorParameters<typeof Redis>): Redis {
     return new Redis(...args);
   }
 
@@ -167,23 +171,6 @@ class Redis extends Commander {
 
   resetOfflineQueue() {
     this.offlineQueue = new Deque();
-  }
-
-  /**
-   * Change instance's status
-   */
-  private setStatus(status: RedisStatus, arg?: unknown) {
-    // @ts-expect-error
-    if (debug.enabled) {
-      debug(
-        "status[%s]: %s -> %s",
-        this._getDescription(),
-        this.status || "[empty]",
-        status
-      );
-    }
-    this.status = status;
-    process.nextTick(this.emit.bind(this, status, arg));
   }
 
   /**
@@ -399,86 +386,7 @@ class Redis extends Commander {
   }
 
   /**
-   * Flush offline queue and command queue with error.
-   *
-   * @param {Error} error - The error object to send to the commands
-   * @param {object} options
-   */
-  private flushQueue(error: Error, options?: RedisOptions) {
-    options = defaults({}, options, {
-      offlineQueue: true,
-      commandQueue: true,
-    });
-
-    let item;
-    if (options.offlineQueue) {
-      while (this.offlineQueue.length > 0) {
-        item = this.offlineQueue.shift();
-        item.command.reject(error);
-      }
-    }
-
-    if (options.commandQueue) {
-      if (this.commandQueue.length > 0) {
-        if (this.stream) {
-          this.stream.removeAllListeners("data");
-        }
-        while (this.commandQueue.length > 0) {
-          item = this.commandQueue.shift();
-          item.command.reject(error);
-        }
-      }
-    }
-  }
-
-  /**
-   * Check whether Redis has finished loading the persistent data and is able to
-   * process commands.
-   */
-  private _readyCheck(callback: CallbackFunction) {
-    const _this = this;
-    this.info(function (err, res) {
-      if (err) {
-        return callback(err);
-      }
-      if (typeof res !== "string") {
-        return callback(null, res);
-      }
-
-      const info: { [key: string]: any } = {};
-
-      const lines = res.split("\r\n");
-      for (let i = 0; i < lines.length; ++i) {
-        const [fieldName, ...fieldValueParts] = lines[i].split(":");
-        const fieldValue = fieldValueParts.join(":");
-        if (fieldValue) {
-          info[fieldName] = fieldValue;
-        }
-      }
-
-      if (!info.loading || info.loading === "0") {
-        callback(null, info);
-      } else {
-        const loadingEtaMs = (info.loading_eta_seconds || 1) * 1000;
-        const retryTime =
-          _this.options.maxLoadingRetryTime &&
-          _this.options.maxLoadingRetryTime < loadingEtaMs
-            ? _this.options.maxLoadingRetryTime
-            : loadingEtaMs;
-        debug(
-          "Redis server still loading, trying again in " + retryTime + "ms"
-        );
-        setTimeout(function () {
-          _this._readyCheck(callback);
-        }, retryTime);
-      }
-    });
-  }
-
-  /**
    * Emit only when there's at least one listener.
-   *
-   * @return {boolean} Returns true if event had listeners, false otherwise.
    */
   silentEmit(eventName: string, arg?: unknown): boolean {
     let error: unknown;
@@ -519,7 +427,7 @@ class Redis extends Commander {
    * MONITOR command via the new connection in order to avoid disturbing
    * the current connection.
    *
-   * @param {function} [callback] The callback function. If omit, a promise will be returned.
+   * @param callback The callback function. If omit, a promise will be returned.
    * @example
    * ```js
    * var redis = new Redis();
@@ -701,6 +609,38 @@ class Redis extends Commander {
     return command.promise;
   }
 
+  scanStream(options?: ScanStreamOptions) {
+    return this.createScanStream("scan", { options });
+  }
+
+  scanBufferStream(options?: ScanStreamOptions) {
+    return this.createScanStream("scanBuffer", { options });
+  }
+
+  sscanStream(key: string, options?: ScanStreamOptions) {
+    return this.createScanStream("sscan", { key, options });
+  }
+
+  sscanBufferStream(key: string, options?: ScanStreamOptions) {
+    return this.createScanStream("sscanBuffer", { key, options });
+  }
+
+  hscanStream(key: string, options?: ScanStreamOptions) {
+    return this.createScanStream("hscan", { key, options });
+  }
+
+  hscanBufferStream(key: string, options?: ScanStreamOptions) {
+    return this.createScanStream("hscanBuffer", { key, options });
+  }
+
+  zscanStream(key: string, options?: ScanStreamOptions) {
+    return this.createScanStream("zscan", { key, options });
+  }
+
+  zscanBufferStream(key: string, options?: ScanStreamOptions) {
+    return this.createScanStream("zscanBuffer", { key, options });
+  }
+
   /**
    * Get description of the connection. Used for debugging.
    */
@@ -725,42 +665,117 @@ class Redis extends Commander {
     }
     return description;
   }
+
+  /**
+   * Change instance's status
+   */
+  private setStatus(status: RedisStatus, arg?: unknown) {
+    // @ts-expect-error
+    if (debug.enabled) {
+      debug(
+        "status[%s]: %s -> %s",
+        this._getDescription(),
+        this.status || "[empty]",
+        status
+      );
+    }
+    this.status = status;
+    process.nextTick(this.emit.bind(this, status, arg));
+  }
+
+  private createScanStream(
+    command: string,
+    { key, options = {} }: { key?: string; options?: ScanStreamOptions }
+  ) {
+    return new ScanStream({
+      objectMode: true,
+      key: key,
+      redis: this,
+      command: command,
+      ...options,
+    });
+  }
+
+  /**
+   * Flush offline queue and command queue with error.
+   * 
+   * @param error The error object to send to the commands
+   * @param options options
+   */
+  private flushQueue(error: Error, options?: RedisOptions) {
+    options = defaults({}, options, {
+      offlineQueue: true,
+      commandQueue: true,
+    });
+
+    let item;
+    if (options.offlineQueue) {
+      while (this.offlineQueue.length > 0) {
+        item = this.offlineQueue.shift();
+        item.command.reject(error);
+      }
+    }
+
+    if (options.commandQueue) {
+      if (this.commandQueue.length > 0) {
+        if (this.stream) {
+          this.stream.removeAllListeners("data");
+        }
+        while (this.commandQueue.length > 0) {
+          item = this.commandQueue.shift();
+          item.command.reject(error);
+        }
+      }
+    }
+  }
+
+  /**
+   * Check whether Redis has finished loading the persistent data and is able to
+   * process commands.
+   */
+  private _readyCheck(callback: CallbackFunction) {
+    const _this = this;
+    this.info(function (err, res) {
+      if (err) {
+        return callback(err);
+      }
+      if (typeof res !== "string") {
+        return callback(null, res);
+      }
+
+      const info: { [key: string]: any } = {};
+
+      const lines = res.split("\r\n");
+      for (let i = 0; i < lines.length; ++i) {
+        const [fieldName, ...fieldValueParts] = lines[i].split(":");
+        const fieldValue = fieldValueParts.join(":");
+        if (fieldValue) {
+          info[fieldName] = fieldValue;
+        }
+      }
+
+      if (!info.loading || info.loading === "0") {
+        callback(null, info);
+      } else {
+        const loadingEtaMs = (info.loading_eta_seconds || 1) * 1000;
+        const retryTime =
+          _this.options.maxLoadingRetryTime &&
+          _this.options.maxLoadingRetryTime < loadingEtaMs
+            ? _this.options.maxLoadingRetryTime
+            : loadingEtaMs;
+        debug(
+          "Redis server still loading, trying again in " + retryTime + "ms"
+        );
+        setTimeout(function () {
+          _this._readyCheck(callback);
+        }, retryTime);
+      }
+    });
+  }
 }
 
 interface Redis extends EventEmitter {}
 applyMixin(Redis, EventEmitter);
-
-[
-  "scan",
-  "sscan",
-  "hscan",
-  "zscan",
-  "scanBuffer",
-  "sscanBuffer",
-  "hscanBuffer",
-  "zscanBuffer",
-].forEach((command) => {
-  Redis.prototype[command + "Stream"] = function (
-    key: string,
-    options: unknown
-  ) {
-    if (command === "scan" || command === "scanBuffer") {
-      options = key;
-      key = null;
-    }
-    return new ScanStream(
-      defaults(
-        {
-          objectMode: true,
-          key: key,
-          redis: this,
-          command: command,
-        },
-        options
-      )
-    );
-  };
-});
 
 addTransactionSupport(Redis.prototype);
 interface Redis extends Transaction {}

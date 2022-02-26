@@ -13,6 +13,7 @@ docker build -t $IMAGE_NAME --build-arg=NODE_VERSION=$NODE_VERSION -f test/docke
 docker run --rm  \
     -v $PWD/lib:/code/lib:ro \
     -v $PWD/test:/code/test:ro \
+    -v $PWD/test-d:/code/test-d:ro \
     -v $PWD/tsconfig.json:/code/tsconfig.json:ro \
     -v $PWD/.eslintignore:/code/.eslintignore:ro \
     -v $PWD/.eslintrc.json:/code/.eslintrc.json:ro \

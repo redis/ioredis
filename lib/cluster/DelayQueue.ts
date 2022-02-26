@@ -21,16 +21,11 @@ export default class DelayQueue {
   /**
    * Add a new item to the queue
    *
-   * @param {string} bucket bucket name
-   * @param {Function} item function that will run later
-   * @param {DelayQueueOptions} options
-   * @memberof DelayQueue
+   * @param bucket bucket name
+   * @param item function that will run later
+   * @param options
    */
-  public push(
-    bucket: string,
-    item: Function,
-    options: DelayQueueOptions
-  ): void {
+  push(bucket: string, item: Function, options: DelayQueueOptions): void {
     const callback = options.callback || process.nextTick;
     if (!this.queues[bucket]) {
       this.queues[bucket] = new Deque();

@@ -6,20 +6,20 @@ const debug = Debug("AbstractConnector");
 export type ErrorEmitter = (type: string, err: Error) => void;
 
 export default abstract class AbstractConnector {
-  private disconnectTimeout: number;
+  firstError?: Error;
   protected connecting = false;
   protected stream: NetStream;
-  public firstError?: Error;
+  private disconnectTimeout: number;
 
   constructor(disconnectTimeout: number) {
     this.disconnectTimeout = disconnectTimeout;
   }
 
-  public check(info: any): boolean {
+  check(info: any): boolean {
     return true;
   }
 
-  public disconnect(): void {
+  disconnect(): void {
     this.connecting = false;
 
     if (this.stream) {
@@ -40,5 +40,5 @@ export default abstract class AbstractConnector {
     }
   }
 
-  public abstract connect(_: ErrorEmitter): Promise<NetStream>;
+  abstract connect(_: ErrorEmitter): Promise<NetStream>;
 }

@@ -81,7 +81,7 @@ export interface CommandNameFlags {
  * @see {@link Redis#sendCommand} which can send a Command instance to Redis
  */
 export default class Command implements Respondable {
-  public static FLAGS: {
+  static FLAGS: {
     [key in keyof CommandNameFlags]: CommandNameFlags[key];
   } = {
     VALID_IN_SUBSCRIBER_MODE: [
@@ -99,6 +99,31 @@ export default class Command implements Respondable {
   };
 
   private static flagMap?: FlagMap;
+  private static _transformer: {
+    argument: { [command: string]: ArgumentTransformer };
+    reply: { [command: string]: ReplyTransformer };
+  } = {
+    argument: {},
+    reply: {},
+  };
+
+  /**
+   * Check whether the command has the flag
+   */
+  static checkFlag<T extends keyof CommandNameFlags>(
+    flagName: T,
+    commandName: string
+  ): commandName is CommandNameFlags[T][number] {
+    return !!this.getFlagMap()[flagName][commandName];
+  }
+
+  static setArgumentTransformer(name: string, func: ArgumentTransformer) {
+    this._transformer.argument[name] = func;
+  }
+
+  static setReplyTransformer(name: string, func: ReplyTransformer) {
+    this._transformer.reply[name] = func;
+  }
 
   private static getFlagMap(): FlagMap {
     if (!this.flagMap) {
@@ -116,69 +141,36 @@ export default class Command implements Respondable {
     return this.flagMap;
   }
 
-  /**
-   * Check whether the command has the flag
-   *
-   * @param {string} flagName
-   * @param {string} commandName
-   * @return {boolean}
-   */
-  public static checkFlag<T extends keyof CommandNameFlags>(
-    flagName: T,
-    commandName: string
-  ): commandName is CommandNameFlags[T][number] {
-    return !!this.getFlagMap()[flagName][commandName];
-  }
+  ignore?: boolean;
+  isReadOnly?: boolean;
 
-  private static _transformer: {
-    argument: { [command: string]: ArgumentTransformer };
-    reply: { [command: string]: ReplyTransformer };
-  } = {
-    argument: {},
-    reply: {},
-  };
+  args: CommandParameter[];
+  isCustomCommand = false;
+  inTransaction = false;
+  pipelineIndex?: number;
 
-  public static setArgumentTransformer(
-    name: string,
-    func: ArgumentTransformer
-  ) {
-    this._transformer.argument[name] = func;
-  }
-
-  public static setReplyTransformer(name: string, func: ReplyTransformer) {
-    this._transformer.reply[name] = func;
-  }
-
-  public ignore?: boolean;
-  public isReadOnly?: boolean;
+  isResolved = false;
+  reject: (err: Error) => void;
+  resolve: (result: any) => void;
+  promise: Promise<any>;
 
   private replyEncoding: BufferEncoding | null;
   private errorStack: Error;
   private bufferMode: boolean;
-  public args: CommandParameter[];
   private callback: CallbackFunction;
   private transformed = false;
-  public isCustomCommand = false;
-  public inTransaction = false;
-  public pipelineIndex?: number;
   private _commandTimeoutTimer?: NodeJS.Timeout;
 
   private slot?: number | null;
   private keys?: Array<string | Buffer>;
 
-  public isResolved = false;
-  public reject: (err: Error) => void;
-  public resolve: (result: any) => void;
-  public promise: Promise<any>;
-
   /**
    * Creates an instance of Command.
-   * @param {string} name Command name
-   * @param {(Array<string | Buffer | number>)} [args=[]] An array of command arguments
-   * @param {CommandOptions} [options={}]
-   * @param {CallbackFunction} [callback] The callback that handles the response.
+   * @param name Command name
+   * @param args An array of command arguments
+   * @param options
+   * @param callback The callback that handles the response.
    * If omit, the response will be handled via Promise
-   * @memberof Command
    */
   constructor(
     public name: string,
@@ -203,31 +195,7 @@ export default class Command implements Respondable {
     }
   }
 
-  private initPromise() {
-    const promise = new Promise((resolve, reject) => {
-      if (!this.transformed) {
-        this.transformed = true;
-        const transformer = Command._transformer.argument[this.name];
-        if (transformer) {
-          this.args = transformer(this.args);
-        }
-        this.stringifyArguments();
-      }
-
-      this.resolve = this._convertValue(resolve);
-      if (this.errorStack) {
-        this.reject = (err) => {
-          reject(optimizeErrorStack(err, this.errorStack.stack, __dirname));
-        };
-      } else {
-        this.reject = reject;
-      }
-    });
-
-    this.promise = asCallback(promise, this.callback);
-  }
-
-  public getSlot() {
+  getSlot() {
     if (typeof this.slot === "undefined") {
       const key = this.getKeys()[0];
       this.slot = key == null ? null : calculateSlot(key);
@@ -235,42 +203,14 @@ export default class Command implements Respondable {
     return this.slot;
   }
 
-  public getKeys(): Array<string | Buffer> {
+  getKeys(): Array<string | Buffer> {
     return this._iterateKeys();
   }
 
   /**
-   * Iterate through the command arguments that are considered keys.
-   *
-   * @param {Function} [transform=(key) => key] The transformation that should be applied to
-   * each key. The transformations will persist.
-   * @returns {string[]} The keys of the command.
-   * @memberof Command
-   */
-  private _iterateKeys(
-    transform: Function = (key) => key
-  ): Array<string | Buffer> {
-    if (typeof this.keys === "undefined") {
-      this.keys = [];
-      if (commands.exists(this.name)) {
-        const keyIndexes = commands.getKeyIndexes(this.name, this.args);
-        for (const index of keyIndexes) {
-          this.args[index] = transform(this.args[index]);
-          this.keys.push(this.args[index] as string | Buffer);
-        }
-      }
-    }
-    return this.keys;
-  }
-
-  /**
    * Convert command to writable buffer or string
-   *
-   * @return {string|Buffer}
-   * @see {@link Redis#sendCommand}
-   * @public
    */
-  public toWritable(_socket: object): string | Buffer {
+  toWritable(_socket: object): string | Buffer {
     let result;
     const commandStr =
       "*" +
@@ -323,7 +263,7 @@ export default class Command implements Respondable {
   stringifyArguments(): void {
     for (let i = 0; i < this.args.length; ++i) {
       const arg = this.args[i];
-      if (typeof arg === 'string') {
+      if (typeof arg === "string") {
         // buffers and strings don't need any transformation
       } else if (arg instanceof Buffer) {
         this.bufferMode = true;
@@ -334,38 +274,10 @@ export default class Command implements Respondable {
   }
 
   /**
-   * Convert the value from buffer to the target encoding.
-   *
-   * @private
-   * @param {Function} resolve The resolve function of the Promise
-   * @returns {Function} A function to transform and resolve a value
-   * @memberof Command
-   */
-  private _convertValue(resolve: Function): (result: any) => void {
-    return (value) => {
-      try {
-        const existingTimer = this._commandTimeoutTimer;
-        if (existingTimer) {
-          clearTimeout(existingTimer);
-          delete this._commandTimeoutTimer;
-        }
-
-        resolve(this.transformReply(value));
-        this.isResolved = true;
-      } catch (err) {
-        this.reject(err);
-      }
-      return this.promise;
-    };
-  }
-
-  /**
    * Convert buffer/buffer[] to string/string[],
    * and apply reply transformer.
-   *
-   * @memberof Command
    */
-  public transformReply(
+  transformReply(
     result: Buffer | Buffer[]
   ): string | string[] | Buffer | Buffer[] {
     if (this.replyEncoding) {
@@ -383,7 +295,7 @@ export default class Command implements Respondable {
    * Set the wait time before terminating the attempt to execute a command
    * and generating an error.
    */
-  public setTimeout(ms: number) {
+  setTimeout(ms: number) {
     if (!this._commandTimeoutTimer) {
       this._commandTimeoutTimer = setTimeout(() => {
         if (!this.isResolved) {
@@ -391,6 +303,70 @@ export default class Command implements Respondable {
         }
       }, ms);
     }
+  }
+
+  private initPromise() {
+    const promise = new Promise((resolve, reject) => {
+      if (!this.transformed) {
+        this.transformed = true;
+        const transformer = Command._transformer.argument[this.name];
+        if (transformer) {
+          this.args = transformer(this.args);
+        }
+        this.stringifyArguments();
+      }
+
+      this.resolve = this._convertValue(resolve);
+      if (this.errorStack) {
+        this.reject = (err) => {
+          reject(optimizeErrorStack(err, this.errorStack.stack, __dirname));
+        };
+      } else {
+        this.reject = reject;
+      }
+    });
+
+    this.promise = asCallback(promise, this.callback);
+  }
+
+  /**
+   * Iterate through the command arguments that are considered keys.
+   */
+  private _iterateKeys(
+    transform: Function = (key) => key
+  ): Array<string | Buffer> {
+    if (typeof this.keys === "undefined") {
+      this.keys = [];
+      if (commands.exists(this.name)) {
+        const keyIndexes = commands.getKeyIndexes(this.name, this.args);
+        for (const index of keyIndexes) {
+          this.args[index] = transform(this.args[index]);
+          this.keys.push(this.args[index] as string | Buffer);
+        }
+      }
+    }
+    return this.keys;
+  }
+
+  /**
+   * Convert the value from buffer to the target encoding.
+   */
+  private _convertValue(resolve: Function): (result: any) => void {
+    return (value) => {
+      try {
+        const existingTimer = this._commandTimeoutTimer;
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+          delete this._commandTimeoutTimer;
+        }
+
+        resolve(this.transformReply(value));
+        this.isResolved = true;
+      } catch (err) {
+        this.reject(err);
+      }
+      return this.promise;
+    };
   }
 }
 
@@ -452,12 +428,12 @@ class MixedBuffers {
   length = 0;
   items = [];
 
-  public push(x: string | Buffer) {
+  push(x: string | Buffer) {
     this.length += Buffer.byteLength(x);
     this.items.push(x);
   }
 
-  public toBuffer(): Buffer {
+  toBuffer(): Buffer {
     const result = Buffer.allocUnsafe(this.length);
     let offset = 0;
     for (const item of this.items) {
