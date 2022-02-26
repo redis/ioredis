@@ -39,6 +39,21 @@ export default class ClusterSubscriber {
     return this.subscriber;
   }
 
+  start(): void {
+    this.started = true;
+    this.selectSubscriber();
+    debug("started");
+  }
+
+  stop(): void {
+    this.started = false;
+    if (this.subscriber) {
+      this.subscriber.disconnect();
+      this.subscriber = null;
+    }
+    debug("stopped");
+  }
+
   private selectSubscriber() {
     const lastActiveSubscriber = this.lastActiveSubscriber;
 
@@ -133,20 +148,5 @@ export default class ClusterSubscriber {
         this.emitter.emit(event, arg1, arg2, arg3);
       });
     }
-  }
-
-  start(): void {
-    this.started = true;
-    this.selectSubscriber();
-    debug("started");
-  }
-
-  stop(): void {
-    this.started = false;
-    if (this.subscriber) {
-      this.subscriber.disconnect();
-      this.subscriber = null;
-    }
-    debug("stopped");
   }
 }

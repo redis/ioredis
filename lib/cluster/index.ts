@@ -7,7 +7,7 @@ import Command from "../command";
 import ClusterAllFailedError from "../errors/ClusterAllFailedError";
 import Redis from "../Redis";
 import ScanStream from "../ScanStream";
-import { CallbackFunction, WriteableStream } from "../types";
+import { CallbackFunction, ScanStreamOptions, WriteableStream } from "../types";
 import {
   CONNECTION_CLOSED_ERROR_MSG,
   Debug,
@@ -56,9 +56,14 @@ type ClusterStatus =
  */
 class Cluster extends Commander {
   options: ClusterOptions;
+  slots: NodeKey[][] = [];
+  status: ClusterStatus;
+  _groupsIds: { [key: string]: number } = {};
+  _groupsBySlot: number[] = Array(16384);
+  isCluster = true;
+
   private startupNodes: (string | number | object)[];
   private connectionPool: ConnectionPool;
-  slots: NodeKey[][] = [];
   private manuallyClosing: boolean;
   private retryAttempts = 0;
   private delayQueue: DelayQueue = new DelayQueue();
@@ -66,12 +71,8 @@ class Cluster extends Commander {
   private subscriber: ClusterSubscriber;
   private slotsTimer: NodeJS.Timer;
   private reconnectTimeout: NodeJS.Timer;
-  private status: ClusterStatus;
   private isRefreshing = false;
-  public isCluster = true;
   private _autoPipelines: Map<string, typeof Pipeline> = new Map();
-  _groupsIds: { [key: string]: number } = {};
-  _groupsBySlot: number[] = Array(16384);
   private _runningAutoPipelines: Set<string> = new Set();
   private _readyDelayedCallbacks: CallbackFunction[] = [];
 
@@ -80,19 +81,11 @@ class Cluster extends Commander {
    * auto-incrementing. The purpose of this value is used for
    * discarding previous connect attampts when creating a new
    * connection.
-   *
-   * @private
-   * @type {number}
-   * @memberof Cluster
    */
   private connectionEpoch = 0;
 
   /**
    * Creates an instance of Cluster.
-   *
-   * @param {((string | number | object)[])} startupNodes
-   * @param {ClusterOptions} [options={}]
-   * @memberof Cluster
    */
   constructor(
     startupNodes: (string | number | object)[],
@@ -173,11 +166,8 @@ class Cluster extends Commander {
 
   /**
    * Connect to a cluster
-   *
-   * @returns {Promise<void>}
-   * @memberof Cluster
    */
-  public connect(): Promise<void> {
+  connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (
         this.status === "connecting" ||
@@ -281,52 +271,9 @@ class Cluster extends Commander {
   }
 
   /**
-   * Called when closed to check whether a reconnection should be made
-   *
-   * @private
-   * @memberof Cluster
-   */
-  private handleCloseEvent(reason?: Error): void {
-    if (reason) {
-      debug("closed because %s", reason);
-    }
-
-    let retryDelay;
-    if (
-      !this.manuallyClosing &&
-      typeof this.options.clusterRetryStrategy === "function"
-    ) {
-      retryDelay = this.options.clusterRetryStrategy.call(
-        this,
-        ++this.retryAttempts,
-        reason
-      );
-    }
-    if (typeof retryDelay === "number") {
-      this.setStatus("reconnecting");
-      this.reconnectTimeout = setTimeout(
-        function () {
-          this.reconnectTimeout = null;
-          debug("Cluster is disconnected. Retrying after %dms", retryDelay);
-          this.connect().catch(function (err) {
-            debug("Got error %s when reconnecting. Ignoring...", err);
-          });
-        }.bind(this),
-        retryDelay
-      );
-    } else {
-      this.setStatus("end");
-      this.flushQueue(new Error("None of startup nodes is available"));
-    }
-  }
-
-  /**
    * Disconnect from every node in the cluster.
-   *
-   * @param {boolean} [reconnect=false]
-   * @memberof Cluster
    */
-  public disconnect(reconnect = false) {
+  disconnect(reconnect = false) {
     const status = this.status;
     this.setStatus("disconnecting");
 
@@ -351,12 +298,8 @@ class Cluster extends Commander {
 
   /**
    * Quit the cluster gracefully.
-   *
-   * @param {CallbackFunction<'OK'>} [callback]
-   * @returns {Promise<'OK'>}
-   * @memberof Cluster
    */
-  public quit(callback?: CallbackFunction<"OK">): Promise<"OK"> {
+  quit(callback?: CallbackFunction<"OK">): Promise<"OK"> {
     const status = this.status;
     this.setStatus("disconnecting");
 
@@ -409,13 +352,8 @@ class Cluster extends Commander {
    * var cluster = new Redis.Cluster([{ host: "127.0.0.1", port: "30001" }]);
    * var anotherCluster = cluster.duplicate();
    * ```
-   *
-   * @public
-   * @param {((string | number | object)[])} [overrideStartupNodes=[]]
-   * @param {ClusterOptions} [overrideOptions={}]
-   * @memberof Cluster
    */
-  public duplicate(overrideStartupNodes = [], overrideOptions = {}) {
+  duplicate(overrideStartupNodes = [], overrideOptions = {}) {
     const startupNodes =
       overrideStartupNodes.length > 0
         ? overrideStartupNodes
@@ -426,12 +364,8 @@ class Cluster extends Commander {
 
   /**
    * Get nodes with the specified role
-   *
-   * @param {NodeRole} [role='all']
-   * @returns {any[]}
-   * @memberof Cluster
    */
-  public nodes(role: NodeRole = "all"): any[] {
+  nodes(role: NodeRole = "all"): any[] {
     if (role !== "all" && role !== "master" && role !== "slave") {
       throw new Error(
         'Invalid role "' + role + '". Expected "all", "master" or "slave"'
@@ -441,7 +375,7 @@ class Cluster extends Commander {
   }
 
   // This is needed in order not to install a listener for each auto pipeline
-  public delayUntilReady(callback: CallbackFunction) {
+  delayUntilReady(callback: CallbackFunction) {
     this._readyDelayedCallbacks.push(callback);
   }
 
@@ -458,21 +392,6 @@ class Cluster extends Commander {
     }
 
     return queued;
-  }
-
-  /**
-   * Change cluster instance's status
-   *
-   * @private
-   * @param {ClusterStatus} status
-   * @memberof Cluster
-   */
-  private setStatus(status: ClusterStatus): void {
-    debug("status: %s -> %s", this.status || "[empty]", status);
-    this.status = status;
-    process.nextTick(() => {
-      this.emit(status);
-    });
   }
 
   /**
@@ -530,49 +449,6 @@ class Cluster extends Commander {
     }
 
     tryNode(0);
-  }
-
-  /**
-   * Flush offline queue with error.
-   *
-   * @param {Error} error
-   * @memberof Cluster
-   */
-  private flushQueue(error: Error) {
-    let item;
-    while (this.offlineQueue.length > 0) {
-      item = this.offlineQueue.shift();
-      item.command.reject(error);
-    }
-  }
-
-  executeOfflineCommands() {
-    if (this.offlineQueue.length) {
-      debug("send %d commands in offline queue", this.offlineQueue.length);
-      const offlineQueue = this.offlineQueue;
-      this.resetOfflineQueue();
-      while (offlineQueue.length > 0) {
-        const item = offlineQueue.shift();
-        this.sendCommand(item.command, item.stream, item.node);
-      }
-    }
-  }
-
-  natMapper(nodeKey: NodeKey | RedisOptions): RedisOptions {
-    if (this.options.natMap && typeof this.options.natMap === "object") {
-      const key =
-        typeof nodeKey === "string"
-          ? nodeKey
-          : `${nodeKey.host}:${nodeKey.port}`;
-      const mapped = this.options.natMap[key];
-      if (mapped) {
-        debug("NAT mapping %s -> %O", key, mapped);
-        return Object.assign({}, mapped);
-      }
-    }
-    return typeof nodeKey === "string"
-      ? nodeKeyToRedisOptions(nodeKey)
-      : nodeKey;
   }
 
   sendCommand(command: Command, stream?: WriteableStream, node?: any): unknown {
@@ -722,6 +598,30 @@ class Cluster extends Commander {
     return command.promise;
   }
 
+  sscanStream(key: string, options?: ScanStreamOptions) {
+    return this.createScanStream("sscan", { key, options });
+  }
+
+  sscanBufferStream(key: string, options?: ScanStreamOptions) {
+    return this.createScanStream("sscanBuffer", { key, options });
+  }
+
+  hscanStream(key: string, options?: ScanStreamOptions) {
+    return this.createScanStream("hscan", { key, options });
+  }
+
+  hscanBufferStream(key: string, options?: ScanStreamOptions) {
+    return this.createScanStream("hscanBuffer", { key, options });
+  }
+
+  zscanStream(key: string, options?: ScanStreamOptions) {
+    return this.createScanStream("zscan", { key, options });
+  }
+
+  zscanBufferStream(key: string, options?: ScanStreamOptions) {
+    return this.createScanStream("zscanBuffer", { key, options });
+  }
+
   handleError(error, ttl, handlers) {
     if (typeof ttl.value === "undefined") {
       ttl.value = this.options.maxRedirections;
@@ -774,7 +674,95 @@ class Cluster extends Commander {
     }
   }
 
-  getInfoFromNode(redis, callback) {
+  /**
+   * Change cluster instance's status
+   */
+  private setStatus(status: ClusterStatus): void {
+    debug("status: %s -> %s", this.status || "[empty]", status);
+    this.status = status;
+    process.nextTick(() => {
+      this.emit(status);
+    });
+  }
+
+  /**
+   * Called when closed to check whether a reconnection should be made
+   */
+  private handleCloseEvent(reason?: Error): void {
+    if (reason) {
+      debug("closed because %s", reason);
+    }
+
+    let retryDelay;
+    if (
+      !this.manuallyClosing &&
+      typeof this.options.clusterRetryStrategy === "function"
+    ) {
+      retryDelay = this.options.clusterRetryStrategy.call(
+        this,
+        ++this.retryAttempts,
+        reason
+      );
+    }
+    if (typeof retryDelay === "number") {
+      this.setStatus("reconnecting");
+      this.reconnectTimeout = setTimeout(
+        function () {
+          this.reconnectTimeout = null;
+          debug("Cluster is disconnected. Retrying after %dms", retryDelay);
+          this.connect().catch(function (err) {
+            debug("Got error %s when reconnecting. Ignoring...", err);
+          });
+        }.bind(this),
+        retryDelay
+      );
+    } else {
+      this.setStatus("end");
+      this.flushQueue(new Error("None of startup nodes is available"));
+    }
+  }
+
+  /**
+   * Flush offline queue with error.
+   */
+  private flushQueue(error: Error) {
+    let item;
+    while (this.offlineQueue.length > 0) {
+      item = this.offlineQueue.shift();
+      item.command.reject(error);
+    }
+  }
+
+  private executeOfflineCommands() {
+    if (this.offlineQueue.length) {
+      debug("send %d commands in offline queue", this.offlineQueue.length);
+      const offlineQueue = this.offlineQueue;
+      this.resetOfflineQueue();
+      while (offlineQueue.length > 0) {
+        const item = offlineQueue.shift();
+        this.sendCommand(item.command, item.stream, item.node);
+      }
+    }
+  }
+
+  private natMapper(nodeKey: NodeKey | RedisOptions): RedisOptions {
+    if (this.options.natMap && typeof this.options.natMap === "object") {
+      const key =
+        typeof nodeKey === "string"
+          ? nodeKey
+          : `${nodeKey.host}:${nodeKey.port}`;
+      const mapped = this.options.natMap[key];
+      if (mapped) {
+        debug("NAT mapping %s -> %O", key, mapped);
+        return Object.assign({}, mapped);
+      }
+    }
+    return typeof nodeKey === "string"
+      ? nodeKeyToRedisOptions(nodeKey)
+      : nodeKey;
+  }
+
+  private getInfoFromNode(redis, callback) {
     if (!redis) {
       return callback(new Error("Node is disconnected"));
     }
@@ -883,9 +871,6 @@ class Cluster extends Commander {
 
   /**
    * Check whether Cluster is able to process commands
-   *
-   * @param {Function} callback
-   * @private
    */
   private readyCheck(callback: CallbackFunction<void | "fail">): void {
     (this as any).cluster("info", function (err, res) {
@@ -979,9 +964,6 @@ class Cluster extends Commander {
    *
    * This process happens every time when #connect() is called since
    * #startupNodes and DNS records may chanage.
-   *
-   * @private
-   * @returns {Promise<RedisOptions[]>}
    */
   private resolveStartupNodeHostnames(): Promise<RedisOptions[]> {
     if (!Array.isArray(this.startupNodes) || this.startupNodes.length === 0) {
@@ -1017,34 +999,23 @@ class Cluster extends Commander {
       });
     });
   }
+
+  private createScanStream(
+    command: string,
+    { key, options = {} }: { key?: string; options?: ScanStreamOptions }
+  ) {
+    return new ScanStream({
+      objectMode: true,
+      key: key,
+      redis: this,
+      command: command,
+      ...options,
+    });
+  }
 }
 
 interface Cluster extends EventEmitter {}
 applyMixin(Cluster, EventEmitter);
-
-const scanCommands = [
-  "sscan",
-  "hscan",
-  "zscan",
-  "sscanBuffer",
-  "hscanBuffer",
-  "zscanBuffer",
-];
-scanCommands.forEach((command) => {
-  Cluster.prototype[command + "Stream"] = function (key, options) {
-    return new ScanStream(
-      defaults(
-        {
-          objectMode: true,
-          key: key,
-          redis: this,
-          command: command,
-        },
-        options
-      )
-    );
-  };
-});
 
 require("../transaction").addTransactionSupport(Cluster.prototype);
 

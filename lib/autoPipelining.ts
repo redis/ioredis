@@ -89,9 +89,6 @@ export function shouldUseAutoPipelining(
   );
 }
 
-/**
- * @private
- */
 export function getFirstValueInFlattenedArray(
   args: ArgumentType[]
 ): string | Buffer | number | null | undefined {

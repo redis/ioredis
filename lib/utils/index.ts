@@ -77,7 +77,6 @@ export function wrapMultiResult(arr: unknown[] | null): unknown[][] {
  * > isInt(true)
  * false
  * ```
- * @private
  */
 export function isInt(value: any): value is string {
   const x = parseFloat(value);
@@ -173,9 +172,9 @@ export function toArg(arg: any): string {
 /**
  * Optimize error stack
  *
- * @param {Error} error - actually error
- * @param {string} friendlyStack - the stack that more meaningful
- * @param {string} filterPath - only show stacks with the specified path
+ * @param error actually error
+ * @param friendlyStack the stack that more meaningful
+ * @param filterPath only show stacks with the specified path
  */
 export function optimizeErrorStack(
   error: Error,
@@ -200,11 +199,8 @@ export function optimizeErrorStack(
 
 /**
  * Parse the redis protocol url
- *
- * @param {string} url - the redis protocol url
- * @return {Object}
  */
-export function parseURL(url: string) {
+export function parseURL(url: string): Record<string, unknown> {
   if (isInt(url)) {
     return { port: url };
   }
@@ -257,9 +253,6 @@ interface TLSOptions {
 
 /**
  * Resolve TLS profile shortcut in connection options
- *
- * @param {Object} options - the redis connection options
- * @return {Object}
  */
 export function resolveTLSProfile(options: TLSOptions): TLSOptions {
   let tls = options?.tls;
@@ -279,12 +272,6 @@ export function resolveTLSProfile(options: TLSOptions): TLSOptions {
 
 /**
  * Get a random element from `array`
- *
- * @export
- * @template T
- * @param {T[]} array the array
- * @param {number} [from=0] start index
- * @returns {T}
  */
 export function sample<T>(array: T[], from = 0): T {
   const length = array.length;
@@ -296,11 +283,6 @@ export function sample<T>(array: T[], from = 0): T {
 /**
  * Shuffle the array using the Fisher-Yates Shuffle.
  * This method will mutate the original array.
- *
- * @export
- * @template T
- * @param {T[]} array
- * @returns {T[]}
  */
 export function shuffle<T>(array: T[]): T[] {
   let counter = array.length;

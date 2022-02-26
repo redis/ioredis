@@ -17,7 +17,7 @@ export class FailoverDetector {
     this.sentinels = sentinels;
   }
 
-  public cleanup() {
+  cleanup() {
     this.isDisconnected = true;
 
     for (const sentinel of this.sentinels) {
@@ -25,7 +25,7 @@ export class FailoverDetector {
     }
   }
 
-  public async subscribe() {
+  async subscribe() {
     debug("Starting FailoverDetector");
 
     const promises: Promise<unknown>[] = [];

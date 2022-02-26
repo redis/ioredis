@@ -5,7 +5,7 @@ module.exports = {
     [{ name: "subcommand", type: "string" }],
     [
       { name: "subcommand", type: "string" },
-      { name: "args", type: typeMaps.string, multiple: true },
+      { name: "args", type: typeMaps.string("args"), multiple: true },
     ],
   ],
 };
