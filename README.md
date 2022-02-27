@@ -11,7 +11,7 @@
 
 A robust, performance-focused and full-featured [Redis](http://redis.io) client for [Node.js](https://nodejs.org).
 
-Supports Redis >= 2.6.12 and (Node.js >= 10.12.0). Completely compatible with Redis 6.x.
+Supports Redis >= 2.6.12 and (Node.js >= 12.22.0). Completely compatible with Redis 7.x.
 
 # Features
 
@@ -19,8 +19,8 @@ ioredis is a robust, full-featured Redis client that is
 used in the world's biggest online commerce company [Alibaba](http://www.alibaba.com/) and many other awesome companies.
 
 0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](http://redis.io/topics/sentinel), [Streams](https://redis.io/topics/streams-intro), [Pipelining](http://redis.io/topics/pipelining) and of course [Lua scripting](http://redis.io/commands/eval) & [Pub/Sub](http://redis.io/topics/pubsub) (with the support of binary messages).
-1. High performance.
-2. Delightful API. It works with Node callbacks and Native promises.
+1. High performance 🚀.
+2. Delightful API 😄. It works with Node callbacks and Native promises.
 3. Transformation of command arguments and replies.
 4. Transparent key prefixing.
 5. Abstraction for Lua scripting, allowing you to define custom commands.
@@ -34,9 +34,16 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 13. Support for NAT mapping.
 14. Support for autopipelining
 
+# Versions
+
+| NPM Version | Branch | Node.js Version | Redis Version   |
+| ----------- | ------ | --------------- | --------------- |
+| 5.x.x       | main   | >= 12           | 2.6.12 ~ latest |
+| 4.x.x       | v4     | >= 6            | 2.6.12 ~ 7      |
+
 # Links
 
-- [API Documentation](http://luin.github.io/ioredis/)
+- [API Documentation](http://luin.github.io/ioredis/) ([Redis](http://luin.github.io/ioredis/classes/default.html), [Cluster](http://luin.github.io/ioredis/classes/Cluster.html))
 - [Changelog](Changelog.md)
 - [Migrating from node_redis](https://github.com/luin/ioredis/wiki/Migrating-from-node_redis)
 - [Error Handling](#error-handling)
