@@ -10,6 +10,7 @@
   "scripts": {
     "test:tsd": "npm run build && tsd",
     "test:js": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_LOG_ERROR=true NODE_ENV=test mocha \"test/helpers/*.ts\" \"test/**/*.ts\"",
+    "test:js:cluster": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_LOG_ERROR=true NODE_ENV=test mocha \"test-cluster/**/*.ts\"",
     "test:docs": "(npm run docs && git diff-index --quiet HEAD docs) || (echo 'Run `npm run docs` and commit the updated docs' && exit 1)",
     "test": "npm run test:js && npm run test:tsd",
     "lint": "eslint --ext .js,.ts ./lib",

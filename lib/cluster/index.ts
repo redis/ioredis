@@ -36,6 +36,7 @@ import {
   weightSrvRecords,
 } from "./util";
 import Deque = require("denque");
+import { addTransactionSupport, Transaction } from "../transaction";
 
 const debug = Debug("cluster");
 
@@ -1042,6 +1043,7 @@ class Cluster extends Commander {
 interface Cluster extends EventEmitter {}
 applyMixin(Cluster, EventEmitter);
 
-require("../transaction").addTransactionSupport(Cluster.prototype);
+addTransactionSupport(Cluster.prototype);
+interface Cluster extends Transaction {}
 
 export default Cluster;
