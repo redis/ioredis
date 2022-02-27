@@ -24,9 +24,6 @@ export interface NatMap {
 
 /**
  * Options for Cluster constructor
- *
- * @export
- * @interface ClusterOptions
  */
 export interface ClusterOptions extends CommanderOptions {
   /**

@@ -4,7 +4,9 @@
 npm run lint || exit 1
 # 2. Build typescript files (needed to run tests)
 npm run build || exit 1
-# 3. Run tests with mock redis server
+# 3. Verify that docs are up to date
+npm run test:docs
+# 4. Run tests with mock redis server
 redis-server --port 6379 &
 REDIS_PID=$?
 sleep 1

@@ -21,7 +21,15 @@ const DROP_BUFFER_SUPPORT_ERROR =
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class Commander<Context extends ClientContext = { type: "default" }> {
   options: CommanderOptions = {};
+
+  /**
+   * @ignore
+   */
   scriptsSet = {};
+
+  /**
+   * @ignore
+   */
   addedBuiltinSet = new Set<string>();
 
   /**
@@ -77,6 +85,9 @@ class Commander<Context extends ClientContext = { type: "default" }> {
     );
   }
 
+  /**
+   * @ignore
+   */
   sendCommand(
     command: Command,
     stream?: WriteableStream,

@@ -59,11 +59,7 @@ export interface CommandNameFlags {
  * Command instance
  *
  * It's rare that you need to create a Command instance yourself.
- *
- * @export
- * @class Command
- *
- * @example
+ * 
  * ```js
  * var infoCommand = new Command('info', null, function (err, result) {
  *   console.log('result', result);
@@ -78,7 +74,6 @@ export interface CommandNameFlags {
  *   console.log('result', result);
  * });
  * ```
- * @see {@link Redis#sendCommand} which can send a Command instance to Redis
  */
 export default class Command implements Respondable {
   static FLAGS: {

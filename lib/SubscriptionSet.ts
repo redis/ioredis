@@ -5,9 +5,6 @@ type DelSet = CommandNameFlags["EXIT_SUBSCRIBER_MODE"][number];
 
 /**
  * Tiny class to simplify dealing with subscription set
- *
- * @export
- * @class SubscriptionSet
  */
 export default class SubscriptionSet {
   private set: { [key: string]: { [channel: string]: boolean } } = {

@@ -51,15 +51,25 @@ type ClusterStatus =
 
 /**
  * Client for the official Redis Cluster
- *
- * @class Cluster
  */
 class Cluster extends Commander {
   options: ClusterOptions;
   slots: NodeKey[][] = [];
   status: ClusterStatus;
+
+  /**
+   * @ignore
+   */
   _groupsIds: { [key: string]: number } = {};
+
+  /**
+   * @ignore
+   */
   _groupsBySlot: number[] = Array(16384);
+
+  /**
+   * @ignore
+   */
   isCluster = true;
 
   private startupNodes: (string | number | object)[];
@@ -133,35 +143,6 @@ class Cluster extends Commander {
         debug("connecting failed: %s", err);
       });
     }
-  }
-
-  resetOfflineQueue() {
-    this.offlineQueue = new Deque();
-  }
-
-  clearNodesRefreshInterval() {
-    if (this.slotsTimer) {
-      clearTimeout(this.slotsTimer);
-      this.slotsTimer = null;
-    }
-  }
-
-  resetNodesRefreshInterval() {
-    if (this.slotsTimer) {
-      return;
-    }
-    const nextRound = () => {
-      this.slotsTimer = setTimeout(() => {
-        debug(
-          'refreshing slot caches... (triggered by "slotsRefreshInterval" option)'
-        );
-        this.refreshSlotsCache(() => {
-          nextRound();
-        });
-      }, this.options.slotsRefreshInterval);
-    };
-
-    nextRound();
   }
 
   /**
@@ -374,7 +355,11 @@ class Cluster extends Commander {
     return this.connectionPool.getNodes(role);
   }
 
-  // This is needed in order not to install a listener for each auto pipeline
+  /**
+   * This is needed in order not to install a listener for each auto pipeline
+   *
+   * @ignore
+   */
   delayUntilReady(callback: Callback) {
     this._readyDelayedCallbacks.push(callback);
   }
@@ -396,6 +381,8 @@ class Cluster extends Commander {
 
   /**
    * Refresh the slot cache
+   *
+   * @ignore
    */
   refreshSlotsCache(callback?: Callback<void>): void {
     if (this.isRefreshing) {
@@ -451,6 +438,9 @@ class Cluster extends Commander {
     tryNode(0);
   }
 
+  /**
+   * @ignore
+   */
   sendCommand(command: Command, stream?: WriteableStream, node?: any): unknown {
     if (this.status === "wait") {
       this.connect().catch(noop);
@@ -622,6 +612,9 @@ class Cluster extends Commander {
     return this.createScanStream("zscanBuffer", { key, options });
   }
 
+  /**
+   * @ignore
+   */
   handleError(error, ttl, handlers) {
     if (typeof ttl.value === "undefined") {
       ttl.value = this.options.maxRedirections;
@@ -673,6 +666,36 @@ class Cluster extends Commander {
       handlers.defaults();
     }
   }
+
+  private resetOfflineQueue() {
+    this.offlineQueue = new Deque();
+  }
+
+  private clearNodesRefreshInterval() {
+    if (this.slotsTimer) {
+      clearTimeout(this.slotsTimer);
+      this.slotsTimer = null;
+    }
+  }
+
+  private resetNodesRefreshInterval() {
+    if (this.slotsTimer) {
+      return;
+    }
+    const nextRound = () => {
+      this.slotsTimer = setTimeout(() => {
+        debug(
+          'refreshing slot caches... (triggered by "slotsRefreshInterval" option)'
+        );
+        this.refreshSlotsCache(() => {
+          nextRound();
+        });
+      }, this.options.slotsRefreshInterval);
+    };
+
+    nextRound();
+  }
+
 
   /**
    * Change cluster instance's status
