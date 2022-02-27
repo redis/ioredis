@@ -17,26 +17,22 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
+  test:
     runs-on: ubuntu-latest
-
-    # See https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#using-environment-variables-in-a-matrix
     strategy:
       fail-fast: false
       matrix:
         include:
-          # Need a new enough git version to install the npm husky module.
           - NODE_VERSION: 12-bullseye
           - NODE_VERSION: 14-bullseye
           - NODE_VERSION: 16-bullseye
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-
-      # Runs a single command using the runners shell
-      - name: Build and test in docker
+      - name: Build and test
         run: bash test/docker/main.sh ${{ matrix.NODE_VERSION }}
+  test-cluster:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build and test cluster
+        run: bash test-cluster/docker/main.sh
