@@ -35,9 +35,9 @@ interface CommonRedisOptions extends CommanderOptions {
   lazyConnect?: boolean;
 }
 
-export type RedisOptions =
-  | (CommonRedisOptions & SentinelConnectionOptions)
-  | (CommonRedisOptions & StandaloneConnectionOptions);
+export type RedisOptions = CommonRedisOptions &
+  SentinelConnectionOptions &
+  StandaloneConnectionOptions;
 
 export const DEFAULT_REDIS_OPTIONS: RedisOptions = {
   // Connection

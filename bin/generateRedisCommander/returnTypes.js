@@ -31,6 +31,51 @@ module.exports = {
       return "string";
     }
   },
+  cluster: (types) => {
+    if (matchSubcommand(types, "SLOTS")) {
+      return "[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][]";
+    }
+    if (
+      matchSubcommand(types, [
+        "ADDSLOTS",
+        "ADDSLOTSRANGE",
+        "DELSLOTS",
+        "DELSLOTSRANGE",
+        "FAILOVER",
+        "FLUSHSLOTS",
+        "FORGET",
+        "MEET",
+        "REPLICATE",
+        "RESET",
+        "SAVECONFIG",
+        "SET-CONFIG-EPOCH",
+        "SETSLOT",
+      ])
+    ) {
+      return "'OK'";
+    }
+    if (matchSubcommand(types, "BUMPEPOCH")) {
+      return "'BUMPED' | 'STILL'";
+    }
+    if (
+      matchSubcommand(types, [
+        "COUNT-FAILURE-REPORTS",
+        "COUNTKEYSINSLOT",
+        "KEYSLOT",
+      ])
+    ) {
+      return "number";
+    }
+    if (matchSubcommand(types, "GETKEYSINSLOT")) {
+      return "string[]";
+    }
+    if (matchSubcommand(types, ["INFO", "MYID"])) {
+      return "string";
+    }
+    if (matchSubcommand(types, "LINKS")) {
+      return "unknown[]";
+    }
+  },
   append: "number",
   asking: "'OK'",
   auth: "'OK'",

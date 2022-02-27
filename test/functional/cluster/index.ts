@@ -8,7 +8,7 @@ describe("cluster", () => {
   it("should return the error successfully", (done) => {
     let called = false;
     new MockServer(30001, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return [[0, 16383, ["127.0.0.1", 30001]]];
       }
       if (argv.toString() === "get,foo,bar") {
@@ -28,7 +28,7 @@ describe("cluster", () => {
 
   it("should get value successfully", (done) => {
     new MockServer(30001, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return [
           [0, 1, ["127.0.0.1", 30001]],
           [2, 16383, ["127.0.0.1", 30002]],
@@ -53,9 +53,9 @@ describe("cluster", () => {
     it("should reconnect when cluster state is not ok", (done) => {
       let state = "fail";
       new MockServer(30001, (argv) => {
-        if (argv[0] === "cluster" && argv[1] === "slots") {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
           return [[0, 16383, ["127.0.0.1", 30001]]];
-        } else if (argv[0] === "cluster" && argv[1] === "info") {
+        } else if (argv[0] === "cluster" && argv[1] === "INFO") {
           return "cluster_state:" + state;
         }
       });
@@ -87,10 +87,10 @@ describe("cluster", () => {
   describe("startupNodes", () => {
     it("should allow updating startupNodes", (done) => {
       new MockServer(30001, (argv) => {
-        if (argv[0] === "cluster" && argv[1] === "slots") {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
           return [[0, 16383, ["127.0.0.1", 30001]]];
         }
-        if (argv[0] === "cluster" && argv[1] === "info") {
+        if (argv[0] === "cluster" && argv[1] === "INFO") {
           return "cluster_state:fail";
         }
       });
@@ -123,7 +123,7 @@ describe("cluster", () => {
   describe("scaleReads", () => {
     beforeEach(function () {
       function handler(port, argv) {
-        if (argv[0] === "cluster" && argv[1] === "slots") {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
           return [
             [
               0,
@@ -305,18 +305,18 @@ describe("cluster", () => {
         [16382, 16383, ["127.0.0.1", 30002]],
       ];
       const node = new MockServer(30001, (argv) => {
-        if (argv[0] === "cluster" && argv[1] === "slots") {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
           return slotTable;
         }
       });
       new MockServer(30002, (argv) => {
-        if (argv[0] === "cluster" && argv[1] === "slots") {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
           return slotTable;
         }
       });
 
       new MockServer(30003, (argv) => {
-        if (argv[0] === "cluster" && argv[1] === "slots") {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
           return slotTable;
         }
       });
@@ -349,18 +349,18 @@ describe("cluster", () => {
         [5461, 10922, ["127.0.0.1", 30002]],
       ];
       new MockServer(30001, (argv) => {
-        if (argv[0] === "cluster" && argv[1] === "slots") {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
           return slotTable;
         }
       });
       new MockServer(30002, (argv) => {
-        if (argv[0] === "cluster" && argv[1] === "slots") {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
           return slotTable;
         }
       });
 
       new MockServer(30003, (argv) => {
-        if (argv[0] === "cluster" && argv[1] === "slots") {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
           return slotTable;
         }
       });
@@ -402,7 +402,7 @@ describe("cluster", () => {
         [2, 16383, ["127.0.0.1", 30002], ["127.0.0.1", 30003]],
       ];
       const argvHandler = function (argv) {
-        if (argv[0] === "cluster" && argv[1] === "slots") {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
           return slotTable;
         }
       };

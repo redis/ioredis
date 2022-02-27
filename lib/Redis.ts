@@ -125,15 +125,14 @@ class Redis extends Commander {
     this.resetCommandQueue();
     this.resetOfflineQueue();
 
-    if ("Connector" in this.options && this.options.Connector) {
+    if (this.options.Connector) {
       this.connector = new this.options.Connector(this.options);
-    } else if ("sentinels" in this.options && this.options.sentinels) {
+    } else if (this.options.sentinels) {
       const sentinelConnector = new SentinelConnector(this.options);
       sentinelConnector.emitter = this;
 
       this.connector = sentinelConnector;
     } else {
-      // @ts-expect-error
       this.connector = new StandaloneConnector(this.options);
     }
 

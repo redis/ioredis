@@ -32,6 +32,7 @@ async function main() {
       "latency",
       "lolwut",
       "memory",
+      "cluster",
     ],
   });
 

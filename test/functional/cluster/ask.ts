@@ -12,7 +12,7 @@ describe("cluster:ASK", () => {
       [2, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {
@@ -22,7 +22,7 @@ describe("cluster:ASK", () => {
       }
     });
     new MockServer(30002, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {
@@ -57,7 +57,7 @@ describe("cluster:ASK", () => {
       }
     });
     new MockServer(30002, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {

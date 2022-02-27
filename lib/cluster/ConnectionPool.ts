@@ -9,7 +9,7 @@ type NODE_TYPE = "all" | "master" | "slave";
 
 export default class ConnectionPool extends EventEmitter {
   // master + slave = all
-  private nodes: { [key in NODE_TYPE]: { [key: string]: any } } = {
+  private nodes: { [key in NODE_TYPE]: { [key: string]: Redis } } = {
     all: {},
     master: {},
     slave: {},
@@ -21,16 +21,16 @@ export default class ConnectionPool extends EventEmitter {
     super();
   }
 
-  getNodes(role: NodeRole = "all"): any[] {
+  getNodes(role: NodeRole = "all"): Redis[] {
     const nodes = this.nodes[role];
     return Object.keys(nodes).map((key) => nodes[key]);
   }
 
-  getInstanceByKey(key: NodeKey): any {
+  getInstanceByKey(key: NodeKey): Redis {
     return this.nodes.all[key];
   }
 
-  getSampleInstance(role: NodeRole): any {
+  getSampleInstance(role: NodeRole): Redis {
     const keys = Object.keys(this.nodes[role]);
     const sampleKey = sample(keys);
     return this.nodes[role][sampleKey];
@@ -39,7 +39,7 @@ export default class ConnectionPool extends EventEmitter {
   /**
    * Find or create a connection to the node
    */
-  findOrCreate(node: RedisOptions, readOnly = false): any {
+  findOrCreate(node: RedisOptions, readOnly = false): Redis {
     const key = getNodeKey(node);
     readOnly = Boolean(readOnly);
 
@@ -49,7 +49,7 @@ export default class ConnectionPool extends EventEmitter {
       this.specifiedOptions[key] = node;
     }
 
-    let redis;
+    let redis: Redis;
     if (this.nodes.all[key]) {
       redis = this.nodes.all[key];
       if (redis.options.readOnly !== readOnly) {
