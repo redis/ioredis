@@ -88,10 +88,10 @@ describe("cluster:connect", () => {
       if (argv[0] === "info") {
         // return 'role:master'
       }
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
-      if (argv[0] === "cluster" && argv[1] === "info") {
+      if (argv[0] === "cluster" && argv[1] === "INFO") {
         return "cluster_state:ok";
       }
     };
@@ -137,7 +137,7 @@ describe("cluster:connect", () => {
       [10923, 16383, ["127.0.0.1", 30003]],
     ];
     const argvHandler = function (argv) {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
     };
@@ -196,7 +196,7 @@ describe("cluster:connect", () => {
       [10923, 16383, ["127.0.0.1", 30003]],
     ];
     const argvHandler = function (argv) {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
     };
@@ -223,7 +223,7 @@ describe("cluster:connect", () => {
 
   it("should send command to the correct node", (done) => {
     new MockServer(30001, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return [
           [0, 1, ["127.0.0.1", 30001]],
           [2, 16383, ["127.0.0.1", 30002]],
@@ -248,7 +248,7 @@ describe("cluster:connect", () => {
   it("should emit errors when cluster cannot be connected", (done) => {
     const errorMessage = "ERR This instance has cluster support disabled";
     const argvHandler = function (argv) {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return new Error(errorMessage);
       }
     };
@@ -297,7 +297,7 @@ describe("cluster:connect", () => {
       [10923, 16383, ["127.0.0.1", 30003]],
     ];
     const argvHandler = function (port, argv) {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[0] === "auth") {
@@ -330,7 +330,7 @@ describe("cluster:connect", () => {
     let times = 0;
     let cluster;
     const argvHandler = function (argv) {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         times++;
         if (times === 1) {
           return [

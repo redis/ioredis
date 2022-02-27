@@ -13,7 +13,7 @@ describe("cluster:tls option", () => {
       [10923, 16383, ["127.0.0.1", 30003]],
     ];
     const argvHandler = function (argv) {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
     };

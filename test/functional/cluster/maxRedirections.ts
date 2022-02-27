@@ -7,7 +7,7 @@ describe("cluster:maxRedirections", () => {
   it("should return error when reached max redirection", (done) => {
     let redirectTimes = 0;
     const argvHandler = function (argv) {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return [
           [0, 1, ["127.0.0.1", 30001]],
           [2, 16383, ["127.0.0.1", 30002]],
