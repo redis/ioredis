@@ -45,6 +45,23 @@ type RedisStatus =
   | "close"
   | "end";
 
+/**
+ * This is the major component of ioredis.
+ * Use it to connect to a standalone Redis server or Sentinels.
+ *
+ * ```typescript
+ * const redis = new Redis(); // Default port is 6379
+ * async function main() {
+ *   redis.set("foo", "bar");
+ *   redis.get("foo", (err, result) => {
+ *     // `result` should be "bar"
+ *     console.log(err, result);
+ *   });
+ *   // Or use Promise
+ *   const result = await redis.get("foo");
+ * }
+ * ```
+ */
 class Redis extends Commander {
   static Cluster = Cluster;
   static Command = Command;
@@ -63,7 +80,15 @@ class Redis extends Commander {
 
   options: RedisOptions;
   status: RedisStatus = "wait";
+
+  /**
+   * @ignore
+   */
   stream: NetStream;
+
+  /**
+   * @ignore
+   */
   isCluster = false;
 
   private connector: AbstractConnector;
@@ -353,7 +378,6 @@ class Redis extends Commander {
    * However when you want to send a command that is not supported by ioredis yet,
    * this command will be useful.
    *
-   * @example
    * ```js
    * const redis = new Redis();
    *
@@ -370,6 +394,8 @@ class Redis extends Commander {
    * });
    * redis.sendCommand(set);
    * ```
+   *
+   * @ignore
    */
   sendCommand(command: Command, stream?: WriteableStream): unknown {
     if (this.status === "wait") {
@@ -526,6 +552,8 @@ class Redis extends Commander {
 
   /**
    * Emit only when there's at least one listener.
+   * 
+   * @ignore
    */
   silentEmit(eventName: string, arg?: unknown): boolean {
     let error: unknown;

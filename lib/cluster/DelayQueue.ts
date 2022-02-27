@@ -10,9 +10,6 @@ export interface DelayQueueOptions {
 
 /**
  * Queue that runs items after specified duration
- *
- * @export
- * @class DelayQueue
  */
 export default class DelayQueue {
   private queues: { [key: string]: any | null } = {};
