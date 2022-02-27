@@ -1,4 +1,4 @@
-export default {
+const TLSProfiles = {
   /**
    * TLS settings for Redis.com Cloud Fixed plan. Updated on 2021-10-06.
    */
@@ -100,4 +100,6 @@ export default {
       "UhWfa/HQYOAPDdEjNgnVwLI23b8t0TozyCWw7q8h\n" +
       "-----END CERTIFICATE-----\n",
   },
-};
+} as const;
+
+export default TLSProfiles;

@@ -8,7 +8,7 @@ import { noop } from "../../../lib/utils";
 describe("cluster:pub/sub", function () {
   it("should receive messages", (done) => {
     const handler = function (argv) {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return [
           [0, 1, ["127.0.0.1", 30001]],
           [2, 16383, ["127.0.0.1", 30002]],
@@ -38,7 +38,7 @@ describe("cluster:pub/sub", function () {
 
   it("should works when sending regular commands", (done) => {
     const handler = function (argv) {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return [[0, 16383, ["127.0.0.1", 30001]]];
       }
     };
@@ -64,7 +64,7 @@ describe("cluster:pub/sub", function () {
         expect(c.password).to.eql("abc");
         expect(getConnectionName(c)).to.eql("ioredis-cluster(subscriber)");
       }
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return [[0, 16383, ["127.0.0.1", 30001]]];
       }
     };
@@ -79,7 +79,7 @@ describe("cluster:pub/sub", function () {
 
   it("should re-subscribe after reconnection", (done) => {
     new MockServer(30001, function (argv) {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return [[0, 16383, ["127.0.0.1", 30001]]];
       } else if (argv[0] === "subscribe" || argv[0] === "psubscribe") {
         return [argv[0], argv[1]];
@@ -106,7 +106,7 @@ describe("cluster:pub/sub", function () {
 
   it("should re-psubscribe after reconnection", (done) => {
     new MockServer(30001, function (argv) {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return [[0, 16383, ["127.0.0.1", 30001]]];
       } else if (argv[0] === "subscribe" || argv[0] === "psubscribe") {
         return [argv[0], argv[1]];

@@ -106,16 +106,18 @@ export function packObject(array: any[]): Record<string, any> {
 /**
  * Return a callback with timeout
  */
-export function timeout(callback: Callback, timeout: number) {
-  let timer: NodeJS.Timeout;
-  const run = function () {
+export function timeout<T>(
+  callback: Callback<T>,
+  timeout: number
+): Callback<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const run: Callback<T> = function () {
     if (timer) {
       clearTimeout(timer);
       timer = null;
       callback.apply(this, arguments);
     }
   };
-  // @ts-expect-error we are using `arguments`
   timer = setTimeout(run, timeout, new Error("timeout"));
   return run;
 }

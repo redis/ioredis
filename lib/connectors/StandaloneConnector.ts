@@ -1,13 +1,14 @@
-import { createConnection, TcpNetConnectOpts, IpcNetConnectOpts } from "net";
+import { createConnection, IpcNetConnectOpts, TcpNetConnectOpts } from "net";
 import { connect as createTLSConnection, ConnectionOptions } from "tls";
+import { NetStream } from "../types";
 import { CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import AbstractConnector, { ErrorEmitter } from "./AbstractConnector";
-import { NetStream } from "../types";
 
-export type StandaloneConnectionOptions = (
-  | TcpNetConnectOpts
-  | IpcNetConnectOpts
-) & { disconnectTimeout: number; tls?: ConnectionOptions };
+export type StandaloneConnectionOptions = (Partial<TcpNetConnectOpts> &
+  Partial<IpcNetConnectOpts>) & {
+  disconnectTimeout?: number;
+  tls?: ConnectionOptions;
+};
 
 export default class StandaloneConnector extends AbstractConnector {
   constructor(protected options: StandaloneConnectionOptions) {

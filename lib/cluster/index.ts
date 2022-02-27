@@ -346,7 +346,7 @@ class Cluster extends Commander {
   /**
    * Get nodes with the specified role
    */
-  nodes(role: NodeRole = "all"): any[] {
+  nodes(role: NodeRole = "all"): Redis[] {
     if (role !== "all" && role !== "master" && role !== "slave") {
       throw new Error(
         'Invalid role "' + role + '". Expected "all", "master" or "slave"'
@@ -696,7 +696,6 @@ class Cluster extends Commander {
     nextRound();
   }
 
-
   /**
    * Change cluster instance's status
    */
@@ -785,7 +784,7 @@ class Cluster extends Commander {
       : nodeKey;
   }
 
-  private getInfoFromNode(redis, callback) {
+  private getInfoFromNode(redis: Redis, callback) {
     if (!redis) {
       return callback(new Error("Node is disconnected"));
     }
@@ -808,7 +807,7 @@ class Cluster extends Commander {
     duplicatedConnection.on("error", noop);
 
     duplicatedConnection.cluster(
-      "slots",
+      "SLOTS",
       timeout((err, result) => {
         duplicatedConnection.disconnect();
         if (err) {
@@ -827,7 +826,7 @@ class Cluster extends Commander {
           callback();
           return;
         }
-        const nodes = [];
+        const nodes: RedisOptions[] = [];
 
         debug("cluster slots result count: %d", result.length);
 
@@ -841,10 +840,13 @@ class Cluster extends Commander {
             if (!items[j][0]) {
               continue;
             }
-            items[j] = this.natMapper({ host: items[j][0], port: items[j][1] });
-            items[j].readOnly = j !== 2;
-            nodes.push(items[j]);
-            keys.push(items[j].host + ":" + items[j].port);
+            const node = this.natMapper({
+              host: items[j][0],
+              port: items[j][1],
+            });
+            node.readOnly = j !== 2;
+            nodes.push(node);
+            keys.push(node.host + ":" + node.port);
           }
 
           debug(
@@ -896,7 +898,7 @@ class Cluster extends Commander {
    * Check whether Cluster is able to process commands
    */
   private readyCheck(callback: Callback<void | "fail">): void {
-    (this as any).cluster("info", function (err, res) {
+    this.cluster("INFO", function (err, res) {
       if (err) {
         return callback(err);
       }

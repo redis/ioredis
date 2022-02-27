@@ -11,12 +11,12 @@ describe("cluster:pipeline", () => {
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
     });
     new MockServer(30002, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
     });
@@ -42,12 +42,12 @@ describe("cluster:pipeline", () => {
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
     });
     new MockServer(30002, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
     });
@@ -74,7 +74,7 @@ describe("cluster:pipeline", () => {
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {
@@ -82,7 +82,7 @@ describe("cluster:pipeline", () => {
       }
     });
     new MockServer(30002, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[1] === "foo") {
@@ -115,7 +115,7 @@ describe("cluster:pipeline", () => {
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[0] === "asking") {
@@ -130,7 +130,7 @@ describe("cluster:pipeline", () => {
       }
     });
     new MockServer(30002, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[1] === "foo") {
@@ -156,7 +156,7 @@ describe("cluster:pipeline", () => {
     let times = 0;
     const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
     new MockServer(30001, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[1] === "foo") {
@@ -189,7 +189,7 @@ describe("cluster:pipeline", () => {
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {
@@ -197,7 +197,7 @@ describe("cluster:pipeline", () => {
       }
     });
     new MockServer(30002, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {
@@ -225,12 +225,12 @@ describe("cluster:pipeline", () => {
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
     });
     const node2 = new MockServer(30002, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {

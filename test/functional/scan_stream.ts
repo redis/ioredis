@@ -175,7 +175,7 @@ describe("*scanStream", () => {
       ];
       const serverKeys = ["foo1", "foo2", "foo3", "foo4", "foo10"];
       const argvHandler = function (argv) {
-        if (argv[0] === "cluster" && argv[1] === "slots") {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
           return slotTable;
         }
         if (argv[0] === "sscan" && argv[1] === "set") {

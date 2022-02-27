@@ -24,7 +24,7 @@ describe("autoPipelining for cluster", () => {
     ];
 
     new MockServer(30001, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
 
@@ -42,7 +42,7 @@ describe("autoPipelining for cluster", () => {
     });
 
     new MockServer(30002, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
 
@@ -56,7 +56,7 @@ describe("autoPipelining for cluster", () => {
     });
 
     new MockServer(30003, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
 

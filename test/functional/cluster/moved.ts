@@ -14,7 +14,7 @@ describe("cluster:MOVED", () => {
       [2, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {
@@ -28,7 +28,7 @@ describe("cluster:MOVED", () => {
       }
     });
     new MockServer(30002, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {
@@ -48,7 +48,7 @@ describe("cluster:MOVED", () => {
 
   it("should be able to redirect a command to a unknown node", (done) => {
     new MockServer(30001, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return [[0, 16383, ["127.0.0.1", 30001]]];
       }
       if (argv[0] === "get" && argv[1] === "foo") {
@@ -56,7 +56,7 @@ describe("cluster:MOVED", () => {
       }
     });
     new MockServer(30002, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return [
           [0, 16381, ["127.0.0.1", 30001]],
           [16382, 16383, ["127.0.0.1", 30002]],
@@ -85,7 +85,7 @@ describe("cluster:MOVED", () => {
       [2, 16383, ["127.0.0.1", 30002]],
     ];
     new MockServer(30001, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {
@@ -99,7 +99,7 @@ describe("cluster:MOVED", () => {
       }
     });
     new MockServer(30002, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {
@@ -123,7 +123,7 @@ describe("cluster:MOVED", () => {
     let cluster = undefined;
     const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
     new MockServer(30001, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {
@@ -132,7 +132,7 @@ describe("cluster:MOVED", () => {
     });
 
     new MockServer(30002, (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "slots") {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {
