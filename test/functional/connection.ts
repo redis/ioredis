@@ -37,7 +37,7 @@ describe("connection", function () {
         redis.disconnect();
         setImmediate(() => done());
       }
-      command.resolve("fake");
+      return command.resolve("fake");
     });
   });
 

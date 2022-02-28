@@ -88,7 +88,6 @@ export function connectHandler(self) {
             );
           }
         } else {
-          self.serverInfo = info;
           if (self.connector.check(info)) {
             exports.readyHandler(self)();
           } else {

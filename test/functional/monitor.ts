@@ -64,10 +64,10 @@ describe("monitor", () => {
   it("should wait for the ready event before monitoring", (done) => {
     const redis = new Redis();
     redis.on("ready", () => {
+      // @ts-expect-error
       const readyCheck = sinon.spy(Redis.prototype, "_readyCheck");
-      redis.monitor(function (err, monitor) {
+      redis.monitor((err, monitor) => {
         expect(readyCheck.callCount).to.eql(1);
-        Redis.prototype._readyCheck.restore();
         redis.disconnect();
         monitor.disconnect();
         done();

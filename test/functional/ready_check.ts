@@ -1,19 +1,29 @@
 import Redis from "../../lib/Redis";
 import { noop } from "../../lib/utils";
 import * as sinon from "sinon";
+import { expect } from "chai";
+
+const stubInfo = (
+  redis: Redis,
+  response: [Error | null, string | undefined]
+) => {
+  sinon.stub(redis, "info").callsFake((section, callback) => {
+    const cb = typeof section === "function" ? section : callback;
+    const [error, info] = response;
+    cb(error, info);
+    return error ? Promise.reject(error) : Promise.resolve(info);
+  });
+};
 
 describe("ready_check", () => {
   it("should retry when redis is not ready", (done) => {
     const redis = new Redis({ lazyConnect: true });
 
-    sinon.stub(redis, "info").callsFake((callback) => {
-      callback(null, "loading:1\r\nloading_eta_seconds:7");
-    });
+    stubInfo(redis, [null, "loading:1\r\nloading_eta_seconds:7"]);
+
     // @ts-expect-error
-    const stub = sinon.stub(global, "setTimeout").callsFake((body, ms) => {
+    sinon.stub(global, "setTimeout").callsFake((_body, ms) => {
       if (ms === 7000) {
-        redis.info.restore();
-        stub.restore();
         done();
       }
     });
@@ -29,10 +39,25 @@ describe("ready_check", () => {
       },
     });
 
-    sinon.stub(redis, "info").callsFake((callback) => {
-      callback(new Error("info error"));
-    });
+    stubInfo(redis, [new Error("info error"), undefined]);
 
     redis.connect().catch(noop);
+  });
+
+  it("warns for NOPERM error", async () => {
+    const redis = new Redis({
+      lazyConnect: true,
+    });
+
+    const warn = sinon.stub(console, "warn");
+    stubInfo(redis, [
+      new Error(
+        "NOPERM this user has no permissions to run the 'info' command"
+      ),
+      undefined,
+    ]);
+
+    await redis.connect();
+    expect(warn.calledOnce).to.eql(true);
   });
 });
