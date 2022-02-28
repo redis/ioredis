@@ -60,7 +60,7 @@
   },
   "overrides": [
     {
-      "files": ["test/**/*"],
+      "files": ["test/**/*", "test-cluster/**/*"],
       "env": {
         "mocha": true
       },

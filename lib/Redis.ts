@@ -766,6 +766,12 @@ class Redis extends Commander {
     const _this = this;
     this.info(function (err, res) {
       if (err) {
+        if (err.message && err.message.includes("NOPERM")) {
+          console.warn(
+            `Skipping the ready check because INFO command fails: "${err.message}". You can disable ready check with "enableReadyCheck". More: https://github.com/luin/ioredis/wiki/Disable-ready-check.`
+          );
+          return callback(null, {});
+        }
         return callback(err);
       }
       if (typeof res !== "string") {
@@ -799,7 +805,7 @@ class Redis extends Commander {
           _this._readyCheck(callback);
         }, retryTime);
       }
-    });
+    }).catch(noop);
   }
 }
 
