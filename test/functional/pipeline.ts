@@ -144,7 +144,7 @@ describe("pipeline", () => {
     const redis = new Redis({ keyPrefix: "foo:" });
     redis.addBuiltinCommand("someCommand");
     sinon.stub(redis, "sendCommand").callsFake((command) => {
-      command.resolve(Buffer.from("OK"));
+      return command.resolve(Buffer.from("OK"));
     });
     const result = await redis.pipeline().someCommand().exec();
     expect(result).to.eql([[null, "OK"]]);
