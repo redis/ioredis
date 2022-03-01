@@ -730,7 +730,7 @@ class Cluster extends EventEmitter {
         }
       }
       if (redis) {
-        redis.sendCommand(command, stream);
+        redis.sendCommand(command, stream).catch(function(e) {command.reject(e);});
       } else if (_this.options.enableOfflineQueue) {
         _this.offlineQueue.push({
           command: command,
