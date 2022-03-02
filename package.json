@@ -4,8 +4,17 @@
   "description": "A robust, performance-focused and full-featured Redis client for Node.js.",
   "main": "./built/index.js",
   "types": "./built/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./esm/wrapper.js",
+      "require": "./built/index.js"
+    },
+    "./package": "./package.json",
+    "./package.json": "./package.json"
+  },
   "files": [
-    "built/"
+    "built/",
+    "esm/"
   ],
   "scripts": {
     "test:tsd": "npm run build && tsd",
@@ -18,8 +27,7 @@
     "format": "prettier --write \"{,!(node_modules)/**/}*.{js,ts}\"",
     "format-check": "prettier --check \"{,!(node_modules)/**/}*.{js,ts}\"",
     "build": "rm -rf built && tsc",
-    "prepublishOnly": "npm run build && npm test",
-    "semantic-release": "semantic-release"
+    "prepublishOnly": "npm run build && npm test"
   },
   "repository": {
     "type": "git",
@@ -31,7 +39,11 @@
     "sentinel",
     "pipelining"
   ],
-  "author": "luin <i@zihua.li> (http://zihua.li)",
+  "author": {
+    "name": "Zihua Li",
+    "email": "i@zihua.li",
+    "url": "https://zihua.li"
+  },
   "license": "MIT",
   "funding": {
     "type": "opencollective",

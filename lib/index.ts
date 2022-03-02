@@ -1,5 +1,7 @@
 import Redis from "./Redis";
 
+module.exports = Redis;
+
 export { default as Cluster } from "./cluster";
 
 /**
@@ -64,5 +66,3 @@ export function print(err: Error | null, reply?: any) {
     console.log("Reply: " + reply);
   }
 }
-
-export default Redis;
