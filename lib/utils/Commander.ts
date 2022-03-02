@@ -117,7 +117,6 @@ commands.forEach(function (commandName) {
   );
 });
 
-// @ts-expect-error
 Commander.prototype.call = generateFunction("call", "utf8");
 // @ts-expect-error
 Commander.prototype.callBuffer = generateFunction("callBuffer", null);

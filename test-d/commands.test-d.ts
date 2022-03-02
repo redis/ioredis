@@ -3,6 +3,25 @@ import Redis from "../built";
 
 const redis = new Redis();
 
+// call
+expectType<Promise<unknown>>(redis.call('info'));
+expectType<Promise<unknown>>(redis.call('set', 'foo', 'bar'));
+expectType<Promise<unknown>>(redis.call('set', ['foo', 'bar']));
+expectType<Promise<unknown>>(redis.call('set', ['foo', 'bar'], (err, value) => {
+  expectType<Error | undefined | null>(err);
+  expectType<unknown | undefined>(value);
+}));
+
+expectType<Promise<unknown>>(redis.call('get', 'foo', (err, value) => {
+  expectType<Error | undefined | null>(err);
+  expectType<unknown | undefined>(value);
+}));
+
+expectType<Promise<unknown>>(redis.call('info', (err, value) => {
+  expectType<Error | undefined | null>(err);
+  expectType<unknown | undefined>(value);
+}));
+
 // GET
 expectType<Promise<string | null>>(redis.get("key"));
 expectType<Promise<Buffer | null>>(redis.getBuffer("key"));
