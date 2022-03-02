@@ -20,6 +20,37 @@ export type Result<T, Context extends ClientContext> =
   ResultTypes<T, Context>[Context["type"]];
 
 interface RedisCommander<Context extends ClientContext = { type: "default" }> {
+  /**
+   * Call arbitrary commands.
+   *
+   * `redis.call('set', 'foo', 'bar')` is the same as `redis.set('foo', 'bar')`,
+   * so the only case you need to use this method is when the command is not
+   * supported by ioredis.
+   *
+   * ```ts
+   * redis.call('set', 'foo', 'bar');
+   * redis.call('get', 'foo', (err, value) => {
+   *   // value === 'bar'
+   * });
+   * ```
+   */
+  call(command: string, callback?: Callback<unknown>): Result<unknown, Context>;
+  call(
+    command: string,
+    args: (string | Buffer | number)[],
+    callback?: Callback<unknown>
+  ): Result<unknown, Context>;
+  call(
+    ...args: [
+      command: string,
+      ...args: (string | Buffer | number)[],
+      callback: Callback<unknown>
+    ]
+  ): Result<unknown, Context>;
+  call(
+    ...args: [command: string, ...args: (string | Buffer | number)[]]
+  ): Result<unknown, Context>;
+
   ////
 }
 
