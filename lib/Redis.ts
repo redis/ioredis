@@ -1,20 +1,18 @@
 import { EventEmitter } from "events";
 import * as commands from "redis-commands";
 import asCallback from "standard-as-callback";
-import {
-  AbstractConnector,
-  Cluster,
-  Command,
-  ScanStream,
-  SentinelConnector,
-} from ".";
+import Cluster from "./cluster";
+import Command from "./command";
 import { StandaloneConnector } from "./connectors";
+import AbstractConnector from "./connectors/AbstractConnector";
+import SentinelConnector from "./connectors/SentinelConnector";
 import * as eventHandler from "./redis/event_handler";
 import {
   DEFAULT_REDIS_OPTIONS,
   ReconnectOnError,
   RedisOptions,
 } from "./redis/RedisOptions";
+import ScanStream from "./ScanStream";
 import { addTransactionSupport, Transaction } from "./transaction";
 import {
   Callback,
