@@ -2,7 +2,7 @@ import { EventEmitter } from "events";
 import * as commands from "redis-commands";
 import { AbortError, RedisError } from "redis-errors";
 import asCallback from "standard-as-callback";
-import { Pipeline } from "..";
+import Pipeline from "../pipeline";
 import Command from "../command";
 import ClusterAllFailedError from "../errors/ClusterAllFailedError";
 import Redis from "../Redis";
