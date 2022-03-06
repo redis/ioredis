@@ -18,21 +18,21 @@ Supports Redis >= 2.6.12 and (Node.js >= 12.22.0). Completely compatible with Re
 ioredis is a robust, full-featured Redis client that is
 used in the world's biggest online commerce company [Alibaba](http://www.alibaba.com/) and many other awesome companies.
 
-0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](http://redis.io/topics/sentinel), [Streams](https://redis.io/topics/streams-intro), [Pipelining](http://redis.io/topics/pipelining) and of course [Lua scripting](http://redis.io/commands/eval) & [Pub/Sub](http://redis.io/topics/pubsub) (with the support of binary messages).
-1. High performance 🚀.
-2. Delightful API 😄. It works with Node callbacks and Native promises.
-3. Transformation of command arguments and replies.
-4. Transparent key prefixing.
-5. Abstraction for Lua scripting, allowing you to define custom commands.
-6. Support for binary data.
-7. Support for TLS 🔒.
-8. Support for offline queue and ready checking.
-9. Support for ES6 types, such as `Map` and `Set`.
-10. Support for GEO commands 📍.
-11. Support for Redis ACL.
-12. Sophisticated error handling strategy.
-13. Support for NAT mapping.
-14. Support for autopipelining
+0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](http://redis.io/topics/sentinel), [Streams](https://redis.io/topics/streams-intro), [Pipelining](http://redis.io/topics/pipelining), and of course [Lua scripting](http://redis.io/commands/eval), [Redis Functions](https://redis.io/topics/functions-intro), [Pub/Sub](http://redis.io/topics/pubsub) (with the support of binary messages).
+0. High performance 🚀.
+0. Delightful API 😄. It works with Node callbacks and Native promises.
+0. Transformation of command arguments and replies.
+0. Transparent key prefixing.
+0. Abstraction for Lua scripting, allowing you to [define custom commands](https://github.com/luin/ioredis#lua-scripting).
+0. Supports [binary data](https://github.com/luin/ioredis#handle-binary-data).
+0. Supports [TLS](https://github.com/luin/ioredis#tls-options) 🔒.
+0. Supports offline queue and ready checking.
+0. Supports ES6 types, such as `Map` and `Set`.
+0. Supports GEO commands 📍.
+0. Supports Redis ACL.
+0. Sophisticated error handling strategy.
+0. Supports NAT mapping.
+0. Supports autopipelining
 
 # Versions
 

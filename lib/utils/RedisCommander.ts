@@ -1144,61 +1144,13 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   flushdb(sync: 'SYNC', callback?: Callback<'OK'>): Result<'OK', Context>;
 
   /**
-   * List information about all the functions
-   * - _group_: scripting
-   * - _complexity_: O(N) where N is the number of functions
-   * - _since_: 7.0.0
-   */
-  function(subcommand: 'LIST', callback?: Callback<unknown>): Result<unknown, Context>;
-  function(subcommand: 'LIST', withcode: 'WITHCODE', callback?: Callback<unknown>): Result<unknown, Context>;
-  function(subcommand: 'LIST', libraryNamePatternToken: 'LIBRARYNAME', libraryNamePattern: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
-  function(subcommand: 'LIST', libraryNamePatternToken: 'LIBRARYNAME', libraryNamePattern: string | Buffer, withcode: 'WITHCODE', callback?: Callback<unknown>): Result<unknown, Context>;
-
-  /**
-   * Restore all the functions on the given payload
-   * - _group_: scripting
-   * - _complexity_: O(N) where N is the number of functions on the payload
-   * - _since_: 7.0.0
-   */
-  function(subcommand: 'RESTORE', serializedValue: string | Buffer | number, callback?: Callback<unknown>): Result<unknown, Context>;
-  function(subcommand: 'RESTORE', serializedValue: string | Buffer | number, flush: 'FLUSH', callback?: Callback<unknown>): Result<unknown, Context>;
-  function(subcommand: 'RESTORE', serializedValue: string | Buffer | number, append: 'APPEND', callback?: Callback<unknown>): Result<unknown, Context>;
-  function(subcommand: 'RESTORE', serializedValue: string | Buffer | number, replace: 'REPLACE', callback?: Callback<unknown>): Result<unknown, Context>;
-
-  /**
-   * Delete a function by name
-   * - _group_: scripting
-   * - _complexity_: O(1)
-   * - _since_: 7.0.0
-   */
-  function(subcommand: 'DELETE', libraryName: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
-
-  /**
-   * Create a function with the given arguments (name, code, description)
-   * - _group_: scripting
-   * - _complexity_: O(1) (considering compilation time is redundant)
-   * - _since_: 7.0.0
-   */
-  function(subcommand: 'LOAD', engineName: string | Buffer, libraryName: string | Buffer, functionCode: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
-  function(subcommand: 'LOAD', engineName: string | Buffer, libraryName: string | Buffer, libraryDescriptionToken: 'DESCRIPTION', libraryDescription: string | Buffer, functionCode: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
-  function(subcommand: 'LOAD', engineName: string | Buffer, libraryName: string | Buffer, replace: 'REPLACE', functionCode: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
-  function(subcommand: 'LOAD', engineName: string | Buffer, libraryName: string | Buffer, replace: 'REPLACE', libraryDescriptionToken: 'DESCRIPTION', libraryDescription: string | Buffer, functionCode: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
-
-  /**
-   * Kill the function currently in execution.
-   * - _group_: scripting
-   * - _complexity_: O(1)
-   * - _since_: 7.0.0
-   */
-  function(subcommand: 'KILL', callback?: Callback<unknown>): Result<unknown, Context>;
-
-  /**
    * Dump all functions into a serialized binary payload
    * - _group_: scripting
    * - _complexity_: O(N) where N is the number of functions
    * - _since_: 7.0.0
    */
-  function(subcommand: 'DUMP', callback?: Callback<unknown>): Result<unknown, Context>;
+  function(subcommand: 'DUMP', callback?: Callback<string>): Result<string, Context>;
+  functionBuffer(subcommand: 'DUMP', callback?: Callback<Buffer>): Result<Buffer, Context>;
 
   /**
    * Show helpful text about the different subcommands
@@ -1214,9 +1166,71 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(N) where N is the number of functions deleted
    * - _since_: 7.0.0
    */
-  function(subcommand: 'FLUSH', callback?: Callback<unknown>): Result<unknown, Context>;
-  function(subcommand: 'FLUSH', async: 'ASYNC', callback?: Callback<unknown>): Result<unknown, Context>;
-  function(subcommand: 'FLUSH', sync: 'SYNC', callback?: Callback<unknown>): Result<unknown, Context>;
+  function(subcommand: 'FLUSH', callback?: Callback<string>): Result<string, Context>;
+  functionBuffer(subcommand: 'FLUSH', callback?: Callback<Buffer>): Result<Buffer, Context>;
+  function(subcommand: 'FLUSH', async: 'ASYNC', callback?: Callback<string>): Result<string, Context>;
+  functionBuffer(subcommand: 'FLUSH', async: 'ASYNC', callback?: Callback<Buffer>): Result<Buffer, Context>;
+  function(subcommand: 'FLUSH', sync: 'SYNC', callback?: Callback<string>): Result<string, Context>;
+  functionBuffer(subcommand: 'FLUSH', sync: 'SYNC', callback?: Callback<Buffer>): Result<Buffer, Context>;
+
+  /**
+   * Kill the function currently in execution.
+   * - _group_: scripting
+   * - _complexity_: O(1)
+   * - _since_: 7.0.0
+   */
+  function(subcommand: 'KILL', callback?: Callback<string>): Result<string, Context>;
+  functionBuffer(subcommand: 'KILL', callback?: Callback<Buffer>): Result<Buffer, Context>;
+
+  /**
+   * Delete a function by name
+   * - _group_: scripting
+   * - _complexity_: O(1)
+   * - _since_: 7.0.0
+   */
+  function(subcommand: 'DELETE', libraryName: string | Buffer, callback?: Callback<string>): Result<string, Context>;
+  functionBuffer(subcommand: 'DELETE', libraryName: string | Buffer, callback?: Callback<Buffer>): Result<Buffer, Context>;
+
+  /**
+   * Restore all the functions on the given payload
+   * - _group_: scripting
+   * - _complexity_: O(N) where N is the number of functions on the payload
+   * - _since_: 7.0.0
+   */
+  function(subcommand: 'RESTORE', serializedValue: string | Buffer | number, callback?: Callback<string>): Result<string, Context>;
+  functionBuffer(subcommand: 'RESTORE', serializedValue: string | Buffer | number, callback?: Callback<Buffer>): Result<Buffer, Context>;
+  function(subcommand: 'RESTORE', serializedValue: string | Buffer | number, flush: 'FLUSH', callback?: Callback<string>): Result<string, Context>;
+  functionBuffer(subcommand: 'RESTORE', serializedValue: string | Buffer | number, flush: 'FLUSH', callback?: Callback<Buffer>): Result<Buffer, Context>;
+  function(subcommand: 'RESTORE', serializedValue: string | Buffer | number, append: 'APPEND', callback?: Callback<string>): Result<string, Context>;
+  functionBuffer(subcommand: 'RESTORE', serializedValue: string | Buffer | number, append: 'APPEND', callback?: Callback<Buffer>): Result<Buffer, Context>;
+  function(subcommand: 'RESTORE', serializedValue: string | Buffer | number, replace: 'REPLACE', callback?: Callback<string>): Result<string, Context>;
+  functionBuffer(subcommand: 'RESTORE', serializedValue: string | Buffer | number, replace: 'REPLACE', callback?: Callback<Buffer>): Result<Buffer, Context>;
+
+  /**
+   * List information about all the functions
+   * - _group_: scripting
+   * - _complexity_: O(N) where N is the number of functions
+   * - _since_: 7.0.0
+   */
+  function(subcommand: 'LIST', callback?: Callback<unknown[]>): Result<unknown[], Context>;
+  function(subcommand: 'LIST', withcode: 'WITHCODE', callback?: Callback<unknown[]>): Result<unknown[], Context>;
+  function(subcommand: 'LIST', libraryNamePatternToken: 'LIBRARYNAME', libraryNamePattern: string | Buffer, callback?: Callback<unknown[]>): Result<unknown[], Context>;
+  function(subcommand: 'LIST', libraryNamePatternToken: 'LIBRARYNAME', libraryNamePattern: string | Buffer, withcode: 'WITHCODE', callback?: Callback<unknown[]>): Result<unknown[], Context>;
+
+  /**
+   * Create a function with the given arguments (name, code, description)
+   * - _group_: scripting
+   * - _complexity_: O(1) (considering compilation time is redundant)
+   * - _since_: 7.0.0
+   */
+  function(subcommand: 'LOAD', engineName: string | Buffer, libraryName: string | Buffer, functionCode: string | Buffer, callback?: Callback<string>): Result<string, Context>;
+  functionBuffer(subcommand: 'LOAD', engineName: string | Buffer, libraryName: string | Buffer, functionCode: string | Buffer, callback?: Callback<Buffer>): Result<Buffer, Context>;
+  function(subcommand: 'LOAD', engineName: string | Buffer, libraryName: string | Buffer, libraryDescriptionToken: 'DESCRIPTION', libraryDescription: string | Buffer, functionCode: string | Buffer, callback?: Callback<string>): Result<string, Context>;
+  functionBuffer(subcommand: 'LOAD', engineName: string | Buffer, libraryName: string | Buffer, libraryDescriptionToken: 'DESCRIPTION', libraryDescription: string | Buffer, functionCode: string | Buffer, callback?: Callback<Buffer>): Result<Buffer, Context>;
+  function(subcommand: 'LOAD', engineName: string | Buffer, libraryName: string | Buffer, replace: 'REPLACE', functionCode: string | Buffer, callback?: Callback<string>): Result<string, Context>;
+  functionBuffer(subcommand: 'LOAD', engineName: string | Buffer, libraryName: string | Buffer, replace: 'REPLACE', functionCode: string | Buffer, callback?: Callback<Buffer>): Result<Buffer, Context>;
+  function(subcommand: 'LOAD', engineName: string | Buffer, libraryName: string | Buffer, replace: 'REPLACE', libraryDescriptionToken: 'DESCRIPTION', libraryDescription: string | Buffer, functionCode: string | Buffer, callback?: Callback<string>): Result<string, Context>;
+  functionBuffer(subcommand: 'LOAD', engineName: string | Buffer, libraryName: string | Buffer, replace: 'REPLACE', libraryDescriptionToken: 'DESCRIPTION', libraryDescription: string | Buffer, functionCode: string | Buffer, callback?: Callback<Buffer>): Result<Buffer, Context>;
 
   /**
    * Return information about the function currently running (name, description, duration)

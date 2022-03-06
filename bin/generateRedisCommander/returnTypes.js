@@ -17,6 +17,23 @@ module.exports = {
     if (hasToken(types, ["NX", "XX"])) return "'OK' | null";
     return "'OK'";
   },
+  function: (types) => {
+    if (
+      matchSubcommand(types, [
+        "LOAD",
+        "DELETE",
+        "DUMP",
+        "FLUSH",
+        "KILL",
+        "RESTORE",
+      ])
+    ) {
+      return "string";
+    }
+    if (matchSubcommand(types, ["LIST"])) {
+      return "unknown[]";
+    }
+  },
   ping: (types) => {
     return types.length ? "string" : "'PONG'";
   },
