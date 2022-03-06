@@ -296,7 +296,6 @@ export default class SentinelConnector extends AbstractConnector {
       enableReadyCheck: false,
       connectTimeout: this.options.connectTimeout,
       commandTimeout: this.options.sentinelCommandTimeout,
-      dropBufferSupport: true,
       ...options,
     });
     // @ts-expect-error
