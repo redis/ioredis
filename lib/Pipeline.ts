@@ -331,8 +331,6 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
   return this.promise;
 
   function execPipeline() {
-    let data = "";
-    let buffers: Buffer[];
     let writePending: number = (_this.replyPending = _this._queue.length);
 
     let node;
@@ -342,46 +340,42 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
         redis: _this.redis.connectionPool.nodes.all[_this.preferKey],
       };
     }
-    let bufferMode = false;
 
+    let data = "";
+    let buffers: Buffer[];
     const stream: PipelineWriteableStream = {
       isPipeline: true,
       destination: _this.isCluster ? node : { redis: _this.redis },
-      write: function (writable) {
-        if (writable instanceof Buffer) {
-          bufferMode = true;
-        }
-        if (bufferMode) {
+      write (writable) {
+        if (typeof writable !== "string") {
           if (!buffers) {
             buffers = [];
           }
-          if (typeof data === "string") {
+
+          if (data) {
             buffers.push(Buffer.from(data, "utf8"));
-            data = undefined;
+            data = "";
           }
-          buffers.push(
-            typeof writable === "string"
-              ? Buffer.from(writable, "utf8")
-              : writable
-          );
+
+          buffers.push(writable);
         } else {
           data += writable;
         }
-        if (!--writePending) {
-          let sendData: Buffer | string;
-          if (buffers) {
-            sendData = Buffer.concat(buffers);
-          } else {
-            sendData = data;
-          }
 
-          stream.destination.redis.stream.write(sendData);
+        if (!--writePending) {
+          if (buffers) {
+            if (data) {
+              buffers.push(Buffer.from(data, "utf8"));
+            }
+            stream.destination.redis.stream.write(Buffer.concat(buffers));
+          } else {
+            stream.destination.redis.stream.write(data);
+          }
 
           // Reset writePending for resending
           writePending = _this._queue.length;
           data = "";
           buffers = undefined;
-          bufferMode = false;
         }
       },
     };
