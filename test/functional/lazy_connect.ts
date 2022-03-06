@@ -2,7 +2,7 @@ import Redis from "../../lib/Redis";
 import { expect } from "chai";
 import * as sinon from "sinon";
 import { Cluster } from "../../lib";
-import Pipeline from "../../lib/pipeline";
+import Pipeline from "../../lib/Pipeline";
 
 describe("lazy connect", () => {
   it("should not call `connect` when init", () => {

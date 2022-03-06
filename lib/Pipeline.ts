@@ -4,7 +4,7 @@ import asCallback from "standard-as-callback";
 import { deprecate } from "util";
 import Redis from "./Redis";
 import Cluster from "./cluster";
-import Command from "./command";
+import Command from "./Command";
 import { Callback, PipelineWriteableStream } from "./types";
 import { noop } from "./utils";
 import Commander from "./utils/Commander";

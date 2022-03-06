@@ -1,6 +1,6 @@
 import Redis from "../../lib/Redis";
 import { expect } from "chai";
-import Command from "../../lib/command";
+import Command from "../../lib/Command";
 
 describe("transaction", () => {
   it("should works like pipeline by default", (done) => {

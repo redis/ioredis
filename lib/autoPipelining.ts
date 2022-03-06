@@ -1,7 +1,7 @@
 import { isArguments, noop } from "./utils/lodash";
 import * as calculateSlot from "cluster-key-slot";
 import asCallback from "standard-as-callback";
-import { ArgumentType } from "./command";
+import { ArgumentType } from "./Command";
 
 export const kExec = Symbol("exec");
 export const kCallbacks = Symbol("callbacks");

@@ -1,6 +1,6 @@
 import { wrapMultiResult, noop } from "./utils";
 import asCallback from "standard-as-callback";
-import Pipeline from "./pipeline";
+import Pipeline from "./Pipeline";
 import { Callback } from "./types";
 import { ChainableCommander } from "./utils/RedisCommander";
 

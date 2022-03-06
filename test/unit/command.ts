@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import Command from "../../lib/command";
+import Command from "../../lib/Command";
 
 describe("Command", () => {
   describe("constructor()", () => {

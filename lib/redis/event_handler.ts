@@ -2,7 +2,7 @@
 
 import Deque = require("denque");
 import { AbortError } from "redis-errors";
-import Command from "../command";
+import Command from "../Command";
 import { MaxRetriesPerRequestError } from "../errors";
 import { CommandItem, Respondable } from "../types";
 import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
