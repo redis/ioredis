@@ -1,4 +1,5 @@
 import { SrvRecord, resolveSrv, lookup } from "dns";
+import { RedisOptions } from "../redis/RedisOptions";
 import { CommanderOptions } from "../utils/Commander";
 import { NodeRole } from "./util";
 
@@ -123,7 +124,16 @@ export interface ClusterOptions extends CommanderOptions {
    *
    * @default null
    */
-  redisOptions?: any;
+  redisOptions?: Omit<
+    RedisOptions,
+    | "port"
+    | "host"
+    | "path"
+    | "sentinels"
+    | "retryStrategy"
+    | "enableOfflineQueue"
+    | "readOnly"
+  >;
 
   /**
    * By default, When a new Cluster instance is created,

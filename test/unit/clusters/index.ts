@@ -26,6 +26,13 @@ describe("cluster", () => {
     expect(cluster.options).to.have.property("showFriendlyErrorStack", true);
   });
 
+  it("should support passing keyPrefix via redisOptions", () => {
+    const cluster = new Cluster([{ port: 7777 }], {
+      redisOptions: { keyPrefix: "prefix:" },
+    });
+    expect(cluster.options).to.have.property("keyPrefix", "prefix:");
+  });
+
   it("throws when scaleReads is invalid", () => {
     expect(() => {
       new Cluster([{}], { scaleReads: "invalid" });

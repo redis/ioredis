@@ -108,6 +108,14 @@ class Cluster extends Commander {
     this.startupNodes = startupNodes;
     this.options = defaults({}, options, DEFAULT_CLUSTER_OPTIONS, this.options);
 
+    if (
+      this.options.redisOptions &&
+      this.options.redisOptions.keyPrefix &&
+      !this.options.keyPrefix
+    ) {
+      this.options.keyPrefix = this.options.redisOptions.keyPrefix;
+    }
+
     // validate options
     if (
       typeof this.options.scaleReads !== "function" &&
