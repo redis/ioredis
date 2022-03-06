@@ -1,5 +1,5 @@
+import { exists, hasFlag } from "@ioredis/commands";
 import { EventEmitter } from "events";
-import * as commands from "redis-commands";
 import asCallback from "standard-as-callback";
 import Cluster from "./cluster";
 import Command from "./Command";
@@ -422,8 +422,8 @@ class Redis extends Commander {
       this.status === "ready" ||
       (!stream &&
         this.status === "connect" &&
-        commands.exists(command.name) &&
-        commands.hasFlag(command.name, "loading"));
+        exists(command.name) &&
+        hasFlag(command.name, "loading"));
     if (!this.stream) {
       writable = false;
     } else if (!this.stream.writable) {
@@ -549,7 +549,7 @@ class Redis extends Commander {
 
   /**
    * Emit only when there's at least one listener.
-   * 
+   *
    * @ignore
    */
   silentEmit(eventName: string, arg?: unknown): boolean {

@@ -1,4 +1,4 @@
-import * as commands from "redis-commands";
+import { exists, getKeyIndexes } from "@ioredis/commands";
 import * as calculateSlot from "cluster-key-slot";
 import asCallback from "standard-as-callback";
 import {
@@ -59,7 +59,7 @@ export interface CommandNameFlags {
  * Command instance
  *
  * It's rare that you need to create a Command instance yourself.
- * 
+ *
  * ```js
  * var infoCommand = new Command('info', null, function (err, result) {
  *   console.log('result', result);
@@ -332,8 +332,9 @@ export default class Command implements Respondable {
   ): Array<string | Buffer> {
     if (typeof this.keys === "undefined") {
       this.keys = [];
-      if (commands.exists(this.name)) {
-        const keyIndexes = commands.getKeyIndexes(this.name, this.args);
+      if (exists(this.name)) {
+        // @ts-expect-error
+        const keyIndexes = getKeyIndexes(this.name, this.args);
         for (const index of keyIndexes) {
           this.args[index] = transform(this.args[index]);
           this.keys.push(this.args[index] as string | Buffer);

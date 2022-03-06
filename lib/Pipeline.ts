@@ -1,5 +1,5 @@
 import * as calculateSlot from "cluster-key-slot";
-import { exists, hasFlag } from "redis-commands";
+import { exists, hasFlag } from "@ioredis/commands";
 import asCallback from "standard-as-callback";
 import { deprecate } from "util";
 import Redis from "./Redis";
