@@ -17,14 +17,15 @@ export default class Script {
     const sha = this.sha;
     const socketHasScriptLoaded = new WeakSet();
     this.Command = class CustomScriptCommand extends Command {
+      isCustomCommand = true;
+
       toWritable(socket: object): string | Buffer {
         const origReject = this.reject;
         this.reject = (err) => {
-          if (err.toString().indexOf("NOSCRIPT") !== -1) {
+          if (err.message.indexOf("NOSCRIPT") !== -1) {
             socketHasScriptLoaded.delete(socket);
           }
-          this.reject = origReject;
-          this.reject(err);
+          origReject.call(this, err);
         };
 
         if (!socketHasScriptLoaded.has(socket)) {
@@ -51,18 +52,24 @@ export default class Script {
       options.readOnly = true;
     }
 
-    const evalsha = new this.Command("evalsha", [this.sha, ...args], options);
-    evalsha.isCustomCommand = true;
+    const evalsha = new this.Command(
+      "evalsha",
+      [this.sha, ...args],
+      options
+    );
 
     evalsha.promise = evalsha.promise.catch((err: Error) => {
-      if (err.toString().indexOf("NOSCRIPT") === -1) {
+      if (err.message.indexOf("NOSCRIPT") === -1) {
         throw err;
       }
 
-      // Resend the same custom evalsha command that gets transformed to an eval
-      // in case it's not loaded yet on the connectionDo an eval as fallback, redis will hash and load it
-      const resend = new this.Command("evalsha", [this.sha, ...args], options);
-      resend.isCustomCommand = true;
+      // Resend the same custom evalsha command that gets transformed
+      // to an eval in case it's not loaded yet on the connection.
+      const resend = new this.Command(
+        "evalsha",
+        [this.sha, ...args],
+        options
+      );
 
       const client = container.isPipeline ? container.redis : container;
       return client.sendCommand(resend);
