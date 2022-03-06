@@ -125,4 +125,24 @@ describe("cluster", () => {
       expect(await cluster.get("foo")).to.eql("auto pipelining");
     });
   });
+
+  describe("key prefixing", () => {
+    it("works when passing via redisOptions", async () => {
+      const cluster1 = new Cluster([{ host: "127.0.0.1", port: masters[0] }], {
+        redisOptions: { keyPrefix: "prefix:" },
+      });
+      await cluster1.set("foo", "bar");
+      const cluster2 = new Cluster([{ host: "127.0.0.1", port: masters[0] }]);
+      expect(await cluster2.get("prefix:foo")).to.eql("bar");
+    });
+
+    it("works when passing via root", async () => {
+      const cluster1 = new Cluster([{ host: "127.0.0.1", port: masters[0] }], {
+        keyPrefix: "prefix:",
+      });
+      await cluster1.set("foo", "bar");
+      const cluster2 = new Cluster([{ host: "127.0.0.1", port: masters[0] }]);
+      expect(await cluster2.get("prefix:foo")).to.eql("bar");
+    });
+  });
 });
