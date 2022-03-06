@@ -53,6 +53,41 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
 
   
   /**
+   * Show helpful text about the different subcommands
+   * - _group_: server
+   * - _complexity_: O(1)
+   * - _since_: 6.0.0
+   */
+  acl(subcommand: 'HELP', callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
+   * Return the name of the user associated to the current connection
+   * - _group_: server
+   * - _complexity_: O(1)
+   * - _since_: 6.0.0
+   */
+  acl(subcommand: 'WHOAMI', callback?: Callback<string>): Result<string, Context>;
+  aclBuffer(subcommand: 'WHOAMI', callback?: Callback<Buffer>): Result<Buffer, Context>;
+
+  /**
+   * Get the rules for a specific ACL user
+   * - _group_: server
+   * - _complexity_: O(N). Where N is the number of password, command and pattern rules that the user has.
+   * - _since_: 6.0.0
+   */
+  acl(subcommand: 'GETUSER', username: string | Buffer, callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  aclBuffer(subcommand: 'GETUSER', username: string | Buffer, callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+
+  /**
+   * Remove the specified ACL users and the associated rules
+   * - _group_: server
+   * - _complexity_: O(1) amortized time considering the typical user.
+   * - _since_: 6.0.0
+   */
+  acl(...args: [subcommand: 'DELUSER', ...usernames: (string | Buffer)[], callback: Callback<number>]): Result<number, Context>;
+  acl(...args: [subcommand: 'DELUSER', ...usernames: (string | Buffer)[]]): Result<number, Context>;
+
+  /**
    * List the ACL categories or the commands inside a category
    * - _group_: server
    * - _complexity_: O(1) since the categories and commands are a fixed set.
@@ -62,12 +97,23 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   acl(subcommand: 'CAT', categoryname: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
-   * Show helpful text about the different subcommands
+   * List the username of all the configured ACL rules
    * - _group_: server
-   * - _complexity_: O(1)
+   * - _complexity_: O(N). Where N is the number of configured users.
    * - _since_: 6.0.0
    */
-  acl(subcommand: 'HELP', callback?: Callback<unknown>): Result<unknown, Context>;
+  acl(subcommand: 'USERS', callback?: Callback<string[]>): Result<string[], Context>;
+  aclBuffer(subcommand: 'USERS', callback?: Callback<Buffer[]>): Result<Buffer[], Context>;
+
+  /**
+   * Modify or create the rules for a specific ACL user
+   * - _group_: server
+   * - _complexity_: O(N). Where N is the number of rules provided.
+   * - _since_: 6.0.0
+   */
+  acl(subcommand: 'SETUSER', username: string | Buffer, callback?: Callback<"OK">): Result<"OK", Context>;
+  acl(...args: [subcommand: 'SETUSER', username: string | Buffer, ...rules: (string | Buffer)[], callback: Callback<"OK">]): Result<"OK", Context>;
+  acl(...args: [subcommand: 'SETUSER', username: string | Buffer, ...rules: (string | Buffer)[]]): Result<"OK", Context>;
 
   /**
    * Save the current ACL rules in the configured ACL file
@@ -76,6 +122,17 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _since_: 6.0.0
    */
   acl(subcommand: 'SAVE', callback?: Callback<"OK">): Result<"OK", Context>;
+
+  /**
+   * Generate a pseudorandom secure password to use for ACL users
+   * - _group_: server
+   * - _complexity_: O(1)
+   * - _since_: 6.0.0
+   */
+  acl(subcommand: 'GENPASS', callback?: Callback<string>): Result<string, Context>;
+  aclBuffer(subcommand: 'GENPASS', callback?: Callback<Buffer>): Result<Buffer, Context>;
+  acl(subcommand: 'GENPASS', bits: number | string, callback?: Callback<string>): Result<string, Context>;
+  aclBuffer(subcommand: 'GENPASS', bits: number | string, callback?: Callback<Buffer>): Result<Buffer, Context>;
 
   /**
    * List the current ACL rules in ACL config file format
@@ -95,25 +152,14 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   acl(subcommand: 'LOAD', callback?: Callback<"OK">): Result<"OK", Context>;
 
   /**
-   * Modify or create the rules for a specific ACL user
+   * List latest events denied because of ACLs in place
    * - _group_: server
-   * - _complexity_: O(N). Where N is the number of rules provided.
+   * - _complexity_: O(N) with N being the number of entries shown.
    * - _since_: 6.0.0
    */
-  acl(subcommand: 'SETUSER', username: string | Buffer, callback?: Callback<"OK">): Result<"OK", Context>;
-  acl(...args: [subcommand: 'SETUSER', username: string | Buffer, ...rules: (string | Buffer)[], callback: Callback<"OK">]): Result<"OK", Context>;
-  acl(...args: [subcommand: 'SETUSER', username: string | Buffer, ...rules: (string | Buffer)[]]): Result<"OK", Context>;
-
-  /**
-   * Generate a pseudorandom secure password to use for ACL users
-   * - _group_: server
-   * - _complexity_: O(1)
-   * - _since_: 6.0.0
-   */
-  acl(subcommand: 'GENPASS', callback?: Callback<string>): Result<string, Context>;
-  aclBuffer(subcommand: 'GENPASS', callback?: Callback<Buffer>): Result<Buffer, Context>;
-  acl(subcommand: 'GENPASS', bits: number | string, callback?: Callback<string>): Result<string, Context>;
-  aclBuffer(subcommand: 'GENPASS', bits: number | string, callback?: Callback<Buffer>): Result<Buffer, Context>;
+  acl(subcommand: 'LOG', callback?: Callback<unknown>): Result<unknown, Context>;
+  acl(subcommand: 'LOG', count: number, callback?: Callback<unknown>): Result<unknown, Context>;
+  acl(subcommand: 'LOG', reset: 'RESET', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * Returns whether the user can execute the given command without executing the command.
@@ -127,52 +173,6 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   aclBuffer(...args: [subcommand: 'DRYRUN', username: string | Buffer, command: string | Buffer, ...args: (string | Buffer | number)[], callback: Callback<Buffer>]): Result<Buffer, Context>;
   acl(...args: [subcommand: 'DRYRUN', username: string | Buffer, command: string | Buffer, ...args: (string | Buffer | number)[]]): Result<string, Context>;
   aclBuffer(...args: [subcommand: 'DRYRUN', username: string | Buffer, command: string | Buffer, ...args: (string | Buffer | number)[]]): Result<Buffer, Context>;
-
-  /**
-   * Get the rules for a specific ACL user
-   * - _group_: server
-   * - _complexity_: O(N). Where N is the number of password, command and pattern rules that the user has.
-   * - _since_: 6.0.0
-   */
-  acl(subcommand: 'GETUSER', username: string | Buffer, callback?: Callback<string[] | null>): Result<string[] | null, Context>;
-  aclBuffer(subcommand: 'GETUSER', username: string | Buffer, callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
-
-  /**
-   * Return the name of the user associated to the current connection
-   * - _group_: server
-   * - _complexity_: O(1)
-   * - _since_: 6.0.0
-   */
-  acl(subcommand: 'WHOAMI', callback?: Callback<string>): Result<string, Context>;
-  aclBuffer(subcommand: 'WHOAMI', callback?: Callback<Buffer>): Result<Buffer, Context>;
-
-  /**
-   * List the username of all the configured ACL rules
-   * - _group_: server
-   * - _complexity_: O(N). Where N is the number of configured users.
-   * - _since_: 6.0.0
-   */
-  acl(subcommand: 'USERS', callback?: Callback<string[]>): Result<string[], Context>;
-  aclBuffer(subcommand: 'USERS', callback?: Callback<Buffer[]>): Result<Buffer[], Context>;
-
-  /**
-   * Remove the specified ACL users and the associated rules
-   * - _group_: server
-   * - _complexity_: O(1) amortized time considering the typical user.
-   * - _since_: 6.0.0
-   */
-  acl(...args: [subcommand: 'DELUSER', ...usernames: (string | Buffer)[], callback: Callback<number>]): Result<number, Context>;
-  acl(...args: [subcommand: 'DELUSER', ...usernames: (string | Buffer)[]]): Result<number, Context>;
-
-  /**
-   * List latest events denied because of ACLs in place
-   * - _group_: server
-   * - _complexity_: O(N) with N being the number of entries shown.
-   * - _since_: 6.0.0
-   */
-  acl(subcommand: 'LOG', callback?: Callback<unknown>): Result<unknown, Context>;
-  acl(subcommand: 'LOG', count: number, callback?: Callback<unknown>): Result<unknown, Context>;
-  acl(subcommand: 'LOG', reset: 'RESET', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * Append a value to a key
@@ -314,6 +314,29 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   blmoveBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', timeout: number | string, callback?: Callback<Buffer | null>): Result<Buffer | null, Context>;
 
   /**
+   * Pop elements from a list, or block until one is available
+   * - _group_: list
+   * - _complexity_: O(N+M) where N is the number of provided keys and M is the number of elements returned.
+   * - _since_: 7.0.0
+   */
+  blmpop(...args: [timeout: number | string, numkeys: number | string, ...keys: (RedisKey)[], left: 'LEFT', callback: Callback<unknown[] | null>]): Result<unknown[] | null, Context>;
+  blmpop(...args: [timeout: number | string, numkeys: number | string, keys: (RedisKey)[], left: 'LEFT', callback: Callback<unknown[] | null>]): Result<unknown[] | null, Context>;
+  blmpop(...args: [timeout: number | string, numkeys: number | string, ...keys: (RedisKey)[], left: 'LEFT']): Result<unknown[] | null, Context>;
+  blmpop(...args: [timeout: number | string, numkeys: number | string, keys: (RedisKey)[], left: 'LEFT']): Result<unknown[] | null, Context>;
+  blmpop(...args: [timeout: number | string, numkeys: number | string, ...keys: (RedisKey)[], left: 'LEFT', countToken: 'COUNT', count: number, callback: Callback<unknown[] | null>]): Result<unknown[] | null, Context>;
+  blmpop(...args: [timeout: number | string, numkeys: number | string, keys: (RedisKey)[], left: 'LEFT', countToken: 'COUNT', count: number, callback: Callback<unknown[] | null>]): Result<unknown[] | null, Context>;
+  blmpop(...args: [timeout: number | string, numkeys: number | string, ...keys: (RedisKey)[], left: 'LEFT', countToken: 'COUNT', count: number]): Result<unknown[] | null, Context>;
+  blmpop(...args: [timeout: number | string, numkeys: number | string, keys: (RedisKey)[], left: 'LEFT', countToken: 'COUNT', count: number]): Result<unknown[] | null, Context>;
+  blmpop(...args: [timeout: number | string, numkeys: number | string, ...keys: (RedisKey)[], right: 'RIGHT', callback: Callback<unknown[] | null>]): Result<unknown[] | null, Context>;
+  blmpop(...args: [timeout: number | string, numkeys: number | string, keys: (RedisKey)[], right: 'RIGHT', callback: Callback<unknown[] | null>]): Result<unknown[] | null, Context>;
+  blmpop(...args: [timeout: number | string, numkeys: number | string, ...keys: (RedisKey)[], right: 'RIGHT']): Result<unknown[] | null, Context>;
+  blmpop(...args: [timeout: number | string, numkeys: number | string, keys: (RedisKey)[], right: 'RIGHT']): Result<unknown[] | null, Context>;
+  blmpop(...args: [timeout: number | string, numkeys: number | string, ...keys: (RedisKey)[], right: 'RIGHT', countToken: 'COUNT', count: number, callback: Callback<unknown[] | null>]): Result<unknown[] | null, Context>;
+  blmpop(...args: [timeout: number | string, numkeys: number | string, keys: (RedisKey)[], right: 'RIGHT', countToken: 'COUNT', count: number, callback: Callback<unknown[] | null>]): Result<unknown[] | null, Context>;
+  blmpop(...args: [timeout: number | string, numkeys: number | string, ...keys: (RedisKey)[], right: 'RIGHT', countToken: 'COUNT', count: number]): Result<unknown[] | null, Context>;
+  blmpop(...args: [timeout: number | string, numkeys: number | string, keys: (RedisKey)[], right: 'RIGHT', countToken: 'COUNT', count: number]): Result<unknown[] | null, Context>;
+
+  /**
    * Remove and get the first element in a list, or block until one is available
    * - _group_: list
    * - _complexity_: O(N) where N is the number of provided keys.
@@ -353,6 +376,29 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   brpoplpushBuffer(source: RedisKey, destination: RedisKey, timeout: number | string, callback?: Callback<Buffer | null>): Result<Buffer | null, Context>;
 
   /**
+   * Remove and return members with scores in a sorted set or block until one is available
+   * - _group_: sorted-set
+   * - _complexity_: O(K) + O(N*log(M)) where K is the number of provided keys, N being the number of elements in the sorted set, and M being the number of elements popped.
+   * - _since_: 7.0.0
+   */
+  bzmpop(...args: [timeout: number | string, numkeys: number | string, ...keys: (RedisKey)[], min: 'MIN', callback: Callback<unknown>]): Result<unknown, Context>;
+  bzmpop(...args: [timeout: number | string, numkeys: number | string, keys: (RedisKey)[], min: 'MIN', callback: Callback<unknown>]): Result<unknown, Context>;
+  bzmpop(...args: [timeout: number | string, numkeys: number | string, ...keys: (RedisKey)[], min: 'MIN']): Result<unknown, Context>;
+  bzmpop(...args: [timeout: number | string, numkeys: number | string, keys: (RedisKey)[], min: 'MIN']): Result<unknown, Context>;
+  bzmpop(...args: [timeout: number | string, numkeys: number | string, ...keys: (RedisKey)[], min: 'MIN', countToken: 'COUNT', count: number, callback: Callback<unknown>]): Result<unknown, Context>;
+  bzmpop(...args: [timeout: number | string, numkeys: number | string, keys: (RedisKey)[], min: 'MIN', countToken: 'COUNT', count: number, callback: Callback<unknown>]): Result<unknown, Context>;
+  bzmpop(...args: [timeout: number | string, numkeys: number | string, ...keys: (RedisKey)[], min: 'MIN', countToken: 'COUNT', count: number]): Result<unknown, Context>;
+  bzmpop(...args: [timeout: number | string, numkeys: number | string, keys: (RedisKey)[], min: 'MIN', countToken: 'COUNT', count: number]): Result<unknown, Context>;
+  bzmpop(...args: [timeout: number | string, numkeys: number | string, ...keys: (RedisKey)[], max: 'MAX', callback: Callback<unknown>]): Result<unknown, Context>;
+  bzmpop(...args: [timeout: number | string, numkeys: number | string, keys: (RedisKey)[], max: 'MAX', callback: Callback<unknown>]): Result<unknown, Context>;
+  bzmpop(...args: [timeout: number | string, numkeys: number | string, ...keys: (RedisKey)[], max: 'MAX']): Result<unknown, Context>;
+  bzmpop(...args: [timeout: number | string, numkeys: number | string, keys: (RedisKey)[], max: 'MAX']): Result<unknown, Context>;
+  bzmpop(...args: [timeout: number | string, numkeys: number | string, ...keys: (RedisKey)[], max: 'MAX', countToken: 'COUNT', count: number, callback: Callback<unknown>]): Result<unknown, Context>;
+  bzmpop(...args: [timeout: number | string, numkeys: number | string, keys: (RedisKey)[], max: 'MAX', countToken: 'COUNT', count: number, callback: Callback<unknown>]): Result<unknown, Context>;
+  bzmpop(...args: [timeout: number | string, numkeys: number | string, ...keys: (RedisKey)[], max: 'MAX', countToken: 'COUNT', count: number]): Result<unknown, Context>;
+  bzmpop(...args: [timeout: number | string, numkeys: number | string, keys: (RedisKey)[], max: 'MAX', countToken: 'COUNT', count: number]): Result<unknown, Context>;
+
+  /**
    * Remove and return the member with the highest score from one or more sorted sets, or block until one is available
    * - _group_: sorted-set
    * - _complexity_: O(log(N)) with N being the number of elements in the sorted set.
@@ -375,12 +421,109 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   bzpopmin(...args: [keys: (RedisKey)[], timeout: number | string]): Result<unknown[] | null, Context>;
 
   /**
+   * Enable or disable server assisted client side caching support
+   * - _group_: connection
+   * - _complexity_: O(1). Some options may introduce additional complexity.
+   * - _since_: 6.0.0
+   */
+  client(...args: [subcommand: 'TRACKING', ...args: (RedisValue)[], callback: Callback<unknown>]): Result<unknown, Context>;
+  client(...args: [subcommand: 'TRACKING', ...args: (RedisValue)[]]): Result<unknown, Context>;
+
+  /**
+   * Return information about server assisted client side caching for the current connection
+   * - _group_: connection
+   * - _complexity_: O(1)
+   * - _since_: 6.2.0
+   */
+  client(subcommand: 'TRACKINGINFO', callback?: Callback<string>): Result<string, Context>;
+  clientBuffer(subcommand: 'TRACKINGINFO', callback?: Callback<Buffer>): Result<Buffer, Context>;
+
+  /**
+   * Returns information about the current client connection.
+   * - _group_: connection
+   * - _complexity_: O(1)
+   * - _since_: 6.2.0
+   */
+  client(subcommand: 'INFO', callback?: Callback<string>): Result<string, Context>;
+  clientBuffer(subcommand: 'INFO', callback?: Callback<Buffer>): Result<Buffer, Context>;
+
+  /**
+   * Kill the connection of a client
+   * - _group_: connection
+   * - _complexity_: O(N) where N is the number of client connections
+   * - _since_: 2.4.0
+   */
+  client(...args: [subcommand: 'KILL', ...args: (RedisValue)[], callback: Callback<unknown>]): Result<unknown, Context>;
+  client(...args: [subcommand: 'KILL', ...args: (RedisValue)[]]): Result<unknown, Context>;
+
+  /**
    * Resume processing of clients that were paused
    * - _group_: connection
    * - _complexity_: O(N) Where N is the number of paused clients
    * - _since_: 6.2.0
    */
   client(subcommand: 'UNPAUSE', callback?: Callback<"OK">): Result<"OK", Context>;
+
+  /**
+   * Get tracking notifications redirection client ID if any
+   * - _group_: connection
+   * - _complexity_: O(1)
+   * - _since_: 6.0.0
+   */
+  client(subcommand: 'GETREDIR', callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Show helpful text about the different subcommands
+   * - _group_: connection
+   * - _complexity_: O(1)
+   * - _since_: 5.0.0
+   */
+  client(subcommand: 'HELP', callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
+   * Set the current connection name
+   * - _group_: connection
+   * - _complexity_: O(1)
+   * - _since_: 2.6.9
+   */
+  client(subcommand: 'SETNAME', connectionName: string | Buffer, callback?: Callback<"OK">): Result<"OK", Context>;
+
+  /**
+   * Get the current connection name
+   * - _group_: connection
+   * - _complexity_: O(1)
+   * - _since_: 2.6.9
+   */
+  client(subcommand: 'GETNAME', callback?: Callback<string | null>): Result<string | null, Context>;
+  clientBuffer(subcommand: 'GETNAME', callback?: Callback<Buffer | null>): Result<Buffer | null, Context>;
+
+  /**
+   * Stop processing commands from clients for some time
+   * - _group_: connection
+   * - _complexity_: O(1)
+   * - _since_: 2.9.50
+   */
+  client(subcommand: 'PAUSE', timeout: number | string, callback?: Callback<"OK">): Result<"OK", Context>;
+  client(subcommand: 'PAUSE', timeout: number | string, write: 'WRITE', callback?: Callback<"OK">): Result<"OK", Context>;
+  client(subcommand: 'PAUSE', timeout: number | string, all: 'ALL', callback?: Callback<"OK">): Result<"OK", Context>;
+
+  /**
+   * Returns the client ID for the current connection
+   * - _group_: connection
+   * - _complexity_: O(1)
+   * - _since_: 5.0.0
+   */
+  client(subcommand: 'ID', callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Instruct the server whether to reply to commands
+   * - _group_: connection
+   * - _complexity_: O(1)
+   * - _since_: 3.2.0
+   */
+  client(subcommand: 'REPLY', on: 'ON', callback?: Callback<unknown>): Result<unknown, Context>;
+  client(subcommand: 'REPLY', off: 'OFF', callback?: Callback<unknown>): Result<unknown, Context>;
+  client(subcommand: 'REPLY', skip: 'SKIP', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * Get the list of client connections
@@ -405,23 +548,6 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   client(...args: [subcommand: 'LIST', type: 'TYPE', pubsub: 'PUBSUB', idToken: 'ID', ...clientIds: (number | string)[]]): Result<unknown, Context>;
 
   /**
-   * Set client eviction mode for the current connection
-   * - _group_: connection
-   * - _complexity_: O(1)
-   * - _since_: 7.0.0
-   */
-  client(subcommand: 'NO-EVICT', on: 'ON', callback?: Callback<unknown>): Result<unknown, Context>;
-  client(subcommand: 'NO-EVICT', off: 'OFF', callback?: Callback<unknown>): Result<unknown, Context>;
-
-  /**
-   * Returns the client ID for the current connection
-   * - _group_: connection
-   * - _complexity_: O(1)
-   * - _since_: 5.0.0
-   */
-  client(subcommand: 'ID', callback?: Callback<number>): Result<number, Context>;
-
-  /**
    * Unblock a client blocked in a blocking command from a different connection
    * - _group_: connection
    * - _complexity_: O(log N) where N is the number of client connections
@@ -432,74 +558,13 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   client(subcommand: 'UNBLOCK', clientId: number | string, error: 'ERROR', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
-   * Enable or disable server assisted client side caching support
-   * - _group_: connection
-   * - _complexity_: O(1). Some options may introduce additional complexity.
-   * - _since_: 6.0.0
-   */
-  client(...args: [subcommand: 'TRACKING', ...args: (RedisValue)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  client(...args: [subcommand: 'TRACKING', ...args: (RedisValue)[]]): Result<unknown, Context>;
-
-  /**
-   * Show helpful text about the different subcommands
+   * Set client eviction mode for the current connection
    * - _group_: connection
    * - _complexity_: O(1)
-   * - _since_: 5.0.0
+   * - _since_: 7.0.0
    */
-  client(subcommand: 'HELP', callback?: Callback<unknown>): Result<unknown, Context>;
-
-  /**
-   * Set the current connection name
-   * - _group_: connection
-   * - _complexity_: O(1)
-   * - _since_: 2.6.9
-   */
-  client(subcommand: 'SETNAME', connectionName: string | Buffer, callback?: Callback<"OK">): Result<"OK", Context>;
-
-  /**
-   * Stop processing commands from clients for some time
-   * - _group_: connection
-   * - _complexity_: O(1)
-   * - _since_: 2.9.50
-   */
-  client(subcommand: 'PAUSE', timeout: number | string, callback?: Callback<"OK">): Result<"OK", Context>;
-  client(subcommand: 'PAUSE', timeout: number | string, write: 'WRITE', callback?: Callback<"OK">): Result<"OK", Context>;
-  client(subcommand: 'PAUSE', timeout: number | string, all: 'ALL', callback?: Callback<"OK">): Result<"OK", Context>;
-
-  /**
-   * Return information about server assisted client side caching for the current connection
-   * - _group_: connection
-   * - _complexity_: O(1)
-   * - _since_: 6.2.0
-   */
-  client(subcommand: 'TRACKINGINFO', callback?: Callback<string>): Result<string, Context>;
-  clientBuffer(subcommand: 'TRACKINGINFO', callback?: Callback<Buffer>): Result<Buffer, Context>;
-
-  /**
-   * Returns information about the current client connection.
-   * - _group_: connection
-   * - _complexity_: O(1)
-   * - _since_: 6.2.0
-   */
-  client(subcommand: 'INFO', callback?: Callback<string>): Result<string, Context>;
-  clientBuffer(subcommand: 'INFO', callback?: Callback<Buffer>): Result<Buffer, Context>;
-
-  /**
-   * Get tracking notifications redirection client ID if any
-   * - _group_: connection
-   * - _complexity_: O(1)
-   * - _since_: 6.0.0
-   */
-  client(subcommand: 'GETREDIR', callback?: Callback<number>): Result<number, Context>;
-
-  /**
-   * Get the current connection name
-   * - _group_: connection
-   * - _complexity_: O(1)
-   * - _since_: 2.6.9
-   */
-  client(subcommand: 'GETNAME', callback?: Callback<string | null>): Result<string | null, Context>;
-  clientBuffer(subcommand: 'GETNAME', callback?: Callback<Buffer | null>): Result<Buffer | null, Context>;
+  client(subcommand: 'NO-EVICT', on: 'ON', callback?: Callback<unknown>): Result<unknown, Context>;
+  client(subcommand: 'NO-EVICT', off: 'OFF', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * Instruct the server about tracking or not keys in the next request
@@ -511,33 +576,13 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   client(subcommand: 'CACHING', no: 'NO', callback?: Callback<"OK">): Result<"OK", Context>;
 
   /**
-   * Instruct the server whether to reply to commands
-   * - _group_: connection
-   * - _complexity_: O(1)
-   * - _since_: 3.2.0
-   */
-  client(subcommand: 'REPLY', on: 'ON', callback?: Callback<unknown>): Result<unknown, Context>;
-  client(subcommand: 'REPLY', off: 'OFF', callback?: Callback<unknown>): Result<unknown, Context>;
-  client(subcommand: 'REPLY', skip: 'SKIP', callback?: Callback<unknown>): Result<unknown, Context>;
-
-  /**
-   * Kill the connection of a client
-   * - _group_: connection
-   * - _complexity_: O(N) where N is the number of client connections
-   * - _since_: 2.4.0
-   */
-  client(...args: [subcommand: 'KILL', ...args: (RedisValue)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  client(...args: [subcommand: 'KILL', ...args: (RedisValue)[]]): Result<unknown, Context>;
-
-  /**
-   * Forces a replica to perform a manual failover of its master.
+   * Assign new hash slots to receiving node
    * - _group_: cluster
-   * - _complexity_: O(1)
-   * - _since_: 3.0.0
+   * - _complexity_: O(N) where N is the total number of the slots between the start slot and end slot arguments.
+   * - _since_: 7.0.0
    */
-  cluster(subcommand: 'FAILOVER', callback?: Callback<'OK'>): Result<'OK', Context>;
-  cluster(subcommand: 'FAILOVER', force: 'FORCE', callback?: Callback<'OK'>): Result<'OK', Context>;
-  cluster(subcommand: 'FAILOVER', takeover: 'TAKEOVER', callback?: Callback<'OK'>): Result<'OK', Context>;
+  cluster(...args: [subcommand: 'ADDSLOTSRANGE', ...startSlotEndSlots: (number)[], callback: Callback<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][]>]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
+  cluster(...args: [subcommand: 'ADDSLOTSRANGE', ...startSlotEndSlots: (number)[]]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
 
   /**
    * Returns a list of all TCP links to and from peer nodes in cluster
@@ -548,23 +593,36 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   cluster(subcommand: 'LINKS', callback?: Callback<unknown[]>): Result<unknown[], Context>;
 
   /**
-   * Assign new hash slots to receiving node
+   * Return the number of failure reports active for a given node
    * - _group_: cluster
-   * - _complexity_: O(N) where N is the total number of hash slot arguments
+   * - _complexity_: O(N) where N is the number of failure reports
    * - _since_: 3.0.0
    */
-  cluster(...args: [subcommand: 'ADDSLOTS', ...slots: (number | string)[], callback: Callback<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][]>]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
-  cluster(...args: [subcommand: 'ADDSLOTS', slots: (number | string)[], callback: Callback<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][]>]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
-  cluster(...args: [subcommand: 'ADDSLOTS', ...slots: (number | string)[]]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
-  cluster(...args: [subcommand: 'ADDSLOTS', slots: (number | string)[]]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
+  cluster(subcommand: 'COUNT-FAILURE-REPORTS', nodeId: string | Buffer | number, callback?: Callback<number>): Result<number, Context>;
 
   /**
-   * Get Cluster config for the node
+   * List replica nodes of the specified master node
    * - _group_: cluster
-   * - _complexity_: O(N) where N is the total number of Cluster nodes
+   * - _complexity_: O(1)
    * - _since_: 3.0.0
    */
-  cluster(subcommand: 'NODES', callback?: Callback<unknown>): Result<unknown, Context>;
+  cluster(subcommand: 'SLAVES', nodeId: string | Buffer | number, callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
+   * Remove a node from the nodes table
+   * - _group_: cluster
+   * - _complexity_: O(1)
+   * - _since_: 3.0.0
+   */
+  cluster(subcommand: 'FORGET', nodeId: string | Buffer | number, callback?: Callback<'OK'>): Result<'OK', Context>;
+
+  /**
+   * Returns the hash slot of the specified key
+   * - _group_: cluster
+   * - _complexity_: O(N) where N is the number of bytes in the key
+   * - _since_: 3.0.0
+   */
+  cluster(subcommand: 'KEYSLOT', key: string | Buffer, callback?: Callback<number>): Result<number, Context>;
 
   /**
    * Show helpful text about the different subcommands
@@ -575,47 +633,33 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   cluster(subcommand: 'HELP', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
-   * Return the number of local keys in the specified hash slot
+   * Get Cluster config for the node
    * - _group_: cluster
-   * - _complexity_: O(1)
+   * - _complexity_: O(N) where N is the total number of Cluster nodes
    * - _since_: 3.0.0
    */
-  cluster(subcommand: 'COUNTKEYSINSLOT', slot: number | string, callback?: Callback<number>): Result<number, Context>;
+  cluster(subcommand: 'NODES', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
-   * Bind a hash slot to a specific node
+   * Reset a Redis Cluster node
    * - _group_: cluster
-   * - _complexity_: O(1)
+   * - _complexity_: O(N) where N is the number of known nodes. The command may execute a FLUSHALL as a side effect.
    * - _since_: 3.0.0
    */
-  cluster(subcommand: 'SETSLOT', slot: number | string, nodeIdToken: 'IMPORTING', nodeId: number | string, callback?: Callback<'OK'>): Result<'OK', Context>;
-  cluster(subcommand: 'SETSLOT', slot: number | string, nodeIdToken: 'MIGRATING', nodeId: number | string, callback?: Callback<'OK'>): Result<'OK', Context>;
-  cluster(subcommand: 'SETSLOT', slot: number | string, nodeIdToken: 'NODE', nodeId: number | string, callback?: Callback<'OK'>): Result<'OK', Context>;
-  cluster(subcommand: 'SETSLOT', slot: number | string, stable: 'STABLE', callback?: Callback<'OK'>): Result<'OK', Context>;
+  cluster(subcommand: 'RESET', callback?: Callback<'OK'>): Result<'OK', Context>;
+  cluster(subcommand: 'RESET', hard: 'HARD', callback?: Callback<'OK'>): Result<'OK', Context>;
+  cluster(subcommand: 'RESET', soft: 'SOFT', callback?: Callback<'OK'>): Result<'OK', Context>;
 
   /**
-   * Delete a node's own slots information
+   * Set hash slots as unbound in receiving node
    * - _group_: cluster
-   * - _complexity_: O(1)
+   * - _complexity_: O(N) where N is the total number of hash slot arguments
    * - _since_: 3.0.0
    */
-  cluster(subcommand: 'FLUSHSLOTS', callback?: Callback<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][]>): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
-
-  /**
-   * Return the number of failure reports active for a given node
-   * - _group_: cluster
-   * - _complexity_: O(N) where N is the number of failure reports
-   * - _since_: 3.0.0
-   */
-  cluster(subcommand: 'COUNT-FAILURE-REPORTS', nodeId: string | Buffer | number, callback?: Callback<number>): Result<number, Context>;
-
-  /**
-   * Forces the node to save cluster state on disk
-   * - _group_: cluster
-   * - _complexity_: O(1)
-   * - _since_: 3.0.0
-   */
-  cluster(subcommand: 'SAVECONFIG', callback?: Callback<'OK'>): Result<'OK', Context>;
+  cluster(...args: [subcommand: 'DELSLOTS', ...slots: (number | string)[], callback: Callback<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][]>]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
+  cluster(...args: [subcommand: 'DELSLOTS', slots: (number | string)[], callback: Callback<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][]>]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
+  cluster(...args: [subcommand: 'DELSLOTS', ...slots: (number | string)[]]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
+  cluster(...args: [subcommand: 'DELSLOTS', slots: (number | string)[]]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
 
   /**
    * Get array of Cluster slot to node mappings
@@ -634,58 +678,12 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   cluster(subcommand: 'BUMPEPOCH', callback?: Callback<'BUMPED' | 'STILL'>): Result<'BUMPED' | 'STILL', Context>;
 
   /**
-   * Set hash slots as unbound in receiving node
-   * - _group_: cluster
-   * - _complexity_: O(N) where N is the total number of hash slot arguments
-   * - _since_: 3.0.0
-   */
-  cluster(...args: [subcommand: 'DELSLOTS', ...slots: (number | string)[], callback: Callback<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][]>]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
-  cluster(...args: [subcommand: 'DELSLOTS', slots: (number | string)[], callback: Callback<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][]>]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
-  cluster(...args: [subcommand: 'DELSLOTS', ...slots: (number | string)[]]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
-  cluster(...args: [subcommand: 'DELSLOTS', slots: (number | string)[]]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
-
-  /**
-   * Reset a Redis Cluster node
-   * - _group_: cluster
-   * - _complexity_: O(N) where N is the number of known nodes. The command may execute a FLUSHALL as a side effect.
-   * - _since_: 3.0.0
-   */
-  cluster(subcommand: 'RESET', callback?: Callback<'OK'>): Result<'OK', Context>;
-  cluster(subcommand: 'RESET', hard: 'HARD', callback?: Callback<'OK'>): Result<'OK', Context>;
-  cluster(subcommand: 'RESET', soft: 'SOFT', callback?: Callback<'OK'>): Result<'OK', Context>;
-
-  /**
-   * Reconfigure a node as a replica of the specified master node
-   * - _group_: cluster
-   * - _complexity_: O(1)
-   * - _since_: 3.0.0
-   */
-  cluster(subcommand: 'REPLICATE', nodeId: string | Buffer | number, callback?: Callback<'OK'>): Result<'OK', Context>;
-
-  /**
-   * Set the configuration epoch in a new node
-   * - _group_: cluster
-   * - _complexity_: O(1)
-   * - _since_: 3.0.0
-   */
-  cluster(subcommand: 'SET-CONFIG-EPOCH', configEpoch: number | string, callback?: Callback<'OK'>): Result<'OK', Context>;
-
-  /**
    * Force a node cluster to handshake with another node
    * - _group_: cluster
    * - _complexity_: O(1)
    * - _since_: 3.0.0
    */
   cluster(subcommand: 'MEET', ip: string | Buffer, port: number | string, callback?: Callback<'OK'>): Result<'OK', Context>;
-
-  /**
-   * Assign new hash slots to receiving node
-   * - _group_: cluster
-   * - _complexity_: O(N) where N is the total number of the slots between the start slot and end slot arguments.
-   * - _since_: 7.0.0
-   */
-  cluster(...args: [subcommand: 'ADDSLOTSRANGE', ...startSlotEndSlots: (number)[], callback: Callback<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][]>]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
-  cluster(...args: [subcommand: 'ADDSLOTSRANGE', ...startSlotEndSlots: (number)[]]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
 
   /**
    * Return the node id
@@ -696,6 +694,17 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   cluster(subcommand: 'MYID', callback?: Callback<string>): Result<string, Context>;
 
   /**
+   * Bind a hash slot to a specific node
+   * - _group_: cluster
+   * - _complexity_: O(1)
+   * - _since_: 3.0.0
+   */
+  cluster(subcommand: 'SETSLOT', slot: number | string, nodeIdToken: 'IMPORTING', nodeId: string | Buffer | number, callback?: Callback<'OK'>): Result<'OK', Context>;
+  cluster(subcommand: 'SETSLOT', slot: number | string, nodeIdToken: 'MIGRATING', nodeId: string | Buffer | number, callback?: Callback<'OK'>): Result<'OK', Context>;
+  cluster(subcommand: 'SETSLOT', slot: number | string, nodeIdToken: 'NODE', nodeId: string | Buffer | number, callback?: Callback<'OK'>): Result<'OK', Context>;
+  cluster(subcommand: 'SETSLOT', slot: number | string, stable: 'STABLE', callback?: Callback<'OK'>): Result<'OK', Context>;
+
+  /**
    * List replica nodes of the specified master node
    * - _group_: cluster
    * - _complexity_: O(1)
@@ -704,12 +713,73 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   cluster(subcommand: 'REPLICAS', nodeId: string | Buffer | number, callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
-   * Remove a node from the nodes table
+   * Assign new hash slots to receiving node
+   * - _group_: cluster
+   * - _complexity_: O(N) where N is the total number of hash slot arguments
+   * - _since_: 3.0.0
+   */
+  cluster(...args: [subcommand: 'ADDSLOTS', ...slots: (number | string)[], callback: Callback<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][]>]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
+  cluster(...args: [subcommand: 'ADDSLOTS', slots: (number | string)[], callback: Callback<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][]>]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
+  cluster(...args: [subcommand: 'ADDSLOTS', ...slots: (number | string)[]]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
+  cluster(...args: [subcommand: 'ADDSLOTS', slots: (number | string)[]]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
+
+  /**
+   * Return local key names in the specified hash slot
+   * - _group_: cluster
+   * - _complexity_: O(log(N)) where N is the number of requested keys
+   * - _since_: 3.0.0
+   */
+  cluster(subcommand: 'GETKEYSINSLOT', slot: number | string, count: number, callback?: Callback<string[]>): Result<string[], Context>;
+
+  /**
+   * Provides info about Redis Cluster node state
    * - _group_: cluster
    * - _complexity_: O(1)
    * - _since_: 3.0.0
    */
-  cluster(subcommand: 'FORGET', nodeId: string | Buffer | number, callback?: Callback<'OK'>): Result<'OK', Context>;
+  cluster(subcommand: 'INFO', callback?: Callback<string>): Result<string, Context>;
+
+  /**
+   * Return the number of local keys in the specified hash slot
+   * - _group_: cluster
+   * - _complexity_: O(1)
+   * - _since_: 3.0.0
+   */
+  cluster(subcommand: 'COUNTKEYSINSLOT', slot: number | string, callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Forces a replica to perform a manual failover of its master.
+   * - _group_: cluster
+   * - _complexity_: O(1)
+   * - _since_: 3.0.0
+   */
+  cluster(subcommand: 'FAILOVER', callback?: Callback<'OK'>): Result<'OK', Context>;
+  cluster(subcommand: 'FAILOVER', force: 'FORCE', callback?: Callback<'OK'>): Result<'OK', Context>;
+  cluster(subcommand: 'FAILOVER', takeover: 'TAKEOVER', callback?: Callback<'OK'>): Result<'OK', Context>;
+
+  /**
+   * Set the configuration epoch in a new node
+   * - _group_: cluster
+   * - _complexity_: O(1)
+   * - _since_: 3.0.0
+   */
+  cluster(subcommand: 'SET-CONFIG-EPOCH', configEpoch: number | string, callback?: Callback<'OK'>): Result<'OK', Context>;
+
+  /**
+   * Forces the node to save cluster state on disk
+   * - _group_: cluster
+   * - _complexity_: O(1)
+   * - _since_: 3.0.0
+   */
+  cluster(subcommand: 'SAVECONFIG', callback?: Callback<'OK'>): Result<'OK', Context>;
+
+  /**
+   * Delete a node's own slots information
+   * - _group_: cluster
+   * - _complexity_: O(1)
+   * - _since_: 3.0.0
+   */
+  cluster(subcommand: 'FLUSHSLOTS', callback?: Callback<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][]>): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
 
   /**
    * Set hash slots as unbound in receiving node
@@ -721,36 +791,12 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   cluster(...args: [subcommand: 'DELSLOTSRANGE', ...startSlotEndSlots: (number)[]]): Result<[startSlotRange: number, endSlotRange: number, ...nodes: [host: string, port: number, nodeId: string, info: unknown[]][]][], Context>;
 
   /**
-   * Provides info about Redis Cluster node state
+   * Reconfigure a node as a replica of the specified master node
    * - _group_: cluster
    * - _complexity_: O(1)
    * - _since_: 3.0.0
    */
-  cluster(subcommand: 'INFO', callback?: Callback<string>): Result<string, Context>;
-
-  /**
-   * Returns the hash slot of the specified key
-   * - _group_: cluster
-   * - _complexity_: O(N) where N is the number of bytes in the key
-   * - _since_: 3.0.0
-   */
-  cluster(subcommand: 'KEYSLOT', key: string | Buffer, callback?: Callback<number>): Result<number, Context>;
-
-  /**
-   * List replica nodes of the specified master node
-   * - _group_: cluster
-   * - _complexity_: O(1)
-   * - _since_: 3.0.0
-   */
-  cluster(subcommand: 'SLAVES', nodeId: string | Buffer | number, callback?: Callback<unknown>): Result<unknown, Context>;
-
-  /**
-   * Return local key names in the specified hash slot
-   * - _group_: cluster
-   * - _complexity_: O(log(N)) where N is the number of requested keys
-   * - _since_: 3.0.0
-   */
-  cluster(subcommand: 'GETKEYSINSLOT', slot: number | string, count: number, callback?: Callback<string[]>): Result<string[], Context>;
+  cluster(subcommand: 'REPLICATE', nodeId: string | Buffer | number, callback?: Callback<'OK'>): Result<'OK', Context>;
 
   /**
    * Get an array of Redis command names
@@ -764,16 +810,6 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   command(subcommand: 'LIST', filterby: 'FILTERBY', patternToken: 'PATTERN', pattern: string, callback?: Callback<unknown[]>): Result<unknown[], Context>;
 
   /**
-   * Get array of specific Redis command documentation
-   * - _group_: server
-   * - _complexity_: O(N) where N is the number of commands to look up
-   * - _since_: 7.0.0
-   */
-  command(subcommand: 'DOCS', callback?: Callback<unknown[]>): Result<unknown[], Context>;
-  command(...args: [subcommand: 'DOCS', ...commandNames: (string | Buffer)[], callback: Callback<unknown[]>]): Result<unknown[], Context>;
-  command(...args: [subcommand: 'DOCS', ...commandNames: (string | Buffer)[]]): Result<unknown[], Context>;
-
-  /**
    * Get array of specific Redis command details, or all when no argument is given.
    * - _group_: server
    * - _complexity_: O(N) where N is the number of commands to look up
@@ -784,12 +820,14 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   command(...args: [subcommand: 'INFO', ...commandNames: (string | Buffer)[]]): Result<unknown[], Context>;
 
   /**
-   * Get total number of Redis commands
+   * Get array of specific Redis command documentation
    * - _group_: server
-   * - _complexity_: O(1)
-   * - _since_: 2.8.13
+   * - _complexity_: O(N) where N is the number of commands to look up
+   * - _since_: 7.0.0
    */
-  command(subcommand: 'COUNT', callback?: Callback<unknown[]>): Result<unknown[], Context>;
+  command(subcommand: 'DOCS', callback?: Callback<unknown[]>): Result<unknown[], Context>;
+  command(...args: [subcommand: 'DOCS', ...commandNames: (string | Buffer)[], callback: Callback<unknown[]>]): Result<unknown[], Context>;
+  command(...args: [subcommand: 'DOCS', ...commandNames: (string | Buffer)[]]): Result<unknown[], Context>;
 
   /**
    * Extract keys given a full Redis command
@@ -808,20 +846,28 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   command(subcommand: 'HELP', callback?: Callback<unknown[]>): Result<unknown[], Context>;
 
   /**
+   * Get total number of Redis commands
+   * - _group_: server
+   * - _complexity_: O(1)
+   * - _since_: 2.8.13
+   */
+  command(subcommand: 'COUNT', callback?: Callback<unknown[]>): Result<unknown[], Context>;
+
+  /**
+   * Extract keys given a full Redis command
+   * - _group_: server
+   * - _complexity_: O(N) where N is the number of arguments to the command
+   * - _since_: 7.0.0
+   */
+  command(subcommand: 'GETKEYSANDFLAGS', callback?: Callback<unknown[]>): Result<unknown[], Context>;
+
+  /**
    * Reset the stats returned by INFO
    * - _group_: server
    * - _complexity_: O(1)
    * - _since_: 2.0.0
    */
   config(subcommand: 'RESETSTAT', callback?: Callback<unknown>): Result<unknown, Context>;
-
-  /**
-   * Rewrite the configuration file with the in memory configuration
-   * - _group_: server
-   * - _complexity_: O(1)
-   * - _since_: 2.8.0
-   */
-  config(subcommand: 'REWRITE', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * Show helpful text about the different subcommands
@@ -839,6 +885,14 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    */
   config(...args: [subcommand: 'GET', ...parameters: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
   config(...args: [subcommand: 'GET', ...parameters: (string | Buffer)[]]): Result<unknown, Context>;
+
+  /**
+   * Rewrite the configuration file with the in memory configuration
+   * - _group_: server
+   * - _complexity_: O(1)
+   * - _since_: 2.8.0
+   */
+  config(subcommand: 'REWRITE', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * Set configuration parameters to the given values
@@ -948,6 +1002,15 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   eval(...args: [script: string | Buffer, numkeys: number | string, ...args: (RedisValue)[]]): Result<unknown, Context>;
 
   /**
+   * Execute a read-only Lua script server side
+   * - _group_: scripting
+   * - _complexity_: Depends on the script that is executed.
+   * - _since_: 7.0.0
+   */
+  eval_ro(...args: [script: string | Buffer, numkeys: number | string, ...args: (RedisValue)[], callback: Callback<unknown>]): Result<unknown, Context>;
+  eval_ro(...args: [script: string | Buffer, numkeys: number | string, ...args: (RedisValue)[]]): Result<unknown, Context>;
+
+  /**
    * Execute a Lua script server side
    * - _group_: scripting
    * - _complexity_: Depends on the script that is executed.
@@ -962,6 +1025,15 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   evalsha(...args: [sha1: string | Buffer, numkeys: number | string, keys: (RedisKey)[]]): Result<unknown, Context>;
   evalsha(...args: [sha1: string | Buffer, numkeys: number | string, ...args: (RedisValue)[], callback: Callback<unknown>]): Result<unknown, Context>;
   evalsha(...args: [sha1: string | Buffer, numkeys: number | string, ...args: (RedisValue)[]]): Result<unknown, Context>;
+
+  /**
+   * Execute a read-only Lua script server side
+   * - _group_: scripting
+   * - _complexity_: Depends on the script that is executed.
+   * - _since_: 7.0.0
+   */
+  evalsha_ro(...args: [sha1: string | Buffer, numkeys: number | string, ...args: (RedisValue)[], callback: Callback<unknown>]): Result<unknown, Context>;
+  evalsha_ro(...args: [sha1: string | Buffer, numkeys: number | string, ...args: (RedisValue)[]]): Result<unknown, Context>;
 
   /**
    * Execute all commands issued after MULTI
@@ -1007,6 +1079,14 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   expireat(key: RedisKey, unixTimeSeconds: number, lt: 'LT', callback?: Callback<number>): Result<number, Context>;
 
   /**
+   * Get the expiration Unix timestamp for a key
+   * - _group_: generic
+   * - _complexity_: O(1)
+   * - _since_: 7.0.0
+   */
+  expiretime(key: RedisKey, callback?: Callback<number>): Result<number, Context>;
+
+  /**
    * Start a coordinated failover between this server and one of its replicas.
    * - _group_: server
    * - _complexity_: O(1)
@@ -1024,6 +1104,24 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   failover(targetToken: 'TO', host: string | Buffer, port: number | string, force: 'FORCE', millisecondsToken: 'TIMEOUT', milliseconds: number, callback?: Callback<'OK'>): Result<'OK', Context>;
   failover(targetToken: 'TO', host: string | Buffer, port: number | string, force: 'FORCE', abort: 'ABORT', callback?: Callback<'OK'>): Result<'OK', Context>;
   failover(targetToken: 'TO', host: string | Buffer, port: number | string, force: 'FORCE', abort: 'ABORT', millisecondsToken: 'TIMEOUT', milliseconds: number, callback?: Callback<'OK'>): Result<'OK', Context>;
+
+  /**
+   * Invoke a function
+   * - _group_: scripting
+   * - _complexity_: Depends on the function that is executed.
+   * - _since_: 7.0.0
+   */
+  fcall(...args: [function: string | Buffer, numkeys: number | string, ...args: (RedisValue)[], callback: Callback<unknown>]): Result<unknown, Context>;
+  fcall(...args: [function: string | Buffer, numkeys: number | string, ...args: (RedisValue)[]]): Result<unknown, Context>;
+
+  /**
+   * Invoke a read-only function
+   * - _group_: scripting
+   * - _complexity_: Depends on the function that is executed.
+   * - _since_: 7.0.0
+   */
+  fcall_ro(...args: [function: string | Buffer, numkeys: number | string, ...args: (RedisValue)[], callback: Callback<unknown>]): Result<unknown, Context>;
+  fcall_ro(...args: [function: string | Buffer, numkeys: number | string, ...args: (RedisValue)[]]): Result<unknown, Context>;
 
   /**
    * Remove all keys from all databases
@@ -1044,6 +1142,89 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   flushdb(callback?: Callback<'OK'>): Result<'OK', Context>;
   flushdb(async: 'ASYNC', callback?: Callback<'OK'>): Result<'OK', Context>;
   flushdb(sync: 'SYNC', callback?: Callback<'OK'>): Result<'OK', Context>;
+
+  /**
+   * List information about all the functions
+   * - _group_: scripting
+   * - _complexity_: O(N) where N is the number of functions
+   * - _since_: 7.0.0
+   */
+  function(subcommand: 'LIST', callback?: Callback<unknown>): Result<unknown, Context>;
+  function(subcommand: 'LIST', withcode: 'WITHCODE', callback?: Callback<unknown>): Result<unknown, Context>;
+  function(subcommand: 'LIST', libraryNamePatternToken: 'LIBRARYNAME', libraryNamePattern: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
+  function(subcommand: 'LIST', libraryNamePatternToken: 'LIBRARYNAME', libraryNamePattern: string | Buffer, withcode: 'WITHCODE', callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
+   * Restore all the functions on the given payload
+   * - _group_: scripting
+   * - _complexity_: O(N) where N is the number of functions on the payload
+   * - _since_: 7.0.0
+   */
+  function(subcommand: 'RESTORE', serializedValue: string | Buffer | number, callback?: Callback<unknown>): Result<unknown, Context>;
+  function(subcommand: 'RESTORE', serializedValue: string | Buffer | number, flush: 'FLUSH', callback?: Callback<unknown>): Result<unknown, Context>;
+  function(subcommand: 'RESTORE', serializedValue: string | Buffer | number, append: 'APPEND', callback?: Callback<unknown>): Result<unknown, Context>;
+  function(subcommand: 'RESTORE', serializedValue: string | Buffer | number, replace: 'REPLACE', callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
+   * Delete a function by name
+   * - _group_: scripting
+   * - _complexity_: O(1)
+   * - _since_: 7.0.0
+   */
+  function(subcommand: 'DELETE', libraryName: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
+   * Create a function with the given arguments (name, code, description)
+   * - _group_: scripting
+   * - _complexity_: O(1) (considering compilation time is redundant)
+   * - _since_: 7.0.0
+   */
+  function(subcommand: 'LOAD', engineName: string | Buffer, libraryName: string | Buffer, functionCode: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
+  function(subcommand: 'LOAD', engineName: string | Buffer, libraryName: string | Buffer, libraryDescriptionToken: 'DESCRIPTION', libraryDescription: string | Buffer, functionCode: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
+  function(subcommand: 'LOAD', engineName: string | Buffer, libraryName: string | Buffer, replace: 'REPLACE', functionCode: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
+  function(subcommand: 'LOAD', engineName: string | Buffer, libraryName: string | Buffer, replace: 'REPLACE', libraryDescriptionToken: 'DESCRIPTION', libraryDescription: string | Buffer, functionCode: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
+   * Kill the function currently in execution.
+   * - _group_: scripting
+   * - _complexity_: O(1)
+   * - _since_: 7.0.0
+   */
+  function(subcommand: 'KILL', callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
+   * Dump all functions into a serialized binary payload
+   * - _group_: scripting
+   * - _complexity_: O(N) where N is the number of functions
+   * - _since_: 7.0.0
+   */
+  function(subcommand: 'DUMP', callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
+   * Show helpful text about the different subcommands
+   * - _group_: scripting
+   * - _complexity_: O(1)
+   * - _since_: 7.0.0
+   */
+  function(subcommand: 'HELP', callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
+   * Deleting all functions
+   * - _group_: scripting
+   * - _complexity_: O(N) where N is the number of functions deleted
+   * - _since_: 7.0.0
+   */
+  function(subcommand: 'FLUSH', callback?: Callback<unknown>): Result<unknown, Context>;
+  function(subcommand: 'FLUSH', async: 'ASYNC', callback?: Callback<unknown>): Result<unknown, Context>;
+  function(subcommand: 'FLUSH', sync: 'SYNC', callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
+   * Return information about the function currently running (name, description, duration)
+   * - _group_: scripting
+   * - _complexity_: O(1)
+   * - _since_: 7.0.0
+   */
+  function(subcommand: 'STATS', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * Add one or more geospatial items in the geospatial index represented using a sorted set
@@ -1422,7 +1603,8 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _since_: 1.0.0
    */
   info(callback?: Callback<string>): Result<string, Context>;
-  info(section: string | Buffer, callback?: Callback<string>): Result<string, Context>;
+  info(...args: [...sections: (string | Buffer)[], callback: Callback<string>]): Result<string, Context>;
+  info(...args: [...sections: (string | Buffer)[]]): Result<string, Context>;
 
   /**
    * Find all keys matching the given pattern
@@ -1440,22 +1622,6 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _since_: 1.0.0
    */
   lastsave(callback?: Callback<number>): Result<number, Context>;
-
-  /**
-   * Show helpful text about the different subcommands.
-   * - _group_: server
-   * - _complexity_: O(1)
-   * - _since_: 2.8.13
-   */
-  latency(subcommand: 'HELP', callback?: Callback<unknown[]>): Result<unknown[], Context>;
-
-  /**
-   * Return a latency graph for the event.
-   * - _group_: server
-   * - _complexity_: O(1)
-   * - _since_: 2.8.13
-   */
-  latency(subcommand: 'GRAPH', event: string | Buffer, callback?: Callback<string>): Result<string, Context>;
 
   /**
    * Return a human readable latency analysis report.
@@ -1476,12 +1642,12 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   latency(...args: [subcommand: 'HISTOGRAM', ...commands: (string | Buffer)[]]): Result<unknown, Context>;
 
   /**
-   * Return the latest latency samples for all events.
+   * Return a latency graph for the event.
    * - _group_: server
    * - _complexity_: O(1)
    * - _since_: 2.8.13
    */
-  latency(subcommand: 'LATEST', callback?: Callback<unknown[]>): Result<unknown[], Context>;
+  latency(subcommand: 'GRAPH', event: string | Buffer, callback?: Callback<string>): Result<string, Context>;
 
   /**
    * Return timestamp-latency samples for the event.
@@ -1492,6 +1658,22 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   latency(subcommand: 'HISTORY', event: string | Buffer, callback?: Callback<unknown[]>): Result<unknown[], Context>;
 
   /**
+   * Show helpful text about the different subcommands.
+   * - _group_: server
+   * - _complexity_: O(1)
+   * - _since_: 2.8.13
+   */
+  latency(subcommand: 'HELP', callback?: Callback<unknown[]>): Result<unknown[], Context>;
+
+  /**
+   * Return the latest latency samples for all events.
+   * - _group_: server
+   * - _complexity_: O(1)
+   * - _since_: 2.8.13
+   */
+  latency(subcommand: 'LATEST', callback?: Callback<unknown[]>): Result<unknown[], Context>;
+
+  /**
    * Reset latency data for one or more events.
    * - _group_: server
    * - _complexity_: O(1)
@@ -1500,6 +1682,29 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   latency(subcommand: 'RESET', callback?: Callback<number>): Result<number, Context>;
   latency(...args: [subcommand: 'RESET', ...events: (string | Buffer)[], callback: Callback<number>]): Result<number, Context>;
   latency(...args: [subcommand: 'RESET', ...events: (string | Buffer)[]]): Result<number, Context>;
+
+  /**
+   * Find longest common substring
+   * - _group_: string
+   * - _complexity_: O(N*M) where N and M are the lengths of s1 and s2, respectively
+   * - _since_: 7.0.0
+   */
+  lcs(key1: RedisKey, key2: RedisKey, callback?: Callback<unknown>): Result<unknown, Context>;
+  lcs(key1: RedisKey, key2: RedisKey, withmatchlen: 'WITHMATCHLEN', callback?: Callback<unknown>): Result<unknown, Context>;
+  lcs(key1: RedisKey, key2: RedisKey, lenToken: 'MINMATCHLEN', len: number | string, callback?: Callback<unknown>): Result<unknown, Context>;
+  lcs(key1: RedisKey, key2: RedisKey, lenToken: 'MINMATCHLEN', len: number | string, withmatchlen: 'WITHMATCHLEN', callback?: Callback<unknown>): Result<unknown, Context>;
+  lcs(key1: RedisKey, key2: RedisKey, idx: 'IDX', callback?: Callback<unknown>): Result<unknown, Context>;
+  lcs(key1: RedisKey, key2: RedisKey, idx: 'IDX', withmatchlen: 'WITHMATCHLEN', callback?: Callback<unknown>): Result<unknown, Context>;
+  lcs(key1: RedisKey, key2: RedisKey, idx: 'IDX', lenToken: 'MINMATCHLEN', len: number | string, callback?: Callback<unknown>): Result<unknown, Context>;
+  lcs(key1: RedisKey, key2: RedisKey, idx: 'IDX', lenToken: 'MINMATCHLEN', len: number | string, withmatchlen: 'WITHMATCHLEN', callback?: Callback<unknown>): Result<unknown, Context>;
+  lcs(key1: RedisKey, key2: RedisKey, len: 'LEN', callback?: Callback<unknown>): Result<unknown, Context>;
+  lcs(key1: RedisKey, key2: RedisKey, len: 'LEN', withmatchlen: 'WITHMATCHLEN', callback?: Callback<unknown>): Result<unknown, Context>;
+  lcs(key1: RedisKey, key2: RedisKey, len: 'LEN', lenToken: 'MINMATCHLEN', len1: number | string, callback?: Callback<unknown>): Result<unknown, Context>;
+  lcs(key1: RedisKey, key2: RedisKey, len: 'LEN', lenToken: 'MINMATCHLEN', len1: number | string, withmatchlen: 'WITHMATCHLEN', callback?: Callback<unknown>): Result<unknown, Context>;
+  lcs(key1: RedisKey, key2: RedisKey, len: 'LEN', idx: 'IDX', callback?: Callback<unknown>): Result<unknown, Context>;
+  lcs(key1: RedisKey, key2: RedisKey, len: 'LEN', idx: 'IDX', withmatchlen: 'WITHMATCHLEN', callback?: Callback<unknown>): Result<unknown, Context>;
+  lcs(key1: RedisKey, key2: RedisKey, len: 'LEN', idx: 'IDX', lenToken: 'MINMATCHLEN', len1: number | string, callback?: Callback<unknown>): Result<unknown, Context>;
+  lcs(key1: RedisKey, key2: RedisKey, len: 'LEN', idx: 'IDX', lenToken: 'MINMATCHLEN', len1: number | string, withmatchlen: 'WITHMATCHLEN', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * Get an element from a list by its index
@@ -1541,6 +1746,29 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   lmoveBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', callback?: Callback<Buffer>): Result<Buffer, Context>;
   lmove(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', callback?: Callback<string>): Result<string, Context>;
   lmoveBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', callback?: Callback<Buffer>): Result<Buffer, Context>;
+
+  /**
+   * Pop elements from a list
+   * - _group_: list
+   * - _complexity_: O(N+M) where N is the number of provided keys and M is the number of elements returned.
+   * - _since_: 7.0.0
+   */
+  lmpop(...args: [numkeys: number | string, ...keys: (RedisKey)[], left: 'LEFT', callback: Callback<unknown[] | null>]): Result<unknown[] | null, Context>;
+  lmpop(...args: [numkeys: number | string, keys: (RedisKey)[], left: 'LEFT', callback: Callback<unknown[] | null>]): Result<unknown[] | null, Context>;
+  lmpop(...args: [numkeys: number | string, ...keys: (RedisKey)[], left: 'LEFT']): Result<unknown[] | null, Context>;
+  lmpop(...args: [numkeys: number | string, keys: (RedisKey)[], left: 'LEFT']): Result<unknown[] | null, Context>;
+  lmpop(...args: [numkeys: number | string, ...keys: (RedisKey)[], left: 'LEFT', countToken: 'COUNT', count: number, callback: Callback<unknown[] | null>]): Result<unknown[] | null, Context>;
+  lmpop(...args: [numkeys: number | string, keys: (RedisKey)[], left: 'LEFT', countToken: 'COUNT', count: number, callback: Callback<unknown[] | null>]): Result<unknown[] | null, Context>;
+  lmpop(...args: [numkeys: number | string, ...keys: (RedisKey)[], left: 'LEFT', countToken: 'COUNT', count: number]): Result<unknown[] | null, Context>;
+  lmpop(...args: [numkeys: number | string, keys: (RedisKey)[], left: 'LEFT', countToken: 'COUNT', count: number]): Result<unknown[] | null, Context>;
+  lmpop(...args: [numkeys: number | string, ...keys: (RedisKey)[], right: 'RIGHT', callback: Callback<unknown[] | null>]): Result<unknown[] | null, Context>;
+  lmpop(...args: [numkeys: number | string, keys: (RedisKey)[], right: 'RIGHT', callback: Callback<unknown[] | null>]): Result<unknown[] | null, Context>;
+  lmpop(...args: [numkeys: number | string, ...keys: (RedisKey)[], right: 'RIGHT']): Result<unknown[] | null, Context>;
+  lmpop(...args: [numkeys: number | string, keys: (RedisKey)[], right: 'RIGHT']): Result<unknown[] | null, Context>;
+  lmpop(...args: [numkeys: number | string, ...keys: (RedisKey)[], right: 'RIGHT', countToken: 'COUNT', count: number, callback: Callback<unknown[] | null>]): Result<unknown[] | null, Context>;
+  lmpop(...args: [numkeys: number | string, keys: (RedisKey)[], right: 'RIGHT', countToken: 'COUNT', count: number, callback: Callback<unknown[] | null>]): Result<unknown[] | null, Context>;
+  lmpop(...args: [numkeys: number | string, ...keys: (RedisKey)[], right: 'RIGHT', countToken: 'COUNT', count: number]): Result<unknown[] | null, Context>;
+  lmpop(...args: [numkeys: number | string, keys: (RedisKey)[], right: 'RIGHT', countToken: 'COUNT', count: number]): Result<unknown[] | null, Context>;
 
   /**
    * Display some computer art and the Redis version
@@ -1629,12 +1857,36 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   ltrim(key: RedisKey, start: number, stop: number, callback?: Callback<'OK'>): Result<'OK', Context>;
 
   /**
+   * Ask the allocator to release memory
+   * - _group_: server
+   * - _complexity_: Depends on how much memory is allocated, could be slow
+   * - _since_: 4.0.0
+   */
+  memory(subcommand: 'PURGE', callback?: Callback<"OK">): Result<"OK", Context>;
+
+  /**
+   * Outputs memory problems report
+   * - _group_: server
+   * - _complexity_: O(1)
+   * - _since_: 4.0.0
+   */
+  memory(subcommand: 'DOCTOR', callback?: Callback<string>): Result<string, Context>;
+
+  /**
    * Show allocator internal stats
    * - _group_: server
    * - _complexity_: Depends on how much memory is allocated, could be slow
    * - _since_: 4.0.0
    */
   memory(subcommand: 'MALLOC-STATS', callback?: Callback<string>): Result<string, Context>;
+
+  /**
+   * Show memory usage details
+   * - _group_: server
+   * - _complexity_: O(1)
+   * - _since_: 4.0.0
+   */
+  memory(subcommand: 'STATS', callback?: Callback<unknown[]>): Result<unknown[], Context>;
 
   /**
    * Show helpful text about the different subcommands
@@ -1652,30 +1904,6 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    */
   memory(subcommand: 'USAGE', key: RedisKey, callback?: Callback<number | null>): Result<number | null, Context>;
   memory(subcommand: 'USAGE', key: RedisKey, countToken: 'SAMPLES', count: number, callback?: Callback<number | null>): Result<number | null, Context>;
-
-  /**
-   * Show memory usage details
-   * - _group_: server
-   * - _complexity_: O(1)
-   * - _since_: 4.0.0
-   */
-  memory(subcommand: 'STATS', callback?: Callback<unknown[]>): Result<unknown[], Context>;
-
-  /**
-   * Outputs memory problems report
-   * - _group_: server
-   * - _complexity_: O(1)
-   * - _since_: 4.0.0
-   */
-  memory(subcommand: 'DOCTOR', callback?: Callback<string>): Result<string, Context>;
-
-  /**
-   * Ask the allocator to release memory
-   * - _group_: server
-   * - _complexity_: Depends on how much memory is allocated, could be slow
-   * - _since_: 4.0.0
-   */
-  memory(subcommand: 'PURGE', callback?: Callback<"OK">): Result<"OK", Context>;
 
   /**
    * Get the values of all the given keys
@@ -1702,20 +1930,28 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   migrate(...args: [host: string | Buffer, port: string | Buffer, ...args: (RedisValue)[]]): Result<'OK', Context>;
 
   /**
-   * List all modules loaded by the server
-   * - _group_: server
-   * - _complexity_: O(N) where N is the number of loaded modules.
-   * - _since_: 4.0.0
-   */
-  module(subcommand: 'LIST', callback?: Callback<unknown>): Result<unknown, Context>;
-
-  /**
    * Unload a module
    * - _group_: server
    * - _complexity_: O(1)
    * - _since_: 4.0.0
    */
   module(subcommand: 'UNLOAD', name: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
+   * Show helpful text about the different subcommands
+   * - _group_: server
+   * - _complexity_: O(1)
+   * - _since_: 5.0.0
+   */
+  module(subcommand: 'HELP', callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
+   * List all modules loaded by the server
+   * - _group_: server
+   * - _complexity_: O(N) where N is the number of loaded modules.
+   * - _since_: 4.0.0
+   */
+  module(subcommand: 'LIST', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * Load a module
@@ -1726,14 +1962,6 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   module(subcommand: 'LOAD', path: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
   module(...args: [subcommand: 'LOAD', path: string | Buffer, ...args: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
   module(...args: [subcommand: 'LOAD', path: string | Buffer, ...args: (string | Buffer | number)[]]): Result<unknown, Context>;
-
-  /**
-   * Show helpful text about the different subcommands
-   * - _group_: server
-   * - _complexity_: O(1)
-   * - _since_: 5.0.0
-   */
-  module(subcommand: 'HELP', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * Move a key to another database
@@ -1838,6 +2066,14 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   pexpireat(key: RedisKey, unixTimeMilliseconds: number, lt: 'LT', callback?: Callback<number>): Result<number, Context>;
 
   /**
+   * Get the expiration Unix timestamp for a key in milliseconds
+   * - _group_: generic
+   * - _complexity_: O(1)
+   * - _since_: 7.0.0
+   */
+  pexpiretime(key: RedisKey, callback?: Callback<number>): Result<number, Context>;
+
+  /**
    * Adds the specified elements to the specified HyperLogLog.
    * - _group_: hyperloglog
    * - _complexity_: O(1) to add every element.
@@ -1937,6 +2173,14 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   publish(channel: string | Buffer, message: string | Buffer, callback?: Callback<number>): Result<number, Context>;
 
   /**
+   * Show helpful text about the different subcommands
+   * - _group_: pubsub
+   * - _complexity_: O(1)
+   * - _since_: 6.2.0
+   */
+  pubsub(subcommand: 'HELP', callback?: Callback<unknown[]>): Result<unknown[], Context>;
+
+  /**
    * Get the count of subscribers for channels
    * - _group_: pubsub
    * - _complexity_: O(N) for the NUMSUB subcommand, where N is the number of requested channels
@@ -1955,22 +2199,6 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   pubsub(subcommand: 'NUMPAT', callback?: Callback<unknown[]>): Result<unknown[], Context>;
 
   /**
-   * Show helpful text about the different subcommands
-   * - _group_: pubsub
-   * - _complexity_: O(1)
-   * - _since_: 6.2.0
-   */
-  pubsub(subcommand: 'HELP', callback?: Callback<unknown[]>): Result<unknown[], Context>;
-
-  /**
-   * Get the count of subscribers for shard channels
-   * - _group_: pubsub
-   * - _complexity_: O(N) for the SHARDNUMSUB subcommand, where N is the number of requested channels
-   * - _since_: 7.0.0
-   */
-  pubsub(subcommand: 'SHARDNUMSUB', callback?: Callback<unknown[]>): Result<unknown[], Context>;
-
-  /**
    * List active channels
    * - _group_: pubsub
    * - _complexity_: O(N) where N is the number of active channels, and assuming constant time pattern matching (relatively short channels and patterns)
@@ -1987,6 +2215,16 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    */
   pubsub(subcommand: 'SHARDCHANNELS', callback?: Callback<unknown[]>): Result<unknown[], Context>;
   pubsub(subcommand: 'SHARDCHANNELS', pattern: string | Buffer, callback?: Callback<unknown[]>): Result<unknown[], Context>;
+
+  /**
+   * Get the count of subscribers for shard channels
+   * - _group_: pubsub
+   * - _complexity_: O(N) for the SHARDNUMSUB subcommand, where N is the number of requested channels
+   * - _since_: 7.0.0
+   */
+  pubsub(subcommand: 'SHARDNUMSUB', callback?: Callback<unknown[]>): Result<unknown[], Context>;
+  pubsub(...args: [subcommand: 'SHARDNUMSUB', ...channels: (string | Buffer)[], callback: Callback<unknown[]>]): Result<unknown[], Context>;
+  pubsub(...args: [subcommand: 'SHARDNUMSUB', ...channels: (string | Buffer)[]]): Result<unknown[], Context>;
 
   /**
    * Stop listening for messages posted to channels matching the given patterns
@@ -2217,15 +2455,6 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   script(subcommand: 'FLUSH', sync: 'SYNC', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
-   * Check existence of scripts in the script cache.
-   * - _group_: scripting
-   * - _complexity_: O(N) with N being the number of scripts to check (so checking a single script is an O(1) operation).
-   * - _since_: 2.6.0
-   */
-  script(...args: [subcommand: 'EXISTS', ...sha1s: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  script(...args: [subcommand: 'EXISTS', ...sha1s: (string | Buffer)[]]): Result<unknown, Context>;
-
-  /**
    * Set the debug mode for executed scripts.
    * - _group_: scripting
    * - _complexity_: O(1)
@@ -2250,6 +2479,15 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _since_: 2.6.0
    */
   script(subcommand: 'KILL', callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
+   * Check existence of scripts in the script cache.
+   * - _group_: scripting
+   * - _complexity_: O(N) with N being the number of scripts to check (so checking a single script is an O(1) operation).
+   * - _since_: 2.6.0
+   */
+  script(...args: [subcommand: 'EXISTS', ...sha1s: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
+  script(...args: [subcommand: 'EXISTS', ...sha1s: (string | Buffer)[]]): Result<unknown, Context>;
 
   /**
    * Subtract multiple sets
@@ -2425,6 +2663,21 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   sinterBuffer(...args: [keys: (RedisKey)[]]): Result<Buffer[], Context>;
 
   /**
+   * Intersect multiple sets and return the cardinality of the result
+   * - _group_: set
+   * - _complexity_: O(N*M) worst case where N is the cardinality of the smallest set and M is the number of sets.
+   * - _since_: 7.0.0
+   */
+  sintercard(...args: [numkeys: number | string, ...keys: (RedisKey)[], callback: Callback<number>]): Result<number, Context>;
+  sintercard(...args: [numkeys: number | string, keys: (RedisKey)[], callback: Callback<number>]): Result<number, Context>;
+  sintercard(...args: [numkeys: number | string, ...keys: (RedisKey)[]]): Result<number, Context>;
+  sintercard(...args: [numkeys: number | string, keys: (RedisKey)[]]): Result<number, Context>;
+  sintercard(...args: [numkeys: number | string, ...keys: (RedisKey)[], limitToken: 'LIMIT', limit: number | string, callback: Callback<number>]): Result<number, Context>;
+  sintercard(...args: [numkeys: number | string, keys: (RedisKey)[], limitToken: 'LIMIT', limit: number | string, callback: Callback<number>]): Result<number, Context>;
+  sintercard(...args: [numkeys: number | string, ...keys: (RedisKey)[], limitToken: 'LIMIT', limit: number | string]): Result<number, Context>;
+  sintercard(...args: [numkeys: number | string, keys: (RedisKey)[], limitToken: 'LIMIT', limit: number | string]): Result<number, Context>;
+
+  /**
    * Intersect multiple sets and store the resulting set in a key
    * - _group_: set
    * - _complexity_: O(N*M) worst case where N is the cardinality of the smallest set and M is the number of sets.
@@ -2444,28 +2697,12 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   sismember(key: RedisKey, member: string | Buffer | number, callback?: Callback<number>): Result<number, Context>;
 
   /**
-   * Make the server a replica of another instance, or promote it as master. Deprecated starting with Redis 5. Use REPLICAOF instead.
+   * Make the server a replica of another instance, or promote it as master.
    * - _group_: server
    * - _complexity_: O(1)
    * - _since_: 1.0.0
    */
   slaveof(host: string | Buffer, port: string | Buffer, callback?: Callback<'OK'>): Result<'OK', Context>;
-
-  /**
-   * Get the slow log's length
-   * - _group_: server
-   * - _complexity_: O(1)
-   * - _since_: 2.2.12
-   */
-  slowlog(subcommand: 'LEN', callback?: Callback<unknown>): Result<unknown, Context>;
-
-  /**
-   * Clear all entries from the slow log
-   * - _group_: server
-   * - _complexity_: O(N) where N is the number of entries in the slowlog
-   * - _since_: 2.2.12
-   */
-  slowlog(subcommand: 'RESET', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * Show helpful text about the different subcommands
@@ -2483,6 +2720,22 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    */
   slowlog(subcommand: 'GET', callback?: Callback<unknown>): Result<unknown, Context>;
   slowlog(subcommand: 'GET', count: number, callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
+   * Clear all entries from the slow log
+   * - _group_: server
+   * - _complexity_: O(N) where N is the number of entries in the slowlog
+   * - _since_: 2.2.12
+   */
+  slowlog(subcommand: 'RESET', callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
+   * Get the slow log's length
+   * - _group_: server
+   * - _complexity_: O(1)
+   * - _since_: 2.2.12
+   */
+  slowlog(subcommand: 'LEN', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * Get all the members in a set
@@ -2522,6 +2775,85 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   sort(...args: [key: RedisKey, ...args: (RedisValue)[]]): Result<unknown, Context>;
 
   /**
+   * Sort the elements in a list, set or sorted set. Read-only variant of SORT.
+   * - _group_: generic
+   * - _complexity_: O(N+M*log(M)) where N is the number of elements in the list or set to sort, and M the number of returned elements. When the elements are not sorted, complexity is O(N).
+   * - _since_: 7.0.0
+   */
+  sort_ro(key: RedisKey, callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, alpha: 'ALPHA', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, asc: 'ASC', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, asc: 'ASC', alpha: 'ALPHA', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, desc: 'DESC', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, desc: 'DESC', alpha: 'ALPHA', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'GET', ...patterns: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'GET', ...patterns: (string | Buffer)[]]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'GET', ...patterns: (string | Buffer)[], alpha: 'ALPHA', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'GET', ...patterns: (string | Buffer)[], alpha: 'ALPHA']): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'GET', ...patterns: (string | Buffer)[], asc: 'ASC', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'GET', ...patterns: (string | Buffer)[], asc: 'ASC']): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'GET', ...patterns: (string | Buffer)[], asc: 'ASC', alpha: 'ALPHA', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'GET', ...patterns: (string | Buffer)[], asc: 'ASC', alpha: 'ALPHA']): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'GET', ...patterns: (string | Buffer)[], desc: 'DESC', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'GET', ...patterns: (string | Buffer)[], desc: 'DESC']): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'GET', ...patterns: (string | Buffer)[], desc: 'DESC', alpha: 'ALPHA', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'GET', ...patterns: (string | Buffer)[], desc: 'DESC', alpha: 'ALPHA']): Result<unknown, Context>;
+  sort_ro(key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, alpha: 'ALPHA', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, asc: 'ASC', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, asc: 'ASC', alpha: 'ALPHA', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, desc: 'DESC', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, desc: 'DESC', alpha: 'ALPHA', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken: 'GET', ...patterns: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken: 'GET', ...patterns: (string | Buffer)[]]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken: 'GET', ...patterns: (string | Buffer)[], alpha: 'ALPHA', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken: 'GET', ...patterns: (string | Buffer)[], alpha: 'ALPHA']): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken: 'GET', ...patterns: (string | Buffer)[], asc: 'ASC', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken: 'GET', ...patterns: (string | Buffer)[], asc: 'ASC']): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken: 'GET', ...patterns: (string | Buffer)[], asc: 'ASC', alpha: 'ALPHA', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken: 'GET', ...patterns: (string | Buffer)[], asc: 'ASC', alpha: 'ALPHA']): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken: 'GET', ...patterns: (string | Buffer)[], desc: 'DESC', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken: 'GET', ...patterns: (string | Buffer)[], desc: 'DESC']): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken: 'GET', ...patterns: (string | Buffer)[], desc: 'DESC', alpha: 'ALPHA', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken: 'GET', ...patterns: (string | Buffer)[], desc: 'DESC', alpha: 'ALPHA']): Result<unknown, Context>;
+  sort_ro(key: RedisKey, patternToken: 'BY', pattern: string, callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, patternToken: 'BY', pattern: string, alpha: 'ALPHA', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, patternToken: 'BY', pattern: string, asc: 'ASC', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, patternToken: 'BY', pattern: string, asc: 'ASC', alpha: 'ALPHA', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, patternToken: 'BY', pattern: string, desc: 'DESC', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, patternToken: 'BY', pattern: string, desc: 'DESC', alpha: 'ALPHA', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, patternToken1: 'GET', ...pattern1s: (string | Buffer)[]]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], alpha: 'ALPHA', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], alpha: 'ALPHA']): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], asc: 'ASC', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], asc: 'ASC']): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], asc: 'ASC', alpha: 'ALPHA', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], asc: 'ASC', alpha: 'ALPHA']): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], desc: 'DESC', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], desc: 'DESC']): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], desc: 'DESC', alpha: 'ALPHA', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], desc: 'DESC', alpha: 'ALPHA']): Result<unknown, Context>;
+  sort_ro(key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, alpha: 'ALPHA', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, asc: 'ASC', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, asc: 'ASC', alpha: 'ALPHA', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, desc: 'DESC', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, desc: 'DESC', alpha: 'ALPHA', callback?: Callback<unknown>): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken1: 'GET', ...pattern1s: (string | Buffer)[]]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], alpha: 'ALPHA', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], alpha: 'ALPHA']): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], asc: 'ASC', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], asc: 'ASC']): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], asc: 'ASC', alpha: 'ALPHA', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], asc: 'ASC', alpha: 'ALPHA']): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], desc: 'DESC', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], desc: 'DESC']): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], desc: 'DESC', alpha: 'ALPHA', callback: Callback<unknown>]): Result<unknown, Context>;
+  sort_ro(...args: [key: RedisKey, patternToken: 'BY', pattern: string, offsetCountToken: 'LIMIT', offset: number | string, count: number, patternToken1: 'GET', ...pattern1s: (string | Buffer)[], desc: 'DESC', alpha: 'ALPHA']): Result<unknown, Context>;
+
+  /**
    * Remove and return one or multiple random members from a set
    * - _group_: set
    * - _complexity_: Without the count argument O(1), otherwise O(N) where N is the value of the passed count.
@@ -2531,6 +2863,14 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   spopBuffer(key: RedisKey, callback?: Callback<Buffer | null>): Result<Buffer | null, Context>;
   spop(key: RedisKey, count: number, callback?: Callback<string[]>): Result<string[], Context>;
   spopBuffer(key: RedisKey, count: number, callback?: Callback<Buffer[]>): Result<Buffer[], Context>;
+
+  /**
+   * Post a message to a shard channel
+   * - _group_: pubsub
+   * - _complexity_: O(N) where N is the number of clients subscribed to the receiving shard channel.
+   * - _since_: 7.0.0
+   */
+  spublish(channel: string | Buffer, message: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * Get one or multiple random members from a set
@@ -2568,6 +2908,15 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   sscanBuffer(key: RedisKey, cursor: number | string, patternToken: 'MATCH', pattern: string, callback?: Callback<[cursor: Buffer, elements: Buffer[]]>): Result<[cursor: Buffer, elements: Buffer[]], Context>;
   sscan(key: RedisKey, cursor: number | string, patternToken: 'MATCH', pattern: string, countToken: 'COUNT', count: number, callback?: Callback<[cursor: string, elements: string[]]>): Result<[cursor: string, elements: string[]], Context>;
   sscanBuffer(key: RedisKey, cursor: number | string, patternToken: 'MATCH', pattern: string, countToken: 'COUNT', count: number, callback?: Callback<[cursor: Buffer, elements: Buffer[]]>): Result<[cursor: Buffer, elements: Buffer[]], Context>;
+
+  /**
+   * Listen for messages published to the given shard channels
+   * - _group_: pubsub
+   * - _complexity_: O(N) where N is the number of shard channels to subscribe to.
+   * - _since_: 7.0.0
+   */
+  ssubscribe(...args: [...channels: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
+  ssubscribe(...args: [...channels: (string | Buffer)[]]): Result<unknown, Context>;
 
   /**
    * Get the length of the value stored in a key
@@ -2619,6 +2968,16 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   sunionstore(...args: [destination: RedisKey, keys: (RedisKey)[], callback: Callback<number>]): Result<number, Context>;
   sunionstore(...args: [destination: RedisKey, ...keys: (RedisKey)[]]): Result<number, Context>;
   sunionstore(...args: [destination: RedisKey, keys: (RedisKey)[]]): Result<number, Context>;
+
+  /**
+   * Stop listening for messages posted to the given shard channels
+   * - _group_: pubsub
+   * - _complexity_: O(N) where N is the number of clients already subscribed to a channel.
+   * - _since_: 7.0.0
+   */
+  sunsubscribe(callback?: Callback<unknown>): Result<unknown, Context>;
+  sunsubscribe(...args: [...channels: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
+  sunsubscribe(...args: [...channels: (string | Buffer)[]]): Result<unknown, Context>;
 
   /**
    * Swaps two Redis databases
@@ -2831,23 +3190,19 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   xdel(...args: [key: RedisKey, ...ids: (string | Buffer | number)[]]): Result<number, Context>;
 
   /**
-   * Destroy a consumer group.
-   * - _group_: stream
-   * - _complexity_: O(N) where N is the number of entries in the group's pending entries list (PEL).
-   * - _since_: 5.0.0
-   */
-  xgroup(subcommand: 'DESTROY', key: RedisKey, groupname: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
-
-  /**
    * Create a consumer group.
    * - _group_: stream
    * - _complexity_: O(1)
    * - _since_: 5.0.0
    */
   xgroup(subcommand: 'CREATE', key: RedisKey, groupname: string | Buffer, id: string | Buffer | number, callback?: Callback<unknown>): Result<unknown, Context>;
+  xgroup(subcommand: 'CREATE', key: RedisKey, groupname: string | Buffer, id: string | Buffer | number, entriesReadToken: 'ENTRIESREAD', entriesRead: number | string, callback?: Callback<unknown>): Result<unknown, Context>;
   xgroup(subcommand: 'CREATE', key: RedisKey, groupname: string | Buffer, id: string | Buffer | number, mkstream: 'MKSTREAM', callback?: Callback<unknown>): Result<unknown, Context>;
+  xgroup(subcommand: 'CREATE', key: RedisKey, groupname: string | Buffer, id: string | Buffer | number, mkstream: 'MKSTREAM', entriesReadToken: 'ENTRIESREAD', entriesRead: number | string, callback?: Callback<unknown>): Result<unknown, Context>;
   xgroup(subcommand: 'CREATE', key: RedisKey, groupname: string | Buffer, newId: '$', callback?: Callback<unknown>): Result<unknown, Context>;
+  xgroup(subcommand: 'CREATE', key: RedisKey, groupname: string | Buffer, newId: '$', entriesReadToken: 'ENTRIESREAD', entriesRead: number | string, callback?: Callback<unknown>): Result<unknown, Context>;
   xgroup(subcommand: 'CREATE', key: RedisKey, groupname: string | Buffer, newId: '$', mkstream: 'MKSTREAM', callback?: Callback<unknown>): Result<unknown, Context>;
+  xgroup(subcommand: 'CREATE', key: RedisKey, groupname: string | Buffer, newId: '$', mkstream: 'MKSTREAM', entriesReadToken: 'ENTRIESREAD', entriesRead: number | string, callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * Delete a consumer from a consumer group.
@@ -2866,13 +3221,23 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   xgroup(subcommand: 'CREATECONSUMER', key: RedisKey, groupname: string | Buffer, consumername: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
+   * Destroy a consumer group.
+   * - _group_: stream
+   * - _complexity_: O(N) where N is the number of entries in the group's pending entries list (PEL).
+   * - _since_: 5.0.0
+   */
+  xgroup(subcommand: 'DESTROY', key: RedisKey, groupname: string | Buffer, callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
    * Set a consumer group to an arbitrary last delivered ID value.
    * - _group_: stream
    * - _complexity_: O(1)
    * - _since_: 5.0.0
    */
   xgroup(subcommand: 'SETID', key: RedisKey, groupname: string | Buffer, id: string | Buffer | number, callback?: Callback<unknown>): Result<unknown, Context>;
+  xgroup(subcommand: 'SETID', key: RedisKey, groupname: string | Buffer, id: string | Buffer | number, entriesReadToken: 'ENTRIESREAD', entriesRead: number | string, callback?: Callback<unknown>): Result<unknown, Context>;
   xgroup(subcommand: 'SETID', key: RedisKey, groupname: string | Buffer, newId: '$', callback?: Callback<unknown>): Result<unknown, Context>;
+  xgroup(subcommand: 'SETID', key: RedisKey, groupname: string | Buffer, newId: '$', entriesReadToken: 'ENTRIESREAD', entriesRead: number | string, callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * Show helpful text about the different subcommands
@@ -2881,6 +3246,14 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _since_: 5.0.0
    */
   xgroup(subcommand: 'HELP', callback?: Callback<unknown>): Result<unknown, Context>;
+
+  /**
+   * Show helpful text about the different subcommands
+   * - _group_: stream
+   * - _complexity_: O(1)
+   * - _since_: 5.0.0
+   */
+  xinfo(subcommand: 'HELP', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * List the consumer groups of a stream
@@ -2907,14 +3280,6 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   xinfo(subcommand: 'STREAM', key: RedisKey, callback?: Callback<unknown>): Result<unknown, Context>;
   xinfo(subcommand: 'STREAM', key: RedisKey, fullToken: 'FULL', callback?: Callback<unknown>): Result<unknown, Context>;
   xinfo(subcommand: 'STREAM', key: RedisKey, fullToken: 'FULL', countToken: 'COUNT', count: number, callback?: Callback<unknown>): Result<unknown, Context>;
-
-  /**
-   * Show helpful text about the different subcommands
-   * - _group_: stream
-   * - _complexity_: O(1)
-   * - _since_: 5.0.0
-   */
-  xinfo(subcommand: 'HELP', callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * Return the number of entries in a stream
@@ -3003,6 +3368,9 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _since_: 5.0.0
    */
   xsetid(key: RedisKey, lastId: string | Buffer | number, callback?: Callback<unknown>): Result<unknown, Context>;
+  xsetid(key: RedisKey, lastId: string | Buffer | number, maxDeletedEntryIdToken: 'MAXDELETEDID', maxDeletedEntryId: string | Buffer | number, callback?: Callback<unknown>): Result<unknown, Context>;
+  xsetid(key: RedisKey, lastId: string | Buffer | number, entriesAddedToken: 'ENTRIESADDED', entriesAdded: number | string, callback?: Callback<unknown>): Result<unknown, Context>;
+  xsetid(key: RedisKey, lastId: string | Buffer | number, entriesAddedToken: 'ENTRIESADDED', entriesAdded: number | string, maxDeletedEntryIdToken: 'MAXDELETEDID', maxDeletedEntryId: string | Buffer | number, callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
    * Trims the stream to (approximately if '~' is passed) a certain size
@@ -3301,6 +3669,21 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   zinterBuffer(...args: [numkeys: number | string, ...args: (RedisValue)[], aggregate: 'AGGREGATE', max: 'MAX', withscores: 'WITHSCORES']): Result<Buffer[], Context>;
 
   /**
+   * Intersect multiple sorted sets and return the cardinality of the result
+   * - _group_: sorted-set
+   * - _complexity_: O(N*K) worst case with N being the smallest input sorted set, K being the number of input sorted sets.
+   * - _since_: 7.0.0
+   */
+  zintercard(...args: [numkeys: number | string, ...keys: (RedisKey)[], callback: Callback<number>]): Result<number, Context>;
+  zintercard(...args: [numkeys: number | string, keys: (RedisKey)[], callback: Callback<number>]): Result<number, Context>;
+  zintercard(...args: [numkeys: number | string, ...keys: (RedisKey)[]]): Result<number, Context>;
+  zintercard(...args: [numkeys: number | string, keys: (RedisKey)[]]): Result<number, Context>;
+  zintercard(...args: [numkeys: number | string, ...keys: (RedisKey)[], limitToken: 'LIMIT', limit: number | string, callback: Callback<number>]): Result<number, Context>;
+  zintercard(...args: [numkeys: number | string, keys: (RedisKey)[], limitToken: 'LIMIT', limit: number | string, callback: Callback<number>]): Result<number, Context>;
+  zintercard(...args: [numkeys: number | string, ...keys: (RedisKey)[], limitToken: 'LIMIT', limit: number | string]): Result<number, Context>;
+  zintercard(...args: [numkeys: number | string, keys: (RedisKey)[], limitToken: 'LIMIT', limit: number | string]): Result<number, Context>;
+
+  /**
    * Intersect multiple sorted sets and store the resulting sorted set in a new key
    * - _group_: sorted-set
    * - _complexity_: O(N*K)+O(M*log(M)) worst case with N being the smallest input sorted set, K being the number of input sorted sets and M being the number of elements in the resulting sorted set.
@@ -3338,6 +3721,29 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _since_: 2.8.9
    */
   zlexcount(key: RedisKey, min: string | Buffer | number, max: string | Buffer | number, callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Remove and return members with scores in a sorted set
+   * - _group_: sorted-set
+   * - _complexity_: O(K) + O(N*log(M)) where K is the number of provided keys, N being the number of elements in the sorted set, and M being the number of elements popped.
+   * - _since_: 7.0.0
+   */
+  zmpop(...args: [numkeys: number | string, ...keys: (RedisKey)[], min: 'MIN', callback: Callback<unknown>]): Result<unknown, Context>;
+  zmpop(...args: [numkeys: number | string, keys: (RedisKey)[], min: 'MIN', callback: Callback<unknown>]): Result<unknown, Context>;
+  zmpop(...args: [numkeys: number | string, ...keys: (RedisKey)[], min: 'MIN']): Result<unknown, Context>;
+  zmpop(...args: [numkeys: number | string, keys: (RedisKey)[], min: 'MIN']): Result<unknown, Context>;
+  zmpop(...args: [numkeys: number | string, ...keys: (RedisKey)[], min: 'MIN', countToken: 'COUNT', count: number, callback: Callback<unknown>]): Result<unknown, Context>;
+  zmpop(...args: [numkeys: number | string, keys: (RedisKey)[], min: 'MIN', countToken: 'COUNT', count: number, callback: Callback<unknown>]): Result<unknown, Context>;
+  zmpop(...args: [numkeys: number | string, ...keys: (RedisKey)[], min: 'MIN', countToken: 'COUNT', count: number]): Result<unknown, Context>;
+  zmpop(...args: [numkeys: number | string, keys: (RedisKey)[], min: 'MIN', countToken: 'COUNT', count: number]): Result<unknown, Context>;
+  zmpop(...args: [numkeys: number | string, ...keys: (RedisKey)[], max: 'MAX', callback: Callback<unknown>]): Result<unknown, Context>;
+  zmpop(...args: [numkeys: number | string, keys: (RedisKey)[], max: 'MAX', callback: Callback<unknown>]): Result<unknown, Context>;
+  zmpop(...args: [numkeys: number | string, ...keys: (RedisKey)[], max: 'MAX']): Result<unknown, Context>;
+  zmpop(...args: [numkeys: number | string, keys: (RedisKey)[], max: 'MAX']): Result<unknown, Context>;
+  zmpop(...args: [numkeys: number | string, ...keys: (RedisKey)[], max: 'MAX', countToken: 'COUNT', count: number, callback: Callback<unknown>]): Result<unknown, Context>;
+  zmpop(...args: [numkeys: number | string, keys: (RedisKey)[], max: 'MAX', countToken: 'COUNT', count: number, callback: Callback<unknown>]): Result<unknown, Context>;
+  zmpop(...args: [numkeys: number | string, ...keys: (RedisKey)[], max: 'MAX', countToken: 'COUNT', count: number]): Result<unknown, Context>;
+  zmpop(...args: [numkeys: number | string, keys: (RedisKey)[], max: 'MAX', countToken: 'COUNT', count: number]): Result<unknown, Context>;
 
   /**
    * Get the score associated with the given members in a sorted set

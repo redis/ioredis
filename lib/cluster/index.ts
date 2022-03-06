@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import * as commands from "redis-commands";
+import { exists, hasFlag } from "@ioredis/commands";
 import { AbortError, RedisError } from "redis-errors";
 import asCallback from "standard-as-callback";
 import Pipeline from "../Pipeline";
@@ -462,8 +462,7 @@ class Cluster extends Commander {
     if (to !== "master") {
       const isCommandReadOnly =
         command.isReadOnly ||
-        (commands.exists(command.name) &&
-          commands.hasFlag(command.name, "readonly"));
+        (exists(command.name) && hasFlag(command.name, "readonly"));
       if (!isCommandReadOnly) {
         to = "master";
       }

@@ -1,3 +1,4 @@
+import { list } from "@ioredis/commands";
 import asCallback from "standard-as-callback";
 import {
   executeWithAutoPipelining,
@@ -99,9 +100,7 @@ class Commander<Context extends ClientContext = { type: "default" }> {
 
 interface Commander<Context> extends RedisCommander<Context> {}
 
-const commands = require("redis-commands").list.filter(function (command) {
-  return command !== "monitor";
-});
+const commands = list.filter((command) => command !== "monitor");
 commands.push("sentinel");
 
 commands.forEach(function (commandName) {
@@ -189,7 +188,8 @@ function generateScriptingFunction(
   encoding: unknown
 ) {
   return function (...args) {
-    const callback = typeof args[args.length - 1] === "function" ? args.pop() : undefined;
+    const callback =
+      typeof args[args.length - 1] === "function" ? args.pop() : undefined;
 
     let options;
     if (this.options.dropBufferSupport) {

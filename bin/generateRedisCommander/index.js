@@ -5,7 +5,7 @@ const overrides = require("./overrides");
 const { getCommanderInterface } = require("@ioredis/interface-generator");
 
 const ignoredCommands = ["monitor", "multi"];
-const commands = require("redis-commands").list.filter(
+const commands = require("@ioredis/commands").list.filter(
   (name) => !ignoredCommands.includes(name)
 );
 
