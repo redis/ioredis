@@ -121,7 +121,7 @@ describe("scripting", () => {
       .exec(function (err, results) {
         expect(err).to.eql(null);
         expect(results[1][0]).to.be.instanceof(Error);
-        expect(results[1][0].toString()).to.match(/value is not an integer/);
+        expect(results[1][0].message).to.match(/value is not an integer/);
         redis.disconnect();
         done();
       });
