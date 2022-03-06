@@ -19,20 +19,20 @@ ioredis is a robust, full-featured Redis client that is
 used in the world's biggest online commerce company [Alibaba](http://www.alibaba.com/) and many other awesome companies.
 
 0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](http://redis.io/topics/sentinel), [Streams](https://redis.io/topics/streams-intro), [Pipelining](http://redis.io/topics/pipelining), and of course [Lua scripting](http://redis.io/commands/eval), [Redis Functions](https://redis.io/topics/functions-intro), [Pub/Sub](http://redis.io/topics/pubsub) (with the support of binary messages).
-0. High performance 🚀.
-0. Delightful API 😄. It works with Node callbacks and Native promises.
-0. Transformation of command arguments and replies.
-0. Transparent key prefixing.
-0. Abstraction for Lua scripting, allowing you to [define custom commands](https://github.com/luin/ioredis#lua-scripting).
-0. Supports [binary data](https://github.com/luin/ioredis#handle-binary-data).
-0. Supports [TLS](https://github.com/luin/ioredis#tls-options) 🔒.
-0. Supports offline queue and ready checking.
-0. Supports ES6 types, such as `Map` and `Set`.
-0. Supports GEO commands 📍.
-0. Supports Redis ACL.
-0. Sophisticated error handling strategy.
-0. Supports NAT mapping.
-0. Supports autopipelining
+1. High performance 🚀.
+2. Delightful API 😄. It works with Node callbacks and Native promises.
+3. Transformation of command arguments and replies.
+4. Transparent key prefixing.
+5. Abstraction for Lua scripting, allowing you to [define custom commands](https://github.com/luin/ioredis#lua-scripting).
+6. Supports [binary data](https://github.com/luin/ioredis#handle-binary-data).
+7. Supports [TLS](https://github.com/luin/ioredis#tls-options) 🔒.
+8. Supports offline queue and ready checking.
+9. Supports ES6 types, such as `Map` and `Set`.
+10. Supports GEO commands 📍.
+11. Supports Redis ACL.
+12. Sophisticated error handling strategy.
+13. Supports NAT mapping.
+14. Supports autopipelining
 
 # Versions
 
@@ -105,35 +105,77 @@ $ npm install ioredis
 
 ```javascript
 const Redis = require("ioredis");
-const redis = new Redis(); // uses defaults unless given configuration object
+
+// First, you need to create a Redis instance.
+// We are going to cover how to specify host, port, and other connection
+// options soon.
+const redis = new Redis();
+
+// Invoke the SET command. This is equivalent to the cli `redis> SET name Bob`:
+redis.set("name", "Bob"); // Returns a Promise
+
+// ioredis provides two kind of APIs, Node.js callback and Promise.
+// 1. You can pass a callback as the last parameter. It will be called when
+//    we get a response from the Redis server:
+redis.get("name", (err, value) => {
+  if (err) {
+    console.error(err);
+  } else {
+    console.log(value); // "Bob"
+  }
+});
+
+// 2. Additionally, every command method returns a Promise
+//    representing the server response:
+redis.get("name").then(
+  (value) => {
+    console.log(value);
+  },
+  (err) => {
+    console.error(err);
+  }
+);
+
+// 
+
+// Every
+
+async function main() {
+  await redis.set("mykey", "Hello, World!");
+  const value = await redis.get("mykey"); // value === "Hello, World!"
+}
+
+main();
+```
 
 // ioredis supports all Redis commands:
 redis.set("foo", "bar"); // returns promise which resolves to string, "OK"
 
-// the format is: redis[SOME_REDIS_COMMAND_IN_LOWERCASE](ARGUMENTS_ARE_JOINED_INTO_COMMAND_STRING)
-// the js: ` redis.set("mykey", "Hello") ` is equivalent to the cli: ` redis> SET mykey "Hello" `
+// the format is: redis[REDIS_COMMAND_NAME_IN_LOWERCASE](ARGUMENTS_ARE_JOINED_INTO_COMMAND_STRING)
+// the js: `redis.set("mykey", "Hello")` is equivalent to the cli: ` redis> SET mykey "Hello"`
 
-// ioredis supports the node.js callback style
-redis.get("foo", function (err, result) {
-  if (err) {
-    console.error(err);
-  } else {
-    console.log(result); // Promise resolves to "bar"
-  }
+// ioredis supports the Node.js callback style
+redis.get("foo", (err, result) => {
+if (err) {
+console.error(err);
+} else {
+console.log(result); // Promise resolves to "bar"
+}
 });
 
 // Or ioredis returns a promise if the last argument isn't a function
-redis.get("foo").then(function (result) {
-  console.log(result); // Prints "bar"
+redis.get("foo").then((result) => {
+console.log(result); // Prints "bar"
 });
 
 // Most responses are strings, or arrays of strings
 redis.zadd("sortedSet", 1, "one", 2, "dos", 4, "quatro", 3, "three");
-redis.zrange("sortedSet", 0, 2, "WITHSCORES").then((res) => console.log(res)); // Promise resolves to ["one", "1", "dos", "2", "three", "3"] as if the command was ` redis> ZRANGE sortedSet 0 2 WITHSCORES `
+redis.zrange("sortedSet", 0, 2, "WITHSCORES").then((res) => console.log(res)); // Promise resolves to ["one", "1", "dos", "2", "three", "3"] as if the command was `redis> ZRANGE sortedSet 0 2 WITHSCORES`
 
 // All arguments are passed directly to the redis server:
 redis.set("key", 100, "EX", 10);
-```
+
+````
 
 See the `examples/` folder for more examples.
 
@@ -155,7 +197,7 @@ new Redis({
   password: "auth",
   db: 0,
 });
-```
+````
 
 You can also specify connection options as a [`redis://` URL](http://www.iana.org/assignments/uri-schemes/prov/redis) or [`rediss://` URL](https://www.iana.org/assignments/uri-schemes/prov/rediss) when using [TLS encryption](#tls-options):
 

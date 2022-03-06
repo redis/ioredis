@@ -15,7 +15,6 @@ interface CommonRedisOptions extends CommanderOptions {
   username?: string;
   password?: string;
   db?: number;
-  dropBufferSupport?: boolean;
   autoResubscribe?: boolean;
   autoResendUnfulfilledCommands?: boolean;
   reconnectOnError?: ReconnectOnError;
@@ -76,7 +75,6 @@ export const DEFAULT_REDIS_OPTIONS: RedisOptions = {
   password: null,
   db: 0,
   // Others
-  dropBufferSupport: false,
   enableOfflineQueue: true,
   enableReadyCheck: true,
   autoResubscribe: true,

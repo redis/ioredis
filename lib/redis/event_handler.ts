@@ -72,7 +72,6 @@ export function connectHandler(self) {
     */
     new DataHandler(self, {
       stringNumbers: self.options.stringNumbers,
-      dropBufferSupport: self.options.dropBufferSupport,
     });
 
     if (self.options.enableReadyCheck) {
