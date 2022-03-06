@@ -29,14 +29,13 @@ interface DataHandledable extends EventEmitter {
 
 interface ParserOptions {
   stringNumbers: boolean;
-  dropBufferSupport: boolean;
 }
 
 export default class DataHandler {
   constructor(private redis: DataHandledable, parserOptions: ParserOptions) {
     const parser = new RedisParser({
       stringNumbers: parserOptions.stringNumbers,
-      returnBuffers: !parserOptions.dropBufferSupport,
+      returnBuffers: true,
       returnError: (err: Error) => {
         this.returnError(err);
       },

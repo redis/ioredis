@@ -245,7 +245,6 @@ Pipeline.prototype.multi = function () {
 
 // @ts-expect-error
 const execBuffer = Pipeline.prototype.execBuffer;
-const exec = Pipeline.prototype.exec;
 // @ts-expect-error
 Pipeline.prototype.execBuffer = deprecate(function () {
   if (this._transactions > 0) {
@@ -278,10 +277,7 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
 
   if (this._transactions > 0) {
     this._transactions -= 1;
-    return (this.options.dropBufferSupport ? exec : execBuffer).apply(
-      this,
-      arguments
-    );
+    return execBuffer.apply(this, arguments);
   }
   if (!this.nodeifiedPromise) {
     this.nodeifiedPromise = true;

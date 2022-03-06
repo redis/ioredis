@@ -1,5 +1,4 @@
 import { list } from "@ioredis/commands";
-import asCallback from "standard-as-callback";
 import {
   executeWithAutoPipelining,
   shouldUseAutoPipelining,
@@ -13,11 +12,6 @@ export interface CommanderOptions {
   keyPrefix?: string;
   showFriendlyErrorStack?: boolean;
 }
-
-const DROP_BUFFER_SUPPORT_ERROR =
-  "*Buffer methods are not available " +
-  'because "dropBufferSupport" option is enabled.' +
-  "Refer to https://github.com/luin/ioredis/wiki/Improve-Performance for more details.";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class Commander<Context extends ClientContext = { type: "default" }> {
@@ -154,13 +148,6 @@ function generateFunction(
       replyEncoding: _encoding,
     };
 
-    if (this.options.dropBufferSupport && !_encoding) {
-      return asCallback(
-        Promise.reject(new Error(DROP_BUFFER_SUPPORT_ERROR)),
-        callback as Callback | undefined
-      );
-    }
-
     // No auto pipeline, use regular command sending
     if (!shouldUseAutoPipelining(this, functionName, commandName)) {
       return this.sendCommand(
@@ -185,24 +172,18 @@ function generateScriptingFunction(
   functionName: string,
   commandName: string,
   script: Script,
-  encoding: unknown
+  encoding: BufferEncoding | null
 ) {
-  return function (...args) {
+  return function (...args: any[]) {
     const callback =
       typeof args[args.length - 1] === "function" ? args.pop() : undefined;
 
-    let options;
-    if (this.options.dropBufferSupport) {
-      if (!encoding) {
-        return asCallback(
-          Promise.reject(new Error(DROP_BUFFER_SUPPORT_ERROR)),
-          callback
-        );
-      }
-      options = { replyEncoding: null };
-    } else {
-      options = { replyEncoding: encoding };
-    }
+    const options: {
+      replyEncoding: BufferEncoding | null;
+      errorStack?: Error;
+    } = {
+      replyEncoding: encoding,
+    };
 
     if (this.options.showFriendlyErrorStack) {
       options.errorStack = new Error();
