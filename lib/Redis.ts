@@ -2,7 +2,7 @@ import { EventEmitter } from "events";
 import * as commands from "redis-commands";
 import asCallback from "standard-as-callback";
 import Cluster from "./cluster";
-import Command from "./command";
+import Command from "./Command";
 import { StandaloneConnector } from "./connectors";
 import AbstractConnector from "./connectors/AbstractConnector";
 import SentinelConnector from "./connectors/SentinelConnector";

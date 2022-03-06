@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import Command from "./command";
+import Command from "./Command";
 import asCallback from "standard-as-callback";
 import { Callback } from "./types";
 export default class Script {

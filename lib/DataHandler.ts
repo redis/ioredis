@@ -1,7 +1,7 @@
 import { NetStream, CommandItem, Respondable } from "./types";
 import Deque = require("denque");
 import { EventEmitter } from "events";
-import Command from "./command";
+import Command from "./Command";
 import { Debug } from "./utils";
 import * as RedisParser from "redis-parser";
 import SubscriptionSet from "./SubscriptionSet";

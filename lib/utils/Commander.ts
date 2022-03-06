@@ -3,8 +3,8 @@ import {
   executeWithAutoPipelining,
   shouldUseAutoPipelining,
 } from "../autoPipelining";
-import Command, { ArgumentType } from "../command";
-import Script from "../script";
+import Command, { ArgumentType } from "../Command";
+import Script from "../Script";
 import { Callback, WriteableStream } from "../types";
 import RedisCommander, { ClientContext } from "./RedisCommander";
 

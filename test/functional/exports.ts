@@ -4,7 +4,7 @@ import { expect } from "chai";
 describe("exports", () => {
   describe(".Command", () => {
     it("should be `Command`", () => {
-      expect(Command).to.eql(require("../../lib/command").default);
+      expect(Command).to.eql(require("../../lib/Command").default);
     });
   });
 

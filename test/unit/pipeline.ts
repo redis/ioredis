@@ -1,6 +1,6 @@
 import * as sinon from "sinon";
 import { expect } from "chai";
-import Pipeline from "../../lib/pipeline";
+import Pipeline from "../../lib/Pipeline";
 import Commander from "../../lib/utils/Commander";
 import Redis from "../../lib/Redis";
 

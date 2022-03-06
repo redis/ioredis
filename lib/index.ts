@@ -6,7 +6,7 @@ export { default as Cluster } from "./cluster";
 /**
  * @ignore
  */
-export { default as Command } from "./command";
+export { default as Command } from "./Command";
 
 /**
  * @ignore
@@ -16,7 +16,7 @@ export { default as ScanStream } from "./ScanStream";
 /**
  * @ignore
  */
-export { default as Pipeline } from "./pipeline";
+export { default as Pipeline } from "./Pipeline";
 
 /**
  * @ignore
