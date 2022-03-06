@@ -22,7 +22,7 @@ describe("pub/sub", function () {
     redis.subscribe("foo", function () {
       redis.set("foo", "bar", function (err) {
         expect(err instanceof Error);
-        expect(err.toString()).to.match(/subscriber mode/);
+        expect(err.message).to.match(/subscriber mode/);
         redis.disconnect();
         done();
       });
