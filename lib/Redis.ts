@@ -435,26 +435,40 @@ class Redis extends Commander {
       writable = false;
     }
 
-    if (!writable && !this.options.enableOfflineQueue) {
-      command.reject(
-        new Error(
+    if (!writable) {
+      if (!this.options.enableOfflineQueue) {
+        command.reject(new Error(
           "Stream isn't writeable and enableOfflineQueue options is false"
-        )
-      );
-      return command.promise;
-    }
+        ));
+        return command.promise;
+      }
 
-    if (
-      !writable &&
-      command.name === "quit" &&
-      this.offlineQueue.length === 0
-    ) {
-      this.disconnect();
-      command.resolve(Buffer.from("OK"));
-      return command.promise;
-    }
+      if (
+        command.name === "quit" &&
+        this.offlineQueue.length === 0
+      ) {
+        this.disconnect();
+        command.resolve(Buffer.from("OK"));
+        return command.promise;
+      }
 
-    if (writable) {
+      // @ts-expect-error
+      if (debug.enabled) {
+        debug(
+          "queue command[%s]: %d -> %s(%o)",
+          this._getDescription(),
+          this.condition.select,
+          command.name,
+          command.args
+        );
+      }
+
+      this.offlineQueue.push({
+        command: command,
+        stream: stream,
+        select: this.condition.select,
+      });
+    } else {
       // @ts-expect-error
       if (debug.enabled) {
         debug(
@@ -485,22 +499,6 @@ class Redis extends Commander {
       if (Command.checkFlag("WILL_DISCONNECT", command.name)) {
         this.manuallyClosing = true;
       }
-    } else if (this.options.enableOfflineQueue) {
-      // @ts-expect-error
-      if (debug.enabled) {
-        debug(
-          "queue command[%s]: %d -> %s(%o)",
-          this._getDescription(),
-          this.condition.select,
-          command.name,
-          command.args
-        );
-      }
-      this.offlineQueue.push({
-        command: command,
-        stream: stream,
-        select: this.condition.select,
-      });
     }
 
     if (command.name === "select" && isInt(command.args[0])) {
