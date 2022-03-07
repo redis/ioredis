@@ -757,8 +757,7 @@ class Cluster extends Commander {
    */
   private flushQueue(error: Error) {
     let item;
-    while (this.offlineQueue.length > 0) {
-      item = this.offlineQueue.shift();
+    while ((item = this.offlineQueue.shift())) {
       item.command.reject(error);
     }
   }
@@ -768,8 +767,8 @@ class Cluster extends Commander {
       debug("send %d commands in offline queue", this.offlineQueue.length);
       const offlineQueue = this.offlineQueue;
       this.resetOfflineQueue();
-      while (offlineQueue.length > 0) {
-        const item = offlineQueue.shift();
+      let item;
+      while ((item = offlineQueue.shift())) {
         this.sendCommand(item.command, item.stream, item.node);
       }
     }
