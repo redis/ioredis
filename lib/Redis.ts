@@ -737,8 +737,7 @@ class Redis extends Commander {
 
     let item;
     if (options.offlineQueue) {
-      while (this.offlineQueue.length > 0) {
-        item = this.offlineQueue.shift();
+      while ((item = this.offlineQueue.shift())) {
         item.command.reject(error);
       }
     }
@@ -748,8 +747,8 @@ class Redis extends Commander {
         if (this.stream) {
           this.stream.removeAllListeners("data");
         }
-        while (this.commandQueue.length > 0) {
-          item = this.commandQueue.shift();
+
+        while ((item = this.commandQueue.shift())) {
           item.command.reject(error);
         }
       }
