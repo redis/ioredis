@@ -140,7 +140,6 @@ export default class Command implements Respondable {
   isReadOnly?: boolean;
 
   args: CommandParameter[];
-  isCustomCommand = false;
   inTransaction = false;
   pipelineIndex?: number;
 
