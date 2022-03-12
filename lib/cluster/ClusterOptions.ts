@@ -195,6 +195,14 @@ export interface ClusterOptions extends CommanderOptions {
    * @default 60000
    */
   maxScriptsCachingTime?: number;
+
+  /**
+   * Custom LUA commands
+   */
+  scripts?: Record<
+    string,
+    { lua: string; numberOfKeys?: number; readOnly?: boolean }
+  >;
 }
 
 export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = {

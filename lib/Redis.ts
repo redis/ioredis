@@ -134,6 +134,12 @@ class Redis extends Commander {
       this.connector = new StandaloneConnector(this.options);
     }
 
+    if (this.options.scripts) {
+      Object.entries(this.options.scripts).forEach(([name, definition]) => {
+        this.defineCommand(name, definition);
+      });
+    }
+
     // end(or wait) -> connecting -> connect -> ready -> end
     if (this.options.lazyConnect) {
       this.setStatus("wait");

@@ -32,6 +32,10 @@ interface CommonRedisOptions extends CommanderOptions {
   enableOfflineQueue?: boolean;
   enableReadyCheck?: boolean;
   lazyConnect?: boolean;
+  scripts?: Record<
+    string,
+    { lua: string; numberOfKeys?: number; readOnly?: boolean }
+  >;
 }
 
 export type RedisOptions = CommonRedisOptions &

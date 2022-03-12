@@ -11,6 +11,15 @@ export { default as Command } from "./Command";
 /**
  * @ignore
  */
+export {
+  default as RedisCommander,
+  Result,
+  ClientContext,
+} from "./utils/RedisCommander";
+
+/**
+ * @ignore
+ */
 export { default as ScanStream } from "./ScanStream";
 
 /**
@@ -30,6 +39,11 @@ export {
   default as SentinelConnector,
   SentinelIterator,
 } from "./connectors/SentinelConnector";
+
+/**
+ * @ignore
+ */
+export { Callback } from "./types";
 
 // Type Exports
 export { SentinelAddress } from "./connectors/SentinelConnector";
