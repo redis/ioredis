@@ -4,16 +4,19 @@ import Redis, { Cluster } from "../lib";
 const masters = [30000, 30001, 30002];
 const replicas = [30003, 30004, 30005];
 
+async function cleanup() {
+  for (const port of masters) {
+    const redis = new Redis(port);
+    await redis.flushall();
+    await redis.script("FLUSH");
+  }
+  // Wait for replication
+  await new Promise((resolve) => setTimeout(resolve, 500));
+}
+
 describe("cluster", () => {
-  afterEach(async () => {
-    for (const port of masters) {
-      const redis = new Redis(port);
-      await redis.flushall();
-      await redis.script("FLUSH");
-    }
-    // Wait for replication
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  });
+  beforeEach(cleanup);
+  afterEach(cleanup);
 
   it("discovers nodes from master", async () => {
     const cluster = new Cluster([{ host: "127.0.0.1", port: masters[0] }]);
