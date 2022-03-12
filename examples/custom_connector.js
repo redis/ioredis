@@ -1,5 +1,3 @@
-"use strict";
-
 const Redis = require("ioredis");
 const MyService = require("path/to/my/service");
 

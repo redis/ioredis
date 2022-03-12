@@ -173,9 +173,7 @@ You can also specify connection options as a [`redis://` URL](http://www.iana.or
 new Redis("redis://:authpassword@127.0.0.1:6380/4");
 
 // Username can also be passed via URI.
-new Redis(
-  "redis://username:authpassword@127.0.0.1:6380/4"
-);
+new Redis("redis://username:authpassword@127.0.0.1:6380/4");
 ```
 
 See [API Documentation](API.md#new-redisport-host-options) for all available options.
@@ -235,7 +233,7 @@ redis.on("messageBuffer", (channel, message) => {
 });
 ```
 
-It worth noticing that a connection (aka `Redis` instance) can't play both roles together. More specifically, when a client issues `subscribe()` or `psubscribe()`, it enters the "subscriber" mode. From that point, only commands that modify the subscription set are valid. Namely, they are: `subscribe`, `psubscribe`, `unsubscribe`, `punsubscribe`, `ping`, and `quit`. When the subscription set is empty (via `unsubscribe`/`punsubscribe`), the connection is put back into the regular mode.
+It's worth noticing that a connection (aka a `Redis` instance) can't play both roles at the same time. More specifically, when a client issues `subscribe()` or `psubscribe()`, it enters the "subscriber" mode. From that point, only commands that modify the subscription set are valid. Namely, they are: `subscribe`, `psubscribe`, `unsubscribe`, `punsubscribe`, `ping`, and `quit`. When the subscription set is empty (via `unsubscribe`/`punsubscribe`), the connection is put back into the regular mode.
 
 If you want to do pub/sub in the same file/process, you should create a separate connection:
 
