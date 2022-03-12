@@ -143,7 +143,6 @@ redis.zrange("sortedSet", 0, 2, "WITHSCORES").then((elements) => {
 redis.set("mykey", "hello", "EX", 10);
 ```
 
-
 See the `examples/` folder for more examples.
 
 ## Connect to Redis
@@ -164,7 +163,7 @@ new Redis({
   password: "my-top-secret",
   db: 0, // Defaults to 0
 });
-````
+```
 
 You can also specify connection options as a [`redis://` URL](http://www.iana.org/assignments/uri-schemes/prov/redis) or [`rediss://` URL](https://www.iana.org/assignments/uri-schemes/prov/rediss) when using [TLS encryption](#tls-options):
 
@@ -496,6 +495,8 @@ redis.myechoBuffer("k1", "k2", "a1", "a2", (err, result) => {
 redis.pipeline().set("foo", "bar").myecho("k1", "k2", "a1", "a2").exec();
 ```
 
+### Dynamic Keys
+
 If the number of keys can't be determined when defining a command, you can
 omit the `numberOfKeys` property and pass the number of keys as the first argument
 when you call the command:
@@ -511,6 +512,25 @@ redis.echoDynamicKeyNumber(2, "k1", "k2", "a1", "a2", (err, result) => {
   // result === ['k1', 'k2', 'a1', 'a2']
 });
 ```
+
+### As Constructor Options
+
+Besides `defineCommand()`, you can also define custom commands with the `scripts` constructor option:
+
+```javascript
+const redis = new Redis({
+  scripts: {
+    myecho: {
+      numberOfKeys: 2,
+      lua: "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
+    },
+  },
+});
+```
+
+### TypeScript Usages
+
+You can refer to [the example](examples/typescript/scripts.ts) for how to declare your custom commands.
 
 ## Transparent Key Prefixing
 
@@ -769,7 +789,7 @@ const redis = new Redis({
 
 Set maxRetriesPerRequest to `null` to disable this behavior, and every command will wait forever until the connection is alive again (which is the default behavior before ioredis v4).
 
-### Reconnect on error
+### Reconnect on Error
 
 Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on certain Redis errors using the `reconnectOnError` option. Here's an example that will reconnect when receiving `READONLY` error:
 
@@ -1020,7 +1040,7 @@ cluster.get("foo", (err, res) => {
     - `slotsRefreshTimeout`: Milliseconds before a timeout occurs while refreshing slots from the cluster (default `1000`).
     - `slotsRefreshInterval`: Milliseconds between every automatic slots refresh (default `5000`).
 
-### Read-write splitting
+### Read-Write Splitting
 
 A typical redis cluster contains three or more masters and several slaves for each master. It's possible to scale out redis cluster by sending read queries to slaves and write queries to masters by setting the `scaleReads` option.
 
@@ -1049,7 +1069,7 @@ cluster.get("foo", (err, res) => {
 
 **NB** In the code snippet above, the `res` may not be equal to "bar" because of the lag of replication between the master and slaves.
 
-### Running commands to multiple nodes
+### Running Commands to Multiple Nodes
 
 Every command will be sent to exactly one node. For commands containing keys, (e.g. `GET`, `SET` and `HGETALL`), ioredis sends them to the node that serving the keys, and for other commands not containing keys, (e.g. `INFO`, `KEYS` and `FLUSHDB`), ioredis sends them to a random node.
 
@@ -1099,7 +1119,7 @@ const cluster = new Redis.Cluster(
 
 This option is also useful when the cluster is running inside a Docker container.
 
-### Transaction and pipeline in Cluster mode
+### Transaction and Pipeline in Cluster Mode
 
 Almost all features that are supported by `Redis` are also supported by `Redis.Cluster`, e.g. custom commands, transaction and pipeline.
 However there are some differences when using transaction and pipeline in Cluster mode:
@@ -1178,7 +1198,7 @@ const cluster = new Redis.Cluster(
 );
 ```
 
-### Special note: AWS ElastiCache Clusters with TLS
+### Special Note: Aws Elasticache Clusters with TLS
 
 AWS ElastiCache for Redis (Clustered Mode) supports TLS encryption. If you use
 this, you may encounter errors with invalid certificates. To resolve this
@@ -1223,7 +1243,7 @@ A pipeline will thus contain commands using different slots but that ultimately 
 
 Note that the same slot limitation within a single command still holds, as it is a Redis limitation.
 
-### Example of automatic pipeline enqueuing
+### Example of Automatic Pipeline Enqueuing
 
 This sample code uses ioredis with automatic pipeline enabled.
 

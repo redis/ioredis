@@ -1,12 +1,13 @@
-import { EventEmitter } from "events";
 import { exists, hasFlag } from "@ioredis/commands";
+import { EventEmitter } from "events";
 import { AbortError, RedisError } from "redis-errors";
 import asCallback from "standard-as-callback";
-import Pipeline from "../Pipeline";
 import Command from "../Command";
 import ClusterAllFailedError from "../errors/ClusterAllFailedError";
+import Pipeline from "../Pipeline";
 import Redis from "../Redis";
 import ScanStream from "../ScanStream";
+import { addTransactionSupport, Transaction } from "../transaction";
 import { Callback, ScanStreamOptions, WriteableStream } from "../types";
 import {
   CONNECTION_CLOSED_ERROR_MSG,
@@ -36,7 +37,6 @@ import {
   weightSrvRecords,
 } from "./util";
 import Deque = require("denque");
-import { addTransactionSupport, Transaction } from "../transaction";
 
 const debug = Debug("cluster");
 
@@ -144,6 +144,12 @@ class Cluster extends Commander {
     });
 
     this.subscriber = new ClusterSubscriber(this.connectionPool, this);
+
+    if (this.options.scripts) {
+      Object.entries(this.options.scripts).forEach(([name, definition]) => {
+        this.defineCommand(name, definition);
+      });
+    }
 
     if (this.options.lazyConnect) {
       this.setStatus("wait");
