@@ -160,6 +160,7 @@ describe("utils", () => {
         host: "127.0.0.1",
         port: "6380",
         db: "4",
+        username: "user",
         password: "pass",
         key: "value",
       });
@@ -169,6 +170,7 @@ describe("utils", () => {
         host: "127.0.0.1",
         port: "6380",
         db: "4",
+        username: "user",
         password: "pass:word",
         key: "value",
       });
@@ -176,6 +178,7 @@ describe("utils", () => {
         host: "127.0.0.1",
         port: "6380",
         db: "4",
+        username: "user",
         password: "",
         key: "value",
       });
@@ -188,61 +191,9 @@ describe("utils", () => {
         host: "127.0.0.1",
         port: "6380",
         db: "4",
-        password: "pass",
-        key: "value",
-      });
-    });
-
-    it("supports allowUsernameInURI", () => {
-      expect(
-        utils.parseURL(
-          "redis://user:pass@127.0.0.1:6380/4?allowUsernameInURI=true"
-        )
-      ).to.eql({
-        host: "127.0.0.1",
-        port: "6380",
-        db: "4",
         username: "user",
         password: "pass",
-      });
-      expect(
-        utils.parseURL(
-          "redis://user:pass@127.0.0.1:6380/4?allowUsernameInURI=false"
-        )
-      ).to.eql({
-        host: "127.0.0.1",
-        port: "6380",
-        db: "4",
-        password: "pass",
-      });
-      expect(
-        utils.parseURL(
-          "redis://user:pass:word@127.0.0.1:6380/4?key=value&allowUsernameInURI=true"
-        )
-      ).to.eql({
-        host: "127.0.0.1",
-        port: "6380",
-        db: "4",
-        username: "user",
-        password: "pass:word",
         key: "value",
-      });
-      expect(
-        utils.parseURL(
-          "redis://user@127.0.0.1:6380/4?key=value&allowUsernameInURI=true"
-        )
-      ).to.eql({
-        host: "127.0.0.1",
-        port: "6380",
-        db: "4",
-        username: "user",
-        password: "",
-        key: "value",
-      });
-      expect(
-        utils.parseURL("redis://127.0.0.1/?allowUsernameInURI=true")
-      ).to.eql({
-        host: "127.0.0.1",
       });
     });
   });

@@ -104,78 +104,45 @@ $ npm install ioredis
 ## Basic Usage
 
 ```javascript
+// Import ioredis.
+// You can also use `import Redis from "ioredis"`
+// if your project is an ESM module or a TypeScript project.
 const Redis = require("ioredis");
 
-// First, you need to create a Redis instance.
-// We are going to cover how to specify host, port, and other connection
-// options soon.
+// Create a Redis instance.
+// By default, it will connect to localhost:6379.
+// We are going to cover how to specify connection options soon.
 const redis = new Redis();
 
-// Invoke the SET command. This is equivalent to the cli `redis> SET name Bob`:
-redis.set("name", "Bob"); // Returns a Promise
+redis.set("mykey", "value"); // Returns a promise which resolves to "OK" when the command succeeds.
 
-// ioredis provides two kind of APIs, Node.js callback and Promise.
-// 1. You can pass a callback as the last parameter. It will be called when
-//    we get a response from the Redis server:
-redis.get("name", (err, value) => {
+// ioredis supports the node.js callback style
+redis.get("mykey", (err, result) => {
   if (err) {
     console.error(err);
   } else {
-    console.log(value); // "Bob"
+    console.log(result); // Prints "value"
   }
-});
-
-// 2. Additionally, every command method returns a Promise
-//    representing the server response:
-redis.get("name").then(
-  (value) => {
-    console.log(value);
-  },
-  (err) => {
-    console.error(err);
-  }
-);
-
-// 
-
-// Every
-
-async function main() {
-  await redis.set("mykey", "Hello, World!");
-  const value = await redis.get("mykey"); // value === "Hello, World!"
-}
-
-main();
-```
-
-// ioredis supports all Redis commands:
-redis.set("foo", "bar"); // returns promise which resolves to string, "OK"
-
-// the format is: redis[REDIS_COMMAND_NAME_IN_LOWERCASE](ARGUMENTS_ARE_JOINED_INTO_COMMAND_STRING)
-// the js: `redis.set("mykey", "Hello")` is equivalent to the cli: ` redis> SET mykey "Hello"`
-
-// ioredis supports the Node.js callback style
-redis.get("foo", (err, result) => {
-if (err) {
-console.error(err);
-} else {
-console.log(result); // Promise resolves to "bar"
-}
 });
 
 // Or ioredis returns a promise if the last argument isn't a function
-redis.get("foo").then((result) => {
-console.log(result); // Prints "bar"
+redis.get("mykey").then((result) => {
+  console.log(result); // Prints "value"
 });
 
-// Most responses are strings, or arrays of strings
 redis.zadd("sortedSet", 1, "one", 2, "dos", 4, "quatro", 3, "three");
-redis.zrange("sortedSet", 0, 2, "WITHSCORES").then((res) => console.log(res)); // Promise resolves to ["one", "1", "dos", "2", "three", "3"] as if the command was `redis> ZRANGE sortedSet 0 2 WITHSCORES`
+redis.zrange("sortedSet", 0, 2, "WITHSCORES").then((elements) => {
+  // ["one", "1", "dos", "2", "three", "3"] as if the command was `redis> ZRANGE sortedSet 0 2 WITHSCORES`
+  console.log(elements);
+});
 
-// All arguments are passed directly to the redis server:
-redis.set("key", 100, "EX", 10);
+// All arguments are passed directly to the redis server,
+// so technically ioredis supports all Redis commands.
+// The format is: redis[SOME_REDIS_COMMAND_IN_LOWERCASE](ARGUMENTS_ARE_JOINED_INTO_COMMAND_STRING)
+// so the following statement is equivalent to the CLI: `redis> SET mykey hello EX 10`
+redis.set("mykey", "hello", "EX", 10);
+```
 
-````
 
 See the `examples/` folder for more examples.
 
@@ -193,9 +160,9 @@ new Redis("/tmp/redis.sock");
 new Redis({
   port: 6379, // Redis port
   host: "127.0.0.1", // Redis host
-  family: 4, // 4 (IPv4) or 6 (IPv6)
-  password: "auth",
-  db: 0,
+  username: "default", // needs Redis >= 6
+  password: "my-top-secret",
+  db: 0, // Defaults to 0
 });
 ````
 
@@ -206,10 +173,8 @@ You can also specify connection options as a [`redis://` URL](http://www.iana.or
 new Redis("redis://:authpassword@127.0.0.1:6380/4");
 
 // Username can also be passed via URI.
-// It's worth to noticing that for compatibility reasons `allowUsernameInURI`
-// need to be provided, otherwise the username part will be ignored.
 new Redis(
-  "redis://username:authpassword@127.0.0.1:6380/4?allowUsernameInURI=true"
+  "redis://username:authpassword@127.0.0.1:6380/4"
 );
 ```
 
