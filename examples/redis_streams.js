@@ -1,10 +1,10 @@
-const IORedis = require("ioredis");
-const redis = new IORedis();
+const Redis = require("ioredis");
+const redis = new Redis();
 
 // you may find this read https://redis.io/topics/streams-intro
 // very helpfull as a starter to understand the usescases and the parameters used
 
-const f = async function () {
+async function main() {
   const channel = "ioredis_channel";
   // specify the channel. you want to know how many messages
   // have been written in this channel
@@ -36,5 +36,6 @@ const f = async function () {
     console.log("reading message:", msg);
   }
   process.exit(0);
-};
-f();
+}
+
+main();

@@ -1,0 +1,10 @@
+extends layout
+
+block content
+  h1= ioredis
+  p We have&nbsp;
+    a(href="/users") #{count} users
+
+  form(method="post", action="/users")
+    input(type="text", placeholder="New user", name="name")
+    button(type="submit") Add User
