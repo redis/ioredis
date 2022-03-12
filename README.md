@@ -475,25 +475,25 @@ ioredis exposes a `defineCommand` method to make scripting much easier to use:
 ```javascript
 const redis = new Redis();
 
-// This will define a command echo:
-redis.defineCommand("echo", {
+// This will define a command myecho:
+redis.defineCommand("myecho", {
   numberOfKeys: 2,
   lua: "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
 });
 
-// Now `echo` can be used just like any other ordinary command,
+// Now `myecho` can be used just like any other ordinary command,
 // and ioredis will try to use `EVALSHA` internally when possible for better performance.
-redis.echo("k1", "k2", "a1", "a2", (err, result) => {
+redis.myecho("k1", "k2", "a1", "a2", (err, result) => {
   // result === ['k1', 'k2', 'a1', 'a2']
 });
 
-// `echoBuffer` is also defined automatically to return buffers instead of strings:
-redis.echoBuffer("k1", "k2", "a1", "a2", (err, result) => {
+// `myechoBuffer` is also defined automatically to return buffers instead of strings:
+redis.myechoBuffer("k1", "k2", "a1", "a2", (err, result) => {
   // result[0] equals to Buffer.from('k1');
 });
 
 // And of course it works with pipeline:
-redis.pipeline().set("foo", "bar").echo("k1", "k2", "a1", "a2").exec();
+redis.pipeline().set("foo", "bar").myecho("k1", "k2", "a1", "a2").exec();
 ```
 
 If the number of keys can't be determined when defining a command, you can
@@ -525,7 +525,7 @@ and this feature also won't apply to the replies of commands even if they are ke
 const fooRedis = new Redis({ keyPrefix: "foo:" });
 fooRedis.set("bar", "baz"); // Actually sends SET foo:bar baz
 
-fooRedis.defineCommand("echo", {
+fooRedis.defineCommand("myecho", {
   numberOfKeys: 2,
   lua: "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
 });
@@ -537,7 +537,7 @@ fooRedis
   .sort("list", "BY", "weight_*->fieldname")
   // Supports custom commands
   // Sends EVALSHA xxx foo:k1 foo:k2 a1 a2
-  .echo("k1", "k2", "a1", "a2")
+  .myecho("k1", "k2", "a1", "a2")
   .exec();
 ```
 
