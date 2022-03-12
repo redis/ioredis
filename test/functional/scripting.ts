@@ -4,6 +4,36 @@ import * as sinon from "sinon";
 import { getCommandsFromMonitor } from "../helpers/util";
 
 describe("scripting", () => {
+  it("accepts constructor options", async () => {
+    const redis = new Redis({
+      scripts: {
+        test: {
+          numberOfKeys: 2,
+          lua: "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
+        },
+        testDynamic: {
+          lua: "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
+        },
+      },
+    });
+
+    // @ts-expect-error
+    expect(await redis.test("k1", "k2", "a1", "a2")).to.eql([
+      "k1",
+      "k2",
+      "a1",
+      "a2",
+    ]);
+    // @ts-expect-error
+    expect(await redis.testDynamic(2, "k1", "k2", "a1", "a2")).to.eql([
+      "k1",
+      "k2",
+      "a1",
+      "a2",
+    ]);
+    redis.disconnect();
+  });
+
   describe("#numberOfKeys", () => {
     it("should recognize the numberOfKeys property", (done) => {
       const redis = new Redis();
@@ -13,7 +43,8 @@ describe("scripting", () => {
         lua: "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
       });
 
-      redis.test("k1", "k2", "a1", "a2", function (err, result) {
+      // @ts-expect-error
+      redis.test("k1", "k2", "a1", "a2", (err, result) => {
         expect(result).to.eql(["k1", "k2", "a1", "a2"]);
         redis.disconnect();
         done();
@@ -27,7 +58,8 @@ describe("scripting", () => {
         lua: "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
       });
 
-      redis.test(2, "k1", "k2", "a1", "a2", function (err, result) {
+      // @ts-expect-error
+      redis.test(2, "k1", "k2", "a1", "a2", (err, result) => {
         expect(result).to.eql(["k1", "k2", "a1", "a2"]);
         redis.disconnect();
         done();
@@ -42,7 +74,8 @@ describe("scripting", () => {
         lua: "return {ARGV[1],ARGV[2]}",
       });
 
-      redis.test("2", "a2", function (err, result) {
+      // @ts-expect-error
+      redis.test("2", "a2", (err, result) => {
         expect(result).to.eql(["2", "a2"]);
         redis.disconnect();
         done();
@@ -56,7 +89,8 @@ describe("scripting", () => {
         lua: "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
       });
 
-      redis.test("k1", "k2", "a1", "a2", function (err, result) {
+      // @ts-expect-error
+      redis.test("k1", "k2", "a1", "a2", function (err) {
         expect(err).to.be.instanceof(Error);
         expect(err.toString()).to.match(/value is not an integer/);
         redis.disconnect();
@@ -73,7 +107,8 @@ describe("scripting", () => {
       lua: "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
     });
 
-    redis.testBuffer("k1", "k2", "a1", "a2", function (err, result) {
+    // @ts-expect-error
+    redis.testBuffer("k1", "k2", "a1", "a2", (err, result) => {
       expect(result).to.eql([
         Buffer.from("k1"),
         Buffer.from("k2"),
@@ -96,8 +131,9 @@ describe("scripting", () => {
     redis
       .pipeline()
       .set("test", "pipeline")
+      // @ts-expect-error
       .test("test")
-      .exec(function (err, results) {
+      .exec((err, results) => {
         expect(results).to.eql([
           [null, "OK"],
           [null, "pipeline"],
@@ -117,6 +153,7 @@ describe("scripting", () => {
     redis
       .pipeline()
       .set("test", "pipeline")
+      // @ts-expect-error
       .test("test")
       .exec(function (err, results) {
         expect(err).to.eql(null);
@@ -131,9 +168,11 @@ describe("scripting", () => {
     const redis = new Redis();
 
     redis.defineCommand("test", { lua: "return 1" });
+    // @ts-expect-error
     await redis.test(0);
 
     const commands = await getCommandsFromMonitor(redis, 1, () => {
+      // @ts-expect-error
       return redis.test(0);
     });
 
@@ -152,11 +191,15 @@ describe("scripting", () => {
       lua: 'return redis.call("get", KEYS[1])',
     });
 
+    // @ts-expect-error
     await redis.test("preload");
+    // @ts-expect-error
     await redis.script("flush");
 
     const commands = await getCommandsFromMonitor(redis, 5, async () => {
+      // @ts-expect-error
       await redis.test("foo");
+      // @ts-expect-error
       await redis.test("bar");
     });
 
@@ -172,6 +215,7 @@ describe("scripting", () => {
       lua: 'return redis.call("get", KEYS[1])',
     });
 
+    // @ts-expect-error
     await redis.testGet("init");
 
     redis.defineCommand("testSet", {
@@ -180,6 +224,7 @@ describe("scripting", () => {
     });
 
     const commands = await getCommandsFromMonitor(redis, 5, () => {
+      // @ts-expect-error
       return redis.pipeline().testGet("foo").testSet("foo").get("foo").exec();
     });
 
@@ -196,10 +241,13 @@ describe("scripting", () => {
       lua: 'return redis.call("get", KEYS[1])',
     });
 
+    // @ts-expect-error
     await redis.test("preload");
+    // @ts-expect-error
     await redis.script("flush");
     const spy = sinon.spy(redis, "sendCommand");
     const commands = await getCommandsFromMonitor(redis, 4, async () => {
+      // @ts-expect-error
       const [a, b] = await redis.multi().test("foo").test("bar").exec();
 
       expect(a[0].message).to.equal(
@@ -223,7 +271,9 @@ describe("scripting", () => {
       lua: 'return redis.call("get", KEYS[1])',
     });
 
+    // @ts-expect-error
     await redis.test("preload");
+    // @ts-expect-error
     await redis.script("flush");
     const spy = sinon.spy(redis, "sendCommand");
     const commands = await getCommandsFromMonitor(redis, 4, async () => {
@@ -245,7 +295,8 @@ describe("scripting", () => {
       lua: "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
     });
 
-    redis.echo("k1", "k2", "a1", "a2", function (err, result) {
+    // @ts-expect-error
+    redis.echo("k1", "k2", "a1", "a2", (err, result) => {
       expect(result).to.eql(["foo:k1", "foo:k2", "a1", "a2"]);
       redis.disconnect();
       done();
