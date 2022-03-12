@@ -40,6 +40,8 @@ import Deque = require("denque");
 
 const debug = Debug("cluster");
 
+const REJECT_OVERWRITTEN_COMMANDS = new WeakSet<Command>();
+
 type ClusterStatus =
   | "end"
   | "close"
@@ -477,11 +479,9 @@ class Cluster extends Commander {
     let targetSlot = node ? node.slot : command.getSlot();
     const ttl = {};
     const _this = this;
-    // @ts-expect-error
-    if (!node && !command.__is_reject_overwritten) {
-      // TODO WeakMap
-      // @ts-expect-error
-      command.__is_reject_overwritten = true;
+    if (!node && !REJECT_OVERWRITTEN_COMMANDS.has(command)) {
+      REJECT_OVERWRITTEN_COMMANDS.add(command);
+
       const reject = command.reject;
       command.reject = function (err) {
         const partialTry = tryConnection.bind(null, true);
