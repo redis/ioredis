@@ -1,13 +1,10 @@
 [![ioredis](https://cdn.jsdelivr.net/gh/luin/ioredis@b5e8c74/logo.svg)](https://github.com/luin/ioredis)
 
-[![Build Status](https://github.com/luin/ioredis/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/luin/ioredis/actions/workflows/main.yml?query=branch%3Amaster)
-[![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
+[![Build Status](https://github.com/luin/ioredis/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/luin/ioredis/actions/workflows/main.yml?query=branch%3Amain)
+[![Coverage Status](https://coveralls.io/repos/github/luin/ioredis/badge.svg?branch=main)](https://coveralls.io/github/luin/ioredis?branch=main)
 [![Join the chat at https://gitter.im/luin/ioredis](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/luin/ioredis?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
 [![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
-[![npm latest version](https://img.shields.io/npm/v/ioredis/latest.svg)](https://www.npmjs.com/package/ioredis)
-[![npm next version](https://img.shields.io/npm/v/ioredis/next.svg)](https://www.npmjs.com/package/ioredis)
-<img alt="" src="">
 
 A robust, performance-focused and full-featured [Redis](http://redis.io) client for [Node.js](https://nodejs.org).
 
