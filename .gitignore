@@ -4,6 +4,9 @@ node_modules
 /.idea
 built
 
+.nyc_output
+coverage
+
 .vscode
 benchmarks/fixtures/*.txt
 

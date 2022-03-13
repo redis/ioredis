@@ -22,17 +22,47 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - NODE_VERSION: 12-bullseye
-          - NODE_VERSION: 14-bullseye
-          - NODE_VERSION: 16-bullseye
+        node: [12.x, 14.x, 16.x]
+        redis: [2, 6]
     steps:
-      - uses: actions/checkout@v2
-      - name: Build and test
-        run: bash test/docker/main.sh ${{ matrix.NODE_VERSION }}
+      - name: Git checkout
+        uses: actions/checkout@v2
+
+      - name: Use Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Start Redis
+        uses: supercharge/redis-github-action@1.4.0
+        with:
+          redis-version: ${{ matrix.redis }}
+
+      - run: npm install
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run test:tsd
+      - run: npm run test:cov || npm run test:cov || npm run test:cov
+      - name: Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          flag-name: redis-${{matrix.redis}}-node-${{matrix.node}}
+          parallel: true
+
   test-cluster:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Build and test cluster
         run: bash test-cluster/docker/main.sh
+
+  code-coverage:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Coveralls
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel-finished: true
