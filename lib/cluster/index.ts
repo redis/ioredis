@@ -42,6 +42,12 @@ const debug = Debug("cluster");
 
 const REJECT_OVERWRITTEN_COMMANDS = new WeakSet<Command>();
 
+type OfflineQueueItem = {
+  command: Command;
+  stream: WriteableStream;
+  node: unknown;
+};
+
 type ClusterStatus =
   | "end"
   | "close"
@@ -80,7 +86,7 @@ class Cluster extends Commander {
   private manuallyClosing: boolean;
   private retryAttempts = 0;
   private delayQueue: DelayQueue = new DelayQueue();
-  private offlineQueue = new Deque();
+  private offlineQueue = new Deque<OfflineQueueItem>();
   private subscriber: ClusterSubscriber;
   private slotsTimer: NodeJS.Timer;
   private reconnectTimeout: NodeJS.Timer;
@@ -204,13 +210,13 @@ class Cluster extends Commander {
           }
           this.connectionPool.reset(nodes);
 
-          function readyHandler() {
+          const readyHandler = () => {
             this.setStatus("ready");
             this.retryAttempts = 0;
             this.executeOfflineCommands();
             this.resetNodesRefreshInterval();
             resolve();
-          }
+          };
 
           let closeListener: () => void = undefined;
           const refreshListener = () => {
@@ -229,15 +235,15 @@ class Cluster extends Commander {
                     this.disconnect(true);
                   }
                 } else {
-                  readyHandler.call(this);
+                  readyHandler();
                 }
               });
             } else {
-              readyHandler.call(this);
+              readyHandler();
             }
           };
 
-          closeListener = function () {
+          closeListener = () => {
             const error = new Error("None of startup nodes is available");
 
             this.removeListener("refresh", refreshListener);
@@ -411,8 +417,8 @@ class Cluster extends Commander {
     this.isRefreshing = true;
 
     const _this = this;
-    const wrapper = function (error?: Error) {
-      _this.isRefreshing = false;
+    const wrapper = (error?: Error) => {
+      this.isRefreshing = false;
       if (callback) {
         callback(error);
       }
@@ -729,7 +735,7 @@ class Cluster extends Commander {
       debug("closed because %s", reason);
     }
 
-    let retryDelay;
+    let retryDelay: unknown;
     if (
       !this.manuallyClosing &&
       typeof this.options.clusterRetryStrategy === "function"
@@ -743,13 +749,13 @@ class Cluster extends Commander {
     if (typeof retryDelay === "number") {
       this.setStatus("reconnecting");
       this.reconnectTimeout = setTimeout(
-        function () {
+        () => {
           this.reconnectTimeout = null;
           debug("Cluster is disconnected. Retrying after %dms", retryDelay);
           this.connect().catch(function (err) {
             debug("Got error %s when reconnecting. Ignoring...", err);
           });
-        }.bind(this),
+        },
         retryDelay
       );
     } else {
@@ -762,7 +768,7 @@ class Cluster extends Commander {
    * Flush offline queue with error.
    */
   private flushQueue(error: Error) {
-    let item;
+    let item: OfflineQueueItem;
     while ((item = this.offlineQueue.shift())) {
       item.command.reject(error);
     }
@@ -773,7 +779,7 @@ class Cluster extends Commander {
       debug("send %d commands in offline queue", this.offlineQueue.length);
       const offlineQueue = this.offlineQueue;
       this.resetOfflineQueue();
-      let item;
+      let item: OfflineQueueItem;
       while ((item = offlineQueue.shift())) {
         this.sendCommand(item.command, item.stream, item.node);
       }
@@ -899,7 +905,7 @@ class Cluster extends Commander {
     );
   }
 
-  private invokeReadyDelayedCallbacks(err) {
+  private invokeReadyDelayedCallbacks(err?: Error) {
     for (const c of this._readyDelayedCallbacks) {
       process.nextTick(c, err);
     }
@@ -911,7 +917,7 @@ class Cluster extends Commander {
    * Check whether Cluster is able to process commands
    */
   private readyCheck(callback: Callback<void | "fail">): void {
-    this.cluster("INFO", function (err, res) {
+    this.cluster("INFO", (err, res) => {
       if (err) {
         return callback(err);
       }
@@ -1003,38 +1009,35 @@ class Cluster extends Commander {
    * This process happens every time when #connect() is called since
    * #startupNodes and DNS records may chanage.
    */
-  private resolveStartupNodeHostnames(): Promise<RedisOptions[]> {
+  private async resolveStartupNodeHostnames(): Promise<RedisOptions[]> {
     if (!Array.isArray(this.startupNodes) || this.startupNodes.length === 0) {
-      return Promise.reject(
-        new Error("`startupNodes` should contain at least one node.")
-      );
+      throw new Error("`startupNodes` should contain at least one node.");
     }
     const startupNodes = normalizeNodeOptions(this.startupNodes);
 
     const hostnames = getUniqueHostnamesFromOptions(startupNodes);
     if (hostnames.length === 0) {
-      return Promise.resolve(startupNodes);
+      return startupNodes;
     }
 
-    return Promise.all(
+    const configs = await Promise.all(
       hostnames.map(
         (this.options.useSRVRecords ? this.resolveSrv : this.dnsLookup).bind(
           this
         )
       )
-    ).then((configs) => {
-      const hostnameToConfig = zipMap(hostnames, configs);
+    );
+    const hostnameToConfig = zipMap(hostnames, configs);
 
-      return startupNodes.map((node) => {
-        const config = hostnameToConfig.get(node.host);
-        if (!config) {
-          return node;
-        } else if (this.options.useSRVRecords) {
-          return Object.assign({}, node, config);
-        } else {
-          return Object.assign({}, node, { host: config });
-        }
-      });
+    return startupNodes.map((node) => {
+      const config = hostnameToConfig.get(node.host);
+      if (!config) {
+        return node;
+      }
+      if (this.options.useSRVRecords) {
+        return Object.assign({}, node, config);
+      }
+      return Object.assign({}, node, { host: config });
     });
   }
 

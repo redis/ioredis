@@ -9,8 +9,9 @@
   ],
   "scripts": {
     "test:tsd": "npm run build && tsd",
-    "test:js": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_LOG_ERROR=true NODE_ENV=test mocha \"test/helpers/*.ts\" \"test/**/*.ts\"",
-    "test:js:cluster": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_LOG_ERROR=true NODE_ENV=test mocha \"test-cluster/**/*.ts\"",
+    "test:js": "TS_NODE_TRANSPILE_ONLY=true NODE_ENV=test mocha \"test/helpers/*.ts\" \"test/**/*.ts\"",
+    "test:cov": "nyc npm run test:js",
+    "test:js:cluster": "TS_NODE_TRANSPILE_ONLY=true NODE_ENV=test mocha \"test-cluster/**/*.ts\"",
     "test": "npm run test:js && npm run test:tsd",
     "lint": "eslint --ext .js,.ts ./lib",
     "docs": "npx typedoc --logLevel Error --excludeExternals --excludeProtected --excludePrivate --readme none lib/index.ts",
@@ -64,6 +65,7 @@
     "eslint": "^8.9.0",
     "eslint-config-prettier": "^8.4.0",
     "mocha": "^9.2.1",
+    "nyc": "^15.1.0",
     "prettier": "^2.5.1",
     "server-destroy": "^1.0.1",
     "sinon": "^13.0.1",
@@ -73,6 +75,7 @@
     "typescript": "^4.5.5",
     "uuid": "^8.3.0"
   },
+  "nyc": { "reporter": [ "lcov" ]},
   "engines": {
     "node": ">=12.22.0"
   },
