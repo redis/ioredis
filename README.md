@@ -140,7 +140,15 @@ redis.zrange("sortedSet", 0, 2, "WITHSCORES").then((elements) => {
 redis.set("mykey", "hello", "EX", 10);
 ```
 
-See the `examples/` folder for more examples.
+See the `examples/` folder for more examples. For example:
+
+* [Strings](examples/string.js)
+* [Hashes](examples/hash.js)
+* [Lists](examples/list.js)
+* [Sets](examples/set.js)
+* [Sorted Sets](examples/zset.js)
+* [Streams](examples/stream.js)
+* [Redis Modules](examples/module.js) e.g. RedisJSON
 
 ## Connect to Redis
 
