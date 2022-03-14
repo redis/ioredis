@@ -1,39 +1,19 @@
 {
-  "branch": "master",
-  "verifyConditions": [
-    "@semantic-release/npm",
-    "@semantic-release/changelog",
+  "branches": ["v4", { "name": "main", "prerelease": true }],
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "angular",
+        "parserOpts": {
+          "noteKeywords": ["BREAKING CHANGE", "BREAKING CHANGES", "BREAKING"]
+        }
+      }
+    ],
+    "@semantic-release/release-notes-generator",
+    ["@semantic-release/changelog", { "changelogFile": "CHANGELOG.md" }],
     "@semantic-release/git",
-    "@semantic-release/github"
-  ],
-  "getLastRelease": "@semantic-release/git",
-  "prepare": [
-    {
-      "path": "@semantic-release/changelog",
-      "changelogFile": "Changelog.md"
-    },
-    "@semantic-release/npm",
-    {
-      "path": "@semantic-release/git",
-      "assets": [
-        "Changelog.md",
-        "package.json",
-        "package-lock.json",
-        "npm-shrinkwrap.json"
-      ]
-    }
-  ],
-  "publish": [
-    "@semantic-release/npm",
-    "@semantic-release/github"
-  ],
-  "analyzeCommits": {
-    "preset": "angular",
-    "releaseRules": [
-      { "type": "minor", "release": "minor" },
-      { "type": "patch", "release": "patch" },
-      { "type": "major", "release": "major" },
-      { "type": "breaking", "release": "major" }
-    ]
-  }
+    "@semantic-release/github",
+    "@semantic-release/npm"
+  ]
 }
