@@ -255,14 +255,12 @@ class Cluster extends Commander {
           this.once("close", closeListener);
           this.once("close", this.handleCloseEvent.bind(this));
 
-          this.refreshSlotsCache(
-            function (err) {
-              if (err && err.message === "Failed to refresh slots cache.") {
-                Redis.prototype.silentEmit.call(this, "error", err);
-                this.connectionPool.reset([]);
-              }
-            }.bind(this)
-          );
+          this.refreshSlotsCache((err) => {
+            if (err && err.message === ClusterAllFailedError.defaultMessage) {
+              Redis.prototype.silentEmit.call(this, "error", err);
+              this.connectionPool.reset([]);
+            }
+          });
           this.subscriber.start();
         })
         .catch((err) => {
@@ -431,7 +429,7 @@ class Cluster extends Commander {
     function tryNode(index: number) {
       if (index === nodes.length) {
         const error = new ClusterAllFailedError(
-          "Failed to refresh slots cache.",
+          ClusterAllFailedError.defaultMessage,
           lastNodeError
         );
         return wrapper(error);
@@ -699,7 +697,7 @@ class Cluster extends Commander {
   }
 
   private resetNodesRefreshInterval() {
-    if (this.slotsTimer) {
+    if (this.slotsTimer || !this.options.slotsRefreshInterval) {
       return;
     }
     const nextRound = () => {
@@ -748,16 +746,13 @@ class Cluster extends Commander {
     }
     if (typeof retryDelay === "number") {
       this.setStatus("reconnecting");
-      this.reconnectTimeout = setTimeout(
-        () => {
-          this.reconnectTimeout = null;
-          debug("Cluster is disconnected. Retrying after %dms", retryDelay);
-          this.connect().catch(function (err) {
-            debug("Got error %s when reconnecting. Ignoring...", err);
-          });
-        },
-        retryDelay
-      );
+      this.reconnectTimeout = setTimeout(() => {
+        this.reconnectTimeout = null;
+        debug("Cluster is disconnected. Retrying after %dms", retryDelay);
+        this.connect().catch(function (err) {
+          debug("Got error %s when reconnecting. Ignoring...", err);
+        });
+      }, retryDelay);
     } else {
       this.setStatus("end");
       this.flushQueue(new Error("None of startup nodes is available"));
