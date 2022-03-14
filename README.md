@@ -1,6 +1,6 @@
 [![ioredis](https://cdn.jsdelivr.net/gh/luin/ioredis@b5e8c74/logo.svg)](https://github.com/luin/ioredis)
 
-[![Build Status](https://github.com/luin/ioredis/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/luin/ioredis/actions/workflows/main.yml?query=branch%3Amain)
+[![Build Status](https://github.com/luin/ioredis/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/luin/ioredis/actions/workflows/release.yml?query=branch%3Amain)
 [![Coverage Status](https://coveralls.io/repos/github/luin/ioredis/badge.svg?branch=main)](https://coveralls.io/github/luin/ioredis?branch=main)
 [![Join the chat at https://gitter.im/luin/ioredis](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/luin/ioredis?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)

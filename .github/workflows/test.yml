@@ -1,20 +1,6 @@
-# Runs ioredis lint, build, and test steps in docker.
-name: CI
-
-# Controls when the action will run.
 on:
-  # Triggers the workflow on push or pull request events but only for the main branch
-  push:
-    branches:
-      - main
-      - greenkeeper**
-  pull_request:
-    branches:
-      - main
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+  workflow_call:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -22,7 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         node: [12.x, 14.x, 16.x]
-        redis: [2, 6]
+        redis: ['2', '6']
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
@@ -43,6 +29,7 @@ jobs:
       - run: npm run test:tsd
       - run: npm run test:cov || npm run test:cov || npm run test:cov
       - name: Coveralls
+        if: matrix.node == '16.x' && matrix.redis == '6'
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
