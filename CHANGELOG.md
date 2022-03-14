@@ -1,3 +1,63 @@
+# [5.0.0-beta.1](https://github.com/luin/ioredis/compare/v4.28.5...v5.0.0-beta.1) (2022-03-14)
+
+
+### Bug Fixes
+
+* add @ioredis/interface-generator to dev deps ([aa3b3e9](https://github.com/luin/ioredis/commit/aa3b3e91a369526ea2dff39b0619b0c2e0b4153b))
+* add the missing typing for Redis#call() ([747dd30](https://github.com/luin/ioredis/commit/747dd305696bf3fb661c1d0b4ac376de55e0ec25))
+* better support for CJS importing ([687d3eb](https://github.com/luin/ioredis/commit/687d3eb8dd0499fd900ede2f4dff835981999665))
+* disable slotsRefreshInterval by default ([370fa62](https://github.com/luin/ioredis/commit/370fa625cd20bfe62f41c38088e596c7a6f0619c))
+* Fix the NOSCRIPT behavior when using pipelines ([bc1b168](https://github.com/luin/ioredis/commit/bc1b1680663216ca2cfb1c77622bfa4fec9b2bd4))
+* improve typing for auto pipelining ([4e8c567](https://github.com/luin/ioredis/commit/4e8c567d1175de31e2371a9dad308a94fcb5627f))
+* improve typing for pipeline ([d18f3fe](https://github.com/luin/ioredis/commit/d18f3fe07ed04da5b7b26981d91bb4aa74b83ca3))
+* make fields private when possible ([d5c2f20](https://github.com/luin/ioredis/commit/d5c2f203b8f1f617f464402e400655c1f7c0fa08))
+* parameter declaration of Redis#duplicate ([a29d9c4](https://github.com/luin/ioredis/commit/a29d9c46f67dc8bcc345de6543a92dd808e8a6c0))
+* remove dropBufferSupport option ([04e68ac](https://github.com/luin/ioredis/commit/04e68ac4ade14d68809ca58d7ad8536eceda2b1e))
+* remove unused Command#isCustomCommand ([46ade6b](https://github.com/luin/ioredis/commit/46ade6b8732b112cc5cffb641b1bab51eb96df38))
+* rename interfaces by dropping prefix I ([d1d9dba](https://github.com/luin/ioredis/commit/d1d9dba9eafc574a9d9041fd4bc7cd04f1584159))
+* Reset loaded script hashes to force a reload of scripts after reconnect of redis ([60c2af9](https://github.com/luin/ioredis/commit/60c2af985a994a247d1148bfab122e5c0ecd81d2))
+* support passing keyPrefix via redisOptions ([6b0dc1e](https://github.com/luin/ioredis/commit/6b0dc1e0edbaa5f46b7b03629dda20176c7a81b4))
+
+
+### Features
+
+* add [@since](https://github.com/since) to method comments ([13eff8e](https://github.com/luin/ioredis/commit/13eff8e86a0d08a3aa614f2d8fe7a166f6beb532))
+* add declarations for methods ([1e10c95](https://github.com/luin/ioredis/commit/1e10c95eadede949e536f02ca1412ef4383ba654))
+* add tests for cluster ([1eba58b](https://github.com/luin/ioredis/commit/1eba58ba3961e477c6502daf05cf4074f728d3cf))
+* always parse username passed via URI ([c6f41f6](https://github.com/luin/ioredis/commit/c6f41f692243129dbc952ef8fd2e5c160133d677))
+* drop support of Node.js 10 ([f9a5071](https://github.com/luin/ioredis/commit/f9a5071d95519c0f358c4ecf064838824ce8ad62))
+* drop support of third-party Promise libraries ([2001ec6](https://github.com/luin/ioredis/commit/2001ec6fafd057eda9111ab858c1c618d939371e))
+* expose official declarations ([7a436b1](https://github.com/luin/ioredis/commit/7a436b128c3e97586d2378149beaa2043eb00850))
+* improve typings for cluster ([06782e6](https://github.com/luin/ioredis/commit/06782e681500eae6f3ceafcc6385b9be4fdaf4e3))
+* improve typings for pipeline ([334242b](https://github.com/luin/ioredis/commit/334242b1adf5399a1ad9d7ba6202d062a0695882))
+* improve typings for transformers ([94c1e24](https://github.com/luin/ioredis/commit/94c1e24f09b9e7eaff4181f984f6317acacade94))
+* Pipeline-based script loading ([8df6ee2](https://github.com/luin/ioredis/commit/8df6ee265595f035cc85b52b4d11793bea0318f3))
+* Refactor code with modern settings ([a8ffa80](https://github.com/luin/ioredis/commit/a8ffa80dd2fb081012222a436d5be2b5325623b9))
+* skip ready check on NOPERM error ([b530a0b](https://github.com/luin/ioredis/commit/b530a0b9fe0f987d6786e5cfccbfae8b5b9c9294)), closes [#1293](https://github.com/luin/ioredis/issues/1293)
+* support commands added in Redis v7 ([53ca412](https://github.com/luin/ioredis/commit/53ca41264f94f05a9a7a231915a0e852a46079d4))
+* support defining custom commands via constructor options ([f293b97](https://github.com/luin/ioredis/commit/f293b978c6023b8ce3477af0076203c7bc2482f8))
+* support Redis Functions introduced in Redis 7.0 ([32eb381](https://github.com/luin/ioredis/commit/32eb381c3035ebc70e8e316697c7e0b479ec66a2))
+
+
+### BREAKING CHANGES
+
+* `slotsRefreshInterval` is disabled by default,
+previously, the default value was 5000.
+* `allowUsernameInURI` is removed and ioredis will always
+use the username passed via URI.
+Previously, the `username` part in `new Redis("redis://username:authpassword@127.0.0.1:6380/4")`
+was ignored unless `allowUsernameInURI` is specified: `new Redis("redis://username:authpassword@127.0.0.1:6380/4?allowUsernameInURI=true")`.
+Now, if you don't want to send username to Redis, just leave the username part empty:
+`new Redis("redis://:authpassword@127.0.0.1:6380/4")`
+* `Redis#serverInfo` is removed. This field is never documented so
+you very likely have never used it.
+* Support for third-party Promise libraries is dropped. Related methods (`exports.Promise = require('bluebird')`) are kept but they don't take any effects. The native Promise will always be used.
+* We now require Node.js v10.12.0 or newer.
+* We now only work with Redis v3.0.0 or newer.
+* `Redis` can't be called as a function anymore as it's now a class.
+Please change `Redis()` to `new Redis()`. Note that `Redis()` was already deprecated
+in the previous version.
+
 ## [4.28.5](https://github.com/luin/ioredis/compare/v4.28.4...v4.28.5) (2022-02-06)
 
 
