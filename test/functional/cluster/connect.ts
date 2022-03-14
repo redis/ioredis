@@ -145,11 +145,13 @@ describe("cluster:connect", () => {
     new MockServer(30002, argvHandler);
     new MockServer(30003, argvHandler);
 
-    sinon.stub(Cluster.prototype, "connect").callsFake(() => Promise.resolve());
+    const stub = sinon
+      .stub(Cluster.prototype, "connect")
+      .callsFake(() => Promise.resolve());
     const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
       lazyConnect: false,
     });
-    Cluster.prototype.connect.restore();
+    stub.restore();
 
     cluster.connect().then(() => {
       cluster.disconnect();
@@ -158,11 +160,13 @@ describe("cluster:connect", () => {
   });
 
   it("should return a promise to be rejected when closed", (done) => {
-    sinon.stub(Cluster.prototype, "connect").callsFake(() => Promise.resolve());
+    const stub = sinon
+      .stub(Cluster.prototype, "connect")
+      .callsFake(() => Promise.resolve());
     const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
       lazyConnect: false,
     });
-    Cluster.prototype.connect.restore();
+    stub.restore();
 
     cluster.connect().catch(() => {
       cluster.disconnect();
@@ -256,7 +260,7 @@ describe("cluster:connect", () => {
     new MockServer(30002, argvHandler);
 
     let pending = 2;
-    let retry: number | false = 0;
+    let retry: number | null = 0;
     var cluster = new Cluster(
       [
         { host: "127.0.0.1", port: "30001" },
@@ -265,7 +269,7 @@ describe("cluster:connect", () => {
       {
         clusterRetryStrategy: () => {
           cluster.once("error", function (err) {
-            retry = false;
+            retry = null;
             expect(err.message).to.eql("Failed to refresh slots cache.");
             expect(err.lastNodeError.message).to.eql(errorMessage);
             checkDone();
@@ -373,7 +377,7 @@ describe("cluster:connect", () => {
         if (!--pending) {
           done();
         }
-        return false;
+        return null;
       },
     });
     cluster.connect().catch((err) => {

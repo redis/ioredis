@@ -12,7 +12,7 @@ export interface DelayQueueOptions {
  * Queue that runs items after specified duration
  */
 export default class DelayQueue {
-  private queues: { [key: string]: any | null } = {};
+  private queues: { [key: string]: Deque<Function> } = {};
   private timeouts: { [key: string]: NodeJS.Timer } = {};
 
   /**

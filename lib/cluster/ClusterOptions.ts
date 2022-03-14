@@ -216,7 +216,6 @@ export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = {
   retryDelayOnClusterDown: 100,
   retryDelayOnTryAgain: 100,
   slotsRefreshTimeout: 1000,
-  slotsRefreshInterval: 5000,
   useSRVRecords: false,
   resolveSrv: resolveSrv,
   dnsLookup: lookup,

@@ -4,12 +4,14 @@ import * as sinon from "sinon";
 import { expect } from "chai";
 
 describe("cluster", () => {
+  let stub: sinon.SinonStub | undefined;
   beforeEach(() => {
-    sinon.stub(Cluster.prototype, "connect").callsFake(() => Promise.resolve());
+    stub = sinon.stub(Cluster.prototype, "connect");
+    stub.callsFake(() => Promise.resolve());
   });
 
   afterEach(() => {
-    Cluster.prototype.connect.restore();
+    if (stub) stub.restore();
   });
 
   it("should support frozen options", () => {
@@ -35,14 +37,21 @@ describe("cluster", () => {
 
   it("throws when scaleReads is invalid", () => {
     expect(() => {
+      // @ts-expect-error
       new Cluster([{}], { scaleReads: "invalid" });
     }).to.throw(/Invalid option scaleReads/);
+  });
+
+  it("disables slotsRefreshTimeout by default", () => {
+    const cluster = new Cluster([{}]);
+    expect(cluster.options.slotsRefreshInterval).to.eql(undefined);
   });
 
   describe("#nodes()", () => {
     it("throws when role is invalid", () => {
       const cluster = new Cluster([{}]);
       expect(() => {
+        // @ts-expect-error
         cluster.nodes("invalid");
       }).to.throw(/Invalid role/);
     });
