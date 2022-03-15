@@ -5,9 +5,9 @@ const overrides = require("./overrides");
 const { getCommanderInterface } = require("@ioredis/interface-generator");
 
 const ignoredCommands = ["monitor", "multi"];
-const commands = require("@ioredis/commands").list.filter(
-  (name) => !ignoredCommands.includes(name)
-);
+const commands = require("@ioredis/commands")
+  .list.filter((name) => !ignoredCommands.includes(name))
+  .sort();
 
 const fs = require("fs");
 const path = require("path");
@@ -33,6 +33,7 @@ async function main() {
       "lolwut",
       "memory",
       "cluster",
+      "geopos",
     ],
   });
 
