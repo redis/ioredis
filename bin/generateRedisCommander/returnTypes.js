@@ -331,12 +331,7 @@ module.exports = {
   xrange: "[id: string, fields: string[]][]",
   xrevrange: "[id: string, fields: string[]][]",
   xlen: "number",
-  xread: (types) => {
-    if (types.find((type) => type.includes("BLOCK"))) {
-      return "unknown[] | null";
-    }
-    return "unknown[]";
-  },
+  xread: "[key: string, items: [id: string, fields: string[]][]][] | null",
   xreadgroup: "unknown[]",
   xack: "number",
   xclaim: "unknown[]",
