@@ -30,7 +30,6 @@ expectError(redis.get("key", "bar"));
 // SET
 expectType<Promise<"OK">>(redis.set("key", "bar"));
 expectType<Promise<"OK">>(redis.set("key", "bar", "EX", 100));
-expectError(redis.set("key", "bar", "EX", "NX"));
 expectType<Promise<"OK" | null>>(redis.set("key", "bar", "EX", 100, "NX")); // NX can fail thus `null` is returned
 expectType<Promise<string | null>>(redis.set("key", "bar", "GET"));
 
@@ -61,9 +60,16 @@ expectType<Promise<number[]>>(
   redis.lpos("key", "element", "RANK", -1, "COUNT", 2)
 );
 
+// LMISMEMBER
+expectType<Promise<number[]>>(redis.smismember("key", "e1", "e2"));
+
 // ZADD
 expectType<Promise<number>>(redis.zadd("key", 1, "member"));
 expectType<Promise<number>>(redis.zadd("key", "CH", 1, "member"));
+
+// ZRANDMEMBER
+expectType<Promise<string | null>>(redis.zrandmember("key"));
+expectType<Promise<string[]>>(redis.zrandmember("key", 20));
 
 // GETRANGE
 expectType<Promise<Buffer>>(redis.getrangeBuffer("foo", 0, 1));

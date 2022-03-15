@@ -106,10 +106,10 @@ module.exports = {
   brpop: "[string, string] | null",
   brpoplpush: "string | null",
   blmove: "string | null",
-  lmpop: "unknown[] | null",
-  blmpop: "unknown[] | null",
-  bzpopmin: "unknown[] | null",
-  bzpopmax: "unknown[] | null",
+  lmpop: "[key: string, members: string[]] | null",
+  blmpop: "[key: string, members: string[]] | null",
+  bzpopmin: "[key: string, member: string, score: string] | null",
+  bzpopmax: "[key: string, member: string, score: string] | null",
   command: "unknown[]",
   copy: "number",
   dbsize: "number",
@@ -129,7 +129,7 @@ module.exports = {
   flushdb: "'OK'",
   geoadd: "number",
   geohash: "string[]",
-  geopos: "unknown[] | null",
+  geopos: "([longitude: string, latitude: string] | null)[]",
   geodist: "string | null",
   georadius: "unknown[]",
   geosearch: "unknown[]",
@@ -196,7 +196,9 @@ module.exports = {
   linsert: "number",
   llen: "number",
   lpop: (types) => {
-    return types.includes("number") ? "string[] | null" : "string | null";
+    return types.some((type) => type.includes("number"))
+      ? "string[] | null"
+      : "string | null";
   },
   lpos: (types) => {
     return hasToken(types, "COUNT") ? "number[]" : "number | null";
@@ -232,7 +234,9 @@ module.exports = {
   restore: "'OK'",
   role: "unknown[]",
   rpop: (types) => {
-    return types.includes("number") ? "string[] | null" : "string | null";
+    return types.some((type) => type.includes("number"))
+      ? "string[] | null"
+      : "string | null";
   },
   rpoplpush: "string",
   lmove: "string",
@@ -253,7 +257,7 @@ module.exports = {
   sintercard: "number",
   sinterstore: "number",
   sismember: "number",
-  smismember: "unknown[]",
+  smismember: "number[]",
   slaveof: "'OK'",
   replicaof: "'OK'",
   smembers: "string[]",
@@ -296,7 +300,9 @@ module.exports = {
   zpopmax: "string[]",
   zpopmin: "string[]",
   zrandmember: (types) => {
-    return types.includes("number") ? "string | null" : "string[]";
+    return types.some((type) => type.includes("number"))
+      ? "string[]"
+      : "string | null";
   },
   zrangestore: "number",
   zrange: "string[]",

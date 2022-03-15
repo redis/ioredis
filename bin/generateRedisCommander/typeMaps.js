@@ -17,10 +17,5 @@ module.exports = {
       ? "string | Buffer | number"
       : "string | Buffer",
   pattern: "string",
-  number: (name) =>
-    ["seconds", "count", "start", "stop", "end", "index"].some((pattern) =>
-      name.toLowerCase().includes(pattern)
-    )
-      ? "number"
-      : "number | string",
+  number: () => "number | string",
 };
