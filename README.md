@@ -50,7 +50,7 @@ Refer to [CHANGELOG.md](CHANGELOG.md) for features and bug fixes introduced in v
 # Links
 
 - [API Documentation](http://luin.github.io/ioredis/) ([Redis](http://luin.github.io/ioredis/classes/default.html), [Cluster](http://luin.github.io/ioredis/classes/Cluster.html))
-- [Changelog](Changelog.md)
+- [Changelog](CHANGELOG.md)
 - [Migrating from node_redis](https://github.com/luin/ioredis/wiki/Migrating-from-node_redis)
 - [Error Handling](#error-handling)
 
