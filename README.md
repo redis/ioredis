@@ -189,7 +189,7 @@ new Redis("redis://:authpassword@127.0.0.1:6380/4");
 new Redis("redis://username:authpassword@127.0.0.1:6380/4");
 ```
 
-See [API Documentation](API.md#new-redisport-host-options) for all available options.
+See [API Documentation](http://luin.github.io/ioredis/classes/index.html#RedisOptions) for all available options.
 
 ## Pub/Sub
 

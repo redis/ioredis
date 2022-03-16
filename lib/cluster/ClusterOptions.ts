@@ -190,13 +190,6 @@ export interface ClusterOptions extends CommanderOptions {
   autoPipeliningIgnoredCommands?: string[];
 
   /**
-   * See Redis class.
-   *
-   * @default 60000
-   */
-  maxScriptsCachingTime?: number;
-
-  /**
    * Custom LUA commands
    */
   scripts?: Record<
@@ -221,5 +214,4 @@ export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = {
   dnsLookup: lookup,
   enableAutoPipelining: false,
   autoPipeliningIgnoredCommands: [],
-  maxScriptsCachingTime: 60000,
 };

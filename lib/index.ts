@@ -46,8 +46,12 @@ export {
 export { Callback } from "./types";
 
 // Type Exports
-export { SentinelAddress } from "./connectors/SentinelConnector";
-export { RedisOptions } from "./redis/RedisOptions";
+export {
+  SentinelAddress,
+  SentinelConnectionOptions,
+} from "./connectors/SentinelConnector";
+export { StandaloneConnectionOptions } from "./connectors/StandaloneConnector";
+export { RedisOptions, CommonRedisOptions } from "./redis/RedisOptions";
 
 // No TS typings
 export const ReplyError = require("redis-errors").ReplyError;
@@ -62,7 +66,7 @@ Object.defineProperty(exports, "Promise", {
     );
     return Promise;
   },
-  set(lib: unknown) {
+  set(_lib: unknown) {
     console.warn(
       "ioredis v5 does not support plugging third-party Promise library anymore. Native Promise will be used."
     );

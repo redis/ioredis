@@ -32,7 +32,13 @@ type PreferredSlaves =
 export { SentinelAddress, SentinelIterator };
 
 export interface SentinelConnectionOptions {
+  /**
+   * Master group name of the Sentinel
+   */
   name?: string;
+  /**
+   * @default "master"
+   */
   role?: "master" | "slave";
   tls?: ConnectionOptions;
   sentinelUsername?: string;
@@ -48,6 +54,9 @@ export interface SentinelConnectionOptions {
   sentinelTLS?: ConnectionOptions;
   natMap?: NatMap;
   updateSentinels?: boolean;
+  /**
+   * @default 10
+   */
   sentinelMaxConnections?: number;
   failoverDetector?: boolean;
 }
