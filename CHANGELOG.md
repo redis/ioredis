@@ -1,3 +1,11 @@
+# [5.0.0-beta.2](https://github.com/luin/ioredis/compare/v5.0.0-beta.1...v5.0.0-beta.2) (2022-03-16)
+
+
+### Features
+
+* improve typings for smismember ([487c3a0](https://github.com/luin/ioredis/commit/487c3a07e6080070d365e09dae75bbbc4267b619))
+* improve typings for xread ([96cc335](https://github.com/luin/ioredis/commit/96cc33590a8c2494b730d33780668a86cdd405cf))
+
 # [5.0.0-beta.1](https://github.com/luin/ioredis/compare/v4.28.5...v5.0.0-beta.1) (2022-03-14)
 
 
