@@ -181,7 +181,24 @@ export default class Command implements Respondable {
     this.initPromise();
 
     if (options.keyPrefix) {
-      this._iterateKeys((key) => options.keyPrefix + key);
+      // @ts-expect-error
+      const isBufferKeyPrefix = options.keyPrefix instanceof Buffer;
+      // @ts-expect-error
+      let keyPrefixBuffer: Buffer | null = isBufferKeyPrefix
+        ? options.keyPrefix
+        : null;
+      this._iterateKeys((key) => {
+        if (key instanceof Buffer) {
+          if (keyPrefixBuffer === null) {
+            keyPrefixBuffer = Buffer.from(options.keyPrefix);
+          }
+          return Buffer.concat([keyPrefixBuffer, key]);
+        } else if (isBufferKeyPrefix) {
+          // @ts-expect-error
+          return Buffer.concat([options.keyPrefix, Buffer.from(String(key))]);
+        }
+        return options.keyPrefix + key;
+      });
     }
 
     if (options.readOnly) {
@@ -327,8 +344,8 @@ export default class Command implements Respondable {
    * Iterate through the command arguments that are considered keys.
    */
   private _iterateKeys(
-    transform: Function = (key) => key
-  ): Array<string | Buffer> {
+    transform: (key: CommandParameter) => CommandParameter = (key) => key
+  ): (string | Buffer)[] {
     if (typeof this.keys === "undefined") {
       this.keys = [];
       if (exists(this.name)) {

@@ -59,6 +59,7 @@ describe("send command", () => {
         expect(res).to.eql("OK");
       }
     );
+    // @ts-expect-error
     redis.callBuffer("get", Buffer.from("foo"), function (err, result) {
       expect(result).to.be.instanceof(Buffer);
       expect(result.toString()).to.eql("bar");
@@ -147,6 +148,40 @@ describe("send command", () => {
         done();
       });
     });
+  });
+
+  it("should support prefixing buffer keys", async () => {
+    const redis = new Redis({ keyPrefix: "foo:" });
+    await redis.mset(
+      Buffer.from("bar"),
+      Buffer.from("baz"),
+      Buffer.from("foo"),
+      Buffer.from("baz")
+    );
+    await redis.set(Buffer.from([0xff]), Buffer.from("baz"));
+
+    const redisWOPrefix = new Redis();
+    expect(await redisWOPrefix.get("foo:bar")).to.eql("baz");
+    expect(await redisWOPrefix.get("foo:foo")).to.eql("baz");
+    expect(
+      await redisWOPrefix.get(Buffer.from([0x66, 0x6f, 0x6f, 0x3a, 0xff]))
+    ).to.eql("baz");
+  });
+
+  it("should support buffer as keyPrefix", async () => {
+    // @ts-expect-error
+    const redis = new Redis({ keyPrefix: Buffer.from([0xff]) });
+    await redis.mset("bar", Buffer.from("baz"), "foo", Buffer.from("bar"));
+    await redis.set(Buffer.from([0xff]), Buffer.from("baz"));
+
+    const redisWOPrefix = new Redis();
+    expect(
+      await redisWOPrefix.get(Buffer.from([0xff, 0x62, 0x61, 0x72]))
+    ).to.eql("baz");
+    expect(
+      await redisWOPrefix.get(Buffer.from([0xff, 0x66, 0x6f, 0x6f]))
+    ).to.eql("bar");
+    expect(await redisWOPrefix.get(Buffer.from([0xff, 0xff]))).to.eql("baz");
   });
 
   it("should support key prefixing for zunionstore", (done) => {

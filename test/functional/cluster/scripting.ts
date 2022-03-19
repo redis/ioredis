@@ -12,7 +12,6 @@ describe("cluster:scripting", () => {
           [12182, 16383, ["127.0.0.1", 30002]],
         ];
       }
-      console.log(argv);
       if (argv[0] === "eval" && argv[1] === lua && argv[2] === "2") {
         return argv.slice(3);
       }
