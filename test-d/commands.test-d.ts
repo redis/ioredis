@@ -7,6 +7,7 @@ const redis = new Redis();
 expectType<Promise<unknown>>(redis.call('info'));
 expectType<Promise<unknown>>(redis.call('set', 'foo', 'bar'));
 expectType<Promise<unknown>>(redis.call('set', ['foo', 'bar']));
+expectType<Promise<unknown>>(redis.callBuffer("set", ["foo", "bar"]));
 expectType<Promise<unknown>>(redis.call('set', ['foo', 'bar'], (err, value) => {
   expectType<Error | undefined | null>(err);
   expectType<unknown | undefined>(value);

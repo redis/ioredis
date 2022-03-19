@@ -111,7 +111,6 @@ commands.forEach(function (commandName) {
 });
 
 Commander.prototype.call = generateFunction("call", "utf8");
-// @ts-expect-error
 Commander.prototype.callBuffer = generateFunction("callBuffer", null);
 // @ts-expect-error
 Commander.prototype.send_command = Commander.prototype.call;

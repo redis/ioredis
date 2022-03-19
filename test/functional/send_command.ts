@@ -59,7 +59,6 @@ describe("send command", () => {
         expect(res).to.eql("OK");
       }
     );
-    // @ts-expect-error
     redis.callBuffer("get", Buffer.from("foo"), function (err, result) {
       expect(result).to.be.instanceof(Buffer);
       expect(result.toString()).to.eql("bar");

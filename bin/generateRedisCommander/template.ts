@@ -50,6 +50,25 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   call(
     ...args: [command: string, ...args: (string | Buffer | number)[]]
   ): Result<unknown, Context>;
+  callBuffer(
+    command: string,
+    callback?: Callback<unknown>
+  ): Result<unknown, Context>;
+  callBuffer(
+    command: string,
+    args: (string | Buffer | number)[],
+    callback?: Callback<unknown>
+  ): Result<unknown, Context>;
+  callBuffer(
+    ...args: [
+      command: string,
+      ...args: (string | Buffer | number)[],
+      callback: Callback<unknown>
+    ]
+  ): Result<unknown, Context>;
+  callBuffer(
+    ...args: [command: string, ...args: (string | Buffer | number)[]]
+  ): Result<unknown, Context>;
 
   ////
 }
