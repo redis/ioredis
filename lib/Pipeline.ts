@@ -263,9 +263,15 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
   // Wait for the cluster to be connected, since we need nodes information before continuing
   if (this.isCluster && !this.redis.slots.length) {
     if (this.redis.status === "wait") this.redis.connect().catch(noop);
+
+    if (callback && !this.nodeifiedPromise) {
+      this.nodeifiedPromise = true;
+      asCallback(this.promise, callback);
+    }
+
     this.redis.delayUntilReady((err) => {
       if (err) {
-        callback(err);
+        this.reject(err);
         return;
       }
 
