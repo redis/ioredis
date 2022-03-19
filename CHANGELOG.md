@@ -1,3 +1,10 @@
+# [5.0.0-beta.3](https://github.com/luin/ioredis/compare/v5.0.0-beta.2...v5.0.0-beta.3) (2022-03-19)
+
+
+### Bug Fixes
+
+* pipeline fails when cluster is not ready ([af60bb0](https://github.com/luin/ioredis/commit/af60bb082d20a32de1348f049507e6ea8862397f)), closes [#1460](https://github.com/luin/ioredis/issues/1460)
+
 # [5.0.0-beta.2](https://github.com/luin/ioredis/compare/v5.0.0-beta.1...v5.0.0-beta.2) (2022-03-16)
 
 
