@@ -1,3 +1,11 @@
+# [5.0.0-beta.4](https://github.com/luin/ioredis/compare/v5.0.0-beta.3...v5.0.0-beta.4) (2022-03-19)
+
+
+### Bug Fixes
+
+* add missing declaration for callBuffer ([08c9072](https://github.com/luin/ioredis/commit/08c9072b24fa301401d424494c1ec8cde7ccf78b))
+* keyPrefix should work with Buffer ([6942cec](https://github.com/luin/ioredis/commit/6942cecd8a463756468988cf50a94c68298d3bfc)), closes [#1486](https://github.com/luin/ioredis/issues/1486)
+
 # [5.0.0-beta.3](https://github.com/luin/ioredis/compare/v5.0.0-beta.2...v5.0.0-beta.3) (2022-03-19)
 
 
