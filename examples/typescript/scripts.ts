@@ -1,4 +1,4 @@
-import Redis, { RedisCommander, Result, Callback } from "ioredis";
+import Redis, { Result, Callback } from "ioredis";
 const redis = new Redis();
 
 /**

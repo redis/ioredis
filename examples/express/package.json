@@ -10,7 +10,7 @@
     "debug": "^4.3.3",
     "express": "^4.17.3",
     "http-errors": "~1.6.3",
-    "ioredis": "^4.28.5",
+    "ioredis": "^5.0.0",
     "jade": "~1.11.0",
     "morgan": "~1.9.1"
   }

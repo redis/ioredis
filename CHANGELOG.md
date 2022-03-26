@@ -1,5 +1,9 @@
 # [5.0.0](https://github.com/luin/ioredis/compare/v4.28.5...v5.0.0) (2022-03-26)
 
+In the update of v5, we've made ioredis even more stable and developer-friendly while minimizing the number of breaking changes, so you can spend more time enjoying your life 😄.
+
+Please refer to the guideline to upgrade your projects: [🚀 Upgrading from v4 to v5](https://github.com/luin/ioredis/wiki/Upgrading-from-v4-to-v5).
+
 
 ### Bug Fixes
 
@@ -58,8 +62,7 @@ Now, if you don't want to send username to Redis, just leave the username part e
 * `Redis#serverInfo` is removed. This field is never documented so
 you very likely have never used it.
 * Support for third-party Promise libraries is dropped. Related methods (`exports.Promise = require('bluebird')`) are kept but they don't take any effects. The native Promise will always be used.
-* We now require Node.js v10.12.0 or newer.
-* We now only work with Redis v3.0.0 or newer.
+* We now require Node.js v12 or newer.
 * `Redis` can't be called as a function anymore as it's now a class.
 Please change `Redis()` to `new Redis()`. Note that `Redis()` was already deprecated
 in the previous version.
@@ -141,8 +144,7 @@ Now, if you don't want to send username to Redis, just leave the username part e
 * `Redis#serverInfo` is removed. This field is never documented so
 you very likely have never used it.
 * Support for third-party Promise libraries is dropped. Related methods (`exports.Promise = require('bluebird')`) are kept but they don't take any effects. The native Promise will always be used.
-* We now require Node.js v10.12.0 or newer.
-* We now only work with Redis v3.0.0 or newer.
+* We now require Node.js v12 or newer.
 * `Redis` can't be called as a function anymore as it's now a class.
 Please change `Redis()` to `new Redis()`. Note that `Redis()` was already deprecated
 in the previous version.

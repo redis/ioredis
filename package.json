@@ -32,8 +32,8 @@
     "pipelining"
   ],
   "tsd": {
-		"directory": "test/typing"
-	},
+    "directory": "test/typing"
+  },
   "author": "Zihua Li <i@zihua.li> (http://zihua.li)",
   "license": "MIT",
   "funding": {
@@ -41,7 +41,7 @@
     "url": "https://opencollective.com/ioredis"
   },
   "dependencies": {
-    "@ioredis/commands": "^1.1.0",
+    "@ioredis/commands": "^1.1.1",
     "cluster-key-slot": "^1.1.0",
     "debug": "^4.3.4",
     "denque": "^2.0.1",
@@ -52,7 +52,7 @@
     "standard-as-callback": "^2.1.0"
   },
   "devDependencies": {
-    "@ioredis/interface-generator": "^1.2.0",
+    "@ioredis/interface-generator": "^1.2.1",
     "@semantic-release/changelog": "^6.0.1",
     "@semantic-release/commit-analyzer": "^9.0.2",
     "@semantic-release/git": "^10.0.1",
