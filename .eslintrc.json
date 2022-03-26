@@ -48,7 +48,10 @@
         }
       }
     ],
-    "@typescript-eslint/explicit-member-accessibility": [1, { "accessibility": "no-public" }],
+    "@typescript-eslint/explicit-member-accessibility": [
+      1,
+      { "accessibility": "no-public" }
+    ],
     "@typescript-eslint/no-empty-interface": 0,
     "@typescript-eslint/no-empty-function": 0,
     "@typescript-eslint/no-unused-vars": [
@@ -60,7 +63,7 @@
   },
   "overrides": [
     {
-      "files": ["test/**/*", "test-cluster/**/*"],
+      "files": ["test/cluster/*", "test/unit/*", "test/functional/*"],
       "env": {
         "mocha": true
       },

@@ -41,7 +41,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Build and test cluster
-        run: bash test-cluster/docker/main.sh
+        run: bash test/cluster/docker/main.sh
 
   code-coverage:
     needs: test

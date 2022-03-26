@@ -18,7 +18,6 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](http://redis.io/topics/sentinel), [Streams](https://redis.io/topics/streams-intro), [Pipelining](http://redis.io/topics/pipelining), and of course [Lua scripting](http://redis.io/commands/eval), [Redis Functions](https://redis.io/topics/functions-intro), [Pub/Sub](http://redis.io/topics/pubsub) (with the support of binary messages).
 0. High performance 🚀.
 0. Delightful API 😄. It works with Node callbacks and Native promises.
-0. Official TypeScript declarations.
 0. Transformation of command arguments and replies.
 0. Transparent key prefixing.
 0. Abstraction for Lua scripting, allowing you to [define custom commands](https://github.com/luin/ioredis#lua-scripting).
@@ -30,29 +29,28 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 0. Supports Redis ACL.
 0. Sophisticated error handling strategy.
 0. Supports NAT mapping.
-0. Supports autopipelining
+0. Supports autopipelining.
+
+**100% written in TypeScript and official declarations are provided:**
+
+<img width="837" src="resources/ts-screenshot.png" alt="TypeScript Screenshot" />
 
 # Versions
 
-| NPM Version  | Branch | Node.js Version | Redis Version   |
-| ------------ | ------ | --------------- | --------------- |
-| 5.x.x (beta) | main   | >= 12           | 2.6.12 ~ latest |
-| 4.x.x        | v4     | >= 6            | 2.6.12 ~ 7      |
-
-V5 is still in the beta stage. You can install it with:
-
-```
-$ npm install ioredis@next
-```
+| NPM Version    | Branch | Node.js Version | Redis Version   |
+| -------------- | ------ | --------------- | --------------- |
+| 5.x.x (latest) | main   | >= 12           | 2.6.12 ~ latest |
+| 4.x.x          | v4     | >= 6            | 2.6.12 ~ 7      |
 
 Refer to [CHANGELOG.md](CHANGELOG.md) for features and bug fixes introduced in v5.
+
+🚀 [Upgrading from v4 to v5](https://github.com/luin/ioredis/wiki/Upgrading-from-v4-to-v5)
 
 # Links
 
 - [API Documentation](http://luin.github.io/ioredis/) ([Redis](http://luin.github.io/ioredis/classes/default.html), [Cluster](http://luin.github.io/ioredis/classes/Cluster.html))
 - [Changelog](CHANGELOG.md)
 - [Migrating from node_redis](https://github.com/luin/ioredis/wiki/Migrating-from-node_redis)
-- [Error Handling](#error-handling)
 
 <hr>
 
@@ -105,6 +103,12 @@ Medis starts with all the basic features you need:
 
 ```shell
 $ npm install ioredis
+```
+
+In a TypeScript project, you may want to add TypeScript declarations for Node.js:
+
+```shell
+$ npm install --save-dev @types/node
 ```
 
 ## Basic Usage
