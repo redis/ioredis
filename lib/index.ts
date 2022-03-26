@@ -52,6 +52,9 @@ export {
 } from "./connectors/SentinelConnector";
 export { StandaloneConnectionOptions } from "./connectors/StandaloneConnector";
 export { RedisOptions, CommonRedisOptions } from "./redis/RedisOptions";
+export { ClusterNode } from "./cluster";
+export { ClusterOptions } from "./cluster/ClusterOptions";
+export { NodeRole } from "./cluster/util";
 
 // No TS typings
 export const ReplyError = require("redis-errors").ReplyError;

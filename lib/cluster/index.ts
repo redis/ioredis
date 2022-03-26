@@ -48,6 +48,14 @@ type OfflineQueueItem = {
   node: unknown;
 };
 
+export type ClusterNode =
+  | string
+  | number
+  | {
+      host?: string | undefined;
+      port?: number | undefined;
+    };
+
 type ClusterStatus =
   | "end"
   | "close"
@@ -106,10 +114,7 @@ class Cluster extends Commander {
   /**
    * Creates an instance of Cluster.
    */
-  constructor(
-    startupNodes: (string | number | object)[],
-    options: ClusterOptions = {}
-  ) {
+  constructor(startupNodes: ClusterNode[], options: ClusterOptions = {}) {
     super();
     EventEmitter.call(this);
 
