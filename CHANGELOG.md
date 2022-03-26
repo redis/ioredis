@@ -1,3 +1,10 @@
+## [5.0.1](https://github.com/luin/ioredis/compare/v5.0.0...v5.0.1) (2022-03-26)
+
+
+### Bug Fixes
+
+* improve typing compatibility with @types/ioredis ([#1542](https://github.com/luin/ioredis/issues/1542)) ([3bf300a](https://github.com/luin/ioredis/commit/3bf300a1c99ae4cf8038930c45e19ebd68db222e))
+
 # [5.0.0](https://github.com/luin/ioredis/compare/v4.28.5...v5.0.0) (2022-03-26)
 
 In the update of v5, we've made ioredis even more stable and developer-friendly while minimizing the number of breaking changes, so you can spend more time enjoying your life 😄.
