@@ -1,8 +1,7 @@
 const msetOverrides = {
   overwrite: false,
   defs: [
-    "$1(object: Record<string, string | Buffer | number>, callback?: Callback<'OK'>): Result<'OK', Context>",
-    "$1(map: Map<string | Buffer | number, string | Buffer | number>, callback?: Callback<'OK'>): Result<'OK', Context>",
+    "$1(object: object, callback?: Callback<'OK'>): Result<'OK', Context>",
   ],
 };
 
@@ -19,15 +18,13 @@ module.exports = {
   hset: {
     overwrite: false,
     defs: [
-      "$1(key: RedisKey, object: Record<string, string | Buffer | number>, callback?: Callback<number>): Result<number, Context>",
-      "$1(key: RedisKey, map: Map<string | Buffer | number, string | Buffer | number>, callback?: Callback<number>): Result<number, Context>",
+      "$1(key: RedisKey, object: object, callback?: Callback<number>): Result<number, Context>",
     ],
   },
   hmset: {
     overwrite: false,
     defs: [
-      "$1(key: RedisKey, object: Record<string, string | Buffer | number>, callback?: Callback<'OK'>): Result<'OK', Context>",
-      "$1(key: RedisKey, map: Map<string | Buffer | number, string | Buffer | number>, callback?: Callback<'OK'>): Result<'OK', Context>",
+      "$1(key: RedisKey, object: object, callback?: Callback<'OK'>): Result<'OK', Context>",
     ],
   },
   exec: {

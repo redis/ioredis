@@ -4280,12 +4280,7 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    */
   hmset(
     key: RedisKey,
-    object: Record<string, string | Buffer | number>,
-    callback?: Callback<"OK">
-  ): Result<"OK", Context>;
-  hmset(
-    key: RedisKey,
-    map: Map<string | Buffer | number, string | Buffer | number>,
+    object: object,
     callback?: Callback<"OK">
   ): Result<"OK", Context>;
   hmset(
@@ -4407,12 +4402,7 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    */
   hset(
     key: RedisKey,
-    object: Record<string, string | Buffer | number>,
-    callback?: Callback<number>
-  ): Result<number, Context>;
-  hset(
-    key: RedisKey,
-    map: Map<string | Buffer | number, string | Buffer | number>,
+    object: object,
     callback?: Callback<number>
   ): Result<number, Context>;
   hset(
@@ -5513,14 +5503,7 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(N) where N is the number of keys to set.
    * - _since_: 1.0.1
    */
-  mset(
-    object: Record<string, string | Buffer | number>,
-    callback?: Callback<"OK">
-  ): Result<"OK", Context>;
-  mset(
-    map: Map<string | Buffer | number, string | Buffer | number>,
-    callback?: Callback<"OK">
-  ): Result<"OK", Context>;
+  mset(object: object, callback?: Callback<"OK">): Result<"OK", Context>;
   mset(
     ...args: [
       ...keyValues: (RedisKey | string | Buffer | number)[],
@@ -5537,14 +5520,7 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(N) where N is the number of keys to set.
    * - _since_: 1.0.1
    */
-  msetnx(
-    object: Record<string, string | Buffer | number>,
-    callback?: Callback<"OK">
-  ): Result<"OK", Context>;
-  msetnx(
-    map: Map<string | Buffer | number, string | Buffer | number>,
-    callback?: Callback<"OK">
-  ): Result<"OK", Context>;
+  msetnx(object: object, callback?: Callback<"OK">): Result<"OK", Context>;
   msetnx(
     ...args: [
       ...keyValues: (RedisKey | string | Buffer | number)[],

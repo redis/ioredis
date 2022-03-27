@@ -5,85 +5,56 @@ import { expect } from "chai";
 describe("transformer", () => {
   describe("default transformer", () => {
     describe("hmset", () => {
-      it("should support object", (done) => {
+      it("should support object", async () => {
         const redis = new Redis();
-        redis.hmset("foo", { a: 1, b: "2" }, function (err, result) {
-          expect(result).to.eql("OK");
-          redis.hget("foo", "b", function (err, result) {
-            expect(result).to.eql("2");
-            done();
-          });
-        });
+        expect(await redis.hmset("foo", { a: 1, b: "2" })).to.eql("OK");
+        expect(await redis.hget("foo", "b")).to.eql("2");
       });
-      it("should support Map", (done) => {
+
+      it("should support Map", async () => {
         const redis = new Redis();
         const map = new Map();
         map.set("a", 1);
         map.set("b", "2");
-        redis.hmset("foo", map, function (err, result) {
-          expect(result).to.eql("OK");
-          redis.hget("foo", "b", function (err, result) {
-            expect(result).to.eql("2");
-            done();
-          });
-        });
+        expect(await redis.hmset("foo", map)).to.eql("OK");
+        expect(await redis.hget("foo", "b")).to.eql("2");
       });
-      it("should not affect the old way", (done) => {
+
+      it("should not affect the old way", async () => {
         const redis = new Redis();
-        redis.hmset("foo", "a", 1, "b", "2", function (err, result) {
-          expect(result).to.eql("OK");
-          redis.hget("foo", "b", function (err, result) {
-            expect(result).to.eql("2");
-            done();
-          });
-        });
+        expect(await redis.hmset("foo", "a", 1, "b", "2")).to.eql("OK");
+        expect(await redis.hget("foo", "b")).to.eql("2");
       });
     });
 
     describe("mset", () => {
-      it("should support object", (done) => {
+      it("should support object", async () => {
         const redis = new Redis();
-        redis.mset({ a: 1, b: "2" }, function (err, result) {
-          expect(result).to.eql("OK");
-          redis.mget("a", "b", function (err, result) {
-            expect(result).to.eql(["1", "2"]);
-            done();
-          });
-        });
+        expect(await redis.mset({ a: 1, b: "2" })).to.eql("OK");
+        expect(await redis.mget("a", "b")).to.eql(["1", "2"]);
       });
-      it("should support Map", (done) => {
+
+      it("should support Map", async () => {
         const redis = new Redis();
         const map = new Map();
         map.set("a", 1);
         map.set("b", "2");
-        redis.mset(map, function (err, result) {
-          expect(result).to.eql("OK");
-          redis.mget("a", "b", function (err, result) {
-            expect(result).to.eql(["1", "2"]);
-            done();
-          });
-        });
+        expect(await redis.mset(map)).to.eql("OK");
+        expect(await redis.mget("a", "b")).to.eql(["1", "2"]);
       });
-      it("should not affect the old way", (done) => {
+
+      it("should not affect the old way", async () => {
         const redis = new Redis();
-        redis.mset("a", 1, "b", "2", function (err, result) {
-          expect(result).to.eql("OK");
-          redis.mget("a", "b", function (err, result) {
-            expect(result).to.eql(["1", "2"]);
-            done();
-          });
-        });
+        expect(await redis.mset("a", 1, "b", "2")).to.eql("OK");
+        expect(await redis.mget("a", "b")).to.eql(["1", "2"]);
       });
-      it("should work with keyPrefix option", (done) => {
+
+      it("should work with keyPrefix option", async () => {
         const redis = new Redis({ keyPrefix: "foo:" });
-        redis.mset({ a: 1, b: "2" }, function (err, result) {
-          expect(result).to.eql("OK");
-          const otherRedis = new Redis();
-          otherRedis.mget("foo:a", "foo:b", function (err, result) {
-            expect(result).to.eql(["1", "2"]);
-            done();
-          });
-        });
+        expect(await redis.mset({ a: 1, b: "2" })).to.eql("OK");
+
+        const otherRedis = new Redis();
+        expect(await otherRedis.mget("foo:a", "foo:b")).to.eql(["1", "2"]);
       });
     });
 
