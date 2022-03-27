@@ -155,6 +155,7 @@ redis.set("mykey", "hello", "EX", 10);
 
 See the `examples/` folder for more examples. For example:
 
+* [TTL](examples/ttl.js)
 * [Strings](examples/string.js)
 * [Hashes](examples/hash.js)
 * [Lists](examples/list.js)
@@ -162,6 +163,8 @@ See the `examples/` folder for more examples. For example:
 * [Sorted Sets](examples/zset.js)
 * [Streams](examples/stream.js)
 * [Redis Modules](examples/module.js) e.g. RedisJSON
+
+All Redis commands are supported. See [the documentation](http://luin.github.io/ioredis/classes/default.html) for details.
 
 ## Connect to Redis
 

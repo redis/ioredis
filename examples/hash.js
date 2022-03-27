@@ -30,6 +30,9 @@ async function main() {
   await redis.hincrby("user-hash", "age", 1);
   const newAge = await redis.hget("user-hash", "age");
   console.log(newAge); // 21
+
+  await redis.hsetnx("user-hash", "age", 23);
+  console.log(await redis.hget("user-hash", "age")); // 21, as the field "age" already exists.
 }
 
 main();
