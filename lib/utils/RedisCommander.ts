@@ -4284,6 +4284,11 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
     callback?: Callback<"OK">
   ): Result<"OK", Context>;
   hmset(
+    key: RedisKey,
+    map: Map<string | Buffer | number, string | Buffer | number>,
+    callback?: Callback<"OK">
+  ): Result<"OK", Context>;
+  hmset(
     ...args: [
       key: RedisKey,
       ...fieldValues: (string | Buffer | number)[],
@@ -4403,6 +4408,11 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   hset(
     key: RedisKey,
     object: object,
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  hset(
+    key: RedisKey,
+    map: Map<string | Buffer | number, string | Buffer | number>,
     callback?: Callback<number>
   ): Result<number, Context>;
   hset(
@@ -5505,6 +5515,10 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    */
   mset(object: object, callback?: Callback<"OK">): Result<"OK", Context>;
   mset(
+    map: Map<string | Buffer | number, string | Buffer | number>,
+    callback?: Callback<"OK">
+  ): Result<"OK", Context>;
+  mset(
     ...args: [
       ...keyValues: (RedisKey | string | Buffer | number)[],
       callback: Callback<"OK">
@@ -5521,6 +5535,10 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _since_: 1.0.1
    */
   msetnx(object: object, callback?: Callback<"OK">): Result<"OK", Context>;
+  msetnx(
+    map: Map<string | Buffer | number, string | Buffer | number>,
+    callback?: Callback<"OK">
+  ): Result<"OK", Context>;
   msetnx(
     ...args: [
       ...keyValues: (RedisKey | string | Buffer | number)[],

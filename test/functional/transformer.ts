@@ -11,13 +11,20 @@ describe("transformer", () => {
         expect(await redis.hget("foo", "b")).to.eql("2");
       });
 
-      it("should support Map", async () => {
+      it("should support Map with string keys", async () => {
         const redis = new Redis();
         const map = new Map();
         map.set("a", 1);
         map.set("b", "2");
+        map.set(42, true);
+        map.set(Buffer.from("buffer"), "utf8");
+        map.set(Buffer.from([0xff]), "binary");
         expect(await redis.hmset("foo", map)).to.eql("OK");
+        expect(await redis.hget("foo", "a")).to.eql("1");
         expect(await redis.hget("foo", "b")).to.eql("2");
+        expect(await redis.hget("foo", "42")).to.eql("true");
+        expect(await redis.hget("foo", "buffer")).to.eql("utf8");
+        expect(await redis.hget("foo", Buffer.from([0xff]))).to.eql("binary");
       });
 
       it("should not affect the old way", async () => {
