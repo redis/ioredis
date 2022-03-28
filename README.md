@@ -105,12 +105,6 @@ Medis starts with all the basic features you need:
 $ npm install ioredis
 ```
 
-In a TypeScript project, you may want to add TypeScript declarations for Node.js:
-
-```shell
-$ npm install --save-dev @types/node
-```
-
 ## Basic Usage
 
 ```javascript
