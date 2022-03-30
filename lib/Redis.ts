@@ -213,8 +213,19 @@ class Redis extends Commander {
           }
 
           _this.stream = stream;
-          if (typeof options.keepAlive === "number") {
-            stream.setKeepAlive(true, options.keepAlive);
+
+          if (options.noDelay) {
+            stream.setNoDelay(true);
+          }
+
+          // Node ignores setKeepAlive before connect, therefore we wait for the event:
+          // https://github.com/nodejs/node/issues/31663
+          if (typeof options.keepAlive === 'number') {
+            if (stream.connecting) {
+              stream.once(CONNECT_EVENT, () => stream.setKeepAlive(true, options.keepAlive));
+            } else {
+              stream.setKeepAlive(true, options.keepAlive);
+            }
           }
 
           if (stream.connecting) {
@@ -264,10 +275,6 @@ class Redis extends Commander {
           if (!stream.destroyed) {
             stream.once("error", eventHandler.errorHandler(_this));
             stream.once("close", eventHandler.closeHandler(_this));
-          }
-
-          if (options.noDelay) {
-            stream.setNoDelay(true);
           }
 
           const connectionReadyHandler = function () {
