@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: release_version
+  cancel-in-progress: true
+
 jobs:
   test:
     uses: ./.github/workflows/test.yml
