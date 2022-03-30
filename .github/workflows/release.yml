@@ -22,6 +22,7 @@ jobs:
           node-version: "lts/*"
       - run: npm ci
       - run: npm run build
+      - run: npm run docs
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
