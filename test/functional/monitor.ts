@@ -1,7 +1,9 @@
 import Redis from "../../lib/Redis";
-import { expect } from "chai";
+import { expect, use } from "chai";
 import * as sinon from "sinon";
-import { waitForMonitorReady } from "../helpers/util";
+import { getRedisVersion, waitForMonitorReady } from "../helpers/util";
+
+use(require("chai-as-promised"));
 
 describe("monitor", () => {
   it("should receive commands", (done) => {
@@ -73,5 +75,19 @@ describe("monitor", () => {
         done();
       });
     });
+  });
+
+  it("rejects when monitor is disabled", async () => {
+    const redis = new Redis();
+    const [major] = await getRedisVersion(redis);
+    if (major < 6) {
+      return;
+    }
+
+    await redis.acl("SETUSER", "nomonitor", "reset", "+info", ">123456", "on");
+
+    await expect(
+      new Redis({ username: "nomonitor", password: "123456" }).monitor()
+    ).to.eventually.be.rejectedWith(/NOPERM/);
   });
 });
