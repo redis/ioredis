@@ -1,3 +1,11 @@
+## [5.0.2](https://github.com/luin/ioredis/compare/v5.0.1...v5.0.2) (2022-03-30)
+
+
+### Bug Fixes
+
+* allow option maxRetriesPerRequest to be null ([#1553](https://github.com/luin/ioredis/issues/1553)) ([d62a808](https://github.com/luin/ioredis/commit/d62a8082131389c38a24244ed29a5a9d8b06c4e7)), closes [#1550](https://github.com/luin/ioredis/issues/1550)
+* support TypeScript interface as parameters of hmset and mset ([#1545](https://github.com/luin/ioredis/issues/1545)) ([3444791](https://github.com/luin/ioredis/commit/3444791a7ed807098ab17155e8d498a915f27750)), closes [#1536](https://github.com/luin/ioredis/issues/1536)
+
 ## [5.0.1](https://github.com/luin/ioredis/compare/v5.0.0...v5.0.1) (2022-03-26)
 
 
