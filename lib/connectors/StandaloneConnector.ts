@@ -19,13 +19,13 @@ export default class StandaloneConnector extends AbstractConnector {
     const { options } = this;
     this.connecting = true;
 
-    let connectionOptions: any;
+    let connectionOptions: TcpNetConnectOpts | IpcNetConnectOpts;
     if ("path" in options && options.path) {
       connectionOptions = {
         path: options.path,
-      };
+      } as IpcNetConnectOpts;
     } else {
-      connectionOptions = {};
+      connectionOptions = {} as TcpNetConnectOpts;
       if ("port" in options && options.port != null) {
         connectionOptions.port = options.port;
       }
