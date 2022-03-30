@@ -364,14 +364,15 @@ class Redis extends Commander {
    * });
    * ```
    */
-  monitor(callback: Callback<Redis>): Promise<Redis> {
+  monitor(callback?: Callback<Redis>): Promise<Redis> {
     const monitorInstance = this.duplicate({
       monitor: true,
       lazyConnect: false,
     });
 
     return asCallback(
-      new Promise(function (resolve) {
+      new Promise(function (resolve, reject) {
+        monitorInstance.once("error", reject);
         monitorInstance.once("monitoring", function () {
           resolve(monitorInstance);
         });
@@ -440,16 +441,15 @@ class Redis extends Commander {
 
     if (!writable) {
       if (!this.options.enableOfflineQueue) {
-        command.reject(new Error(
-          "Stream isn't writeable and enableOfflineQueue options is false"
-        ));
+        command.reject(
+          new Error(
+            "Stream isn't writeable and enableOfflineQueue options is false"
+          )
+        );
         return command.promise;
       }
 
-      if (
-        command.name === "quit" &&
-        this.offlineQueue.length === 0
-      ) {
+      if (command.name === "quit" && this.offlineQueue.length === 0) {
         this.disconnect();
         command.resolve(Buffer.from("OK"));
         return command.promise;

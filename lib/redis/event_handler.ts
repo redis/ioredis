@@ -230,7 +230,10 @@ export function readyHandler(self) {
     self.retryAttempts = 0;
 
     if (self.options.monitor) {
-      self.call("monitor");
+      self.call("monitor").then(
+        () => self.setStatus("monitoring"),
+        (error: Error) => self.emit("error", error)
+      );
       const { sendCommand } = self;
       self.sendCommand = function (command) {
         if (Command.checkFlag("VALID_IN_MONITOR_MODE", command.name)) {
@@ -244,7 +247,6 @@ export function readyHandler(self) {
       self.once("close", function () {
         delete self.sendCommand;
       });
-      self.setStatus("monitoring");
       return;
     }
     const finalSelect = self.prevCondition
