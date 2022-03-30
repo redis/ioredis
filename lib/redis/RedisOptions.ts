@@ -86,7 +86,7 @@ export interface CommonRedisOptions extends CommanderOptions {
   /**
    * @default 20
    */
-  maxRetriesPerRequest?: number;
+  maxRetriesPerRequest?: number | null;
   /**
    * @default 10000
    */
