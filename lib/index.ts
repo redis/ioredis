@@ -1,6 +1,7 @@
 exports = module.exports = require("./Redis").default;
 
-export { default, default as Redis } from "./Redis";
+export { default } from "./Redis";
+export type { default as Redis } from "./Redis";
 export { default as Cluster } from "./cluster";
 
 /**
