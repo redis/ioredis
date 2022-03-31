@@ -165,14 +165,15 @@ export default class SentinelConnector extends AbstractConnector {
           resolved.port,
           endpointAddress
         );
+
         if (this.options.enableTLSForSentinelMode && this.options.tls) {
           Object.assign(resolved, this.options.tls);
           this.stream = createTLSConnection(resolved);
+          this.stream.once("secureConnect", this.initFailoverDetector.bind(this));
         } else {
           this.stream = createConnection(resolved);
+          this.stream.once("connect", this.initFailoverDetector.bind(this));
         }
-
-        this.stream.once("connect", () => this.initFailoverDetector());
 
         this.stream.once("error", (err) => {
           this.firstError = err;
