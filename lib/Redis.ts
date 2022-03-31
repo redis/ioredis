@@ -376,26 +376,16 @@ class Redis extends Commander {
   /**
    * Send a command to Redis
    *
-   * This method is used internally by the `Redis#set`, `Redis#lpush` etc.
-   * Most of the time you won't invoke this method directly.
-   * However when you want to send a command that is not supported by ioredis yet,
-   * this command will be useful.
+   * This method is used internally and in most cases you should not
+   * use it directly. If you need to send a command that is not supported
+   * by the library, you can use the `call` method:
    *
    * ```js
    * const redis = new Redis();
    *
-   * // Use callback
-   * const get = new Command('get', ['foo'], 'utf8', function (err, result) {
-   *   console.log(result);
-   * });
-   * redis.sendCommand(get);
-   *
-   * // Use promise
-   * const set = new Command('set', ['foo', 'bar'], 'utf8');
-   * set.promise.then(function (result) {
-   *   console.log(result);
-   * });
-   * redis.sendCommand(set);
+   * redis.call('set', 'foo', 'bar');
+   * // or
+   * redis.call(['set', 'foo', 'bar']);
    * ```
    *
    * @ignore
