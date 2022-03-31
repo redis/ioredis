@@ -1,3 +1,13 @@
+## [5.0.3](https://github.com/luin/ioredis/compare/v5.0.2...v5.0.3) (2022-03-31)
+
+
+### Bug Fixes
+
+* add named exports to keep compatible with @types/ioredis ([#1552](https://github.com/luin/ioredis/issues/1552)) ([a89a900](https://github.com/luin/ioredis/commit/a89a9002db70d44c83dfa6aaef81fb40caa5fb19))
+* Fix failover detector with sentinel and tls streams ([ac00a00](https://github.com/luin/ioredis/commit/ac00a005220aa48e9be509f18594bd5e13969ce4))
+* handle NOPERM error for monitor ([93b873d](https://github.com/luin/ioredis/commit/93b873dfaf75baf08e517476bfe54384d144b526)), closes [#1498](https://github.com/luin/ioredis/issues/1498)
+* Hook up the keepAlive after a successful connect ([14f03a4](https://github.com/luin/ioredis/commit/14f03a4d9416b32a912f3ab9eee4c004ccad8acc)), closes [#1339](https://github.com/luin/ioredis/issues/1339)
+
 ## [5.0.2](https://github.com/luin/ioredis/compare/v5.0.1...v5.0.2) (2022-03-30)
 
 
