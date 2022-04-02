@@ -48,7 +48,7 @@ Refer to [CHANGELOG.md](CHANGELOG.md) for features and bug fixes introduced in v
 
 # Links
 
-- [API Documentation](http://luin.github.io/ioredis/) ([Redis](http://luin.github.io/ioredis/classes/default.html), [Cluster](http://luin.github.io/ioredis/classes/Cluster.html))
+- [API Documentation](https://luin.github.io/ioredis/) ([Redis](https://luin.github.io/ioredis/classes/Redis.html), [Cluster](https://luin.github.io/ioredis/classes/Cluster.html))
 - [Changelog](CHANGELOG.md)
 - [Migrating from node_redis](https://github.com/luin/ioredis/wiki/Migrating-from-node_redis)
 
@@ -164,7 +164,7 @@ See the `examples/` folder for more examples. For example:
 * [Streams](examples/stream.js)
 * [Redis Modules](examples/module.js) e.g. RedisJSON
 
-All Redis commands are supported. See [the documentation](http://luin.github.io/ioredis/classes/default.html) for details.
+All Redis commands are supported. See [the documentation](https://luin.github.io/ioredis/classes/Redis.html) for details.
 
 ## Connect to Redis
 
@@ -196,7 +196,7 @@ new Redis("redis://:authpassword@127.0.0.1:6380/4");
 new Redis("redis://username:authpassword@127.0.0.1:6380/4");
 ```
 
-See [API Documentation](http://luin.github.io/ioredis/index.html#RedisOptions) for all available options.
+See [API Documentation](https://luin.github.io/ioredis/index.html#RedisOptions) for all available options.
 
 ## Pub/Sub
 
