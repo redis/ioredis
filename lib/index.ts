@@ -56,6 +56,11 @@ export { RedisOptions, CommonRedisOptions } from "./redis/RedisOptions";
 export { ClusterNode } from "./cluster";
 export { ClusterOptions } from "./cluster/ClusterOptions";
 export { NodeRole } from "./cluster/util";
+export type {
+  RedisKey,
+  RedisValue,
+  ChainableCommander,
+} from "./utils/RedisCommander";
 
 // No TS typings
 export const ReplyError = require("redis-errors").ReplyError;
