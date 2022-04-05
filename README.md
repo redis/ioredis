@@ -37,7 +37,7 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 
 # Versions
 
-| NPM Version    | Branch | Node.js Version | Redis Version   |
+| Version        | Branch | Node.js Version | Redis Version   |
 | -------------- | ------ | --------------- | --------------- |
 | 5.x.x (latest) | main   | >= 12           | 2.6.12 ~ latest |
 | 4.x.x          | v4     | >= 6            | 2.6.12 ~ 7      |
