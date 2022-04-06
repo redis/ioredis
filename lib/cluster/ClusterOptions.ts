@@ -6,7 +6,7 @@ import { NodeRole } from "./util";
 export type DNSResolveSrvFunction = (
   hostname: string,
   callback: (
-    err: NodeJS.ErrnoException | undefined,
+    err: NodeJS.ErrnoException | null | undefined,
     records?: SrvRecord[]
   ) => void
 ) => void;
@@ -14,7 +14,7 @@ export type DNSResolveSrvFunction = (
 export type DNSLookupFunction = (
   hostname: string,
   callback: (
-    err: NodeJS.ErrnoException | undefined,
+    err: NodeJS.ErrnoException | null | undefined,
     address: string,
     family?: number
   ) => void

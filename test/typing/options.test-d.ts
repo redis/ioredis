@@ -1,5 +1,5 @@
-import { expectType } from "tsd";
-import Redis, { Cluster } from "../../built";
+import { expectAssignable, expectType } from "tsd";
+import Redis, { Cluster, NatMap, DNSLookupFunction } from "../../built";
 
 expectType<Redis>(new Redis());
 
@@ -38,4 +38,14 @@ expectType<Cluster>(
   new Redis.Cluster([30001, 30002], {
     enableAutoPipelining: true,
   })
+);
+
+expectAssignable<NatMap>({
+  "10.0.1.230:30001": { host: "203.0.113.73", port: 30001 },
+  "10.0.1.231:30001": { host: "203.0.113.73", port: 30002 },
+  "10.0.1.232:30001": { host: "203.0.113.73", port: 30003 },
+});
+
+expectAssignable<DNSLookupFunction>((address, callback) =>
+  callback(null, address)
 );

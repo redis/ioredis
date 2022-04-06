@@ -54,7 +54,12 @@ export {
 export { StandaloneConnectionOptions } from "./connectors/StandaloneConnector";
 export { RedisOptions, CommonRedisOptions } from "./redis/RedisOptions";
 export { ClusterNode } from "./cluster";
-export { ClusterOptions } from "./cluster/ClusterOptions";
+export {
+  ClusterOptions,
+  DNSLookupFunction,
+  DNSResolveSrvFunction,
+  NatMap,
+} from "./cluster/ClusterOptions";
 export { NodeRole } from "./cluster/util";
 export type {
   RedisKey,
