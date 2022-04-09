@@ -1,3 +1,10 @@
+## [5.0.4](https://github.com/luin/ioredis/compare/v5.0.3...v5.0.4) (2022-04-09)
+
+
+### Bug Fixes
+
+* Expose ChainableCommander and other types ([#1560](https://github.com/luin/ioredis/issues/1560)) ([df04dd8](https://github.com/luin/ioredis/commit/df04dd8d87a44d3b64b385c86581915248554508))
+
 ## [5.0.3](https://github.com/luin/ioredis/compare/v5.0.2...v5.0.3) (2022-03-31)
 
 
