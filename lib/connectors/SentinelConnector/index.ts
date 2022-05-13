@@ -259,7 +259,7 @@ export default class SentinelConnector extends AbstractConnector {
   private async resolveSlave(
     client: RedisClient
   ): Promise<TcpNetConnectOpts | null> {
-    const result = await client.sentinel("slaves", this.options.name);
+    const result = await client.sentinel("replicas", this.options.name);
 
     if (!Array.isArray(result)) {
       return null;
