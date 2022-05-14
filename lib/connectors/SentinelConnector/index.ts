@@ -259,7 +259,12 @@ export default class SentinelConnector extends AbstractConnector {
   private async resolveSlave(
     client: RedisClient
   ): Promise<TcpNetConnectOpts | null> {
-    const result = await client.sentinel("replicas", this.options.name);
+    const result = await promiseAny(
+      [
+        client.sentinel("replicas", this.options.name),
+        client.sentinel("slaves", this.options.name),
+      ]
+    );
 
     if (!Array.isArray(result)) {
       return null;
@@ -439,5 +444,20 @@ function selectPreferredSentinel(
 function addressResponseToAddress(input: AddressFromResponse): SentinelAddress {
   return { host: input.ip, port: Number(input.port) };
 }
+
+async function promiseAny <T>(
+  iterable: Iterable<T | PromiseLike<T>>
+): Promise<T> {
+  return Promise.all(
+    [...iterable].map(promise => {
+      return new Promise((resolve, reject) =>
+        Promise.resolve(promise).then(reject, resolve)
+      );
+    })
+  ).then(
+    errors => Promise.reject(errors),
+    value => Promise.resolve<T>(value)
+  );
+};
 
 function noop(): void {}

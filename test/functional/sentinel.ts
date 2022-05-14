@@ -363,7 +363,7 @@ describe("sentinel", () => {
       const sentinel = new MockServer(27379, (argv) => {
         if (
           argv[0] === "sentinel" &&
-          argv[1] === "slaves" &&
+          (argv[1] === "slaves" || argv[1] === "replicas") &&
           argv[2] === "master"
         ) {
           return [["ip", "127.0.0.1", "port", "17381", "flags", "slave"]];
@@ -389,7 +389,7 @@ describe("sentinel", () => {
       const sentinel = new MockServer(27379, (argv) => {
         if (
           argv[0] === "sentinel" &&
-          argv[1] === "slaves" &&
+          (argv[1] === "slaves" || argv[1] === "replicas") &&
           argv[2] === "master"
         ) {
           return [
@@ -426,7 +426,7 @@ describe("sentinel", () => {
       new MockServer(27379, (argv) => {
         if (
           argv[0] === "sentinel" &&
-          argv[1] === "slaves" &&
+          (argv[1] === "slaves" || argv[1] === "replicas") &&
           argv[2] === "master"
         ) {
           return [["ip", "127.0.0.1", "port", "17381", "flags", "slave"]];
@@ -459,7 +459,7 @@ describe("sentinel", () => {
       const sentinel = new MockServer(27379, (argv) => {
         if (
           argv[0] === "sentinel" &&
-          argv[1] === "slaves" &&
+          (argv[1] === "slaves" || argv[1] === "replicas") &&
           argv[2] === "master"
         ) {
           return [];
@@ -488,7 +488,7 @@ describe("sentinel", () => {
       const sentinel = new MockServer(27379, (argv) => {
         if (
           argv[0] === "sentinel" &&
-          argv[1] === "slaves" &&
+          (argv[1] === "slaves" || argv[1] === "replicas") &&
           argv[2] === "master"
         ) {
           return [["ip", "127.0.0.1", "port", "17381", "flags", "slave"]];

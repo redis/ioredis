@@ -14,6 +14,7 @@ export interface RedisClient {
     subcommand: "get-master-addr-by-name",
     name: string
   ): Promise<string[]>;
+  sentinel(subcommand: "slaves", name: string): Promise<string[]>;
   sentinel(subcommand: "replicas", name: string): Promise<string[]>;
   subscribe(...channelNames: string[]): Promise<number>;
   on(
