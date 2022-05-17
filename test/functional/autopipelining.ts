@@ -47,7 +47,7 @@ describe("autoPipelining for single node", () => {
   it("should support buffer commands", async () => {
     const redis = new Redis({ enableAutoPipelining: true });
     const buffer = Buffer.from("bar");
-    await redis.setBuffer("foo", buffer);
+    await redis.set("foo", buffer);
     const promise = redis.getBuffer("foo");
     expect(redis.autoPipelineQueueSize).to.eql(1);
     expect(await promise).to.eql(buffer);
@@ -56,16 +56,33 @@ describe("autoPipelining for single node", () => {
   it("should support custom commands", async () => {
     const redis = new Redis({ enableAutoPipelining: true });
 
-    redis.defineCommand("echo", {
+    redis.defineCommand("myecho", {
       numberOfKeys: 2,
       lua: "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
     });
 
-    const promise = redis.echo("foo1", "foo2", "bar1", "bar2");
+    // @ts-expect-error
+    const promise = redis.myecho("foo1", "foo2", "bar1", "bar2");
     expect(redis.autoPipelineQueueSize).to.eql(1);
     expect(await promise).to.eql(["foo1", "foo2", "bar1", "bar2"]);
 
-    await redis.echo("foo1", "foo2", "bar1", "bar2");
+    // @ts-expect-error
+    await redis.myecho("foo1", "foo2", "bar1", "bar2");
+  });
+
+  it("should support call()", async () => {
+    const redis = new Redis({ enableAutoPipelining: true });
+    await redis.call("set", "foo", "call()");
+
+    expect(
+      await Promise.all([
+        redis.get("foo"),
+        redis.get("foo"),
+        redis.get("foo"),
+        redis.get("foo"),
+        redis.get("foo"),
+      ])
+    ).to.eql(["call()", "call()", "call()", "call()", "call()"]);
   });
 
   it("should support multiple commands", async () => {
@@ -133,6 +150,7 @@ describe("autoPipelining for single node", () => {
   it("should handle rejections", async () => {
     const redis = new Redis({ enableAutoPipelining: true });
     await redis.set("foo", "bar");
+    // @ts-expect-error
     await expect(redis.set("foo")).to.eventually.be.rejectedWith(
       "ERR wrong number of arguments for 'set' command"
     );
@@ -180,6 +198,7 @@ describe("autoPipelining for single node", () => {
 
     expect(redis.autoPipelineQueueSize).to.eql(1);
 
+    // @ts-expect-error
     redis.set("foo2", (err) => {
       expect(err.message).to.include(
         "ERR wrong number of arguments for 'set' command"
