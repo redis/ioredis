@@ -185,6 +185,10 @@ export function executeWithAutoPipelining(
       resolve(value);
     });
 
+    if (functionName === "call") {
+      args.unshift(commandName);
+    }
+
     pipeline[functionName](...args);
   });
 
