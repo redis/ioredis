@@ -1,3 +1,11 @@
+## [5.0.5](https://github.com/luin/ioredis/compare/v5.0.4...v5.0.5) (2022-05-17)
+
+
+### Bug Fixes
+
+* improve typing for redis.multi ([#1580](https://github.com/luin/ioredis/issues/1580)) ([f9f875b](https://github.com/luin/ioredis/commit/f9f875b1972dd2eb87ee6a5011f8f6d7abc7cf75))
+* send correct command during auto-pipelining of .call() operations ([#1579](https://github.com/luin/ioredis/issues/1579)) ([e41c3dc](https://github.com/luin/ioredis/commit/e41c3dc880906e8aad73332837bf233f65d12e67))
+
 ## [5.0.4](https://github.com/luin/ioredis/compare/v5.0.3...v5.0.4) (2022-04-09)
 
 
