@@ -392,3 +392,7 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
     return _this.promise;
   }
 };
+
+interface Pipeline {
+  length: number;
+}
