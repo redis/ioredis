@@ -312,19 +312,27 @@ listenForMessage();
 
 ## Handle Binary Data
 
-Arguments can be buffers:
+Binary data support is out of the box. Pass buffers to send binary data:
 
 ```javascript
-redis.set("foo", Buffer.from("bar"));
+redis.set("foo", Buffer.from([0x62, 0x75, 0x66]));
 ```
 
-And every command has a method that returns a Buffer (by adding a suffix of "Buffer" to the command name).
-To get a buffer instead of a utf8 string:
+Every command that returns a [bulk string](https://redis.io/docs/reference/protocol-spec/#resp-bulk-strings)
+has a variant command with a `Buffer` suffix. The variant command returns a buffer instead of a UTF-8 string:
 
 ```javascript
-redis.getBuffer("foo", (err, result) => {
-  // result is a buffer.
-});
+const result = await redis.getBuffer("foo");
+// result is `<Buffer 62 75 66>`
+```
+
+It's worth noticing that you don't need the `Buffer` suffix variant in order to **send** binary data. That means
+in most case you should just use `redis.set()` instead of `redis.setBuffer()` unless you want to get the old value
+with the `GET` parameter:
+
+```javascript
+const result = await redis.setBuffer("foo", "new value", "GET");
+// result is `<Buffer 62 75 66>` as `GET` indicates returning the old value.
 ```
 
 ## Pipelining
