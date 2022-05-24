@@ -102,6 +102,21 @@ export default class ClusterSubscriber {
     // Ignore the errors since they're handled in the connection pool.
     this.subscriber.on("error", noop);
 
+    // The node we lost connection to may not come back up in a
+    // reasonable amount of time (e.g. a slave that's taken down
+    // for maintainence), we could potentially miss many published
+    // messages so we should reconnect as quickly as possible.
+    const currentSub = this.subscriber;
+    this.subscriber.once("close", () => {
+      // If the subscriber closes whilst it's still the active connection,
+      // we might as well try to connecting to a new node if possible to
+      // minimise the number of missed publishes.
+      if (this.started && currentSub === this.subscriber) {
+        debug("current subscriber closed, selecting a new node.");
+        this.selectSubscriber();
+      }
+    });
+
     // Re-subscribe previous channels
     const previousChannels = { subscribe: [], psubscribe: [] };
     if (lastActiveSubscriber) {
