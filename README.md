@@ -102,13 +102,13 @@ Medis starts with all the basic features you need:
 ## Install
 
 ```shell
-$ npm install ioredis
+npm install ioredis
 ```
 
 In a TypeScript project, you may want to add TypeScript declarations for Node.js:
 
 ```shell
-$ npm install --save-dev @types/node
+npm install --save-dev @types/node
 ```
 
 ## Basic Usage
@@ -1396,7 +1396,7 @@ default, this option is disabled and can only be used for debugging purposes. Yo
 Start a Redis server on 127.0.0.1:6379, and then:
 
 ```shell
-$ npm test
+npm test
 ```
 
 `FLUSH ALL` will be invoked after each test, so make sure there's no valuable data in it before running tests.
