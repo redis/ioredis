@@ -1,3 +1,10 @@
+## [5.0.6](https://github.com/luin/ioredis/compare/v5.0.5...v5.0.6) (2022-05-31)
+
+
+### Bug Fixes
+
+* Add back Pipeline#length ([#1585](https://github.com/luin/ioredis/issues/1585)) ([63b2ee4](https://github.com/luin/ioredis/commit/63b2ee49c52c8cee326d30f62bc29c64f3ec28b3)), closes [#1584](https://github.com/luin/ioredis/issues/1584)
+
 ## [5.0.5](https://github.com/luin/ioredis/compare/v5.0.4...v5.0.5) (2022-05-17)
 
 
