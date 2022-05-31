@@ -11,8 +11,9 @@ export interface ResultTypes<Result, Context> {
   pipeline: ChainableCommander;
 }
 
-export interface ChainableCommander
-  extends RedisCommander<{ type: "pipeline" }> {}
+export interface ChainableCommander extends RedisCommander<{ type: "pipeline" }> {
+  length: number;
+}
 
 export type ClientContext = { type: keyof ResultTypes<unknown, unknown> };
 export type Result<T, Context extends ClientContext> =

@@ -1,5 +1,5 @@
 import { expectType } from "tsd";
-import Redis from "../../built";
+import Redis, { Pipeline } from "../../built";
 
 const redis = new Redis();
 
@@ -24,3 +24,12 @@ expectType<RETURN_TYPE>(
     ])
     .exec()
 );
+
+expectType<number>(
+  redis.pipeline([
+    ["set", Buffer.from("foo"), "bar"],
+    ["incrby", "foo", 42],
+  ]).length
+);
+
+expectType<number>(({} as unknown as Pipeline).length);
