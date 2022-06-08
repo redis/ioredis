@@ -4189,7 +4189,7 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   hgetallBuffer(
     key: RedisKey,
     callback?: Callback<[field: Buffer, value: Buffer][]>
-  ): Result<[field: Buffer, value: Buffer][], Context>;
+  ): Result<Record<RedisKey, Buffer>, Context>;
 
   /**
    * Increment the integer value of a hash field by the given number
