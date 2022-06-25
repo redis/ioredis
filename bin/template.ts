@@ -11,7 +11,8 @@ export interface ResultTypes<Result, Context> {
   pipeline: ChainableCommander;
 }
 
-export interface ChainableCommander extends RedisCommander<{ type: "pipeline" }> {
+export interface ChainableCommander
+  extends RedisCommander<{ type: "pipeline" }> {
   length: number;
 }
 

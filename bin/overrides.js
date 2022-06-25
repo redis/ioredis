@@ -11,7 +11,7 @@ module.exports = {
     overwrite: true,
     defs: [
       "$1(key: RedisKey, callback?: Callback<Record<string, string>>): Result<Record<string, string>, Context>",
-      "$1Buffer(key: RedisKey, callback?: Callback<[field: Buffer, value: Buffer][]>): Result<[field: Buffer, value: Buffer][], Context>",
+      "$1Buffer(key: RedisKey, callback?: Callback<Record<string, Buffer>>): Result<Record<string, Buffer>, Context>",
     ],
   },
   mset: msetOverrides,
