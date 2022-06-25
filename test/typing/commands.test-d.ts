@@ -55,6 +55,10 @@ expectType<Promise<string>>(redis.incrbyfloat("key", "42"));
 expectType<Promise<(string | null)[]>>(redis.mget("key", "bar"));
 expectType<Promise<(string | null)[]>>(redis.mget(["key", "bar"]));
 
+// HGETALL
+expectType<Promise<Record<string, string>>>(redis.hgetall("key"));
+expectType<Promise<Record<string, Buffer>>>(redis.hgetallBuffer("key"));
+
 // LPOP
 expectType<Promise<string | null>>(redis.lpop("key"));
 expectType<Promise<Buffer | null>>(redis.lpopBuffer("key"));
