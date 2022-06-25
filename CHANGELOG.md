@@ -1,3 +1,10 @@
+# [5.1.0](https://github.com/luin/ioredis/compare/v5.0.6...v5.1.0) (2022-06-25)
+
+
+### Features
+
+* add command typings for Redis 7.0.2. Also fix a typing issue for hgetallBuffer. ([#1611](https://github.com/luin/ioredis/issues/1611)) ([fa77c07](https://github.com/luin/ioredis/commit/fa77c07bdeece59c2b98d670bbd2c069944a988f))
+
 ## [5.0.6](https://github.com/luin/ioredis/compare/v5.0.5...v5.0.6) (2022-05-31)
 
 
