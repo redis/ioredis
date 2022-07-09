@@ -41,6 +41,18 @@ describe("monitor", () => {
     });
   });
 
+  it("should report being in 'monitor' mode", (done) => {
+    const redis = new Redis();
+    redis.monitor(async (err, monitor) => {
+      await waitForMonitorReady(monitor);
+      expect(redis.mode).to.equal("normal");
+      expect(monitor.mode).to.equal("monitor");
+      redis.disconnect();
+      monitor.disconnect();
+      done();
+    });
+  });
+
   it("should continue monitoring after reconnection", (done) => {
     const redis = new Redis();
     redis.monitor((err, monitor) => {

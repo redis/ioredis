@@ -29,6 +29,15 @@ describe("pub/sub", function () {
     });
   });
 
+  it("should report being in 'subscriber' mode when subscribed", (done) => {
+    const redis = new Redis();
+    redis.subscribe("foo", function () {
+      expect(redis.mode).to.equal("subscriber");
+      redis.disconnect();
+      done();
+    });
+  });
+
   it("should exit subscriber mode using unsubscribe", (done) => {
     const redis = new Redis();
     redis.subscribe("foo", "bar", function () {
@@ -48,6 +57,17 @@ describe("pub/sub", function () {
             });
           });
         });
+      });
+    });
+  });
+
+  it("should report being in 'normal' mode after unsubscribing", (done) => {
+    const redis = new Redis();
+    redis.subscribe("foo", "bar", function () {
+      redis.unsubscribe("foo", "bar", function (err, count) {
+        expect(redis.mode).to.equal("normal");
+        redis.disconnect();
+        done();
       });
     });
   });
