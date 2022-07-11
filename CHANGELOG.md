@@ -1,3 +1,10 @@
+# [5.2.0](https://github.com/luin/ioredis/compare/v5.1.0...v5.2.0) (2022-07-11)
+
+
+### Features
+
+* add mode property to client ([#1618](https://github.com/luin/ioredis/issues/1618)) ([9e6db7d](https://github.com/luin/ioredis/commit/9e6db7d7fc769ddc99d9dee4a943f141d71c0756))
+
 # [5.1.0](https://github.com/luin/ioredis/compare/v5.0.6...v5.1.0) (2022-06-25)
 
 
