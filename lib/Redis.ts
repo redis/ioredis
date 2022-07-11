@@ -339,6 +339,20 @@ class Redis extends Commander {
   }
 
   /**
+   * Mode of the connection.
+   *
+   * One of `"normal"`, `"subscriber"`, or `"monitor"`. When the connection is
+   * not in `"normal"` mode, certain commands are not allowed.
+   */
+   get mode(): "normal" | "subscriber" | "monitor" {
+    return this.options.monitor
+      ? "monitor"
+      : this.condition.subscriber
+      ? "subscriber"
+      : "normal";
+  }
+
+  /**
    * Listen for all requests received by the server in real time.
    *
    * This command will create a new connection to Redis and send a
