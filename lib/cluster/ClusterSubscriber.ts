@@ -62,16 +62,30 @@ export default class ClusterSubscriber {
     debug("stopped");
   }
 
+  private onSubscriberEnd = () => {
+    if (!this.started) {
+      debug("subscriber has disconnected, but ClusterSubscriber is not started, so not reconnecting.");
+      return;
+    }
+    // If the subscriber closes whilst it's still the active connection,
+    // we might as well try to connecting to a new node if possible to
+    // minimise the number of missed publishes.
+    debug("subscriber has disconnected, selecting a new one...");
+    this.selectSubscriber();
+  }
+
   private selectSubscriber() {
     const lastActiveSubscriber = this.lastActiveSubscriber;
 
     // Disconnect the previous subscriber even if there
     // will not be a new one.
     if (lastActiveSubscriber) {
+      lastActiveSubscriber.off("end", this.onSubscriberEnd);
       lastActiveSubscriber.disconnect();
     }
 
     if (this.subscriber) {
+      this.subscriber.off("end", this.onSubscriberEnd);
       this.subscriber.disconnect();
     }
 
@@ -119,20 +133,7 @@ export default class ClusterSubscriber {
     // for maintainence), we could potentially miss many published
     // messages so we should reconnect as quickly as possible, to
     // a different node if needed.
-    const currentSub = this.subscriber;
-    this.subscriber.once("end", () => {
-        if (!this.started) {
-          debug("subscriber has disconnected, but ClusterSubscriber is not started, so not reconnecting.");
-          return;
-        }
-      // If the subscriber closes whilst it's still the active connection,
-      // we might as well try to connecting to a new node if possible to
-      // minimise the number of missed publishes.
-      if (currentSub === this.subscriber) {
-          debug("subscriber has disconnected, selecting a new one...");
-        this.selectSubscriber();
-      }
-    });
+    this.subscriber.once("end", this.onSubscriberEnd);
 
     // Re-subscribe previous channels
     const previousChannels = { subscribe: [], psubscribe: [] };
