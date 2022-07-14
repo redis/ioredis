@@ -8148,8 +8148,8 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   srandmember(
     key: RedisKey,
     count: number | string,
-    callback?: Callback<string | unknown[] | null>
-  ): Result<string | unknown[] | null, Context>;
+    callback?: Callback<(string | unknown)[] | null>
+  ): Result<(string | unknown)[] | null, Context>;
   srandmemberBuffer(
     key: RedisKey,
     count: number | string,
