@@ -1,3 +1,10 @@
+## [5.2.1](https://github.com/luin/ioredis/compare/v5.2.0...v5.2.1) (2022-07-16)
+
+
+### Bug Fixes
+
+* always allow selecting a new node for cluster mode subscriptions when the current one fails ([#1589](https://github.com/luin/ioredis/issues/1589)) ([1c8cb85](https://github.com/luin/ioredis/commit/1c8cb856f31b024195be2c7fc8073bcabd3586a7))
+
 # [5.2.0](https://github.com/luin/ioredis/compare/v5.1.0...v5.2.0) (2022-07-11)
 
 
