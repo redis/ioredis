@@ -265,7 +265,7 @@ module.exports = {
   sort: "number" | "unknown[]",
   sortRo: "unknown[]",
   spop: (types) => (types.length > 1 ? "string[]" : "string | null"),
-  srandmember: (types) => (types.length > 1 ? "(string | unknown)[] | null" : "string | null"),
+  srandmember: (types) => (types.length > 1 ? "string[]" : "string | null"),
   srem: "number",
   strlen: "number",
   sunion: "string[]",
