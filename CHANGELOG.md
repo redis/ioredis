@@ -1,3 +1,10 @@
+## [5.2.2](https://github.com/luin/ioredis/compare/v5.2.1...v5.2.2) (2022-07-23)
+
+
+### Bug Fixes
+
+* srandmember with count argument should return array of strings ([#1620](https://github.com/luin/ioredis/issues/1620)) ([5f813f3](https://github.com/luin/ioredis/commit/5f813f3327ca9a2ef89fae195a458787f200e34d))
+
 ## [5.2.1](https://github.com/luin/ioredis/compare/v5.2.0...v5.2.1) (2022-07-16)
 
 
