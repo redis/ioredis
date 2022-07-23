@@ -71,6 +71,12 @@ expectType<Promise<number[]>>(
   redis.lpos("key", "element", "RANK", -1, "COUNT", 2)
 );
 
+// SRANDMEMBER
+expectType<Promise<string | null>>(redis.srandmember("key"));
+expectType<Promise<Buffer | null>>(redis.srandmemberBuffer("key"));
+expectType<Promise<string[]>>(redis.srandmember("key", 10));
+expectType<Promise<Buffer[]>>(redis.srandmemberBuffer("key", 10));
+
 // LMISMEMBER
 expectType<Promise<number[]>>(redis.smismember("key", "e1", "e2"));
 

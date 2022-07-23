@@ -8139,22 +8139,22 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    */
   srandmember(
     key: RedisKey,
-    callback?: Callback<string | unknown[] | null>
-  ): Result<string | unknown[] | null, Context>;
+    callback?: Callback<string | null>
+  ): Result<string | null, Context>;
   srandmemberBuffer(
     key: RedisKey,
-    callback?: Callback<Buffer | unknown[] | null>
-  ): Result<Buffer | unknown[] | null, Context>;
+    callback?: Callback<Buffer | null>
+  ): Result<Buffer | null, Context>;
   srandmember(
     key: RedisKey,
     count: number | string,
-    callback?: Callback<string | unknown[] | null>
-  ): Result<string | unknown[] | null, Context>;
+    callback?: Callback<string[]>
+  ): Result<string[], Context>;
   srandmemberBuffer(
     key: RedisKey,
     count: number | string,
-    callback?: Callback<Buffer | unknown[] | null>
-  ): Result<Buffer | unknown[] | null, Context>;
+    callback?: Callback<Buffer[]>
+  ): Result<Buffer[], Context>;
 
   /**
    * Remove one or more members from a set
