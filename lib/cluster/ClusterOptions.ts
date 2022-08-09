@@ -133,6 +133,7 @@ export interface ClusterOptions extends CommanderOptions {
     | "retryStrategy"
     | "enableOfflineQueue"
     | "readOnly"
+    | "lazyConnect"
   >;
 
   /**
