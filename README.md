@@ -116,7 +116,9 @@ npm install --save-dev @types/node
 ```javascript
 // Import ioredis.
 // You can also use `import Redis from "ioredis"`
-// if your project is an ESM module or a TypeScript project.
+// if your project is a TypeScript project,
+// or `import { default as Redis } from "ioredis"`
+// if it is an ESM module.
 const Redis = require("ioredis");
 
 // Create a Redis instance.
