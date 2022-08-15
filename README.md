@@ -896,6 +896,9 @@ const redis = new Redis("rediss://redis.my-service.com");
 
 ### TLS Profiles
 
+> **Warning**
+> TLS profiles described in this section are going to be deprecated in the next major version. Please provide TLS options explicitly.
+
 To make it easier to configure we provide a few pre-configured TLS profiles that can be specified by setting the `tls` option to the profile's name or specifying a `tls.profile` option in case you need to customize some values of the profile.
 
 Profiles:
