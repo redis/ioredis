@@ -13854,7 +13854,7 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   zscore(
     key: RedisKey,
     member: string | Buffer | number,
-    callback?: Callback<string>
+    callback?: Callback<string | null>
   ): Result<string, Context>;
   zscoreBuffer(
     key: RedisKey,

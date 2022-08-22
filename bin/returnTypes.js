@@ -317,7 +317,7 @@ module.exports = {
   zrevrange: "string[]",
   zrevrangebyscore: "string[]",
   zrevrank: "number | null",
-  zscore: "string",
+  zscore: "string | null",
   zunion: "string[]",
   zmscore: "(string | null)[]",
   zunionstore: "number",
