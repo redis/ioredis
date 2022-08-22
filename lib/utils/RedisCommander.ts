@@ -13859,8 +13859,8 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   zscoreBuffer(
     key: RedisKey,
     member: string | Buffer | number,
-    callback?: Callback<Buffer>
-  ): Result<Buffer, Context>;
+    callback?: Callback<Buffer | null>
+  ): Result<Buffer | null, Context>;
 
   /**
    * Add multiple sorted sets

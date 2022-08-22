@@ -90,6 +90,7 @@ expectType<Promise<string[]>>(redis.zrandmember("key", 20));
 
 // ZSCORE
 expectType<Promise<string | null>>(redis.zscore("key", "member"));
+expectType<Promise<Buffer | null>>(redis.zscoreBuffer("key", "member"));
 
 // GETRANGE
 expectType<Promise<Buffer>>(redis.getrangeBuffer("foo", 0, 1));
