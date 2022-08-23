@@ -1,3 +1,11 @@
+## [5.2.3](https://github.com/luin/ioredis/compare/v5.2.2...v5.2.3) (2022-08-23)
+
+
+### Bug Fixes
+
+* type of zscore result should be nullable ([#1639](https://github.com/luin/ioredis/issues/1639)) ([a3838ae](https://github.com/luin/ioredis/commit/a3838ae7598c7d9d3aff688923403f6176d7a393))
+* update to latest profile for Redis Cloud ([#1637](https://github.com/luin/ioredis/issues/1637)) ([dccb820](https://github.com/luin/ioredis/commit/dccb8205488d63653e1d157c6e87e28bfcddd3e1))
+
 ## [5.2.2](https://github.com/luin/ioredis/compare/v5.2.1...v5.2.2) (2022-07-23)
 
 
