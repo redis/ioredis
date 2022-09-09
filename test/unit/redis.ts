@@ -1,6 +1,7 @@
 import * as sinon from "sinon";
 import { expect } from "chai";
 import Redis from "../../lib/Redis";
+import {Deque} from "js-sdsl";
 
 describe("Redis", () => {
   describe("constructor", () => {
@@ -119,6 +120,7 @@ describe("Redis", () => {
 
   describe(".createClient", () => {
     it("should redirect to constructor", () => {
+      // @ts-ignore
       const redis = Redis.createClient({ name: "pass", lazyConnect: true });
       expect(redis.options).to.have.property("name", "pass");
       expect(redis.options).to.have.property("lazyConnect", true);
@@ -140,11 +142,11 @@ describe("Redis", () => {
     it("should flush all queues by default", () => {
       const flushQueue = Redis.prototype.flushQueue;
       const redis = {
-        offlineQueue: [{ command: { reject: () => {} } }],
-        commandQueue: [{ command: { reject: () => {} } }],
+        offlineQueue: new Deque([{ command: { reject: () => {} } }]),
+        commandQueue: new Deque([{ command: { reject: () => {} } }]),
       };
-      const offline = sinon.mock(redis.offlineQueue[0].command);
-      const command = sinon.mock(redis.commandQueue[0].command);
+      const offline = sinon.mock(redis.offlineQueue.getElementByPos(0).command);
+      const command = sinon.mock(redis.commandQueue.getElementByPos(0).command);
       offline.expects("reject").once();
       command.expects("reject").once();
       flushQueue.call(redis);
@@ -155,11 +157,11 @@ describe("Redis", () => {
     it("should be able to ignore a queue", () => {
       const flushQueue = Redis.prototype.flushQueue;
       const redis = {
-        offlineQueue: [{ command: { reject: () => {} } }],
-        commandQueue: [{ command: { reject: () => {} } }],
+        offlineQueue: new Deque([{ command: { reject: () => {} } }]),
+        commandQueue: new Deque([{ command: { reject: () => {} } }]),
       };
-      const offline = sinon.mock(redis.offlineQueue[0].command);
-      const command = sinon.mock(redis.commandQueue[0].command);
+      const offline = sinon.mock(redis.offlineQueue.getElementByPos(0).command);
+      const command = sinon.mock(redis.commandQueue.getElementByPos(0).command);
       offline.expects("reject").once();
       command.expects("reject").never();
       flushQueue.call(redis, new Error(), { commandQueue: false });

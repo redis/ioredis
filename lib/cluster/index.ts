@@ -36,7 +36,7 @@ import {
   RedisOptions,
   weightSrvRecords,
 } from "./util";
-import Deque = require("denque");
+import { Deque } from "js-sdsl";
 
 const debug = Debug("cluster");
 
@@ -595,7 +595,7 @@ class Cluster extends Commander {
       if (redis) {
         redis.sendCommand(command, stream);
       } else if (_this.options.enableOfflineQueue) {
-        _this.offlineQueue.push({
+        _this.offlineQueue.pushBack({
           command: command,
           stream: stream,
           node: node,
@@ -768,19 +768,20 @@ class Cluster extends Commander {
    * Flush offline queue with error.
    */
   private flushQueue(error: Error) {
-    let item: OfflineQueueItem;
-    while ((item = this.offlineQueue.shift())) {
-      item.command.reject(error);
+    while (!this.offlineQueue.empty()) {
+      this.offlineQueue.front().command.reject(error);
+      this.offlineQueue.popFront();
     }
   }
 
   private executeOfflineCommands() {
-    if (this.offlineQueue.length) {
-      debug("send %d commands in offline queue", this.offlineQueue.length);
+    if (!this.offlineQueue.empty()) {
+      debug("send %d commands in offline queue", this.offlineQueue.size());
       const offlineQueue = this.offlineQueue;
       this.resetOfflineQueue();
-      let item: OfflineQueueItem;
-      while ((item = offlineQueue.shift())) {
+      while (!offlineQueue.empty()) {
+        const item = offlineQueue.front();
+        offlineQueue.popFront();
         this.sendCommand(item.command, item.stream, item.node);
       }
     }

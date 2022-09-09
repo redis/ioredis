@@ -31,7 +31,7 @@ import {
 import applyMixin from "./utils/applyMixin";
 import Commander from "./utils/Commander";
 import { defaults, noop } from "./utils/lodash";
-import Deque = require("denque");
+import { Deque } from "js-sdsl";
 const debug = Debug("redis");
 
 type RedisStatus =
@@ -97,7 +97,7 @@ class Redis extends Commander {
     subscriber: boolean;
   };
   private commandQueue: Deque<CommandItem>;
-  private offlineQueue: Deque;
+  private offlineQueue: Deque<any>;
   private connectionEpoch = 0;
   private retryAttempts = 0;
   private manuallyClosing = false;
@@ -463,7 +463,7 @@ class Redis extends Commander {
         return command.promise;
       }
 
-      if (command.name === "quit" && this.offlineQueue.length === 0) {
+      if (command.name === "quit" && this.offlineQueue.empty()) {
         this.disconnect();
         command.resolve(Buffer.from("OK"));
         return command.promise;
@@ -480,7 +480,7 @@ class Redis extends Commander {
         );
       }
 
-      this.offlineQueue.push({
+      this.offlineQueue.pushBack({
         command: command,
         stream: stream,
         select: this.condition.select,
@@ -507,7 +507,7 @@ class Redis extends Commander {
         this.stream.write(command.toWritable(this.stream));
       }
 
-      this.commandQueue.push({
+      this.commandQueue.pushBack({
         command: command,
         stream: stream,
         select: this.condition.select,
@@ -750,20 +750,23 @@ class Redis extends Commander {
       commandQueue: true,
     });
 
-    let item;
     if (options.offlineQueue) {
-      while ((item = this.offlineQueue.shift())) {
+      while (!this.offlineQueue.empty()) {
+        const item = this.offlineQueue.front();
+        this.offlineQueue.popFront();
         item.command.reject(error);
       }
     }
 
     if (options.commandQueue) {
-      if (this.commandQueue.length > 0) {
+      if (!this.commandQueue.empty()) {
         if (this.stream) {
           this.stream.removeAllListeners("data");
         }
 
-        while ((item = this.commandQueue.shift())) {
+        while (!this.commandQueue.empty()) {
+          const item = this.commandQueue.front();
+          this.commandQueue.popFront();
           item.command.reject(error);
         }
       }

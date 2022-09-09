@@ -1,5 +1,5 @@
 import { Debug } from "../utils";
-import Deque = require("denque");
+import { Deque } from "js-sdsl";
 
 const debug = Debug("delayqueue");
 
@@ -29,7 +29,7 @@ export default class DelayQueue {
     }
 
     const queue = this.queues[bucket];
-    queue.push(item);
+    queue.pushBack(item);
 
     if (!this.timeouts[bucket]) {
       this.timeouts[bucket] = setTimeout(() => {
@@ -46,15 +46,16 @@ export default class DelayQueue {
     if (!queue) {
       return;
     }
-    const { length } = queue;
+    const length = queue.size();
     if (!length) {
       return;
     }
     debug("send %d commands in %s queue", length, bucket);
 
     this.queues[bucket] = null;
-    while (queue.length > 0) {
-      queue.shift()();
+    while (!queue.empty()) {
+      queue.front()();
+      queue.popFront();
     }
   }
 }

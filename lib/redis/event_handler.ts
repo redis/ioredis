@@ -1,6 +1,6 @@
 "use strict";
 
-import Deque = require("denque");
+import { Deque } from "js-sdsl";
 import { AbortError } from "redis-errors";
 import Command from "../Command";
 import { MaxRetriesPerRequestError } from "../errors";
@@ -115,14 +115,14 @@ function abortError(command: Respondable) {
 // aborting and purging we'll have a queue that looks like this: [0, 1, 2]
 function abortIncompletePipelines(commandQueue: Deque<CommandItem>) {
   let expectedIndex = 0;
-  for (let i = 0; i < commandQueue.length; ) {
-    const command = commandQueue.peekAt(i).command as Command;
+  for (let i = 0; i < commandQueue.size(); ) {
+    const command = commandQueue.getElementByPos(i).command as Command;
     const pipelineIndex = command.pipelineIndex;
     if (pipelineIndex === undefined || pipelineIndex === 0) {
       expectedIndex = 0;
     }
     if (pipelineIndex !== undefined && pipelineIndex !== expectedIndex++) {
-      commandQueue.remove(i, 1);
+      commandQueue.eraseElementByPos(i);
       command.reject(abortError(command));
       continue;
     }
@@ -134,18 +134,18 @@ function abortIncompletePipelines(commandQueue: Deque<CommandItem>) {
 // we have to abort any transaction fragments that may have ended up in the
 // offline queue
 function abortTransactionFragments(commandQueue: Deque<CommandItem>) {
-  for (let i = 0; i < commandQueue.length; ) {
-    const command = commandQueue.peekAt(i).command as Command;
+  for (let i = 0; i < commandQueue.size(); ) {
+    const command = commandQueue.getElementByPos(i).command as Command;
     if (command.name === "multi") {
       break;
     }
     if (command.name === "exec") {
-      commandQueue.remove(i, 1);
+      commandQueue.eraseElementByPos(i);
       command.reject(abortError(command));
       break;
     }
     if ((command as Command).inTransaction) {
-      commandQueue.remove(i, 1);
+      commandQueue.eraseElementByPos(i);
       command.reject(abortError(command));
     } else {
       i++;
@@ -160,11 +160,11 @@ export function closeHandler(self) {
     if (!self.prevCondition) {
       self.prevCondition = self.condition;
     }
-    if (self.commandQueue.length) {
+    if (!self.commandQueue.empty()) {
       abortIncompletePipelines(self.commandQueue);
       self.prevCommandQueue = self.commandQueue;
     }
-    if (self.offlineQueue.length) {
+    if (!self.offlineQueue.empty()) {
       abortTransactionFragments(self.offlineQueue);
     }
 
@@ -288,9 +288,10 @@ export function readyHandler(self) {
 
     if (self.prevCommandQueue) {
       if (self.options.autoResendUnfulfilledCommands) {
-        debug("resend %d unfulfilled commands", self.prevCommandQueue.length);
-        while (self.prevCommandQueue.length > 0) {
-          const item = self.prevCommandQueue.shift();
+        debug("resend %d unfulfilled commands", self.prevCommandQueue.size());
+        while (!self.prevCommandQueue.empty()) {
+          const item = self.prevCommandQueue.front();
+          self.prevCommandQueue.popFront();
           if (
             item.select !== self.condition.select &&
             item.command.name !== "select"
@@ -304,12 +305,13 @@ export function readyHandler(self) {
       }
     }
 
-    if (self.offlineQueue.length) {
-      debug("send %d commands in offline queue", self.offlineQueue.length);
+    if (!self.offlineQueue.empty()) {
+      debug("send %d commands in offline queue", self.offlineQueue.size());
       const offlineQueue = self.offlineQueue;
       self.resetOfflineQueue();
-      while (offlineQueue.length > 0) {
-        const item = offlineQueue.shift();
+      while (!offlineQueue.empty()) {
+        const item = offlineQueue.front();
+        offlineQueue.popFront();
         if (
           item.select !== self.condition.select &&
           item.command.name !== "select"
