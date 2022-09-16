@@ -3394,56 +3394,56 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
     key: RedisKey,
     member1: string | Buffer | number,
     member2: string | Buffer | number,
-    m: "M",
+    m: "m",
     callback?: Callback<string | null>
   ): Result<string | null, Context>;
   geodistBuffer(
     key: RedisKey,
     member1: string | Buffer | number,
     member2: string | Buffer | number,
-    m: "M",
+    m: "m",
     callback?: Callback<Buffer | null>
   ): Result<Buffer | null, Context>;
   geodist(
     key: RedisKey,
     member1: string | Buffer | number,
     member2: string | Buffer | number,
-    km: "KM",
+    km: "km",
     callback?: Callback<string | null>
   ): Result<string | null, Context>;
   geodistBuffer(
     key: RedisKey,
     member1: string | Buffer | number,
     member2: string | Buffer | number,
-    km: "KM",
+    km: "km",
     callback?: Callback<Buffer | null>
   ): Result<Buffer | null, Context>;
   geodist(
     key: RedisKey,
     member1: string | Buffer | number,
     member2: string | Buffer | number,
-    ft: "FT",
+    ft: "ft",
     callback?: Callback<string | null>
   ): Result<string | null, Context>;
   geodistBuffer(
     key: RedisKey,
     member1: string | Buffer | number,
     member2: string | Buffer | number,
-    ft: "FT",
+    ft: "ft",
     callback?: Callback<Buffer | null>
   ): Result<Buffer | null, Context>;
   geodist(
     key: RedisKey,
     member1: string | Buffer | number,
     member2: string | Buffer | number,
-    mi: "MI",
+    mi: "mi",
     callback?: Callback<string | null>
   ): Result<string | null, Context>;
   geodistBuffer(
     key: RedisKey,
     member1: string | Buffer | number,
     member2: string | Buffer | number,
-    mi: "MI",
+    mi: "mi",
     callback?: Callback<Buffer | null>
   ): Result<Buffer | null, Context>;
 
