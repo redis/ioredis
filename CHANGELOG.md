@@ -1,3 +1,10 @@
+## [5.2.4](https://github.com/luin/ioredis/compare/v5.2.3...v5.2.4) (2022-11-02)
+
+
+### Bug Fixes
+
+* passing in family parameter in URL in node 18 ([#1673](https://github.com/luin/ioredis/issues/1673)) ([6f1ab9f](https://github.com/luin/ioredis/commit/6f1ab9f374bff2d62cf64ff6bfca1cf9f03d14d5))
+
 ## [5.2.3](https://github.com/luin/ioredis/compare/v5.2.2...v5.2.3) (2022-08-23)
 
 
