@@ -96,6 +96,9 @@ describe("Redis", () => {
           tls: { hostname: "example.test" },
         });
         expect(option.tls).to.deep.equal({ hostname: "example.test" });
+
+        option = getOption("redis://localhost?family=6");
+        expect(option).to.have.property("family", 6);
       } catch (err) {
         stub.restore();
         throw err;
