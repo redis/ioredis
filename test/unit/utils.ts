@@ -197,11 +197,11 @@ describe("utils", () => {
       });
       expect(utils.parseURL("redis://127.0.0.1/?family=6")).to.eql({
         host: "127.0.0.1",
-        family: 6
+        family: 6,
       });
       expect(utils.parseURL("redis://127.0.0.1/?family=IPv6")).to.eql({
         host: "127.0.0.1",
-        family: "IPv6"
+        family: "IPv6",
       });
     });
   });

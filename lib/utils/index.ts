@@ -236,7 +236,7 @@ export function parseURL(url: string): Record<string, unknown> {
   if (parsed.port) {
     result.port = parsed.port;
   }
-  if (typeof options.family === 'string') {
+  if (typeof options.family === "string") {
     const intFamily = Number.parseInt(options.family, 10);
     if (!Number.isNaN(intFamily)) {
       result.family = intFamily;
