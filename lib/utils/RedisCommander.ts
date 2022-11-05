@@ -9991,7 +9991,8 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   >;
 
   /**
-   * Return new entries from a stream using a consumer group, or access the history of the pending entries for a given consumer. Can block.
+   * Return new entries from a stream using a consumer group, or access the history of the pending entries for a given consumer.
+   * Pending Entry values may be null if they've been deleted. Can block.
    * - _group_: stream
    * - _complexity_: For each stream mentioned: O(M) with M being the number of elements returned. If M is constant (e.g. always asking for the first 10 elements with COUNT), you can consider it O(1). On the other side when XREADGROUP blocks, XADD will pay the O(N) time in order to serve the N clients blocked on the stream getting new data.
    * - _since_: 5.0.0
@@ -10003,9 +10004,29 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       consumer: string | Buffer,
       streamsToken: "STREAMS",
       ...args: RedisValue[],
-      callback: Callback<unknown[]>
+      callback: Callback<
+        [key: string, items: [id: string, fields: (string | null)[]][]][] | null
+      >
     ]
-  ): Result<unknown[], Context>;
+  ): Result<
+    [key: string, items: [id: string, fields: (string | null)[]][]][] | null,
+    Context
+  >;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      streamsToken: "STREAMS",
+      ...args: RedisValue[],
+      callback: Callback<
+        [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null
+      >
+    ]
+  ): Result<
+    [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null,
+    Context
+  >;
   xreadgroup(
     ...args: [
       groupConsumerToken: "GROUP",
@@ -10014,7 +10035,22 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       streamsToken: "STREAMS",
       ...args: RedisValue[]
     ]
-  ): Result<unknown[], Context>;
+  ): Result<
+    [key: string, items: [id: string, fields: (string | null)[]][]][] | null,
+    Context
+  >;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      streamsToken: "STREAMS",
+      ...args: RedisValue[]
+    ]
+  ): Result<
+    [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null,
+    Context
+  >;
   xreadgroup(
     ...args: [
       groupConsumerToken: "GROUP",
@@ -10023,9 +10059,30 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       noack: "NOACK",
       streamsToken: "STREAMS",
       ...args: RedisValue[],
-      callback: Callback<unknown[]>
+      callback: Callback<
+        [key: string, items: [id: string, fields: (string | null)[]][]][] | null
+      >
     ]
-  ): Result<unknown[], Context>;
+  ): Result<
+    [key: string, items: [id: string, fields: (string | null)[]][]][] | null,
+    Context
+  >;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      noack: "NOACK",
+      streamsToken: "STREAMS",
+      ...args: RedisValue[],
+      callback: Callback<
+        [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null
+      >
+    ]
+  ): Result<
+    [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null,
+    Context
+  >;
   xreadgroup(
     ...args: [
       groupConsumerToken: "GROUP",
@@ -10035,7 +10092,23 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       streamsToken: "STREAMS",
       ...args: RedisValue[]
     ]
-  ): Result<unknown[], Context>;
+  ): Result<
+    [key: string, items: [id: string, fields: (string | null)[]][]][] | null,
+    Context
+  >;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      noack: "NOACK",
+      streamsToken: "STREAMS",
+      ...args: RedisValue[]
+    ]
+  ): Result<
+    [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null,
+    Context
+  >;
   xreadgroup(
     ...args: [
       groupConsumerToken: "GROUP",
@@ -10045,9 +10118,31 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       milliseconds: number | string,
       streamsToken: "STREAMS",
       ...args: RedisValue[],
-      callback: Callback<unknown[]>
+      callback: Callback<
+        [key: string, items: [id: string, fields: (string | null)[]][]][] | null
+      >
     ]
-  ): Result<unknown[], Context>;
+  ): Result<
+    [key: string, items: [id: string, fields: (string | null)[]][]][] | null,
+    Context
+  >;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      millisecondsToken: "BLOCK",
+      milliseconds: number | string,
+      streamsToken: "STREAMS",
+      ...args: RedisValue[],
+      callback: Callback<
+        [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null
+      >
+    ]
+  ): Result<
+    [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null,
+    Context
+  >;
   xreadgroup(
     ...args: [
       groupConsumerToken: "GROUP",
@@ -10058,7 +10153,24 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       streamsToken: "STREAMS",
       ...args: RedisValue[]
     ]
-  ): Result<unknown[], Context>;
+  ): Result<
+    [key: string, items: [id: string, fields: (string | null)[]][]][] | null,
+    Context
+  >;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      millisecondsToken: "BLOCK",
+      milliseconds: number | string,
+      streamsToken: "STREAMS",
+      ...args: RedisValue[]
+    ]
+  ): Result<
+    [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null,
+    Context
+  >;
   xreadgroup(
     ...args: [
       groupConsumerToken: "GROUP",
@@ -10069,9 +10181,32 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       noack: "NOACK",
       streamsToken: "STREAMS",
       ...args: RedisValue[],
-      callback: Callback<unknown[]>
+      callback: Callback<
+        [key: string, items: [id: string, fields: (string | null)[]][]][] | null
+      >
     ]
-  ): Result<unknown[], Context>;
+  ): Result<
+    [key: string, items: [id: string, fields: (string | null)[]][]][] | null,
+    Context
+  >;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      millisecondsToken: "BLOCK",
+      milliseconds: number | string,
+      noack: "NOACK",
+      streamsToken: "STREAMS",
+      ...args: RedisValue[],
+      callback: Callback<
+        [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null
+      >
+    ]
+  ): Result<
+    [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null,
+    Context
+  >;
   xreadgroup(
     ...args: [
       groupConsumerToken: "GROUP",
@@ -10083,7 +10218,25 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       streamsToken: "STREAMS",
       ...args: RedisValue[]
     ]
-  ): Result<unknown[], Context>;
+  ): Result<
+    [key: string, items: [id: string, fields: (string | null)[]][]][] | null,
+    Context
+  >;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      millisecondsToken: "BLOCK",
+      milliseconds: number | string,
+      noack: "NOACK",
+      streamsToken: "STREAMS",
+      ...args: RedisValue[]
+    ]
+  ): Result<
+    [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null,
+    Context
+  >;
   xreadgroup(
     ...args: [
       groupConsumerToken: "GROUP",
@@ -10093,9 +10246,31 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       count: number | string,
       streamsToken: "STREAMS",
       ...args: RedisValue[],
-      callback: Callback<unknown[]>
+      callback: Callback<
+        [key: string, items: [id: string, fields: (string | null)[]][]][] | null
+      >
     ]
-  ): Result<unknown[], Context>;
+  ): Result<
+    [key: string, items: [id: string, fields: (string | null)[]][]][] | null,
+    Context
+  >;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      countToken: "COUNT",
+      count: number | string,
+      streamsToken: "STREAMS",
+      ...args: RedisValue[],
+      callback: Callback<
+        [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null
+      >
+    ]
+  ): Result<
+    [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null,
+    Context
+  >;
   xreadgroup(
     ...args: [
       groupConsumerToken: "GROUP",
@@ -10106,7 +10281,24 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       streamsToken: "STREAMS",
       ...args: RedisValue[]
     ]
-  ): Result<unknown[], Context>;
+  ): Result<
+    [key: string, items: [id: string, fields: (string | null)[]][]][] | null,
+    Context
+  >;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      countToken: "COUNT",
+      count: number | string,
+      streamsToken: "STREAMS",
+      ...args: RedisValue[]
+    ]
+  ): Result<
+    [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null,
+    Context
+  >;
   xreadgroup(
     ...args: [
       groupConsumerToken: "GROUP",
@@ -10117,9 +10309,32 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       noack: "NOACK",
       streamsToken: "STREAMS",
       ...args: RedisValue[],
-      callback: Callback<unknown[]>
+      callback: Callback<
+        [key: string, items: [id: string, fields: (string | null)[]][]][] | null
+      >
     ]
-  ): Result<unknown[], Context>;
+  ): Result<
+    [key: string, items: [id: string, fields: (string | null)[]][]][] | null,
+    Context
+  >;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      countToken: "COUNT",
+      count: number | string,
+      noack: "NOACK",
+      streamsToken: "STREAMS",
+      ...args: RedisValue[],
+      callback: Callback<
+        [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null
+      >
+    ]
+  ): Result<
+    [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null,
+    Context
+  >;
   xreadgroup(
     ...args: [
       groupConsumerToken: "GROUP",
@@ -10131,7 +10346,25 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       streamsToken: "STREAMS",
       ...args: RedisValue[]
     ]
-  ): Result<unknown[], Context>;
+  ): Result<
+    [key: string, items: [id: string, fields: (string | null)[]][]][] | null,
+    Context
+  >;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      countToken: "COUNT",
+      count: number | string,
+      noack: "NOACK",
+      streamsToken: "STREAMS",
+      ...args: RedisValue[]
+    ]
+  ): Result<
+    [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null,
+    Context
+  >;
   xreadgroup(
     ...args: [
       groupConsumerToken: "GROUP",
@@ -10143,9 +10376,33 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       milliseconds: number | string,
       streamsToken: "STREAMS",
       ...args: RedisValue[],
-      callback: Callback<unknown[]>
+      callback: Callback<
+        [key: string, items: [id: string, fields: (string | null)[]][]][] | null
+      >
     ]
-  ): Result<unknown[], Context>;
+  ): Result<
+    [key: string, items: [id: string, fields: (string | null)[]][]][] | null,
+    Context
+  >;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      countToken: "COUNT",
+      count: number | string,
+      millisecondsToken: "BLOCK",
+      milliseconds: number | string,
+      streamsToken: "STREAMS",
+      ...args: RedisValue[],
+      callback: Callback<
+        [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null
+      >
+    ]
+  ): Result<
+    [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null,
+    Context
+  >;
   xreadgroup(
     ...args: [
       groupConsumerToken: "GROUP",
@@ -10158,7 +10415,26 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       streamsToken: "STREAMS",
       ...args: RedisValue[]
     ]
-  ): Result<unknown[], Context>;
+  ): Result<
+    [key: string, items: [id: string, fields: (string | null)[]][]][] | null,
+    Context
+  >;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      countToken: "COUNT",
+      count: number | string,
+      millisecondsToken: "BLOCK",
+      milliseconds: number | string,
+      streamsToken: "STREAMS",
+      ...args: RedisValue[]
+    ]
+  ): Result<
+    [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null,
+    Context
+  >;
   xreadgroup(
     ...args: [
       groupConsumerToken: "GROUP",
@@ -10171,9 +10447,34 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       noack: "NOACK",
       streamsToken: "STREAMS",
       ...args: RedisValue[],
-      callback: Callback<unknown[]>
+      callback: Callback<
+        [key: string, items: [id: string, fields: (string | null)[]][]][] | null
+      >
     ]
-  ): Result<unknown[], Context>;
+  ): Result<
+    [key: string, items: [id: string, fields: (string | null)[]][]][] | null,
+    Context
+  >;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      countToken: "COUNT",
+      count: number | string,
+      millisecondsToken: "BLOCK",
+      milliseconds: number | string,
+      noack: "NOACK",
+      streamsToken: "STREAMS",
+      ...args: RedisValue[],
+      callback: Callback<
+        [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null
+      >
+    ]
+  ): Result<
+    [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null,
+    Context
+  >;
   xreadgroup(
     ...args: [
       groupConsumerToken: "GROUP",
@@ -10187,7 +10488,27 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       streamsToken: "STREAMS",
       ...args: RedisValue[]
     ]
-  ): Result<unknown[], Context>;
+  ): Result<
+    [key: string, items: [id: string, fields: (string | null)[]][]][] | null,
+    Context
+  >;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      countToken: "COUNT",
+      count: number | string,
+      millisecondsToken: "BLOCK",
+      milliseconds: number | string,
+      noack: "NOACK",
+      streamsToken: "STREAMS",
+      ...args: RedisValue[]
+    ]
+  ): Result<
+    [key: Buffer, items: [id: Buffer, fields: (Buffer | null)[]][]][] | null,
+    Context
+  >;
 
   /**
    * Return a range of elements in a stream, with IDs matching the specified IDs interval, in reverse order (from greater to smaller IDs) compared to XRANGE
