@@ -220,9 +220,11 @@ class Redis extends Commander {
 
           // Node ignores setKeepAlive before connect, therefore we wait for the event:
           // https://github.com/nodejs/node/issues/31663
-          if (typeof options.keepAlive === 'number') {
+          if (typeof options.keepAlive === "number") {
             if (stream.connecting) {
-              stream.once(CONNECT_EVENT, () => stream.setKeepAlive(true, options.keepAlive));
+              stream.once(CONNECT_EVENT, () =>
+                stream.setKeepAlive(true, options.keepAlive)
+              );
             } else {
               stream.setKeepAlive(true, options.keepAlive);
             }
@@ -344,7 +346,7 @@ class Redis extends Commander {
    * One of `"normal"`, `"subscriber"`, or `"monitor"`. When the connection is
    * not in `"normal"` mode, certain commands are not allowed.
    */
-   get mode(): "normal" | "subscriber" | "monitor" {
+  get mode(): "normal" | "subscriber" | "monitor" {
     return this.options.monitor
       ? "monitor"
       : this.condition.subscriber

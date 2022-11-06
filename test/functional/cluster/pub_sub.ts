@@ -49,7 +49,7 @@ describe("cluster:pub/sub", function () {
     sub.subscribe("test cluster", function () {
       sub.set("foo", "bar").then((res) => {
         expect(res).to.eql("OK");
-        sub.disconnect()
+        sub.disconnect();
         done();
       });
     });
@@ -74,7 +74,7 @@ describe("cluster:pub/sub", function () {
     const sub = new Cluster([{ port: "30001", password: "abc" }]);
 
     sub.subscribe("test cluster", function () {
-      sub.disconnect()
+      sub.disconnect();
       done();
     });
   });

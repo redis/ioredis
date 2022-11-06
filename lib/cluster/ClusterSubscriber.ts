@@ -64,7 +64,9 @@ export default class ClusterSubscriber {
 
   private onSubscriberEnd = () => {
     if (!this.started) {
-      debug("subscriber has disconnected, but ClusterSubscriber is not started, so not reconnecting.");
+      debug(
+        "subscriber has disconnected, but ClusterSubscriber is not started, so not reconnecting."
+      );
       return;
     }
     // If the subscriber closes whilst it's still the active connection,
@@ -72,7 +74,7 @@ export default class ClusterSubscriber {
     // minimise the number of missed publishes.
     debug("subscriber has disconnected, selecting a new one...");
     this.selectSubscriber();
-  }
+  };
 
   private selectSubscriber() {
     const lastActiveSubscriber = this.lastActiveSubscriber;
@@ -122,7 +124,7 @@ export default class ClusterSubscriber {
       // Don't try to reconnect the subscriber connection. If the connection fails
       // we will get an end event (handled below), at which point we'll pick a new
       // node from the pool and try to connect to that as the subscriber connection.
-      retryStrategy: null
+      retryStrategy: null,
     });
 
     // Ignore the errors since they're handled in the connection pool.
