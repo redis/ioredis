@@ -204,7 +204,7 @@ describe("scripting", () => {
     });
 
     const expectedComands = ["evalsha", "eval", "get", "evalsha", "get"];
-    expect(commands.map((c) => c[0])).to.eql(expectedComands);
+    expect(commands.map((c) => c[0].toLowerCase())).to.have.members(expectedComands);
   });
 
   it("should load scripts first before execution of pipeline", async () => {
@@ -230,7 +230,7 @@ describe("scripting", () => {
 
     const expectedComands = ["evalsha", "get", "eval", "set", "get"];
 
-    expect(commands.map((c) => c[0])).to.eql(expectedComands);
+    expect(commands.map((c) => c[0].toLowerCase())).to.have.members(expectedComands);
   });
 
   it("does not fallback to EVAL in regular transaction", async () => {
@@ -260,7 +260,7 @@ describe("scripting", () => {
     spy.restore();
     expect(spy.callCount).to.equal(4);
     const expectedComands = ["multi", "evalsha", "evalsha", "exec"];
-    expect(commands.map((c) => c[0])).to.eql(expectedComands);
+    expect(commands.map((c) => c[0].toLowerCase())).to.have.members(expectedComands);
   });
 
   it("does not fallback to EVAL in manual transaction", async () => {
@@ -284,7 +284,7 @@ describe("scripting", () => {
     spy.restore();
     expect(spy.callCount).to.equal(4);
     const expectedComands = ["multi", "evalsha", "evalsha", "exec"];
-    expect(commands.map((c) => c[0])).to.eql(expectedComands);
+    expect(commands.map((c) => c[0].toLowerCase())).to.have.members(expectedComands);
   });
 
   it("should support key prefixing", (done) => {

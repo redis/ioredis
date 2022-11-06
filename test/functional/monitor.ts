@@ -15,7 +15,7 @@ describe("monitor", () => {
           return;
         }
         monitor.on("monitor", function (time, args) {
-          expect(args[0]).to.eql("get");
+          expect(args[0]).to.match(/get/i);
           expect(args[1]).to.eql("foo");
           redis.disconnect();
           monitor.disconnect();
@@ -61,7 +61,7 @@ describe("monitor", () => {
         return;
       }
       monitor.on("monitor", (_time, args) => {
-        if (args[0] === "set") {
+        if (args[0] === "set" || args[0] === "SET") {
           redis.disconnect();
           monitor.disconnect();
           done();
