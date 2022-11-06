@@ -323,7 +323,7 @@ describe("pipeline", () => {
       redis.disconnect();
 
       expectedCommands.forEach((expectedCommand, j) => {
-        expectedCommand.forEach((arg, i) => expect(arg).to.eql(commands[j][i]));
+        expectedCommand.forEach((arg, i) => expect(arg).to.eql(commands[j][i].toLowerCase()));
       });
     });
 
@@ -388,9 +388,7 @@ describe("pipeline", () => {
       redis2.disconnect();
 
       const expected = ["set", "eval", "get"];
-      commands.forEach((c, i) => {
-        expect(c[0]).to.equal(expected[i]);
-      });
+      expect(commands.map((c) => c[0].toLowerCase())).to.have.members(expected);
     });
   });
 
