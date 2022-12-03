@@ -1072,7 +1072,7 @@ cluster.get("foo", (err, res) => {
       state stabilized after a failover, so adding a delay before resending can prevent a ping pong effect.
     - `redisOptions`: Default options passed to the constructor of `Redis` when connecting to a node.
     - `slotsRefreshTimeout`: Milliseconds before a timeout occurs while refreshing slots from the cluster (default `1000`).
-    - `slotsRefreshInterval`: Milliseconds between every automatic slots refresh (default `5000`).
+    - `slotsRefreshInterval`: Milliseconds between every automatic slots refresh (by default, it is disabled).
 
 ### Read-Write Splitting
 
