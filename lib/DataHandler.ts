@@ -1,5 +1,5 @@
 import { NetStream, CommandItem, Respondable } from "./types";
-import Deque = require("denque");
+import { Deque } from "js-sdsl";
 import { EventEmitter } from "events";
 import Command from "./Command";
 import { Debug } from "./utils";
@@ -91,11 +91,11 @@ export default class DataHandler {
       );
 
       if (!fillSubCommand(item.command, reply[2])) {
-        this.redis.commandQueue.unshift(item);
+        this.redis.commandQueue.pushFront(item);
       }
     } else if (Command.checkFlag("EXIT_SUBSCRIBER_MODE", item.command.name)) {
       if (!fillUnsubCommand(item.command, reply[2])) {
-        this.redis.commandQueue.unshift(item);
+        this.redis.commandQueue.pushFront(item);
       }
     } else {
       item.command.resolve(reply);
@@ -143,7 +143,7 @@ export default class DataHandler {
           return;
         }
         if (!fillSubCommand(item.command, reply[2])) {
-          this.redis.commandQueue.unshift(item);
+          this.redis.commandQueue.pushFront(item);
         }
         break;
       }
@@ -162,7 +162,7 @@ export default class DataHandler {
           return;
         }
         if (!fillUnsubCommand(item.command, count)) {
-          this.redis.commandQueue.unshift(item);
+          this.redis.commandQueue.pushFront(item);
         }
         break;
       }
@@ -207,7 +207,8 @@ export default class DataHandler {
   }
 
   private shiftCommand(reply: ReplyData | Error): CommandItem | null {
-    const item = this.redis.commandQueue.shift();
+    const item = this.redis.commandQueue.front();
+    this.redis.commandQueue.popFront();
     if (!item) {
       const message =
         "Command queue state error. If you can reproduce this, please report it.";

@@ -44,7 +44,7 @@
     "@ioredis/commands": "^1.1.1",
     "cluster-key-slot": "^1.1.0",
     "debug": "^4.3.4",
-    "denque": "^2.0.1",
+    "js-sdsl": "^4.1.4",
     "lodash.defaults": "^4.2.0",
     "lodash.isarguments": "^3.1.0",
     "redis-errors": "^1.2.0",
