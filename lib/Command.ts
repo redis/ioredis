@@ -42,15 +42,17 @@ export interface CommandNameFlags {
     "psubscribe",
     "unsubscribe",
     "punsubscribe",
+    "ssubscribe",
+    "sunsubscribe",
     "ping",
     "quit"
   ];
   // Commands that are valid in monitor mode
   VALID_IN_MONITOR_MODE: ["monitor", "auth"];
   // Commands that will turn current connection into subscriber mode
-  ENTER_SUBSCRIBER_MODE: ["subscribe", "psubscribe"];
+  ENTER_SUBSCRIBER_MODE: ["subscribe", "psubscribe", "ssubscribe"];
   // Commands that may make current connection quit subscriber mode
-  EXIT_SUBSCRIBER_MODE: ["unsubscribe", "punsubscribe"];
+  EXIT_SUBSCRIBER_MODE: ["unsubscribe", "punsubscribe", "sunsubscribe"];
   // Commands that will make client disconnect from server TODO shutdown?
   WILL_DISCONNECT: ["quit"];
 }
@@ -84,12 +86,14 @@ export default class Command implements Respondable {
       "psubscribe",
       "unsubscribe",
       "punsubscribe",
+      "ssubscribe",
+      "sunsubscribe",
       "ping",
       "quit",
     ],
     VALID_IN_MONITOR_MODE: ["monitor", "auth"],
-    ENTER_SUBSCRIBER_MODE: ["subscribe", "psubscribe"],
-    EXIT_SUBSCRIBER_MODE: ["unsubscribe", "punsubscribe"],
+    ENTER_SUBSCRIBER_MODE: ["subscribe", "psubscribe", "ssubscribe"],
+    EXIT_SUBSCRIBER_MODE: ["unsubscribe", "punsubscribe", "sunsubscribe"],
     WILL_DISCONNECT: ["quit"],
   };
 

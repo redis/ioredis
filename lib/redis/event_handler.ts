@@ -283,6 +283,11 @@ export function readyHandler(self) {
           debug("psubscribe %d channels", psubscribeChannels.length);
           self.psubscribe(psubscribeChannels);
         }
+        const ssubscribeChannels = condition.subscriber.channels("ssubscribe");
+        if (ssubscribeChannels.length) {
+          debug("ssubscribe %d channels", ssubscribeChannels.length);
+          self.ssubscribe(ssubscribeChannels);
+        }
       }
     }
 
