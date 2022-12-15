@@ -146,9 +146,7 @@ export function executeWithAutoPipelining(
   // ioredis will only flatten one level of the array, in the Command constructor.
   const prefix = client.options.keyPrefix || "";
   const slotKey = client.isCluster
-    ? client.slots[
-        calculateSlot(`${prefix}${getFirstValueInFlattenedArray(args)}`)
-      ].join(",")
+    ? calculateSlot(`${prefix}${getFirstValueInFlattenedArray(args)}`)
     : "main";
 
   if (!client._autoPipelines.has(slotKey)) {
