@@ -821,7 +821,28 @@ class Redis extends Commander {
   }
 }
 
-interface Redis extends EventEmitter {}
+interface Redis extends EventEmitter {
+  on(event: "message", cb: (channel: string, message: string) => void): this;
+
+  on(
+    event: "messageBuffer",
+    cb: (channel: string, message: Buffer) => void
+  ): this;
+
+  on(
+    event: "pmessage",
+    cb: (pattern: string, channel: string, message: string) => void
+  ): this;
+
+  on(
+    event: "pmessageBuffer",
+    cb: (pattern: string, channel: string, message: Buffer) => void
+  ): this;
+
+  // base method of EventEmitter
+  on(eventName: string | symbol, listener: (...args: any[]) => void): this;
+}
+
 applyMixin(Redis, EventEmitter);
 
 addTransactionSupport(Redis.prototype);
