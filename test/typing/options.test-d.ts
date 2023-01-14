@@ -1,5 +1,5 @@
 import { expectAssignable, expectType } from "tsd";
-import Redis, { Cluster, NatMap, DNSLookupFunction } from "../../built";
+import { Redis, Cluster, NatMap, DNSLookupFunction } from "../../built";
 
 expectType<Redis>(new Redis());
 
