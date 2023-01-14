@@ -1,3 +1,10 @@
+## [5.2.5](https://github.com/luin/ioredis/compare/v5.2.4...v5.2.5) (2023-01-14)
+
+
+### Bug Fixes
+
+* Named export to support ESM imports in Typescript ([#1695](https://github.com/luin/ioredis/issues/1695)) ([cdded57](https://github.com/luin/ioredis/commit/cdded5703ded8dff02d7df3362ae25120bb75e97))
+
 ## [5.2.4](https://github.com/luin/ioredis/compare/v5.2.3...v5.2.4) (2022-11-02)
 
 
