@@ -1,5 +1,5 @@
 import { expectType } from "tsd";
-import Redis, { Pipeline } from "../../built";
+import { Redis, Pipeline } from "../../built";
 
 const redis = new Redis();
 
