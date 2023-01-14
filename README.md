@@ -16,20 +16,20 @@ ioredis is a robust, full-featured Redis client that is
 used in the world's biggest online commerce company [Alibaba](http://www.alibaba.com/) and many other awesome companies.
 
 0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](https://redis.io/docs/reference/sentinel-clients), [Streams](https://redis.io/topics/streams-intro), [Pipelining](http://redis.io/topics/pipelining), and of course [Lua scripting](http://redis.io/commands/eval), [Redis Functions](https://redis.io/topics/functions-intro), [Pub/Sub](http://redis.io/topics/pubsub) (with the support of binary messages).
-0. High performance 🚀.
-0. Delightful API 😄. It works with Node callbacks and Native promises.
-0. Transformation of command arguments and replies.
-0. Transparent key prefixing.
-0. Abstraction for Lua scripting, allowing you to [define custom commands](https://github.com/luin/ioredis#lua-scripting).
-0. Supports [binary data](https://github.com/luin/ioredis#handle-binary-data).
-0. Supports [TLS](https://github.com/luin/ioredis#tls-options) 🔒.
-0. Supports offline queue and ready checking.
-0. Supports ES6 types, such as `Map` and `Set`.
-0. Supports GEO commands 📍.
-0. Supports Redis ACL.
-0. Sophisticated error handling strategy.
-0. Supports NAT mapping.
-0. Supports autopipelining.
+1. High performance 🚀.
+2. Delightful API 😄. It works with Node callbacks and Native promises.
+3. Transformation of command arguments and replies.
+4. Transparent key prefixing.
+5. Abstraction for Lua scripting, allowing you to [define custom commands](https://github.com/luin/ioredis#lua-scripting).
+6. Supports [binary data](https://github.com/luin/ioredis#handle-binary-data).
+7. Supports [TLS](https://github.com/luin/ioredis#tls-options) 🔒.
+8. Supports offline queue and ready checking.
+9. Supports ES6 types, such as `Map` and `Set`.
+10. Supports GEO commands 📍.
+11. Supports Redis ACL.
+12. Sophisticated error handling strategy.
+13. Supports NAT mapping.
+14. Supports autopipelining.
 
 **100% written in TypeScript and official declarations are provided:**
 
@@ -63,16 +63,6 @@ Refer to [CHANGELOG.md](CHANGELOG.md) for features and bug fixes introduced in v
 Upstash is a Serverless Database with Redis/REST API and durable storage. It is the perfect database for your applications thanks to its per request pricing and low latency data.
 
 [Start for free in 30 seconds!](https://upstash.com/?utm_source=ioredis)
-
-<br clear="both"/>
-
-### Redis Cloud: From the creators of Redis
-
-<a href="https://redis.info/ioredis-tryfree"><img align="right" width="320" src="resources/redis-tryfree.png" alt="redis-tryfree"></a>
-
-Experience the best Redis. For a limited time, sign up to Redis Enterprise Cloud and use **MATRIX200** to get $200 credits, and a chance to win a Tesla!
-
-[Sign Up Now!](https://redis.info/ioredis-tryfree)
 
 <br clear="both"/>
 
@@ -115,10 +105,10 @@ npm install --save-dev @types/node
 
 ```javascript
 // Import ioredis.
-// You can also use `import Redis from "ioredis"`
+// You can also use `import { Redis } from "ioredis"`
 // if your project is a TypeScript project,
-// or `import { default as Redis } from "ioredis"`
-// if it is an ESM module.
+// Note that `import Redis from "ioredis"` is still supported,
+// but will be deprecated in the next major version.
 const Redis = require("ioredis");
 
 // Create a Redis instance.
@@ -157,14 +147,14 @@ redis.set("mykey", "hello", "EX", 10);
 
 See the `examples/` folder for more examples. For example:
 
-* [TTL](examples/ttl.js)
-* [Strings](examples/string.js)
-* [Hashes](examples/hash.js)
-* [Lists](examples/list.js)
-* [Sets](examples/set.js)
-* [Sorted Sets](examples/zset.js)
-* [Streams](examples/stream.js)
-* [Redis Modules](examples/module.js) e.g. RedisJSON
+- [TTL](examples/ttl.js)
+- [Strings](examples/string.js)
+- [Hashes](examples/hash.js)
+- [Lists](examples/list.js)
+- [Sets](examples/set.js)
+- [Sorted Sets](examples/zset.js)
+- [Streams](examples/stream.js)
+- [Redis Modules](examples/module.js) e.g. RedisJSON
 
 All Redis commands are supported. See [the documentation](https://luin.github.io/ioredis/classes/Redis.html) for details.
 

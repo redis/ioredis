@@ -1,5 +1,5 @@
 import { expectError, expectType } from "tsd";
-import Redis from "../../built";
+import { Redis } from "../../built";
 
 const redis = new Redis();
 

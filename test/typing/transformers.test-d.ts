@@ -1,5 +1,5 @@
 import { expectType } from "tsd";
-import Redis from "../../built";
+import { Redis } from "../../built";
 
 interface User {
   name: string;
