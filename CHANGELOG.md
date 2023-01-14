@@ -5,6 +5,8 @@
 
 * Named export to support ESM imports in Typescript ([#1695](https://github.com/luin/ioredis/issues/1695)) ([cdded57](https://github.com/luin/ioredis/commit/cdded5703ded8dff02d7df3362ae25120bb75e97))
 
+    With this change, users would be able to import Redis with `import { Redis} from 'ioredis'`. This makes it possible to import Redis in an ESM project. The original way (`import Redis from 'ioredis'`) will still be supported but will be deprecated in the next major version.
+
 ## [5.2.4](https://github.com/luin/ioredis/compare/v5.2.3...v5.2.4) (2022-11-02)
 
 
