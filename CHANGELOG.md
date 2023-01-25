@@ -1,3 +1,15 @@
+# [5.3.0](https://github.com/luin/ioredis/compare/v5.2.6...v5.3.0) (2023-01-25)
+
+
+### Bug Fixes
+
+* unsubscribe not work with stringNumbers ([#1710](https://github.com/luin/ioredis/issues/1710)) ([321f8de](https://github.com/luin/ioredis/commit/321f8def3dff7f996c90af1ef73ffd789e02381e)), closes [#1643](https://github.com/luin/ioredis/issues/1643)
+
+
+### Features
+
+* Add support ssubscribe ([#1690](https://github.com/luin/ioredis/issues/1690)) ([6285e80](https://github.com/luin/ioredis/commit/6285e80ffb47564dc01d8e9940ff9a103bf70e2d))
+
 ## [5.2.6](https://github.com/luin/ioredis/compare/v5.2.5...v5.2.6) (2023-01-25)
 
 
