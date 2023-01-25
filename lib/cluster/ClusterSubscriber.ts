@@ -88,7 +88,7 @@ export default class ClusterSubscriber {
     this.subscriber.on("error", noop);
 
     // Re-subscribe previous channels
-    const previousChannels = { subscribe: [], psubscribe: [] };
+    const previousChannels = { subscribe: [], psubscribe: [], ssubscribe: [] };
     if (lastActiveSubscriber) {
       const condition =
         lastActiveSubscriber.condition || lastActiveSubscriber.prevCondition;
@@ -97,14 +97,16 @@ export default class ClusterSubscriber {
         previousChannels.psubscribe = condition.subscriber.channels(
           "psubscribe"
         );
+        previousChannels.ssubscribe = condition.subscriber.channels("ssubscribe");
       }
     }
     if (
       previousChannels.subscribe.length ||
-      previousChannels.psubscribe.length
+      previousChannels.psubscribe.length ||
+      previousChannels.ssubscribe.length
     ) {
       let pending = 0;
-      for (const type of ["subscribe", "psubscribe"]) {
+      for (const type of ["subscribe", "psubscribe", "ssubscribe"]) {
         const channels = previousChannels[type];
         if (channels.length) {
           pending += 1;
@@ -130,6 +132,11 @@ export default class ClusterSubscriber {
       });
     }
     for (const event of ["pmessage", "pmessageBuffer"]) {
+      this.subscriber.on(event, (arg1, arg2, arg3) => {
+        this.emitter.emit(event, arg1, arg2, arg3);
+      });
+    }
+    for (const event of ["smessage", "smessageBuffer"]) {
       this.subscriber.on(event, (arg1, arg2, arg3) => {
         this.emitter.emit(event, arg1, arg2, arg3);
       });
