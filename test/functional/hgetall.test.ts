@@ -1,5 +1,5 @@
+import { describe, expect, it } from "@jest/globals";
 import Redis from "../../lib/Redis";
-import { expect } from "chai";
 
 const CUSTOM_PROPERTY = "_myCustomProperty";
 
@@ -27,11 +27,11 @@ describe("hgetall", () => {
       "world"
     );
     const ret = await redis.hgetall("test_key");
-    expect(ret.__proto__).to.eql("hello");
-    expect(ret[CUSTOM_PROPERTY]).to.eql("world");
-    expect(Object.keys(ret).sort()).to.eql(
+    expect(ret.__proto__).toBe("hello");
+    expect(ret[CUSTOM_PROPERTY]).toBe("world");
+    expect(Object.keys(ret).sort()).toEqual(
       ["__proto__", CUSTOM_PROPERTY].sort()
     );
-    expect(Object.getPrototypeOf(ret)).to.eql(Object.prototype);
+    expect(Object.getPrototypeOf(ret)).toBe(Object.prototype);
   });
 });
