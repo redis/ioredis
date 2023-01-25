@@ -10,20 +10,29 @@ const debug = Debug("dataHandler");
 
 type ReplyData = string | Buffer | number | Array<string | Buffer | number>;
 
-interface Condition {
+export interface Condition {
   select: number;
-  auth: string;
+  auth?: string | [string, string];
   subscriber: false | SubscriptionSet;
 }
 
-interface DataHandledable extends EventEmitter {
+export type FlushQueueOptions = {
+  offlineQueue?: boolean;
+  commandQueue?: boolean;
+};
+
+export interface DataHandledable extends EventEmitter {
   stream: NetStream;
   status: string;
-  condition: Condition;
+  condition: Condition | null;
   commandQueue: Deque<CommandItem>;
 
   disconnect(reconnect: boolean): void;
-  recoverFromFatalError(commandError: Error, err: Error, options: any): void;
+  recoverFromFatalError(
+    commandError: Error,
+    err: Error,
+    options: FlushQueueOptions
+  ): void;
   handleReconnection(err: Error, item: CommandItem): void;
 }
 

@@ -3,6 +3,7 @@ import { EventEmitter } from "events";
 import asCallback from "standard-as-callback";
 import Cluster from "./cluster";
 import Command from "./Command";
+import { DataHandledable, FlushQueueOptions, Condition } from "./DataHandler";
 import { StandaloneConnector } from "./connectors";
 import AbstractConnector from "./connectors/AbstractConnector";
 import SentinelConnector from "./connectors/SentinelConnector";
@@ -60,7 +61,7 @@ type RedisStatus =
  * }
  * ```
  */
-class Redis extends Commander {
+class Redis extends Commander implements DataHandledable {
   static Cluster = Cluster;
   static Command = Command;
   /**
@@ -89,14 +90,18 @@ class Redis extends Commander {
    */
   isCluster = false;
 
+  /**
+   * @ignore
+   */
+  condition: Condition | null;
+
+  /**
+   * @ignore
+   */
+  commandQueue: Deque<CommandItem>;
+
   private connector: AbstractConnector;
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
-  private condition: {
-    select: number;
-    auth?: string | [string, string];
-    subscriber: boolean;
-  };
-  private commandQueue: Deque<CommandItem>;
   private offlineQueue: Deque;
   private connectionEpoch = 0;
   private retryAttempts = 0;
@@ -220,9 +225,11 @@ class Redis extends Commander {
 
           // Node ignores setKeepAlive before connect, therefore we wait for the event:
           // https://github.com/nodejs/node/issues/31663
-          if (typeof options.keepAlive === 'number') {
+          if (typeof options.keepAlive === "number") {
             if (stream.connecting) {
-              stream.once(CONNECT_EVENT, () => stream.setKeepAlive(true, options.keepAlive));
+              stream.once(CONNECT_EVENT, () => {
+                stream.setKeepAlive(true, options.keepAlive);
+              });
             } else {
               stream.setKeepAlive(true, options.keepAlive);
             }
@@ -344,10 +351,10 @@ class Redis extends Commander {
    * One of `"normal"`, `"subscriber"`, or `"monitor"`. When the connection is
    * not in `"normal"` mode, certain commands are not allowed.
    */
-   get mode(): "normal" | "subscriber" | "monitor" {
+  get mode(): "normal" | "subscriber" | "monitor" {
     return this.options.monitor
       ? "monitor"
-      : this.condition && this.condition.subscriber
+      : this.condition?.subscriber
       ? "subscriber"
       : "normal";
   }
@@ -421,7 +428,7 @@ class Redis extends Commander {
       return command.promise;
     }
     if (
-      this.condition.subscriber &&
+      this.condition?.subscriber &&
       !Command.checkFlag("VALID_IN_SUBSCRIBER_MODE", command.name)
     ) {
       command.reject(
@@ -491,7 +498,7 @@ class Redis extends Commander {
         debug(
           "write command[%s]: %d -> %s(%o)",
           this._getDescription(),
-          this.condition.select,
+          this.condition?.select,
           command.name,
           command.args
         );
@@ -600,6 +607,55 @@ class Redis extends Commander {
   }
 
   /**
+   * @ignore
+   */
+  recoverFromFatalError(
+    _commandError: Error,
+    err: Error,
+    options: FlushQueueOptions
+  ) {
+    this.flushQueue(err, options);
+    this.silentEmit("error", err);
+    this.disconnect(true);
+  }
+
+  /**
+   * @ignore
+   */
+  handleReconnection(err: Error, item: CommandItem) {
+    let needReconnect: ReturnType<ReconnectOnError> = false;
+    if (this.options.reconnectOnError) {
+      needReconnect = this.options.reconnectOnError(err);
+    }
+
+    switch (needReconnect) {
+      case 1:
+      case true:
+        if (this.status !== "reconnecting") {
+          this.disconnect(true);
+        }
+        item.command.reject(err);
+        break;
+      case 2:
+        if (this.status !== "reconnecting") {
+          this.disconnect(true);
+        }
+        if (
+          this.condition?.select !== item.select &&
+          item.command.name !== "select"
+        ) {
+          this.select(item.select);
+        }
+        // TODO
+        // @ts-expect-error
+        this.sendCommand(item.command);
+        break;
+      default:
+        item.command.reject(err);
+    }
+  }
+
+  /**
    * Get description of the connection. Used for debugging.
    */
   private _getDescription() {
@@ -630,45 +686,6 @@ class Redis extends Commander {
 
   private resetOfflineQueue() {
     this.offlineQueue = new Deque();
-  }
-
-  private recoverFromFatalError(commandError, err: Error | null, options) {
-    this.flushQueue(err, options);
-    this.silentEmit("error", err);
-    this.disconnect(true);
-  }
-
-  private handleReconnection(err: Error, item: CommandItem) {
-    let needReconnect: ReturnType<ReconnectOnError> = false;
-    if (this.options.reconnectOnError) {
-      needReconnect = this.options.reconnectOnError(err);
-    }
-
-    switch (needReconnect) {
-      case 1:
-      case true:
-        if (this.status !== "reconnecting") {
-          this.disconnect(true);
-        }
-        item.command.reject(err);
-        break;
-      case 2:
-        if (this.status !== "reconnecting") {
-          this.disconnect(true);
-        }
-        if (
-          this.condition.select !== item.select &&
-          item.command.name !== "select"
-        ) {
-          this.select(item.select);
-        }
-        // TODO
-        // @ts-expect-error
-        this.sendCommand(item.command);
-        break;
-      default:
-        item.command.reject(err);
-    }
   }
 
   private parseOptions(...args: unknown[]) {
@@ -744,7 +761,7 @@ class Redis extends Commander {
    * @param error The error object to send to the commands
    * @param options options
    */
-  private flushQueue(error: Error, options?: RedisOptions) {
+  private flushQueue(error: Error, options?: FlushQueueOptions) {
     options = defaults({}, options, {
       offlineQueue: true,
       commandQueue: true,
