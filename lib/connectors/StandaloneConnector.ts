@@ -4,8 +4,10 @@ import { NetStream } from "../types";
 import { CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import AbstractConnector, { ErrorEmitter } from "./AbstractConnector";
 
-export type StandaloneConnectionOptions = (Partial<TcpNetConnectOpts> &
-  Partial<IpcNetConnectOpts>) & {
+type TcpOptions = Pick<TcpNetConnectOpts, "port" | "host" | "family">;
+type IpcOptions = Pick<IpcNetConnectOpts, "path">;
+
+export type StandaloneConnectionOptions = Partial<TcpOptions & IpcOptions> & {
   disconnectTimeout?: number;
   tls?: ConnectionOptions;
 };
@@ -19,13 +21,13 @@ export default class StandaloneConnector extends AbstractConnector {
     const { options } = this;
     this.connecting = true;
 
-    let connectionOptions: TcpNetConnectOpts | IpcNetConnectOpts;
+    let connectionOptions: TcpOptions | IpcOptions;
     if ("path" in options && options.path) {
       connectionOptions = {
         path: options.path,
-      } as IpcNetConnectOpts;
+      } as IpcOptions;
     } else {
-      connectionOptions = {} as TcpNetConnectOpts;
+      connectionOptions = {} as TcpOptions;
       if ("port" in options && options.port != null) {
         connectionOptions.port = options.port;
       }
