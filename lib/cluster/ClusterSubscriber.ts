@@ -64,7 +64,9 @@ export default class ClusterSubscriber {
 
   private onSubscriberEnd = () => {
     if (!this.started) {
-      debug("subscriber has disconnected, but ClusterSubscriber is not started, so not reconnecting.");
+      debug(
+        "subscriber has disconnected, but ClusterSubscriber is not started, so not reconnecting."
+      );
       return;
     }
     // If the subscriber closes whilst it's still the active connection,
@@ -72,7 +74,7 @@ export default class ClusterSubscriber {
     // minimise the number of missed publishes.
     debug("subscriber has disconnected, selecting a new one...");
     this.selectSubscriber();
-  }
+  };
 
   private selectSubscriber() {
     const lastActiveSubscriber = this.lastActiveSubscriber;
@@ -122,7 +124,7 @@ export default class ClusterSubscriber {
       // Don't try to reconnect the subscriber connection. If the connection fails
       // we will get an end event (handled below), at which point we'll pick a new
       // node from the pool and try to connect to that as the subscriber connection.
-      retryStrategy: null
+      retryStrategy: null,
     });
 
     // Ignore the errors since they're handled in the connection pool.
@@ -136,7 +138,7 @@ export default class ClusterSubscriber {
     this.subscriber.once("end", this.onSubscriberEnd);
 
     // Re-subscribe previous channels
-    const previousChannels = { subscribe: [], psubscribe: [] };
+    const previousChannels = { subscribe: [], psubscribe: [], ssubscribe: [] };
     if (lastActiveSubscriber) {
       const condition =
         lastActiveSubscriber.condition || lastActiveSubscriber.prevCondition;
@@ -144,14 +146,17 @@ export default class ClusterSubscriber {
         previousChannels.subscribe = condition.subscriber.channels("subscribe");
         previousChannels.psubscribe =
           condition.subscriber.channels("psubscribe");
+        previousChannels.ssubscribe =
+          condition.subscriber.channels("ssubscribe");
       }
     }
     if (
       previousChannels.subscribe.length ||
-      previousChannels.psubscribe.length
+      previousChannels.psubscribe.length ||
+      previousChannels.ssubscribe.length
     ) {
       let pending = 0;
-      for (const type of ["subscribe", "psubscribe"]) {
+      for (const type of ["subscribe", "psubscribe", "ssubscribe"]) {
         const channels = previousChannels[type];
         if (channels.length) {
           pending += 1;
@@ -171,7 +176,12 @@ export default class ClusterSubscriber {
     } else {
       this.lastActiveSubscriber = this.subscriber;
     }
-    for (const event of ["message", "messageBuffer"]) {
+    for (const event of [
+      "message",
+      "messageBuffer",
+      "smessage",
+      "smessageBuffer",
+    ]) {
       this.subscriber.on(event, (arg1, arg2) => {
         this.emitter.emit(event, arg1, arg2);
       });
