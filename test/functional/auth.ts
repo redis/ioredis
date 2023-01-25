@@ -62,16 +62,16 @@ describe("auth", () => {
           return new Error("ERR Client sent AUTH, but no password is set");
         }
       });
-      let errorEmited = false;
+      let errorEmitted = false;
       const redis = new Redis({ port: 17379, password: "pass" });
       redis.on("error", () => {
-        errorEmited = true;
+        errorEmitted = true;
       });
       const stub = sinon.stub(console, "warn").callsFake((warn) => {
         if (warn.indexOf("but a password was supplied") !== -1) {
           stub.restore();
           setTimeout(() => {
-            expect(errorEmited).to.eql(false);
+            expect(errorEmitted).to.eql(false);
             redis.disconnect();
             done();
           }, 0);
