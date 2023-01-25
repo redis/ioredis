@@ -1,3 +1,10 @@
+## [5.2.6](https://github.com/luin/ioredis/compare/v5.2.5...v5.2.6) (2023-01-25)
+
+
+### Bug Fixes
+
+* remove extraneous TCP/IPC properties from RedisOptions TS type ([#1707](https://github.com/luin/ioredis/issues/1707)) ([9af7b1c](https://github.com/luin/ioredis/commit/9af7b1c0d0ab4723093d78bc05a142c9d0e3b4a8))
+
 ## [5.2.5](https://github.com/luin/ioredis/compare/v5.2.4...v5.2.5) (2023-01-14)
 
 
