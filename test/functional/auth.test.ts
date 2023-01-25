@@ -1,37 +1,33 @@
+import { describe, expect, it } from "@jest/globals";
 import MockServer from "../helpers/mock_server";
-import { expect } from "chai";
 import Redis from "../../lib/Redis";
 import * as sinon from "sinon";
 
 describe("auth", () => {
-  /* General non-Redis-version specific tests */
   it("should send auth before other commands", (done) => {
-    let authed = false;
+    let hasAuthenticated = false;
     new MockServer(17379, (argv) => {
       if (argv[0] === "auth" && argv[1] === "pass") {
-        authed = true;
+        hasAuthenticated = true;
       } else if (argv[0] === "get" && argv[1] === "foo") {
-        expect(authed).to.eql(true);
-        redis.disconnect();
+        expect(hasAuthenticated).toBeTruthy();
         done();
       }
     });
-    const redis = new Redis({ port: 17379, password: "pass" });
-    redis.get("foo").catch(() => {});
+    new Redis({ port: 17379, password: "pass" }).get("foo").catch(() => {});
   });
 
   it("should resend auth after reconnect", (done) => {
     let begin = false;
-    let authed = false;
+    let hasAuthenticated = false;
     new MockServer(17379, (argv) => {
       if (!begin) {
         return;
       }
       if (argv[0] === "auth" && argv[1] === "pass") {
-        authed = true;
+        hasAuthenticated = true;
       } else if (argv[0] === "get" && argv[1] === "foo") {
-        expect(authed).to.eql(true);
-        redis.disconnect();
+        expect(hasAuthenticated).toBeTruthy();
         done();
       }
     });
@@ -46,14 +42,12 @@ describe("auth", () => {
   describe("auth:redis5-specific", () => {
     it("should handle auth with Redis URL string (redis://:foo@bar.com/) correctly", (done) => {
       const password = "pass";
-      let redis;
       new MockServer(17379, (argv) => {
         if (argv[0] === "auth" && argv[1] === password) {
-          redis.disconnect();
           done();
         }
       });
-      redis = new Redis(`redis://:${password}@localhost:17379/`);
+      new Redis(`redis://:${password}@localhost:17379/`);
     });
 
     it('should not emit "error" when the server doesn\'t need auth', (done) => {
@@ -71,8 +65,7 @@ describe("auth", () => {
         if (warn.indexOf("but a password was supplied") !== -1) {
           stub.restore();
           setTimeout(() => {
-            expect(errorEmitted).to.eql(false);
-            redis.disconnect();
+            expect(errorEmitted).toBeFalsy();
             done();
           }, 0);
         }
@@ -89,16 +82,15 @@ describe("auth", () => {
       let pending = 2;
       function check() {
         if (!--pending) {
-          redis.disconnect();
           done();
         }
       }
       redis.on("error", (error) => {
-        expect(error).to.have.property("message", "ERR invalid password");
+        expect(error).toHaveProperty("message", "ERR invalid password");
         check();
       });
-      redis.get("foo", function (err, res) {
-        expect(err.message).to.eql("ERR invalid password");
+      redis.get("foo", (err) => {
+        expect(err?.message).toEqual("ERR invalid password");
         check();
       });
     });
@@ -111,11 +103,10 @@ describe("auth", () => {
       });
       const redis = new Redis({ port: 17379 });
       redis.on("error", (error) => {
-        expect(error).to.have.property(
+        expect(error).toHaveProperty(
           "message",
           "NOAUTH Authentication required."
         );
-        redis.disconnect();
         done();
       });
     });
@@ -143,7 +134,6 @@ describe("auth", () => {
         ) {
           stub.restore();
           setTimeout(() => {
-            redis.disconnect();
             done();
           }, 0);
         }
@@ -163,7 +153,6 @@ describe("auth", () => {
           argv[1] === username &&
           argv[2] === password
         ) {
-          redis.disconnect();
           done();
         }
       });
@@ -173,20 +162,16 @@ describe("auth", () => {
     it("should handle auth with Redis URL string with username and password (Redis >=6) (redis://foo:bar@baz.com/) correctly", (done) => {
       let username = "user";
       let password = "pass";
-      let redis;
       new MockServer(17379, (argv) => {
         if (
           argv[0] === "auth" &&
           argv[1] === username &&
           argv[2] === password
         ) {
-          redis.disconnect();
           done();
         }
       });
-      redis = new Redis(
-        `redis://user:pass@localhost:17379/?allowUsernameInURI=true`
-      );
+      new Redis(`redis://user:pass@localhost:17379/?allowUsernameInURI=true`);
     });
 
     it('should not emit "error" when the Redis >=6 server doesn\'t need auth', (done) => {
@@ -197,17 +182,16 @@ describe("auth", () => {
           );
         }
       });
-      let errorEmited = false;
+      let hasErrorEmitted = false;
       const redis = new Redis({ port: 17379, password: "pass" });
       redis.on("error", () => {
-        errorEmited = true;
+        hasErrorEmitted = true;
       });
       const stub = sinon.stub(console, "warn").callsFake((warn) => {
         if (warn.indexOf("`default` user does not require a password") !== -1) {
           stub.restore();
           setTimeout(() => {
-            expect(errorEmited).to.eql(false);
-            redis.disconnect();
+            expect(hasErrorEmitted).toBeFalsy();
             done();
           }, 0);
         }
@@ -229,11 +213,10 @@ describe("auth", () => {
       });
       redis = new Redis({ port: 17379, username });
       redis.on("error", (error) => {
-        expect(error).to.have.property(
+        expect(error).toHaveProperty(
           "message",
           "WRONGPASS invalid username-password pair"
         );
-        redis.disconnect();
         done();
       });
     });
@@ -253,11 +236,10 @@ describe("auth", () => {
       });
       redis = new Redis({ port: 17379, username, password: "notpass" });
       redis.on("error", (error) => {
-        expect(error).to.have.property(
+        expect(error).toHaveProperty(
           "message",
           "WRONGPASS invalid username-password pair"
         );
-        redis.disconnect();
         done();
       });
     });
@@ -270,11 +252,10 @@ describe("auth", () => {
       });
       const redis = new Redis({ port: 17379 });
       redis.on("error", (error) => {
-        expect(error).to.have.property(
+        expect(error).toHaveProperty(
           "message",
           "NOAUTH Authentication required."
         );
-        redis.disconnect();
         done();
       });
     });

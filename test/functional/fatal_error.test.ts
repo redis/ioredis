@@ -1,9 +1,9 @@
 import Redis from "../../lib/Redis";
-import { expect } from "chai";
+import { describe, expect, it } from "@jest/globals";
 import MockServer from "../helpers/mock_server";
 
 describe("fatal_error", () => {
-  it("should handle fatal error of parser", (done) => {
+  it("should handle fatal error of parser", async () => {
     let recovered = false;
     new MockServer(30000, (argv) => {
       if (recovered) {
@@ -14,14 +14,9 @@ describe("fatal_error", () => {
       }
     });
     const redis = new Redis(30000);
-    redis.get("foo", function (err) {
-      expect(err.message).to.match(/Protocol error/);
+    await expect(redis.get("foo")).rejects.toThrow(/Protocol error/);
 
-      recovered = true;
-      redis.get("bar", function (err) {
-        expect(err).to.eql(null);
-        done();
-      });
-    });
+    recovered = true;
+    await redis.get("bar");
   });
 });

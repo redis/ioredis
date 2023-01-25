@@ -7,7 +7,7 @@ export type ReconnectOnError = (err: Error) => boolean | 1 | 2;
 
 export interface CommonRedisOptions extends CommanderOptions {
   Connector?: ConnectorConstructor;
-  retryStrategy?: (times: number) => number | void | null;
+  retryStrategy?: ((times: number) => number | void | null) | null;
 
   /**
    * If a command does not return a reply within a set number of milliseconds,
