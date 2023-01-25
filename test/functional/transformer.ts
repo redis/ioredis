@@ -1,5 +1,4 @@
 import Redis from "../../lib/Redis";
-import { getRedisVersion } from "../helpers/util";
 import { expect } from "chai";
 
 describe("transformer", () => {
@@ -135,11 +134,6 @@ describe("transformer", () => {
     describe("hset", () => {
       it("should support object", async () => {
         const redis = new Redis();
-        const [major] = await getRedisVersion(redis);
-        if (major < 4) {
-          // Skip if redis is too outdated to hset multiple pairs at once.
-          return;
-        }
         // NOTE: could simplify these tests using await redis.hset instead,
         // but not sure if this is deliberately testing the transformers with callbacks
         return new Promise((resolve, reject) => {
@@ -157,11 +151,6 @@ describe("transformer", () => {
       });
       it("should support Map", async () => {
         const redis = new Redis();
-        const [major] = await getRedisVersion(redis);
-        if (major < 4) {
-          // Skip if redis is too outdated to hset multiple pairs at once.
-          return;
-        }
         const map = new Map();
         map.set("a", 1);
         map.set("b", "e");
@@ -183,12 +172,6 @@ describe("transformer", () => {
       });
       it("should affect the old way", async () => {
         const redis = new Redis();
-        const [major] = await getRedisVersion(redis);
-        if (major < 4) {
-          // Skip if redis is too outdated to hset multiple pairs at once.
-          return;
-        }
-
         return new Promise((resolve) => {
           redis.hset("foo", "a", 1, "b", "e", function (err, result) {
             expect(result).to.eql(2);
