@@ -43,13 +43,13 @@ export function convertBufferToString(value: any, encoding?: BufferEncoding) {
  * expect(output).to.eql([[null, 'a'], [null, 'b'], [new Error('c')], [null, 'd'])
  * ```
  */
-export function wrapMultiResult(arr: unknown[] | null): unknown[][] {
+export function wrapMultiResult(arr: unknown[] | null): unknown[][] | null {
   // When using WATCH/EXEC transactions, the EXEC will return
   // a null instead of an array
   if (!arr) {
     return null;
   }
-  const result = [];
+  const result: unknown[][] = [];
   const length = arr.length;
   for (let i = 0; i < length; ++i) {
     const item = arr[i];
@@ -133,7 +133,7 @@ export function timeout<T>(
 export function convertObjectToArray<T>(
   obj: Record<string, T>
 ): (string | T)[] {
-  const result = [];
+  const result: (string | T)[] = [];
   const keys = Object.keys(obj); // Object.entries requires node 7+
 
   for (let i = 0, l = keys.length; i < l; i++) {
@@ -185,7 +185,7 @@ export function optimizeErrorStack(
 ) {
   const stacks = friendlyStack.split("\n");
   let lines = "";
-  let i;
+  let i: number;
   for (i = 1; i < stacks.length; ++i) {
     if (stacks[i].indexOf(filterPath) === -1) {
       break;
@@ -194,8 +194,10 @@ export function optimizeErrorStack(
   for (let j = i; j < stacks.length; ++j) {
     lines += "\n" + stacks[j];
   }
-  const pos = error.stack.indexOf("\n");
-  error.stack = error.stack.slice(0, pos) + lines;
+  if (error.stack) {
+    const pos = error.stack.indexOf("\n");
+    error.stack = error.stack.slice(0, pos) + lines;
+  }
   return error;
 }
 
@@ -278,7 +280,7 @@ export function resolveTLSProfile(options: TLSOptions): TLSOptions {
 export function sample<T>(array: T[], from = 0): T {
   const length = array.length;
   if (from >= length) {
-    return;
+    return null;
   }
   return array[from + Math.floor(Math.random() * (length - from))];
 }

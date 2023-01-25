@@ -10,7 +10,7 @@ interface Options extends ReadableOptions {
 }
 
 /**
- * Convenient class to convert the process of scaning keys to a readable stream.
+ * Convenient class to convert the process of scanning keys to a readable stream.
  */
 export default class ScanStream extends Readable {
   private _redisCursor = "0";

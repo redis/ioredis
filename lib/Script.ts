@@ -8,7 +8,7 @@ export default class Script {
 
   constructor(
     private lua: string,
-    private numberOfKeys: number = null,
+    private numberOfKeys: number | null = null,
     private keyPrefix: string = "",
     private readOnly: boolean = false
   ) {
