@@ -1,7 +1,7 @@
 import Redis from "../../lib/Redis";
 import { expect, use } from "chai";
 import * as sinon from "sinon";
-import { getRedisVersion, waitForMonitorReady } from "../helpers/util";
+import { waitForMonitorReady } from "../helpers/util";
 
 use(require("chai-as-promised"));
 
@@ -22,7 +22,7 @@ describe("monitor", () => {
           done();
         });
 
-        await waitForMonitorReady(monitor);
+        await waitForMonitorReady();
         redis.get("foo");
       });
     });
@@ -31,7 +31,7 @@ describe("monitor", () => {
   it("should reject processing commands", (done) => {
     const redis = new Redis();
     redis.monitor(async (err, monitor) => {
-      await waitForMonitorReady(monitor);
+      await waitForMonitorReady();
       monitor.get("foo", function (err) {
         expect(err.message).to.match(/Connection is in monitoring mode/);
         redis.disconnect();
@@ -44,7 +44,7 @@ describe("monitor", () => {
   it("should report being in 'monitor' mode", (done) => {
     const redis = new Redis();
     redis.monitor(async (err, monitor) => {
-      await waitForMonitorReady(monitor);
+      await waitForMonitorReady();
       expect(redis.mode).to.equal("normal");
       expect(monitor.mode).to.equal("monitor");
       redis.disconnect();
@@ -69,7 +69,7 @@ describe("monitor", () => {
       });
       monitor.disconnect(true);
       monitor.on("ready", async () => {
-        await waitForMonitorReady(monitor);
+        await waitForMonitorReady();
         redis.set("foo", "bar");
       });
     });
@@ -91,11 +91,6 @@ describe("monitor", () => {
 
   it("rejects when monitor is disabled", async () => {
     const redis = new Redis();
-    const [major] = await getRedisVersion(redis);
-    if (major < 6) {
-      return;
-    }
-
     await redis.acl("SETUSER", "nomonitor", "reset", "+info", ">123456", "on");
 
     await expect(

@@ -8,7 +8,6 @@ jobs:
       fail-fast: false
       matrix:
         node: [12.x, 14.x, 16.x, 18.x]
-        redis: ['2', '6']
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
@@ -21,7 +20,7 @@ jobs:
       - name: Start Redis
         uses: supercharge/redis-github-action@1.4.0
         with:
-          redis-version: ${{ matrix.redis }}
+          redis-version: latest
 
       - run: npm install
       - run: npm run lint
@@ -29,11 +28,11 @@ jobs:
       - run: npm run test:tsd
       - run: npm run test:cov || npm run test:cov || npm run test:cov
       - name: Coveralls
-        if: matrix.node == '18.x' && matrix.redis == '6'
+        if: matrix.node == '18.x'
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          flag-name: redis-${{matrix.redis}}-node-${{matrix.node}}
+          flag-name: node-${{matrix.node}}
           parallel: true
 
   test-cluster:
@@ -47,8 +46,8 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-    - name: Coveralls
-      uses: coverallsapp/github-action@master
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        parallel-finished: true
+      - name: Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true

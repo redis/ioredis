@@ -3,7 +3,6 @@ import { expect } from "chai";
 import { Readable } from "stream";
 import * as sinon from "sinon";
 import MockServer from "../helpers/mock_server";
-import { getRedisVersion } from "../helpers/util";
 import { Cluster } from "../../lib";
 
 describe("*scanStream", () => {
@@ -51,10 +50,6 @@ describe("*scanStream", () => {
     it("should recognize `TYPE`", async () => {
       let keys = [];
       const redis = new Redis();
-      const [major] = await getRedisVersion(redis);
-      if (major < 6) {
-        return;
-      }
       redis.set("foo1", "bar");
       redis.set("foo2", "bar");
       redis.set("foo3", "bar");
