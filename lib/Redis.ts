@@ -347,7 +347,7 @@ class Redis extends Commander {
    get mode(): "normal" | "subscriber" | "monitor" {
     return this.options.monitor
       ? "monitor"
-      : this.condition.subscriber
+      : this.condition && this.condition.subscriber
       ? "subscriber"
       : "normal";
   }
