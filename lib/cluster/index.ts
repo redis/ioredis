@@ -564,7 +564,7 @@ class Cluster extends Commander {
                   redis = nodes[0];
                 }
               } else {
-                let key;
+                let key: string;
                 if (to === "all") {
                   key = sample(nodeKeys);
                 } else if (to === "slave" && nodeKeys.length > 1) {

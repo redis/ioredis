@@ -116,7 +116,7 @@ function abortError(command: Respondable) {
 function abortIncompletePipelines(commandQueue: Deque<CommandItem>) {
   let expectedIndex = 0;
   for (let i = 0; i < commandQueue.length; ) {
-    const command = commandQueue.peekAt(i).command as Command;
+    const command = commandQueue.peekAt(i)?.command as Command;
     const pipelineIndex = command.pipelineIndex;
     if (pipelineIndex === undefined || pipelineIndex === 0) {
       expectedIndex = 0;
@@ -135,7 +135,7 @@ function abortIncompletePipelines(commandQueue: Deque<CommandItem>) {
 // offline queue
 function abortTransactionFragments(commandQueue: Deque<CommandItem>) {
   for (let i = 0; i < commandQueue.length; ) {
-    const command = commandQueue.peekAt(i).command as Command;
+    const command = commandQueue.peekAt(i)?.command as Command;
     if (command.name === "multi") {
       break;
     }
