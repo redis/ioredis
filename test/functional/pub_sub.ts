@@ -204,4 +204,13 @@ describe("pub/sub", function () {
       redis.disconnect(true);
     });
   });
+
+  it("should unsubscribe when stringNumbers is enabled", async () => {
+    const redis = new Redis({ stringNumbers: true });
+    await redis.subscribe("foo");
+    const count = await redis.unsubscribe();
+    expect(count).to.eql("0");
+    expect(await redis.set("foo", "bar")).to.eql("OK");
+    redis.disconnect();
+  });
 });

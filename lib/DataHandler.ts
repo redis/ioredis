@@ -176,7 +176,7 @@ export default class DataHandler {
           this.redis.condition.subscriber.del(replyType, channel);
         }
         const count = reply[2];
-        if (count === 0) {
+        if (Number(count) === 0) {
           this.redis.condition.subscriber = false;
         }
         const item = this.shiftCommand(reply);
@@ -209,7 +209,7 @@ export default class DataHandler {
       // Valid commands in the monitoring mode are AUTH and MONITOR,
       // both of which always reply with 'OK'.
       // So if we got an 'OK', we can make certain that
-      // the reply is made to AUTH & MONITO.
+      // the reply is made to AUTH & MONITOR.
       return false;
     }
 
@@ -218,12 +218,12 @@ export default class DataHandler {
     // realtime monitor data instead of result of commands.
     const len = replyStr.indexOf(" ");
     const timestamp = replyStr.slice(0, len);
-    const argindex = replyStr.indexOf('"');
+    const argIndex = replyStr.indexOf('"');
     const args = replyStr
-      .slice(argindex + 1, -1)
+      .slice(argIndex + 1, -1)
       .split('" "')
       .map((elem) => elem.replace(/\\"/g, '"'));
-    const dbAndSource = replyStr.slice(len + 2, argindex - 2).split(" ");
+    const dbAndSource = replyStr.slice(len + 2, argIndex - 2).split(" ");
     this.redis.emit("monitor", timestamp, args, dbAndSource[1], dbAndSource[0]);
     return true;
   }
@@ -270,7 +270,7 @@ function fillUnsubCommand(command: Respondable, count: number) {
     : command.args.length;
 
   if (remainingReplies === 0) {
-    if (count === 0) {
+    if (Number(count) === 0) {
       remainingRepliesMap.delete(command);
       command.resolve(count);
       return true;
