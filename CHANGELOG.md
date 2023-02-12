@@ -1,3 +1,11 @@
+## [5.3.1](https://github.com/luin/ioredis/compare/v5.3.0...v5.3.1) (2023-02-12)
+
+
+### Bug Fixes
+
+* Fix commands not resend on reconnect in edge cases ([#1720](https://github.com/luin/ioredis/issues/1720)) ([fe52ff1](https://github.com/luin/ioredis/commit/fe52ff1c6f4cb1beb0c9e999299248ba380d5cde)), closes [#1718](https://github.com/luin/ioredis/issues/1718)
+* Fix db parameter not working with auto pipelining ([#1721](https://github.com/luin/ioredis/issues/1721)) ([d9b1bf1](https://github.com/luin/ioredis/commit/d9b1bf1a2868344eaff71cc39c790e98043fff53))
+
 # [5.3.0](https://github.com/luin/ioredis/compare/v5.2.6...v5.3.0) (2023-01-25)
 
 
