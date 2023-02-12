@@ -31,6 +31,16 @@ describe("autoPipelining for single node", () => {
     await promises;
   });
 
+  it("should work with db parameter", async () => {
+    const redis = new Redis({ enableAutoPipelining: true, db: 1 });
+
+    redis.set("foo", "bar");
+    await new Promise((resolve) => {
+      redis.once("ready", resolve);
+    });
+    expect(await redis.get("foo")).to.eql("bar");
+  });
+
   it("should not add blacklisted commands to auto pipelines", async () => {
     const redis = new Redis({
       enableAutoPipelining: true,
