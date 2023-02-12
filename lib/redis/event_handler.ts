@@ -155,17 +155,23 @@ function abortTransactionFragments(commandQueue: Deque<CommandItem>) {
 
 export function closeHandler(self) {
   return function () {
+    const prevStatus = self.status;
     self.setStatus("close");
 
-    if (!self.prevCondition) {
-      self.prevCondition = self.condition;
-    }
     if (self.commandQueue.length) {
       abortIncompletePipelines(self.commandQueue);
-      self.prevCommandQueue = self.commandQueue;
     }
     if (self.offlineQueue.length) {
       abortTransactionFragments(self.offlineQueue);
+    }
+
+    if (prevStatus === "ready") {
+      if (!self.prevCondition) {
+        self.prevCondition = self.condition;
+      }
+      if (self.commandQueue.length) {
+        self.prevCommandQueue = self.commandQueue;
+      }
     }
 
     if (self.manuallyClosing) {
