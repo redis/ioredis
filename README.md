@@ -884,6 +884,15 @@ Alternatively, specify the connection through a [`rediss://` URL](https://www.ia
 const redis = new Redis("rediss://redis.my-service.com");
 ```
 
+If you do not want to use a connection string, you can also specify an empty `tls: {}` object:
+
+```javascript
+const redis = new Redis({
+  host: 'redis.my-service.com',
+  tls: {}
+});
+```
+
 ### TLS Profiles
 
 > **Warning**
