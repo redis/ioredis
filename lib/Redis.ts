@@ -838,7 +838,48 @@ class Redis extends Commander implements DataHandledable {
   }
 }
 
-interface Redis extends EventEmitter {}
+interface Redis extends EventEmitter {
+  on(event: "message", cb: (channel: string, message: string) => void): this;
+  once(event: "message", cb: (channel: string, message: string) => void): this;
+
+  on(
+    event: "messageBuffer",
+    cb: (channel: Buffer, message: Buffer) => void
+  ): this;
+  once(
+    event: "messageBuffer",
+    cb: (channel: Buffer, message: Buffer) => void
+  ): this;
+
+  on(
+    event: "pmessage",
+    cb: (pattern: string, channel: string, message: string) => void
+  ): this;
+  once(
+    event: "pmessage",
+    cb: (pattern: string, channel: string, message: string) => void
+  ): this;
+
+  on(
+    event: "pmessageBuffer",
+    cb: (pattern: string, channel: Buffer, message: Buffer) => void
+  ): this;
+  once(
+    event: "pmessageBuffer",
+    cb: (pattern: string, channel: Buffer, message: Buffer) => void
+  ): this;
+
+  on(event: "error", cb: (error: Error) => void): this;
+  once(event: "error", cb: (error: Error) => void): this;
+
+  on(event: RedisStatus, cb: () => void): this;
+  once(event: RedisStatus, cb: () => void): this;
+
+  // base method of EventEmitter
+  on(event: string | symbol, listener: (...args: any[]) => void): this;
+  once(event: string | symbol, listener: (...args: any[]) => void): this;
+}
+
 applyMixin(Redis, EventEmitter);
 
 addTransactionSupport(Redis.prototype);
