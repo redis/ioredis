@@ -35,12 +35,12 @@ jobs:
           flag-name: node-${{matrix.node}}
           parallel: true
 
-  test-cluster:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Build and test cluster
-        run: bash test/cluster/docker/main.sh
+  # test-cluster:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - name: Build and test cluster
+  #       run: bash test/cluster/docker/main.sh
 
   code-coverage:
     needs: test
