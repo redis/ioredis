@@ -1,3 +1,10 @@
+## [5.3.2](https://github.com/luin/ioredis/compare/v5.3.1...v5.3.2) (2023-04-15)
+
+
+### Bug Fixes
+
+* add types for known events ([#1694](https://github.com/luin/ioredis/issues/1694)) ([1a87b23](https://github.com/luin/ioredis/commit/1a87b237e8f43f1dee44dcab8e9da6855bbf772a))
+
 ## [5.3.1](https://github.com/luin/ioredis/compare/v5.3.0...v5.3.1) (2023-02-12)
 
 

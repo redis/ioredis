@@ -1,6 +1,6 @@
 {
   "name": "ioredis",
-  "version": "5.3.1",
+  "version": "5.3.2",
   "description": "A robust, performance-focused and full-featured Redis client for Node.js.",
   "main": "./built/index.js",
   "types": "./built/index.d.ts",
