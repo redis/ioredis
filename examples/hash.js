@@ -10,7 +10,7 @@ async function main() {
     description: "I am a programmer",
   };
 
-  await redis.hmset("user-hash", user);
+  await redis.hset("user-hash", user);
 
   const name = await redis.hget("user-hash", "name");
   console.log(name); // "Bob"
