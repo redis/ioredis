@@ -302,6 +302,16 @@ async function listenForMessage(lastId = "$") {
 listenForMessage();
 ```
 
+## Expiration
+
+Redis can set a timeout to expire your key, after the timeout has expired the key will be automatically deleted. (You can find the [official Expire documentation](https://redis.io/commands/expire/) to understand better the different parameters you can use), to set your key to expire in 1000 seconds, we will have the following code:
+
+```javascript
+redis.set("key", "data", "EX", 1000);
+// Equivalent to redis command "SET key data EX 1000", because on ioredis set method, 
+// all arguments are passed directly to the redis server.
+```
+
 ## Handle Binary Data
 
 Binary data support is out of the box. Pass buffers to send binary data:
