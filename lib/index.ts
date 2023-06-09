@@ -70,6 +70,8 @@ export type {
 // No TS typings
 export const ReplyError = require("redis-errors").ReplyError;
 
+export * as Errors from "./errors";
+
 /**
  * @ignore
  */
