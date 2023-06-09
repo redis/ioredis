@@ -1,5 +1,6 @@
 import Redis from "../../lib/Redis";
 import { expect } from "chai";
+import { StreamNotWritable } from "../../lib/errors";
 
 describe("send command", () => {
   it("should support callback", (done) => {
@@ -260,9 +261,7 @@ describe("send command", () => {
     const redis = new Redis({ enableOfflineQueue: false });
     redis.on("connect", () => {
       redis.get("foo", function (err) {
-        expect(err.message).to.eql(
-          "Stream isn't writeable and enableOfflineQueue options is false"
-        );
+        expect(err).to.be(typeof(StreamNotWritable));
         done();
       });
     });

@@ -33,6 +33,7 @@ import applyMixin from "./utils/applyMixin";
 import Commander from "./utils/Commander";
 import { defaults, noop } from "./utils/lodash";
 import Deque = require("denque");
+import { StreamNotWritable } from "./errors";
 const debug = Debug("redis");
 
 type RedisStatus =
@@ -463,9 +464,7 @@ class Redis extends Commander implements DataHandledable {
     if (!writable) {
       if (!this.options.enableOfflineQueue) {
         command.reject(
-          new Error(
-            "Stream isn't writeable and enableOfflineQueue options is false"
-          )
+          new StreamNotWritable()
         );
         return command.promise;
       }
