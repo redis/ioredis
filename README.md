@@ -1,6 +1,6 @@
-[![ioredis](https://cdn.jsdelivr.net/gh/luin/ioredis@b5e8c74/logo.svg)](https://github.com/luin/ioredis)
+[![ioredis](https://cdn.jsdelivr.net/gh/redis/ioredis@b5e8c74/logo.svg)](https://github.com/redis/ioredis)
 
-[![Build Status](https://github.com/luin/ioredis/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/luin/ioredis/actions/workflows/release.yml?query=branch%3Amain)
+[![Build Status](https://github.com/redis/ioredis/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/redis/ioredis/actions/workflows/release.yml?query=branch%3Amain)
 [![Coverage Status](https://coveralls.io/repos/github/luin/ioredis/badge.svg?branch=main)](https://coveralls.io/github/luin/ioredis?branch=main)
 [![Join the chat at https://gitter.im/luin/ioredis](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/luin/ioredis?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
@@ -20,9 +20,9 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 2. Delightful API 😄. It works with Node callbacks and Native promises.
 3. Transformation of command arguments and replies.
 4. Transparent key prefixing.
-5. Abstraction for Lua scripting, allowing you to [define custom commands](https://github.com/luin/ioredis#lua-scripting).
-6. Supports [binary data](https://github.com/luin/ioredis#handle-binary-data).
-7. Supports [TLS](https://github.com/luin/ioredis#tls-options) 🔒.
+5. Abstraction for Lua scripting, allowing you to [define custom commands](https://github.com/redis/ioredis#lua-scripting).
+6. Supports [binary data](https://github.com/redis/ioredis#handle-binary-data).
+7. Supports [TLS](https://github.com/redis/ioredis#tls-options) 🔒.
 8. Supports offline queue and ready checking.
 9. Supports ES6 types, such as `Map` and `Set`.
 10. Supports GEO commands 📍.
@@ -44,13 +44,13 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 
 Refer to [CHANGELOG.md](CHANGELOG.md) for features and bug fixes introduced in v5.
 
-🚀 [Upgrading from v4 to v5](https://github.com/luin/ioredis/wiki/Upgrading-from-v4-to-v5)
+🚀 [Upgrading from v4 to v5](https://github.com/redis/ioredis/wiki/Upgrading-from-v4-to-v5)
 
 # Links
 
-- [API Documentation](https://luin.github.io/ioredis/) ([Redis](https://luin.github.io/ioredis/classes/Redis.html), [Cluster](https://luin.github.io/ioredis/classes/Cluster.html))
+- [API Documentation](https://redis.github.io/ioredis/) ([Redis](https://redis.github.io/ioredis/classes/Redis.html), [Cluster](https://redis.github.io/ioredis/classes/Cluster.html))
 - [Changelog](CHANGELOG.md)
-- [Migrating from node_redis](https://github.com/luin/ioredis/wiki/Migrating-from-node_redis)
+- [Migrating from node_redis](https://github.com/redis/ioredis/wiki/Migrating-from-node_redis)
 
 <hr>
 
@@ -156,7 +156,7 @@ See the `examples/` folder for more examples. For example:
 - [Streams](examples/stream.js)
 - [Redis Modules](examples/module.js) e.g. RedisJSON
 
-All Redis commands are supported. See [the documentation](https://luin.github.io/ioredis/classes/Redis.html) for details.
+All Redis commands are supported. See [the documentation](https://redis.github.io/ioredis/classes/Redis.html) for details.
 
 ## Connect to Redis
 
@@ -188,7 +188,7 @@ new Redis("redis://:authpassword@127.0.0.1:6380/4");
 new Redis("redis://username:authpassword@127.0.0.1:6380/4");
 ```
 
-See [API Documentation](https://luin.github.io/ioredis/index.html#RedisOptions) for all available options.
+See [API Documentation](https://redis.github.io/ioredis/index.html#RedisOptions) for all available options.
 
 ## Pub/Sub
 
@@ -569,8 +569,8 @@ This feature allows you to specify a string that will automatically be prepended
 to all the keys in a command, which makes it easier to manage your key
 namespaces.
 
-**Warning** This feature won't apply to commands like [KEYS](http://redis.io/commands/KEYS) and [SCAN](http://redis.io/commands/scan) that take patterns rather than actual keys([#239](https://github.com/luin/ioredis/issues/239)),
-and this feature also won't apply to the replies of commands even if they are key names ([#325](https://github.com/luin/ioredis/issues/325)).
+**Warning** This feature won't apply to commands like [KEYS](http://redis.io/commands/KEYS) and [SCAN](http://redis.io/commands/scan) that take patterns rather than actual keys([#239](https://github.com/redis/ioredis/issues/239)),
+and this feature also won't apply to the replies of commands even if they are key names ([#325](https://github.com/redis/ioredis/issues/325)).
 
 ```javascript
 const fooRedis = new Redis({ keyPrefix: "foo:" });
@@ -1443,7 +1443,7 @@ Thank you for using ioredis :-)
 
 This project exists thanks to all the people who contribute:
 
-<a href="https://github.com/luin/ioredis/graphs/contributors"><img src="https://opencollective.com/ioredis/contributors.svg?width=890&showBtn=false" /></a>
+<a href="https://github.com/redis/ioredis/graphs/contributors"><img src="https://opencollective.com/ioredis/contributors.svg?width=890&showBtn=false" /></a>
 
 # License
 
