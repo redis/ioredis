@@ -80,7 +80,7 @@ export function wrapMultiResult(arr: unknown[] | null): unknown[][] | null {
  */
 export function isInt(value: any): value is string {
   const x = parseFloat(value);
-  return !isNaN(value) && (x | 0) === x;
+  return Number.isInteger(x);
 }
 
 /**
