@@ -79,7 +79,7 @@ export function wrapMultiResult(arr: unknown[] | null): unknown[][] | null {
  * ```
  */
 export function isInt(value: any): value is string {
-  const x = parseFloat(value);
+  const x = Number(value);
   return Number.isInteger(x);
 }
 
