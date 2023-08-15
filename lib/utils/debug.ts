@@ -65,7 +65,7 @@ export default function genDebugFunction(
     let sanitizeString = false;
     // we skip the first arg because that is the message
     for (let i = 1; i < args.length; i++) {
-        const str = getStringValue(args[i]);;
+        const str = getStringValue(args[i]);
         if(sanitizeString) {
             // The previous array index indicates this current index
             // needs to be removed from the logs.
