@@ -2,13 +2,17 @@
 
 [![Build Status](https://github.com/redis/ioredis/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/redis/ioredis/actions/workflows/release.yml?query=branch%3Amain)
 [![Coverage Status](https://coveralls.io/repos/github/luin/ioredis/badge.svg?branch=main)](https://coveralls.io/github/luin/ioredis?branch=main)
-[![Join the chat at https://gitter.im/luin/ioredis](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/luin/ioredis?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
 [![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
 
+[![Discord](https://img.shields.io/discord/697882427875393627.svg?style=social&logo=discord)](https://discord.gg/redis)
+[![Twitch](https://img.shields.io/twitch/status/redisinc?style=social)](https://www.twitch.tv/redisinc)
+[![YouTube](https://img.shields.io/youtube/channel/views/UCD78lHSwYqMlyetR0_P4Vig?style=social)](https://www.youtube.com/redisinc)
+[![Twitter](https://img.shields.io/twitter/follow/redisinc?style=social)](https://twitter.com/redisinc)
+
 A robust, performance-focused and full-featured [Redis](http://redis.io) client for [Node.js](https://nodejs.org).
 
-Supports Redis >= 2.6.12 and the latest version of [Dragonfly](https://dragonflydb.io/). Completely compatible with Redis 7.x.
+Supports Redis >= 2.6.12. Completely compatible with Redis 7.x.
 
 # Features
 
@@ -50,40 +54,6 @@ Refer to [CHANGELOG.md](CHANGELOG.md) for features and bug fixes introduced in v
 
 - [API Documentation](https://redis.github.io/ioredis/) ([Redis](https://redis.github.io/ioredis/classes/Redis.html), [Cluster](https://redis.github.io/ioredis/classes/Cluster.html))
 - [Changelog](CHANGELOG.md)
-- [Migrating from node_redis](https://github.com/redis/ioredis/wiki/Migrating-from-node_redis)
-
-<hr>
-
-# Sponsors
-
-### Upstash: Serverless Database for Redis
-
-<a href="https://upstash.com/?utm_source=ioredis"><img align="right" width="320" src="resources/upstash.png" alt="Upstash"></a>
-
-Upstash is a Serverless Database with Redis/REST API and durable storage. It is the perfect database for your applications thanks to its per request pricing and low latency data.
-
-[Start for free in 30 seconds!](https://upstash.com/?utm_source=ioredis)
-
-<br clear="both"/>
-
-### Medis: Redis GUI for macOS
-
-<a href="https://getmedis.com/"><img align="right" width="404" src="resources/medis.png" alt="Download on the App Store"></a>
-
-Looking for a Redis GUI for macOS, Windows and Linux? Here's [Medis](https://getmedis.com/)!
-
-Medis is an open-sourced, beautiful, easy-to-use Redis GUI management application.
-
-Medis starts with all the basic features you need:
-
-- Keys viewing/editing
-- SSH Tunnel for connecting with remote servers
-- Terminal for executing custom commands
-- And other awesome features...
-
-[Medis 1 is open sourced on GitHub](https://github.com/luin/medis)
-
-<br clear="both"/>
 
 <hr>
 
@@ -1430,14 +1400,6 @@ $ DEBUG=ioredis:* node app.js
 I'm happy to receive bug reports, fixes, documentation enhancements, and any other improvements.
 
 And since I'm not a native English speaker, if you find any grammar mistakes in the documentation, please also let me know. :)
-
-# Become a Sponsor
-
-Open source is hard and time-consuming. If you want to invest in ioredis's future you can become a sponsor and make us spend more time on this library's improvements and new features.
-
-<a href="https://opencollective.com/ioredis"><img src="https://opencollective.com/ioredis/tiers/sponsor.svg?avatarHeight=36"></a>
-
-Thank you for using ioredis :-)
 
 # Contributors
 
