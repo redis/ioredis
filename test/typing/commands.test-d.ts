@@ -10,21 +10,21 @@ expectType<Promise<unknown>>(redis.call("set", ["foo", "bar"]));
 expectType<Promise<unknown>>(redis.callBuffer("set", ["foo", "bar"]));
 expectType<Promise<unknown>>(
   redis.call("set", ["foo", "bar"], (err, value) => {
-    expectType<Error | undefined | null>(err);
+    expectType<Error | null>(err);
     expectType<unknown | undefined>(value);
   })
 );
 
 expectType<Promise<unknown>>(
   redis.call("get", "foo", (err, value) => {
-    expectType<Error | undefined | null>(err);
+    expectType<Error | null>(err);
     expectType<unknown | undefined>(value);
   })
 );
 
 expectType<Promise<unknown>>(
   redis.call("info", (err, value) => {
-    expectType<Error | undefined | null>(err);
+    expectType<Error | null>(err);
     expectType<unknown | undefined>(value);
   })
 );
@@ -97,26 +97,26 @@ expectType<Promise<Buffer>>(redis.getrangeBuffer("foo", 0, 1));
 
 // Callbacks
 redis.getBuffer("foo", (err, res) => {
-  expectType<Error | null | undefined>(err);
-  expectType<Buffer | null | undefined>(res);
+  expectType<Error | null>(err);
+  expectType<Buffer | null>(res);
 });
 
 redis.set("foo", "bar", (err, res) => {
-  expectType<Error | null | undefined>(err);
-  expectType<"OK" | undefined>(res);
+  expectType<Error | null>(err);
+  expectType<"OK">(res);
 });
 
 redis.set("foo", "bar", "GET", (err, res) => {
-  expectType<Error | null | undefined>(err);
-  expectType<string | null | undefined>(res);
+  expectType<Error | null>(err);
+  expectType<string | null>(res);
 });
 
 redis.del("key1", "key2", (err, res) => {
-  expectType<Error | null | undefined>(err);
-  expectType<number | undefined>(res);
+  expectType<Error | null>(err);
+  expectType<number>(res);
 });
 
 redis.del(["key1", "key2"], (err, res) => {
-  expectType<Error | null | undefined>(err);
-  expectType<number | undefined>(res);
+  expectType<Error | null>(err);
+  expectType<number>(res);
 });
