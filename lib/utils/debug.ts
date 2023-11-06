@@ -73,7 +73,7 @@ export default function genDebugFunction(
             sanitizeString = false;
             continue;
         }
-        if(typeof str === "string" && str === 'auth') {
+        if(typeof str === "string" && str.toLowerCase() === 'auth') {
             // Expect the next array index will contain 
             // sensitive data that should not be in plaintext
             sanitizeString = true;
