@@ -929,6 +929,7 @@ The arguments passed to the constructor are different from the ones you use to c
 - `role` (optional) with a value of `slave` will return a random slave from the Sentinel group.
 - `preferredSlaves` (optional) can be used to prefer a particular slave or set of slaves based on priority. It accepts a function or array.
 - `enableTLSForSentinelMode` (optional) set to true if connecting to sentinel instances that are encrypted
+- `enableDynamicSNIForSentinelMode` (optional) set to true if Redis instances require SNI support for TLS connections
 
 ioredis **guarantees** that the node you connected to is always a master even after a failover. When a failover happens, instead of trying to reconnect to the failed node (which will be demoted to slave when it's available again), ioredis will ask sentinels for the new master node and connect to it. All commands sent during the failover are queued and will be executed when the new connection is established so that none of the commands will be lost.
 

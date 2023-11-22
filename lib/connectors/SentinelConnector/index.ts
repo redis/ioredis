@@ -51,6 +51,7 @@ export interface SentinelConnectionOptions {
   disconnectTimeout?: number;
   sentinelCommandTimeout?: number;
   enableTLSForSentinelMode?: boolean;
+  enableDynamicSNIForSentinelMode?: boolean;
   sentinelTLS?: ConnectionOptions;
   natMap?: NatMap;
   updateSentinels?: boolean;
@@ -167,9 +168,16 @@ export default class SentinelConnector extends AbstractConnector {
         );
 
         if (this.options.enableTLSForSentinelMode && this.options.tls) {
-          Object.assign(resolved, this.options.tls);
-          this.stream = createTLSConnection(resolved);
-          this.stream.once("secureConnect", this.initFailoverDetector.bind(this));
+          const resolvedTls = resolved as ConnectionOptions;
+          Object.assign(resolvedTls, this.options.tls);
+          if (this.options.enableDynamicSNIForSentinelMode) {
+            resolvedTls.servername = resolved.host;
+          }
+          this.stream = createTLSConnection(resolvedTls);
+          this.stream.once(
+            "secureConnect",
+            this.initFailoverDetector.bind(this)
+          );
         } else {
           this.stream = createConnection(resolved);
           this.stream.once("connect", this.initFailoverDetector.bind(this));
