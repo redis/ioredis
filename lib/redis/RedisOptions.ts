@@ -5,6 +5,12 @@ import { StandaloneConnectionOptions } from "../connectors/StandaloneConnector";
 
 export type ReconnectOnError = (err: Error) => boolean | 1 | 2;
 
+type Logger = {
+  log(...args: any[]): void;
+  warn(...args: any[]): void;
+  error(...args: any[]): void;
+};
+
 export interface CommonRedisOptions extends CommanderOptions {
   Connector?: ConnectorConstructor;
   retryStrategy?: (times: number) => number | void | null;
@@ -179,6 +185,12 @@ export interface CommonRedisOptions extends CommanderOptions {
     string,
     { lua: string; numberOfKeys?: number; readOnly?: boolean }
   >;
+
+  /**
+   * The logging mechanism to use. If you want to use your own logger, pass an object implementing the `Logger` interface.
+   * @default console
+   */
+  logger: Logger;
 }
 
 export type RedisOptions = CommonRedisOptions &
@@ -236,4 +248,5 @@ export const DEFAULT_REDIS_OPTIONS: RedisOptions = {
   enableAutoPipelining: false,
   autoPipeliningIgnoredCommands: [],
   sentinelMaxConnections: 10,
+  logger: console,
 };
