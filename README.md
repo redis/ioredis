@@ -761,9 +761,12 @@ using the `retryStrategy` option:
 ```javascript
 const redis = new Redis({
   // This is the default value of `retryStrategy`
-  retryStrategy(times) {
-    const delay = Math.min(times * 50, 2000);
-    return delay;
+  retryStrategy: function (times) {
+    // Generate a random jitter between 0 – 200 ms:
+    const jitter = Math.floor(Math.random() * 200);
+    // Delay is an exponential back off, (times^2) * 50 ms, with a maximum value of 2000 ms:
+    const delay = Math.min(Math.pow(2, times) * 50, 2000);
+    return delay + jitter;
   },
 });
 ```
