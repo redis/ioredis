@@ -637,18 +637,27 @@ class Redis extends Commander implements DataHandledable {
         item.command.reject(err);
         break;
       case 2:
-        if (this.status !== "reconnecting") {
-          this.disconnect(true);
+        const self = this;
+        const resendCommand = () => {
+          if (self.status !== "reconnecting") {
+            self.disconnect(true);
+          }
+          if (((_a = self.condition) === null || _a === void 0 ? void 0 : _a.select) !== item.select &&
+            item.command.name !== "select") {
+            self.select(item.select);
+          }
+          // TODO
+          // @ts-expect-error
+          self.sendCommand(item.command);
+        };
+        const retryDelay = self.options.retryStrategy(++self.retryAttempts);
+        if (typeof self.options.retryStrategy !== "function") {
+          return resendCommand();
         }
-        if (
-          this.condition?.select !== item.select &&
-          item.command.name !== "select"
-        ) {
-          this.select(item.select);
-        }
-        // TODO
-        // @ts-expect-error
-        this.sendCommand(item.command);
+        self.reconnectTimeout = setTimeout(function () {
+          self.reconnectTimeout = null;
+          resendCommand();
+        }, retryDelay);
         break;
       default:
         item.command.reject(err);
