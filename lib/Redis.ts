@@ -650,10 +650,10 @@ class Redis extends Commander implements DataHandledable {
           // @ts-expect-error
           self.sendCommand(item.command);
         };
-        const retryDelay = self.options.retryStrategy(++self.retryAttempts);
         if (typeof self.options.retryStrategy !== "function") {
           return resendCommand();
         }
+        const retryDelay = self.options.retryStrategy(++self.retryAttempts);
         self.reconnectTimeout = setTimeout(function () {
           self.reconnectTimeout = null;
           resendCommand();
