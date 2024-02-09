@@ -641,8 +641,10 @@ class Redis extends Commander implements DataHandledable {
           if (this.status !== "reconnecting") {
             this.disconnect(true);
           }
-          if (((_a = this.condition) === null || _a === void 0 ? void 0 : _a.select) !== item.select &&
-            item.command.name !== "select") {
+          if (
+            this.condition?.select !== item.select &&
+            item.command.name !== "select"
+          ) {
             this.select(item.select);
           }
           // TODO
