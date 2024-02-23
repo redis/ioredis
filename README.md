@@ -102,6 +102,15 @@ redis.get("mykey").then((result) => {
   console.log(result); // Prints "value"
 });
 
+// Get All data from Redis using Promise
+let data = []; // Initialize an empty array to store data
+const keys = await redis.keys('*'); // Fetch all keys from Redis
+const pipeline = redis.pipeline(); // Create a pipeline to execute Redis commands sequentially
+keys.forEach(key => {
+    pipeline.get(key); // Add Redis commands to fetch data corresponding to each key into the pipeline
+});
+const results = await pipeline.exec(); // Execute the pipeline to fetch data from Redis
+
 redis.zadd("sortedSet", 1, "one", 2, "dos", 4, "quatro", 3, "three");
 redis.zrange("sortedSet", 0, 2, "WITHSCORES").then((elements) => {
   // ["one", "1", "dos", "2", "three", "3"] as if the command was `redis> ZRANGE sortedSet 0 2 WITHSCORES`
