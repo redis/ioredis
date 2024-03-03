@@ -42,7 +42,7 @@ describe("Command", () => {
       command.resolve(Buffer.from("foo"));
     });
 
-    it("should covert result to string if replyEncoding is specified", (done) => {
+    it("should convert result to string if replyEncoding is specified", (done) => {
       const command = new Command(
         "get",
         ["foo"],
