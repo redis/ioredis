@@ -97,7 +97,7 @@ export default class ConnectionPool extends EventEmitter {
 
       this.emit("+node", redis, key);
 
-      redis.on("error", function (error) {
+      redis.on("error", (error) => {
         this.emit("nodeError", error, key);
       });
     }
