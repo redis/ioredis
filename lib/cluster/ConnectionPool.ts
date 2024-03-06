@@ -92,10 +92,6 @@ export default class ConnectionPool extends EventEmitter {
       );
       const endListener = () => {
         this.removeNode(key);
-        this.emit("-node", redis, key);
-        if (!Object.keys(this.nodes.all).length) {
-          this.emit("drain");
-        }
       };
       const errorListener = (error: unknown) => {
         this.emit("nodeError", error, key);
@@ -156,8 +152,13 @@ export default class ConnectionPool extends EventEmitter {
       node.redis.removeListener("end", node.endListener);
       node.redis.removeListener("error", node.errorListener);
       delete nodes.all[key];
+      delete nodes.master[key];
+      delete nodes.slave[key];
+
+      this.emit("-node", node.redis, key);
+      if (!Object.keys(nodes.all).length) {
+        this.emit("drain");
+      }
     }
-    delete nodes.master[key];
-    delete nodes.slave[key];
   }
 }
