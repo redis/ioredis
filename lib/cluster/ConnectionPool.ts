@@ -15,7 +15,7 @@ type NodeRecord = {
 
 export default class ConnectionPool extends EventEmitter {
   // master + slave = all
-  private nodes: { [key in NODE_TYPE]: { [key: string]: NodeRecord } } = {
+  private nodeRecords: { [key in NODE_TYPE]: { [key: string]: NodeRecord } } = {
     all: {},
     master: {},
     slave: {},
@@ -28,18 +28,18 @@ export default class ConnectionPool extends EventEmitter {
   }
 
   getNodes(role: NodeRole = "all"): Redis[] {
-    const nodes = this.nodes[role];
-    return Object.keys(nodes).map((key) => nodes[key].redis);
+    const nodeRecords = this.nodeRecords[role];
+    return Object.keys(nodeRecords).map((key) => nodeRecords[key].redis);
   }
 
   getInstanceByKey(key: NodeKey): Redis {
-    return this.nodes.all[key].redis;
+    return this.nodeRecords.all[key].redis;
   }
 
   getSampleInstance(role: NodeRole): Redis {
-    const keys = Object.keys(this.nodes[role]);
+    const keys = Object.keys(this.nodeRecords[role]);
     const sampleKey = sample(keys);
-    return this.nodes[role][sampleKey].redis;
+    return this.nodeRecords[role][sampleKey].redis;
   }
 
   /**
@@ -56,18 +56,18 @@ export default class ConnectionPool extends EventEmitter {
     }
 
     let node: NodeRecord;
-    if (this.nodes.all[key]) {
-      node = this.nodes.all[key];
+    if (this.nodeRecords.all[key]) {
+      node = this.nodeRecords.all[key];
       if (node.redis.options.readOnly !== readOnly) {
         node.redis.options.readOnly = readOnly;
         debug("Change role of %s to %s", key, readOnly ? "slave" : "master");
         node.redis[readOnly ? "readonly" : "readwrite"]().catch(noop);
         if (readOnly) {
-          delete this.nodes.master[key];
-          this.nodes.slave[key] = node;
+          delete this.nodeRecords.master[key];
+          this.nodeRecords.slave[key] = node;
         } else {
-          delete this.nodes.slave[key];
-          this.nodes.master[key] = node;
+          delete this.nodeRecords.slave[key];
+          this.nodeRecords.master[key] = node;
         }
       }
     } else {
@@ -98,8 +98,8 @@ export default class ConnectionPool extends EventEmitter {
       };
       node = { redis, endListener, errorListener };
 
-      this.nodes.all[key] = node;
-      this.nodes[readOnly ? "slave" : "master"][key] = node;
+      this.nodeRecords.all[key] = node;
+      this.nodeRecords[readOnly ? "slave" : "master"][key] = node;
 
       redis.once("end", endListener);
 
@@ -132,10 +132,10 @@ export default class ConnectionPool extends EventEmitter {
       const node = newNodes[key];
       this.findOrCreate(node, node.readOnly);
     });
-    Object.keys(this.nodes.all).forEach((key) => {
+    Object.keys(this.nodeRecords.all).forEach((key) => {
       if (!newNodes[key]) {
         debug("Disconnect %s because the node does not hold any slot", key);
-        this.nodes.all[key].redis.disconnect();
+        this.nodeRecords.all[key].redis.disconnect();
         this.removeNode(key);
       }
     });
@@ -145,18 +145,18 @@ export default class ConnectionPool extends EventEmitter {
    * Remove a node from the pool.
    */
   private removeNode(key: string): void {
-    const { nodes } = this;
-    const node = nodes.all[key];
+    const { nodeRecords } = this;
+    const node = nodeRecords.all[key];
     if (node) {
       debug("Remove %s from the pool", key);
       node.redis.removeListener("end", node.endListener);
       node.redis.removeListener("error", node.errorListener);
-      delete nodes.all[key];
-      delete nodes.master[key];
-      delete nodes.slave[key];
+      delete nodeRecords.all[key];
+      delete nodeRecords.master[key];
+      delete nodeRecords.slave[key];
 
       this.emit("-node", node.redis, key);
-      if (!Object.keys(nodes.all).length) {
+      if (!Object.keys(nodeRecords.all).length) {
         this.emit("drain");
       }
     }
