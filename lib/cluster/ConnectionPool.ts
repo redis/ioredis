@@ -39,14 +39,14 @@ export default class ConnectionPool extends EventEmitter {
   /**
    * Find or create a connection to the node
    */
-  findOrCreate(node: RedisOptions, readOnly = false): Redis {
-    const key = getNodeKey(node);
+  findOrCreate(redisOptions: RedisOptions, readOnly = false): Redis {
+    const key = getNodeKey(redisOptions);
     readOnly = Boolean(readOnly);
 
     if (this.specifiedOptions[key]) {
-      Object.assign(node, this.specifiedOptions[key]);
+      Object.assign(redisOptions, this.specifiedOptions[key]);
     } else {
-      this.specifiedOptions[key] = node;
+      this.specifiedOptions[key] = redisOptions;
     }
 
     let redis: Redis;
@@ -79,7 +79,7 @@ export default class ConnectionPool extends EventEmitter {
             enableOfflineQueue: true,
             readOnly: readOnly,
           },
-          node,
+          redisOptions,
           this.redisOptions,
           { lazyConnect: true }
         )
