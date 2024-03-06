@@ -87,19 +87,21 @@ export default class ConnectionPool extends EventEmitter {
       this.nodes.all[key] = redis;
       this.nodes[readOnly ? "slave" : "master"][key] = redis;
 
-      redis.once("end", () => {
+      const endListener = () => {
         this.removeNode(key);
         this.emit("-node", redis, key);
         if (!Object.keys(this.nodes.all).length) {
           this.emit("drain");
         }
-      });
+      };
+      redis.once("end", endListener);
 
       this.emit("+node", redis, key);
 
-      redis.on("error", (error) => {
+      const errorListener = (error: unknown) => {
         this.emit("nodeError", error, key);
-      });
+      };
+      redis.on("error", errorListener);
     }
 
     return redis;
