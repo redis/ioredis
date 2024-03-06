@@ -150,8 +150,11 @@ export default class ConnectionPool extends EventEmitter {
    */
   private removeNode(key: string): void {
     const { nodes } = this;
-    if (nodes.all[key]) {
+    const node = nodes.all[key];
+    if (node) {
       debug("Remove %s from the pool", key);
+      node.redis.removeListener("end", node.endListener);
+      node.redis.removeListener("error", node.errorListener);
       delete nodes.all[key];
     }
     delete nodes.master[key];
