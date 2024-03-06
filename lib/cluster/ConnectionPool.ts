@@ -128,16 +128,16 @@ export default class ConnectionPool extends EventEmitter {
       }
     });
 
+    Object.keys(newNodes).forEach((key) => {
+      const node = newNodes[key];
+      this.findOrCreate(node, node.readOnly);
+    });
     Object.keys(this.nodes.all).forEach((key) => {
       if (!newNodes[key]) {
         debug("Disconnect %s because the node does not hold any slot", key);
         this.nodes.all[key].redis.disconnect();
         this.removeNode(key);
       }
-    });
-    Object.keys(newNodes).forEach((key) => {
-      const node = newNodes[key];
-      this.findOrCreate(node, node.readOnly);
     });
   }
 
