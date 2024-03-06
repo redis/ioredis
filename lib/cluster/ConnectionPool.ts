@@ -55,19 +55,19 @@ export default class ConnectionPool extends EventEmitter {
       this.specifiedOptions[key] = redisOptions;
     }
 
-    let node: NodeRecord;
+    let nodeRecord: NodeRecord;
     if (this.nodeRecords.all[key]) {
-      node = this.nodeRecords.all[key];
-      if (node.redis.options.readOnly !== readOnly) {
-        node.redis.options.readOnly = readOnly;
+      nodeRecord = this.nodeRecords.all[key];
+      if (nodeRecord.redis.options.readOnly !== readOnly) {
+        nodeRecord.redis.options.readOnly = readOnly;
         debug("Change role of %s to %s", key, readOnly ? "slave" : "master");
-        node.redis[readOnly ? "readonly" : "readwrite"]().catch(noop);
+        nodeRecord.redis[readOnly ? "readonly" : "readwrite"]().catch(noop);
         if (readOnly) {
           delete this.nodeRecords.master[key];
-          this.nodeRecords.slave[key] = node;
+          this.nodeRecords.slave[key] = nodeRecord;
         } else {
           delete this.nodeRecords.slave[key];
-          this.nodeRecords.master[key] = node;
+          this.nodeRecords.master[key] = nodeRecord;
         }
       }
     } else {
@@ -96,10 +96,10 @@ export default class ConnectionPool extends EventEmitter {
       const errorListener = (error: unknown) => {
         this.emit("nodeError", error, key);
       };
-      node = { redis, endListener, errorListener };
+      nodeRecord = { redis, endListener, errorListener };
 
-      this.nodeRecords.all[key] = node;
-      this.nodeRecords[readOnly ? "slave" : "master"][key] = node;
+      this.nodeRecords.all[key] = nodeRecord;
+      this.nodeRecords[readOnly ? "slave" : "master"][key] = nodeRecord;
 
       redis.once("end", endListener);
 
@@ -108,7 +108,7 @@ export default class ConnectionPool extends EventEmitter {
       redis.on("error", errorListener);
     }
 
-    return node;
+    return nodeRecord;
   }
 
   /**
