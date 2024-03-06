@@ -7,7 +7,7 @@ const debug = Debug("cluster:connectionPool");
 
 type NODE_TYPE = "all" | "master" | "slave";
 
-type Node = {
+type NodeRecord = {
   redis: Redis;
   endListener: () => void;
   errorListener: (error: unknown) => void;
@@ -15,7 +15,7 @@ type Node = {
 
 export default class ConnectionPool extends EventEmitter {
   // master + slave = all
-  private nodes: { [key in NODE_TYPE]: { [key: string]: Node } } = {
+  private nodes: { [key in NODE_TYPE]: { [key: string]: NodeRecord } } = {
     all: {},
     master: {},
     slave: {},
@@ -45,7 +45,7 @@ export default class ConnectionPool extends EventEmitter {
   /**
    * Find or create a connection to the node
    */
-  findOrCreate(redisOptions: RedisOptions, readOnly = false): Node {
+  findOrCreate(redisOptions: RedisOptions, readOnly = false): NodeRecord {
     const key = getNodeKey(redisOptions);
     readOnly = Boolean(readOnly);
 
@@ -55,7 +55,7 @@ export default class ConnectionPool extends EventEmitter {
       this.specifiedOptions[key] = redisOptions;
     }
 
-    let node: Node;
+    let node: NodeRecord;
     if (this.nodes.all[key]) {
       node = this.nodes.all[key];
       if (node.redis.options.readOnly !== readOnly) {
