@@ -33,7 +33,7 @@ export default class ConnectionPool extends EventEmitter {
   }
 
   getInstanceByKey(key: NodeKey): Redis {
-    return this.nodeRecords.all[key].redis;
+    return this.nodeRecords.all[key]?.redis;
   }
 
   getSampleInstance(role: NodeRole): Redis {
