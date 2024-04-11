@@ -14,6 +14,12 @@ A robust, performance-focused and full-featured [Redis](http://redis.io) client 
 
 Supports Redis >= 2.6.12. Completely compatible with Redis 7.x.
 
+# New Projects Should use Node-Redis
+
+ioredis remains a robust and mature Redis client for Node.js. Regular maintenance releases will ensure continued stability.
+
+The most advanced Redis client for Node.js is [Node-Redis](https://github.com/redis/node-redis). Node-Redis is actively developed and will receive major new features, which is why we are now recommending [Node-Redis](https://github.com/redis/node-redis) for new projects.
+
 # Features
 
 ioredis is a robust, full-featured Redis client that is
