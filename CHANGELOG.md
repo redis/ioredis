@@ -1,3 +1,15 @@
+# [5.4.0](https://github.com/luin/ioredis/compare/v5.3.2...v5.4.0) (2024-04-16)
+
+
+### Bug Fixes
+
+* when `refreshSlotsCache` is callback concurrently, call the callback only when the refresh process is done ([#1881](https://github.com/luin/ioredis/issues/1881)) ([804ee07](https://github.com/luin/ioredis/commit/804ee071cab4326d1d69eec0e9d156aac4aa89f4))
+
+
+### Features
+
+* add support for `socketTimeout` in `Redis` ([#1882](https://github.com/luin/ioredis/issues/1882)) ([673ac77](https://github.com/luin/ioredis/commit/673ac77d9d88bd461110da7b4a8b2b98fb45f845))
+
 ## [5.3.2](https://github.com/luin/ioredis/compare/v5.3.1...v5.3.2) (2023-04-15)
 
 
