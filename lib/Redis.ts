@@ -106,6 +106,7 @@ class Redis extends Commander implements DataHandledable {
   private connectionEpoch = 0;
   private retryAttempts = 0;
   private manuallyClosing = false;
+  private socketTimeoutTimer: NodeJS.Timeout | undefined;
 
   // Prepare autopipelines structures
   private _autoPipelines = new Map();
@@ -523,6 +524,10 @@ class Redis extends Commander implements DataHandledable {
       if (Command.checkFlag("WILL_DISCONNECT", command.name)) {
         this.manuallyClosing = true;
       }
+
+      if (this.options.socketTimeout !== undefined && this.socketTimeoutTimer === undefined) {
+        this.setSocketTimeout();
+      }
     }
 
     if (command.name === "select" && isInt(command.args[0])) {
@@ -535,6 +540,23 @@ class Redis extends Commander implements DataHandledable {
     }
 
     return command.promise;
+  }
+
+  private setSocketTimeout() {
+    this.socketTimeoutTimer = setTimeout(() => {
+      this.stream.destroy(new Error(`Socket timeout. Expecting data, but didn't receive any in ${this.options.socketTimeout}ms.`));
+      this.socketTimeoutTimer = undefined;
+    }, this.options.socketTimeout);
+
+    // this handler must run after the "data" handler in "DataHandler"
+    // so that `this.commandQueue.length` will be updated
+    this.stream.once("data", () => {
+      console.log('GOT DATA, CLEARING TIMER');
+      clearTimeout(this.socketTimeoutTimer);
+      this.socketTimeoutTimer = undefined;
+      if (this.commandQueue.length === 0) return;
+      this.setSocketTimeout();
+    });
   }
 
   scanStream(options?: ScanStreamOptions) {
