@@ -99,6 +99,7 @@ class Cluster extends Commander {
   private slotsTimer: NodeJS.Timer;
   private reconnectTimeout: NodeJS.Timer;
   private isRefreshing = false;
+  private _refreshSlotsCacheCallbacks = [];
   private _autoPipelines: Map<string, typeof Pipeline> = new Map();
   private _runningAutoPipelines: Set<string> = new Set();
   private _readyDelayedCallbacks: Callback[] = [];
@@ -411,20 +412,23 @@ class Cluster extends Commander {
    * @ignore
    */
   refreshSlotsCache(callback?: Callback<void>): void {
+    if (callback) {
+      this._refreshSlotsCacheCallbacks.push(callback);
+    }
+
     if (this.isRefreshing) {
-      if (callback) {
-        process.nextTick(callback);
-      }
       return;
     }
+    
     this.isRefreshing = true;
 
     const _this = this;
     const wrapper = (error?: Error) => {
       this.isRefreshing = false;
-      if (callback) {
+      for (const callback of this._refreshSlotsCacheCallbacks) {
         callback(error);
       }
+      this._refreshSlotsCacheCallbacks = [];
     };
 
     const nodes = shuffle(this.connectionPool.getNodes());
