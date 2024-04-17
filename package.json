@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@ioredis/commands": "^1.1.1",
-    "cluster-key-slot": "^1.1.0",
+    "cluster-key-slot": "^1.1.2",
     "debug": "^4.3.4",
     "denque": "^2.1.0",
     "lodash.defaults": "^4.2.0",
