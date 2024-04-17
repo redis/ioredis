@@ -1,3 +1,10 @@
+## [5.4.1](https://github.com/luin/ioredis/compare/v5.4.0...v5.4.1) (2024-04-17)
+
+
+### Bug Fixes
+
+* remove console.log ([558497c](https://github.com/luin/ioredis/commit/558497cba8dc7487c06c7765ddbe12b479bd9b9b))
+
 # [5.4.0](https://github.com/luin/ioredis/compare/v5.3.2...v5.4.0) (2024-04-16)
 
 
