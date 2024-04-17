@@ -551,7 +551,6 @@ class Redis extends Commander implements DataHandledable {
     // this handler must run after the "data" handler in "DataHandler"
     // so that `this.commandQueue.length` will be updated
     this.stream.once("data", () => {
-      console.log('GOT DATA, CLEARING TIMER');
       clearTimeout(this.socketTimeoutTimer);
       this.socketTimeoutTimer = undefined;
       if (this.commandQueue.length === 0) return;
