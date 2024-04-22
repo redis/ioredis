@@ -92,6 +92,54 @@ describe("tls option", () => {
       });
     });
 
+    it("supports enableDynamicSNIForSentinelMode", (done) => {
+      new MockServer(27379, (argv) => {
+        if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
+          return ["localhost", "17380"];
+        }
+      });
+
+      new MockServer(17380);
+
+      // @ts-expect-error
+      const stub = sinon.stub(tls, "connect").callsFake((op) => {
+        // @ts-expect-error
+        if (op.port === 17380) {
+          // @ts-expect-error
+          expect(op.ca).to.eql("1234");
+          // @ts-expect-error
+          expect(op.servername).to.eql("localhost");
+          // @ts-expect-error
+          expect(op.rejectUnauthorized).to.eql(false);
+          // @ts-expect-error
+          expect(op.port).to.eql(17380);
+        }
+        const stream = net.createConnection(op);
+        stream.on("connect", (data) => {
+          stream.emit("secureConnect", data);
+        });
+        return stream;
+      });
+
+      const redis = new Redis({
+        sentinels: [{ port: 27379 }],
+        name: "my",
+        enableDynamicSNIForSentinelMode: true,
+        enableTLSForSentinelMode: true,
+        tls: { ca: "1234", rejectUnauthorized: false },
+        sentinelTLS: {
+          ca: "123",
+          servername: "localhost",
+          rejectUnauthorized: false,
+        },
+      });
+      redis.once("ready", () => {
+        redis.disconnect();
+        stub.restore();
+        redis.on("end", () => done());
+      });
+    });
+
     it("supports sentinelTLS", (done) => {
       new MockServer(27379, (argv) => {
         if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
