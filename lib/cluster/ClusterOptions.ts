@@ -23,6 +23,12 @@ export interface NatMap {
   [key: string]: { host: string; port: number };
 }
 
+type Logger = {
+  log(...args: any[]): void;
+  warn(...args: any[]): void;
+  error(...args: any[]): void;
+};
+
 /**
  * Options for Cluster constructor
  */
@@ -196,6 +202,12 @@ export interface ClusterOptions extends CommanderOptions {
     string,
     { lua: string; numberOfKeys?: number; readOnly?: boolean }
   >;
+
+  /**
+   * The logging mechanism to use. If you want to use your own logger, pass an object implementing the `Logger` interface.
+   * @default console
+   */
+  logger?: Logger;
 }
 
 export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = {
@@ -214,4 +226,5 @@ export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = {
   dnsLookup: lookup,
   enableAutoPipelining: false,
   autoPipeliningIgnoredCommands: [],
+  logger: console,
 };

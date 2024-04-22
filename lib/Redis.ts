@@ -622,7 +622,7 @@ class Redis extends Commander implements DataHandledable {
       return this.emit.apply(this, arguments);
     }
     if (error && error instanceof Error) {
-      console.error("[ioredis] Unhandled error event:", error.stack);
+      this.options.logger.error("[ioredis] Unhandled error event:", error.stack);
     }
     return false;
   }
@@ -742,6 +742,10 @@ class Redis extends Commander implements DataHandledable {
       options.db = parseInt(options.db, 10);
     }
 
+    if (!options.logger) {
+      options.logger = console;
+    }
+
     // @ts-expect-error
     this.options = resolveTLSProfile(options);
   }
@@ -817,7 +821,7 @@ class Redis extends Commander implements DataHandledable {
     this.info(function (err, res) {
       if (err) {
         if (err.message && err.message.includes("NOPERM")) {
-          console.warn(
+          _this.options.logger.warn(
             `Skipping the ready check because INFO command fails: "${err.message}". You can disable ready check with "enableReadyCheck". More: https://github.com/luin/ioredis/wiki/Disable-ready-check.`
           );
           return callback(null, {});
