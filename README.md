@@ -260,7 +260,7 @@ async function listenForMessage(lastId = "$") {
   // `results` is an array, each element of which corresponds to a key.
   // Because we only listen to one key (mystream) here, `results` only contains
   // a single element. See more: https://redis.io/commands/xread#return-value
-  const results = await redis.xread("block", 0, "STREAMS", "mystream", lastId);
+  const results = await redis.xread("BLOCK", 0, "STREAMS", "mystream", lastId);
   const [key, messages] = results[0]; // `key` equals to "mystream"
 
   messages.forEach(processMessage);
