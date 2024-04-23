@@ -114,8 +114,6 @@ export interface ClusterOptions extends CommanderOptions {
 
   /**
    * The milliseconds between every automatic slots refresh.
-   *
-   * @default 5000
    */
   slotsRefreshInterval?: number;
 
