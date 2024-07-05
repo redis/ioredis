@@ -140,14 +140,10 @@ export default class ClusterSubscriber {
     // Re-subscribe previous channels
     const previousChannels = { subscribe: [], psubscribe: [], ssubscribe: [] };
     if (lastActiveSubscriber) {
-      const condition =
-        lastActiveSubscriber.condition || lastActiveSubscriber.prevCondition;
-      if (condition && condition.subscriber) {
-        previousChannels.subscribe = condition.subscriber.channels("subscribe");
-        previousChannels.psubscribe =
-          condition.subscriber.channels("psubscribe");
-        previousChannels.ssubscribe =
-          condition.subscriber.channels("ssubscribe");
+      const subscriber = lastActiveSubscriber.condition?.subscriber || lastActiveSubscriber.prevCondition?.subscriber;
+      if (subscriber) {
+        previousChannels.subscribe = subscriber.channels("subscribe");
+        previousChannels.psubscribe = subscriber.channels("psubscribe");
       }
     }
     if (
