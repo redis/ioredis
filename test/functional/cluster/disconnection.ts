@@ -9,7 +9,12 @@ describe("disconnection", () => {
   });
 
   it("should clear all timers on disconnect", (done) => {
-    const server = new MockServer(30000);
+    const slotTable = [[0, 16383, ["127.0.0.1", 30000]]];
+    const server = new MockServer(30000, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+    });
 
     const setIntervalCalls = sinon.spy(global, "setInterval");
     const clearIntervalCalls = sinon.spy(global, "clearInterval");
