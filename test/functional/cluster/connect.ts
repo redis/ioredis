@@ -391,7 +391,12 @@ describe("cluster:connect", () => {
 
   describe("multiple reconnect", () => {
     it("should reconnect after multiple consecutive disconnect(true) are called", (done) => {
-      new MockServer(30001);
+      const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
+      new MockServer(30001, (argv) => {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+          return slotTable;
+        }
+      });
       const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
         enableReadyCheck: false,
       });
