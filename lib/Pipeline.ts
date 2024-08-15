@@ -343,7 +343,7 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
     if (_this.isCluster) {
       node = {
         slot: pipelineSlot,
-        redis: _this.redis.connectionPool.nodes.all[_this.preferKey],
+        redis: _this.redis.connectionPool.getInstanceByKey(_this.preferKey),
       };
     }
 
