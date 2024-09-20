@@ -3871,6 +3871,23 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   ): Result<number, Context>;
 
   /**
+   * Set an expiration (TTL or time to live) on one or more fields of a given hash key. You must specify at least one field. Field(s) will automatically be deleted from the hash key when their TTLs expire.
+   * - _group_: hash
+   * - _complexity_: O(n)
+   * - _since_: 7.4.0
+   */
+  hexpire(
+    ...args: [
+      key: RedisKey,
+      value: string | Buffer | number,
+      nx: "NX" | "XX" | "GT" | "LT",
+      fields: "FIELDS",
+      numFields: number,
+      ...fieldValues: string[]
+    ]
+  ): Result<"OK", Context>;
+
+  /**
    * Get the value of a hash field
    * - _group_: hash
    * - _complexity_: O(1)
