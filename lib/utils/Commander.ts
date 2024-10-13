@@ -7,7 +7,7 @@ import {
 import Command, { ArgumentType } from "../Command";
 import Script from "../Script";
 import { Callback, WriteableStream } from "../types";
-import RedisCommander, { ClientContext, GetStreamOptions } from "./RedisCommander";
+import RedisCommander, { ClientContext, GetStreamOptions, RedisKey } from "./RedisCommander";
 import { createGetStream } from "./nodeStreams";
 
 export interface CommanderOptions {
@@ -117,7 +117,7 @@ Commander.prototype.callBuffer = generateFunction("callBuffer", null);
 // @ts-expect-error
 Commander.prototype.send_command = Commander.prototype.call;
 
-Commander.prototype.getStream = function getStream(key, opts: GetStreamOptions = {}) {
+Commander.prototype.getStream = function getStream(key: RedisKey, opts: GetStreamOptions = {}) {
   return Readable.from(createGetStream(this, key, opts));
 }
 

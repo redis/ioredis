@@ -1,7 +1,8 @@
-import { executeWithAutoPipelining } from "../../built/autoPipelining";
-import { GetStreamOptions } from "./RedisCommander";
+import { executeWithAutoPipelining } from "../autoPipelining";
+import Commander from "./Commander";
+import { GetStreamOptions, RedisKey } from "./RedisCommander";
 
-export async function* createGetStream(client, key, opts: GetStreamOptions = {}) {
+export async function* createGetStream(client: Commander, key: RedisKey, opts: GetStreamOptions = {}) {
     const size = opts.chunkSize || 10 * 1000;
     let cursor = 0;
     let isReadable = true;

@@ -4,6 +4,7 @@
  * this file.
  */
 
+import { Readable } from "stream";
 import { Callback } from "../types";
 
 export type RedisKey = string | Buffer;
@@ -3670,7 +3671,7 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   getStream(
     key: RedisKey,
     opts: GetStreamOptions
-  ): Result<string | null, Context>;
+  ): Readable;
   getBuffer(
     key: RedisKey,
     callback?: Callback<Buffer | null>
