@@ -1,3 +1,4 @@
+import { Readable } from "node:stream";
 import { list } from "@ioredis/commands";
 import {
   executeWithAutoPipelining,
@@ -6,7 +7,8 @@ import {
 import Command, { ArgumentType } from "../Command";
 import Script from "../Script";
 import { Callback, WriteableStream } from "../types";
-import RedisCommander, { ClientContext } from "./RedisCommander";
+import RedisCommander, { ClientContext, GetStreamOptions } from "./RedisCommander";
+import { createGetStream } from "./nodeStreams";
 
 export interface CommanderOptions {
   keyPrefix?: string;
@@ -114,6 +116,10 @@ Commander.prototype.call = generateFunction("call", "utf8");
 Commander.prototype.callBuffer = generateFunction("callBuffer", null);
 // @ts-expect-error
 Commander.prototype.send_command = Commander.prototype.call;
+
+Commander.prototype.getStream = function getStream(key, opts: GetStreamOptions = {}) {
+  return Readable.from(createGetStream(this, key, opts));
+}
 
 function generateFunction(functionName: string | null, _encoding: string);
 function generateFunction(
