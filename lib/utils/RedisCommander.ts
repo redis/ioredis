@@ -8579,6 +8579,45 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
     justid: "JUSTID",
     callback?: Callback<unknown[]>
   ): Result<unknown[], Context>;
+  
+  xautoclaimBuffer(
+    key: RedisKey,
+    group: string | Buffer,
+    consumer: string | Buffer,
+    minIdleTime: string | Buffer | number,
+    start: string | Buffer | number,
+    callback?: Callback<unknown[]>
+  ): Result<unknown[], Context>;
+  xautoclaimBuffer(
+    key: RedisKey,
+    group: string | Buffer,
+    consumer: string | Buffer,
+    minIdleTime: string | Buffer | number,
+    start: string | Buffer | number,
+    justid: "JUSTID",
+    callback?: Callback<unknown[]>
+  ): Result<unknown[], Context>;
+  xautoclaimBuffer(
+    key: RedisKey,
+    group: string | Buffer,
+    consumer: string | Buffer,
+    minIdleTime: string | Buffer | number,
+    start: string | Buffer | number,
+    countToken: "COUNT",
+    count: number | string,
+    callback?: Callback<unknown[]>
+  ): Result<unknown[], Context>;
+  xautoclaimBuffer(
+    key: RedisKey,
+    group: string | Buffer,
+    consumer: string | Buffer,
+    minIdleTime: string | Buffer | number,
+    start: string | Buffer | number,
+    countToken: "COUNT",
+    count: number | string,
+    justid: "JUSTID",
+    callback?: Callback<unknown[]>
+  ): Result<unknown[], Context>;
 
   /**
    * Changes (or acquires) ownership of a message in a consumer group, as if the message was delivered to the specified consumer.
@@ -9451,6 +9490,871 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
     ]
   ): Result<unknown[], Context>;
 
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[]
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      justid: "JUSTID",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      justid: "JUSTID"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      force: "FORCE",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      force: "FORCE"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      force: "FORCE",
+      justid: "JUSTID",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      force: "FORCE",
+      justid: "JUSTID"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      countToken: "RETRYCOUNT",
+      count: number | string
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      justid: "JUSTID",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      justid: "JUSTID"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      force: "FORCE",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      force: "FORCE"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      force: "FORCE",
+      justid: "JUSTID",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      force: "FORCE",
+      justid: "JUSTID"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      justid: "JUSTID",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      justid: "JUSTID"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      force: "FORCE",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      force: "FORCE"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      force: "FORCE",
+      justid: "JUSTID",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      force: "FORCE",
+      justid: "JUSTID"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      justid: "JUSTID",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      justid: "JUSTID"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      force: "FORCE",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      force: "FORCE"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      force: "FORCE",
+      justid: "JUSTID",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      force: "FORCE",
+      justid: "JUSTID"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      justid: "JUSTID",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      justid: "JUSTID"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      force: "FORCE",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      force: "FORCE"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      force: "FORCE",
+      justid: "JUSTID",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      force: "FORCE",
+      justid: "JUSTID"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      justid: "JUSTID",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      justid: "JUSTID"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      force: "FORCE",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      force: "FORCE"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      force: "FORCE",
+      justid: "JUSTID",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      force: "FORCE",
+      justid: "JUSTID"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      justid: "JUSTID",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      justid: "JUSTID"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      force: "FORCE",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      force: "FORCE"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      force: "FORCE",
+      justid: "JUSTID",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      force: "FORCE",
+      justid: "JUSTID"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      justid: "JUSTID",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      justid: "JUSTID"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      force: "FORCE",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      force: "FORCE"
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      force: "FORCE",
+      justid: "JUSTID",
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xclaimBuffer(
+    ...args: [
+      key: RedisKey,
+      group: string | Buffer,
+      consumer: string | Buffer,
+      minIdleTime: string | Buffer | number,
+      ...ids: (string | Buffer | number)[],
+      msToken: "IDLE",
+      ms: number | string,
+      unixTimeMillisecondsToken: "TIME",
+      unixTimeMilliseconds: number | string,
+      countToken: "RETRYCOUNT",
+      count: number | string,
+      force: "FORCE",
+      justid: "JUSTID"
+    ]
+  ): Result<unknown[], Context>;
+
   /**
    * Removes the specified entries from the stream. Returns the number of items actually deleted, that may be different from the number of IDs passed in case certain IDs do not exist.
    * - _group_: stream
@@ -9743,6 +10647,50 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
     callback?: Callback<unknown[]>
   ): Result<unknown[], Context>;
   xpending(
+    key: RedisKey,
+    group: string | Buffer,
+    minIdleTimeToken: "IDLE",
+    minIdleTime: number | string,
+    start: string | Buffer | number,
+    end: string | Buffer | number,
+    count: number | string,
+    consumer: string | Buffer,
+    callback?: Callback<unknown[]>
+  ): Result<unknown[], Context>;
+
+  xpendingBuffer(
+    key: RedisKey,
+    group: string | Buffer,
+    callback?: Callback<unknown[]>
+  ): Result<unknown[], Context>;
+  xpendingBuffer(
+    key: RedisKey,
+    group: string | Buffer,
+    start: string | Buffer | number,
+    end: string | Buffer | number,
+    count: number | string,
+    callback?: Callback<unknown[]>
+  ): Result<unknown[], Context>;
+  xpendingBuffer(
+    key: RedisKey,
+    group: string | Buffer,
+    start: string | Buffer | number,
+    end: string | Buffer | number,
+    count: number | string,
+    consumer: string | Buffer,
+    callback?: Callback<unknown[]>
+  ): Result<unknown[], Context>;
+  xpendingBuffer(
+    key: RedisKey,
+    group: string | Buffer,
+    minIdleTimeToken: "IDLE",
+    minIdleTime: number | string,
+    start: string | Buffer | number,
+    end: string | Buffer | number,
+    count: number | string,
+    callback?: Callback<unknown[]>
+  ): Result<unknown[], Context>;
+  xpendingBuffer(
     key: RedisKey,
     group: string | Buffer,
     minIdleTimeToken: "IDLE",
@@ -10175,6 +11123,199 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
     ]
   ): Result<unknown[], Context>;
   xreadgroup(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      countToken: "COUNT",
+      count: number | string,
+      millisecondsToken: "BLOCK",
+      milliseconds: number | string,
+      noack: "NOACK",
+      streamsToken: "STREAMS",
+      ...args: RedisValue[]
+    ]
+  ): Result<unknown[], Context>;
+
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      streamsToken: "STREAMS",
+      ...args: RedisValue[],
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      streamsToken: "STREAMS",
+      ...args: RedisValue[]
+    ]
+  ): Result<unknown[], Context>;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      noack: "NOACK",
+      streamsToken: "STREAMS",
+      ...args: RedisValue[],
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      noack: "NOACK",
+      streamsToken: "STREAMS",
+      ...args: RedisValue[]
+    ]
+  ): Result<unknown[], Context>;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      millisecondsToken: "BLOCK",
+      milliseconds: number | string,
+      streamsToken: "STREAMS",
+      ...args: RedisValue[],
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      millisecondsToken: "BLOCK",
+      milliseconds: number | string,
+      streamsToken: "STREAMS",
+      ...args: RedisValue[]
+    ]
+  ): Result<unknown[], Context>;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      millisecondsToken: "BLOCK",
+      milliseconds: number | string,
+      noack: "NOACK",
+      streamsToken: "STREAMS",
+      ...args: RedisValue[],
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      millisecondsToken: "BLOCK",
+      milliseconds: number | string,
+      noack: "NOACK",
+      streamsToken: "STREAMS",
+      ...args: RedisValue[]
+    ]
+  ): Result<unknown[], Context>;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      countToken: "COUNT",
+      count: number | string,
+      streamsToken: "STREAMS",
+      ...args: RedisValue[],
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      countToken: "COUNT",
+      count: number | string,
+      streamsToken: "STREAMS",
+      ...args: RedisValue[]
+    ]
+  ): Result<unknown[], Context>;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      countToken: "COUNT",
+      count: number | string,
+      noack: "NOACK",
+      streamsToken: "STREAMS",
+      ...args: RedisValue[],
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      countToken: "COUNT",
+      count: number | string,
+      noack: "NOACK",
+      streamsToken: "STREAMS",
+      ...args: RedisValue[]
+    ]
+  ): Result<unknown[], Context>;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      countToken: "COUNT",
+      count: number | string,
+      millisecondsToken: "BLOCK",
+      milliseconds: number | string,
+      streamsToken: "STREAMS",
+      ...args: RedisValue[],
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      countToken: "COUNT",
+      count: number | string,
+      millisecondsToken: "BLOCK",
+      milliseconds: number | string,
+      streamsToken: "STREAMS",
+      ...args: RedisValue[]
+    ]
+  ): Result<unknown[], Context>;
+  xreadgroupBuffer(
+    ...args: [
+      groupConsumerToken: "GROUP",
+      group: string | Buffer,
+      consumer: string | Buffer,
+      countToken: "COUNT",
+      count: number | string,
+      millisecondsToken: "BLOCK",
+      milliseconds: number | string,
+      noack: "NOACK",
+      streamsToken: "STREAMS",
+      ...args: RedisValue[],
+      callback: Callback<unknown[]>
+    ]
+  ): Result<unknown[], Context>;
+  xreadgroupBuffer(
     ...args: [
       groupConsumerToken: "GROUP",
       group: string | Buffer,
