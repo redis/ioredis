@@ -56,9 +56,12 @@ export default class DataHandler {
       },
     });
 
-    redis.stream.on("data", (data) => {
+    // prependListener ensures the parser receives and processes data before socket timeout checks are performed
+    redis.stream.prependListener("data", (data) => {
       parser.execute(data);
     });
+    // prependListener() doesn't enable flowing mode automatically - we need to resume the stream manually
+    redis.stream.resume();
   }
 
   private returnFatalError(err: Error) {
