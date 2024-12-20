@@ -1,3 +1,10 @@
+## [5.4.2](https://github.com/luin/ioredis/compare/v5.4.1...v5.4.2) (2024-12-20)
+
+
+### Bug Fixes
+
+* Connection instability when using socketTimeout parameter ([#1937](https://github.com/luin/ioredis/issues/1937)) ([ca5e940](https://github.com/luin/ioredis/commit/ca5e9405f80318ef35c42d23da640df4b88b6670)), closes [#1919](https://github.com/luin/ioredis/issues/1919)
+
 ## [5.4.1](https://github.com/luin/ioredis/compare/v5.4.0...v5.4.1) (2024-04-17)
 
 
