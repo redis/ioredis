@@ -30,4 +30,5 @@ export interface ScanStreamOptions {
   match?: string;
   type?: string;
   count?: number;
+  noValues?: boolean;
 }
