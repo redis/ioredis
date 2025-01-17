@@ -14,6 +14,8 @@ A robust, performance-focused and full-featured [Redis](http://redis.io) client 
 
 Supports Redis >= 2.6.12. Completely compatible with Redis 7.x.
 
+ioredis is a stable project and maintenance is done on a best-effort basis for relevant issues (contributions to ioredis will still be evaluated, reviewed, and merged when they benefit the project). For new projects, node-redis is the recommended client library. [node-redis](https://github.com/redis/node-redis) is the open-source (MIT license) Redis JavaScript client library redesigned from the ground up and actively maintained. [node-redis](https://github.com/redis/node-redis) supports new (hash-field expiration) and future commands and the capabilities available in Redis Stack and Redis 8 (search, JSON, time-series, probabilistic data structures).
+
 # Features
 
 ioredis is a robust, full-featured Redis client that is
