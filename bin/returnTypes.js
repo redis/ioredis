@@ -271,7 +271,7 @@ module.exports = {
   sunion: "string[]",
   sunionstore: "number",
   swapdb: "'OK'",
-  time: "number[]",
+  time: "[string, string]",
   touch: "number",
   ttl: "number",
   type: "string",
