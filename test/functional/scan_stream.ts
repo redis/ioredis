@@ -161,6 +161,25 @@ describe("*scanStream", () => {
     });
   });
 
+  describe('hscanStream', () => {
+    it('should recognize `NOVALUES`', (done) => {
+      let keys = [];
+      const redis = new Redis();
+      redis.hset('object', 'foo1', 'foo1_value');
+      redis.hset('object', 'foo2', 'foo2_value');
+      redis.hset('object', 'foo3', 'foo3_value');
+      const stream = redis.hscanStream('object', { noValues: true });
+      stream.on('data', function (data) {
+        keys = keys.concat(data);
+      });
+      stream.on('end', () => {
+        expect(keys).to.eql(['foo1', 'foo2', 'foo3']);
+        redis.disconnect();
+        done();
+      });
+    });
+  });
+
   describe("Cluster", () => {
     it("should work in cluster mode", (done) => {
       const slotTable = [
