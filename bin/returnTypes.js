@@ -142,6 +142,7 @@ module.exports = {
   hdel: "number",
   hello: "unknown[]",
   hexists: "number",
+  hexpire: "number[]",
   hget: "string | null",
   hgetall: "[field: string, value: string][]",
   hincrby: "number",
