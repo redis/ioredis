@@ -282,7 +282,16 @@ export default class SentinelConnector extends AbstractConnector {
   private sentinelNatResolve(item: SentinelAddress | null) {
     if (!item || !this.options.natMap) return item;
 
-    return this.options.natMap[`${item.host}:${item.port}`] || item;
+    const key = `${item.host}:${item.port}`;
+
+    let result = item;
+    if(typeof this.options.natMap === "function") {
+      result = this.options.natMap(key) || item;
+    } else if (typeof this.options.natMap === "object") {
+      result = this.options.natMap[key] || item;
+    }
+
+    return result;
   }
 
   private connectToSentinel(
