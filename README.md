@@ -727,7 +727,7 @@ const stream = redis.zscanStream("myhash", {
   match: "age:??",
 });
 ```
-Also `hscanStream` accept noValues option (true or false)
+The `hscanStream` also accepts the `noValues` option to specify whether Redis should return only the keys in the hash table without their corresponding values.
 ```javascript
 const stream = redis.hscanStream("myhash", {
   match: "age:??",
