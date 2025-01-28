@@ -725,11 +725,17 @@ There are also `hscanStream`, `zscanStream` and `sscanStream` to iterate through
 similar to `scanStream` except the first argument is the key name:
 
 ```javascript
-const stream = redis.hscanStream("myhash", {
+const stream = redis.zscanStream("myhash", {
   match: "age:??",
 });
 ```
-
+The `hscanStream` also accepts the `noValues` option to specify whether Redis should return only the keys in the hash table without their corresponding values.
+```javascript
+const stream = redis.hscanStream("myhash", {
+  match: "age:??",
+  noValues: true,
+});
+```
 You can learn more from the [Redis documentation](http://redis.io/commands/scan).
 
 **Useful Tips**
