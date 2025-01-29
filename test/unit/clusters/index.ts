@@ -56,6 +56,47 @@ describe("cluster", () => {
       }).to.throw(/Invalid role/);
     });
   });
+
+
+  describe("natMapper", () => {
+    it("returns the original nodeKey if no NAT mapping is provided", () => {
+      const cluster = new Cluster([]);
+      const nodeKey = { host: "127.0.0.1", port: 6379 };
+      const result = cluster["natMapper"](nodeKey);
+
+      expect(result).to.eql(nodeKey);
+    });
+
+    it("maps external IP to internal IP using NAT mapping object", () => {
+      const natMap = { "203.0.113.1:6379": { host: "127.0.0.1", port: 30000 } };
+      const cluster = new Cluster([], { natMap });
+      const nodeKey = "203.0.113.1:6379";
+      const result = cluster["natMapper"](nodeKey);
+      expect(result).to.eql({ host: "127.0.0.1", port: 30000 });
+    });
+
+    it("maps external IP to internal IP using NAT mapping function", () => {
+      const natMap = (key) => {
+        if (key === "203.0.113.1:6379") {
+          return { host: "127.0.0.1", port: 30000 };
+        }
+        return null;
+      };
+      const cluster = new Cluster([], { natMap });
+      const nodeKey = "203.0.113.1:6379";
+      const result = cluster["natMapper"](nodeKey);
+      expect(result).to.eql({ host: "127.0.0.1", port: 30000 });
+    });
+
+    it("returns the original nodeKey if NAT mapping is invalid", () => {
+      const natMap = { "invalid:key": { host: "127.0.0.1", port: 30000 } };
+      const cluster = new Cluster([], { natMap });
+      const nodeKey = "203.0.113.1:6379";
+      const result = cluster["natMapper"](nodeKey);
+      expect(result).to.eql({ host: "203.0.113.1", port: 6379 });
+    });
+  });
+
 });
 
 describe("nodeKeyToRedisOptions()", () => {

@@ -19,9 +19,11 @@ export type DNSLookupFunction = (
     family?: number
   ) => void
 ) => void;
-export interface NatMap {
+
+export type NatMapFunction = (key: string) => { host: string; port: number } | null;
+export type NatMap = {
   [key: string]: { host: string; port: number };
-}
+} | NatMapFunction
 
 /**
  * Options for Cluster constructor

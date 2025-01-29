@@ -791,17 +791,23 @@ class Cluster extends Commander {
   }
 
   private natMapper(nodeKey: NodeKey | RedisOptions): RedisOptions {
-    if (this.options.natMap && typeof this.options.natMap === "object") {
-      const key =
-        typeof nodeKey === "string"
-          ? nodeKey
-          : `${nodeKey.host}:${nodeKey.port}`;
-      const mapped = this.options.natMap[key];
-      if (mapped) {
-        debug("NAT mapping %s -> %O", key, mapped);
-        return Object.assign({}, mapped);
-      }
+    const key =
+      typeof nodeKey === "string"
+        ? nodeKey
+        : `${nodeKey.host}:${nodeKey.port}`;
+
+    let mapped = null;
+    if (this.options.natMap && typeof this.options.natMap === "function") {
+      mapped = this.options.natMap(key);
+    } else if (this.options.natMap && typeof this.options.natMap === "object") {
+      mapped = this.options.natMap[key];
     }
+
+    if (mapped) {
+      debug("NAT mapping %s -> %O", key, mapped);
+      return Object.assign({}, mapped);
+    }
+
     return typeof nodeKey === "string"
       ? nodeKeyToRedisOptions(nodeKey)
       : nodeKey;

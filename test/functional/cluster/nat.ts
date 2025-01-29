@@ -5,7 +5,7 @@ import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
 
 describe("NAT", () => {
-  it("works for normal case", (done) => {
+  it("works for normal case with object", (done) => {
     const slotTable = [
       [0, 1, ["192.168.1.1", 30001]],
       [2, 16383, ["192.168.1.2", 30001]],
@@ -36,6 +36,48 @@ describe("NAT", () => {
           "192.168.1.1:30001": { host: "127.0.0.1", port: 30001 },
           "192.168.1.2:30001": { host: "127.0.0.1", port: 30002 },
         },
+      }
+    );
+
+    cluster.get("foo");
+  });
+
+  it("works for normal case with function", (done) => {
+    const slotTable = [
+      [0, 1, ["192.168.1.1", 30001]],
+      [2, 16383, ["192.168.1.2", 30001]],
+    ];
+
+    let cluster;
+    new MockServer(30001, null, slotTable);
+    new MockServer(
+      30002,
+      ([command, arg]) => {
+        if (command === "get" && arg === "foo") {
+          cluster.disconnect();
+          done();
+        }
+      },
+      slotTable
+    );
+
+    cluster = new Cluster(
+      [
+        {
+          host: "127.0.0.1",
+          port: 30001,
+        },
+      ],
+      {
+        natMap: (key) => {
+          if(key === "192.168.1.1:30001") {
+            return { host: "127.0.0.1", port: 30001 };
+          }
+          if(key === "192.168.1.2:30001") {
+            return  { host: "127.0.0.1", port: 30002 };
+          }
+          return null;
+        }
       }
     );
 
