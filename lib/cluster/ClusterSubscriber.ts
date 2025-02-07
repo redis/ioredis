@@ -8,12 +8,18 @@ const debug = Debug("cluster:subscriber");
 
 export default class ClusterSubscriber {
   private started = false;
+
+  //There is only one connection for the entire pool
   private subscriber: any = null;
   private lastActiveSubscriber: any;
 
+  //The slot range for which this subscriber is responsible
+  private slotRange: [number, number] = [0, 16383]
+
   constructor(
     private connectionPool: ConnectionPool,
-    private emitter: EventEmitter
+    private emitter: EventEmitter,
+    private isSharded : boolean = false
   ) {
     // If the current node we're using as the subscriber disappears
     // from the node pool for some reason, we will select a new one
@@ -45,6 +51,17 @@ export default class ClusterSubscriber {
 
   getInstance(): any {
     return this.subscriber;
+  }
+
+  /**
+   * Associate this subscriber to a specific slot range
+   * @param range
+   */
+  associateSlotRange(range: [number, number]): boolean {
+    if (this.isSharded) {
+      this.slotRange = range;
+    }
+    return this.isSharded
   }
 
   start(): void {
