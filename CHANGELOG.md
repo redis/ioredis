@@ -1,3 +1,11 @@
+# [5.5.0](https://github.com/luin/ioredis/compare/v5.4.2...v5.5.0) (2025-02-07)
+
+
+### Features
+
+* Add ability for nat mapping through function ([#1948](https://github.com/luin/ioredis/issues/1948)) ([3a04bee](https://github.com/luin/ioredis/commit/3a04bee10995832303916fe8c7854eb6f3dcb65d))
+* **HscanStream:** adding NOVALUES option ([#1943](https://github.com/luin/ioredis/issues/1943)) ([2f9843d](https://github.com/luin/ioredis/commit/2f9843ddfa8d46cbee6c858fefbf9c2cd3852503))
+
 ## [5.4.2](https://github.com/luin/ioredis/compare/v5.4.1...v5.4.2) (2024-12-20)
 
 
