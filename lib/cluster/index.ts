@@ -167,9 +167,11 @@ class Cluster extends Commander {
         const sub = new ClusterSubscriber(pool, this, true)
         this.shardedSubscribers.push(sub)
 
+        console.log(this.slots)
+
         //Register a callback for adding the slots for which the subscriber is responsible
-        //TODO: Check how to refactor the code to react to "refresh" instead of ready.
-        this.on("ready", () => {
+        //TODO: Using "refresh" here, but needs to be tested in regards to side effects
+        this.on("refresh", () => {
           const clusterSlots = this.slots;
           const nodeKey = getNodeKey(redis.options);
 
@@ -184,11 +186,12 @@ class Cluster extends Commander {
           }
 
           sub.associateSlotRange([min, max])
+          sub.start()
           this.emit("+subscriber", sub)
           numSubscribers++
 
           if (numSubscribers == this.nodes("master").length)
-            this.emit("subscribers_ready")
+            this.emit("subscribersReady")
         })
       }
 
@@ -584,14 +587,26 @@ class Cluster extends Commander {
       }
       let redis;
       if (_this.status === "ready" || command.name === "cluster") {
-        //TODO: It seems that the target is determined here.
         if (node && node.redis) {
           redis = node.redis;
         } else if (
           Command.checkFlag("ENTER_SUBSCRIBER_MODE", command.name) ||
           Command.checkFlag("EXIT_SUBSCRIBER_MODE", command.name)
         ) {
-          redis = _this.subscriber.getInstance();
+          //TODO: Could use a slot range to subscriber map by avoiding iterating over every subscriber
+          if (command.name == "ssubscribe") {
+            for (const sub of _this.shardedSubscribers) {
+              if (sub.isResponsibleFor(targetSlot)) {
+                redis = sub.getInstance();
+                debug("Subscribing for channel " + command.getKeys() + " on node " + redis.options.port + ".")
+                break;
+              }
+            }
+          }
+          else {
+            redis = _this.subscriber.getInstance();
+          }
+
           if (!redis) {
             command.reject(new AbortError("No subscriber for the cluster"));
             return;

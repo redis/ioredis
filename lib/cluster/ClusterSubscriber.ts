@@ -14,7 +14,7 @@ export default class ClusterSubscriber {
   private lastActiveSubscriber: any;
 
   //The slot range for which this subscriber is responsible
-  private slotRange: [number, number] = [0, 16383]
+  private slotRange: [number, number] = [-1, -1]
 
   constructor(
     private connectionPool: ConnectionPool,
@@ -64,6 +64,15 @@ export default class ClusterSubscriber {
     return this.isSharded
   }
 
+
+  /**
+   * Checks if this subscriber is responsible for the given slot
+   * @param slot
+   */
+  isResponsibleFor(slot : number): boolean {
+    return slot >= this.slotRange[0] && slot <= this.slotRange[1];
+  }
+
   start(): void {
     this.started = true;
     this.selectSubscriber();
@@ -76,7 +85,6 @@ export default class ClusterSubscriber {
       this.subscriber.disconnect();
       this.subscriber = null;
     }
-    debug("stopped");
   }
 
   private onSubscriberEnd = () => {
@@ -196,17 +204,27 @@ export default class ClusterSubscriber {
     for (const event of [
       "message",
       "messageBuffer",
-      "smessage",
-      "smessageBuffer",
     ]) {
       this.subscriber.on(event, (arg1, arg2) => {
         this.emitter.emit(event, arg1, arg2);
       });
     }
+
     for (const event of ["pmessage", "pmessageBuffer"]) {
       this.subscriber.on(event, (arg1, arg2, arg3) => {
         this.emitter.emit(event, arg1, arg2, arg3);
       });
+    }
+
+    if (this.isSharded == true) {
+      for (const event of [
+        "smessage",
+        "smessageBuffer",
+      ]) {
+        this.subscriber.on(event, (arg1, arg2) => {
+          this.emitter.emit(event, arg1, arg2);
+        });
+      }
     }
   }
 }
