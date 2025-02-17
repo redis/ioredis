@@ -14,7 +14,7 @@ export default class ClusterSubscriber {
   private lastActiveSubscriber: any;
 
   //The slot range for which this subscriber is responsible
-  private slotRange: [number, number] = [-1, -1]
+  private slotRange: number[] = []
 
   constructor(
     private connectionPool: ConnectionPool,
@@ -57,7 +57,7 @@ export default class ClusterSubscriber {
    * Associate this subscriber to a specific slot range
    * @param range
    */
-  associateSlotRange(range: [number, number]): boolean {
+  associateSlotRange(range: number[]): boolean {
     if (this.isSharded) {
       this.slotRange = range;
     }
@@ -70,7 +70,10 @@ export default class ClusterSubscriber {
    * @param slot
    */
   isResponsibleFor(slot : number): boolean {
-    return slot >= this.slotRange[0] && slot <= this.slotRange[1];
+    if (this.isSharded) {
+     return this.slotRange.includes(slot);
+    }
+    return false;
   }
 
   start(): void {

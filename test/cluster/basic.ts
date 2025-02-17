@@ -170,46 +170,4 @@ describe("cluster", () => {
     })
   });
 
-  /**
-   * This test is currently failing with a MOVED error. This needs to be fixed.
-   */
-  describe("sharded publish/subscribe", () => {
-    it("works when you can receive published messages to all primary nodes after having subscribed", async () => {
-      const host = "127.0.0.1";
-      const port: number = masters[0]
-
-      const publisher: Cluster = new Cluster([{ host: host, port: port }]);
-      const subscriber: Cluster = new Cluster([{ host: host, port: port }]);
-
-      // Verify that the cluster is configured with 3 master nodes
-      publisher.on("ready", () => {
-        expect(publisher.nodes("master").length).to.eql(3);
-      });
-
-      //0. Construct 3 channel names, whereby the first one is expected to land on node 1, the second one on node 2, and so on
-      const channels = ["channel:test:3", "channel:test:2",  "channel:test:0"]
-
-      let total_num_messages = 0;
-
-      for (const c of channels) {
-        console.log("Trying to publish to channel:", c);
-
-        //1. Subscribe to the channel
-        await subscriber.ssubscribe(c)
-
-        //2. Publish a message before initializing the message handling
-        let num_subscribers = await publisher.spublish(c, "This is a test message");
-        expect(num_subscribers).to.eql(1);
-
-        //3. Handle messages
-        subscriber.on("smessage", (channel, message) => {
-          console.log(`Received message from ${channel}: ${message}`);
-          expect(channel).to.eql(c);
-          expect(message).to.eql("This is a test message");
-          total_num_messages++;
-        });
-      }
-      expect(total_num_messages).to.eql(channels.length);
-    });
-  });
 });

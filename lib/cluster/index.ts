@@ -37,7 +37,7 @@ import {
   weightSrvRecords,
 } from "./util";
 import Deque = require("denque");
-import * as cluster from "node:cluster";
+import ClusterSubscriberGroup from "./ClusterSubscriberGroup";
 
 const debug = Debug("cluster");
 
@@ -97,7 +97,7 @@ class Cluster extends Commander {
   private delayQueue: DelayQueue = new DelayQueue();
   private offlineQueue = new Deque<OfflineQueueItem>();
   private subscriber: ClusterSubscriber;
-  private shardedSubscribers: ClusterSubscriber[] = [];
+  private shardedSubscribers: ClusterSubscriberGroup;
   private slotsTimer: NodeJS.Timer;
   private reconnectTimeout: NodeJS.Timer;
   private isRefreshing = false;
@@ -122,6 +122,7 @@ class Cluster extends Commander {
     EventEmitter.call(this);
 
     this.startupNodes = startupNodes;
+    this.shardedSubscribers = new ClusterSubscriberGroup(this);
     this.options = defaults({}, options, DEFAULT_CLUSTER_OPTIONS, this.options);
 
     if (
@@ -149,52 +150,8 @@ class Cluster extends Commander {
     this.connectionPool.on("-node", (redis, key) => {
       this.emit("-node", redis);
     });
-
-
-    //Track the number of subscribers that got registered
-    let numSubscribers = 0;
-
     this.connectionPool.on("+node", (redis) => {
       this.emit("+node", redis);
-
-
-      //Prepare a connection pool that has exactly one connection to be compatible with the current ClusterSubscriber
-      const pool: ConnectionPool= new ConnectionPool(redis.options);
-      const isAdded = pool.addMasterNode(redis)
-
-      //If the connection was added let's add a subscriber to the list of sharded subscribers
-      if (isAdded) {
-        const sub = new ClusterSubscriber(pool, this, true)
-        this.shardedSubscribers.push(sub)
-
-        console.log(this.slots)
-
-        //Register a callback for adding the slots for which the subscriber is responsible
-        //TODO: Using "refresh" here, but needs to be tested in regards to side effects
-        this.on("refresh", () => {
-          const clusterSlots = this.slots;
-          const nodeKey = getNodeKey(redis.options);
-
-          let min = -1;
-          let max = -1;
-
-          for (let s = 0; s < clusterSlots.length; s++) {
-            if (clusterSlots[s][0] == nodeKey) {
-              if (min == -1) min = s
-              if (s > max) max = s;
-            }
-          }
-
-          sub.associateSlotRange([min, max])
-          sub.start()
-          this.emit("+subscriber", sub)
-          numSubscribers++
-
-          if (numSubscribers == this.nodes("master").length)
-            this.emit("subscribersReady")
-        })
-      }
-
     });
     this.connectionPool.on("drain", () => {
       this.setStatus("close");
@@ -593,15 +550,10 @@ class Cluster extends Commander {
           Command.checkFlag("ENTER_SUBSCRIBER_MODE", command.name) ||
           Command.checkFlag("EXIT_SUBSCRIBER_MODE", command.name)
         ) {
-          //TODO: Could use a slot range to subscriber map by avoiding iterating over every subscriber
           if (command.name == "ssubscribe") {
-            for (const sub of _this.shardedSubscribers) {
-              if (sub.isResponsibleFor(targetSlot)) {
-                redis = sub.getInstance();
-                debug("Subscribing for channel " + command.getKeys() + " on node " + redis.options.port + ".")
-                break;
-              }
-            }
+            const sub: ClusterSubscriber = _this.shardedSubscribers.getResponsibleSubscriber(targetSlot);
+            redis = sub.getInstance();
+            debug("Subscribing for channel " + command.getKeys() + " on node " + redis.options.port + ".")
           }
           else {
             redis = _this.subscriber.getInstance();
