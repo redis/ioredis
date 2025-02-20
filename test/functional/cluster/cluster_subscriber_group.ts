@@ -1,9 +1,10 @@
 import {expect} from "chai";
-import Redis, {Cluster} from "../../../lib";
+import {Cluster} from "../../../lib";
 
 const masters = [30000, 30001, 30002];
 
 
+/*
 async function cleanup() {
     for (const port of masters) {
         const redis = new Redis(port);
@@ -13,12 +14,12 @@ async function cleanup() {
     // Wait for replication
     await new Promise((resolve) => setTimeout(resolve, 500));
 }
+*/
 
+describe("cluster:ClusterSubscriberGroup", () => {
 
-describe("sharded publish/subscribe", () => {
-
-    beforeEach(cleanup);
-    afterEach(cleanup);
+    //beforeEach(cleanup);
+    //afterEach(cleanup);
 
     it("works when you can receive published messages to all primary nodes after having subscribed", async () => {
 
