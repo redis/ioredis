@@ -1,27 +1,10 @@
 import {expect} from "chai";
-import {Cluster} from "../../../lib";
+import {Cluster} from "../../lib";
 
 const masters = [30000, 30001, 30002];
 
-
-/*
-async function cleanup() {
-    for (const port of masters) {
-        const redis = new Redis(port);
-        await redis.flushall();
-        await redis.script("FLUSH");
-    }
-    // Wait for replication
-    await new Promise((resolve) => setTimeout(resolve, 500));
-}
-*/
-
 describe("cluster:ClusterSubscriberGroup", () => {
-
-    //beforeEach(cleanup);
-    //afterEach(cleanup);
-
-    it("works when you can receive published messages to all primary nodes after having subscribed", (done) => {
+    it("works when you can receive published messages to all primary nodes after having subscribed", async () => {
 
         // 0. Prepare the publisher and the subscriber
         const host = "127.0.0.1";
@@ -61,13 +44,11 @@ describe("cluster:ClusterSubscriberGroup", () => {
             console.log("Trying to publish to channel:", c);
 
             //2. Subscribe to the channel
-            subscriber.ssubscribe(c)
+            await subscriber.ssubscribe(c)
 
             //3. Publish a message before initializing the message handling
-            const numSubscribers = publisher.spublish(c, "This is a test message to " + c + ".");
+            const numSubscribers = await publisher.spublish(c, "This is a test message to " + c + ".");
             expect(numSubscribers).to.eql(1);
         }
-
-        done();
     });
 });
