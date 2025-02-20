@@ -4,6 +4,7 @@ import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
 import Redis from "../../../lib/Redis";
 import { noop } from "../../../lib/utils";
+import ClusterSubscriber from "../../../lib/cluster/ClusterSubscriber";
 
 describe("cluster:spub/ssub", function () {
   it("should receive messages", (done) => {
@@ -18,7 +19,7 @@ describe("cluster:spub/ssub", function () {
     const node1 = new MockServer(30001, handler);
     new MockServer(30002, handler);
 
-    const options = [{ host: "127.0.0.1", port: "30001" }];
+    const options = [{ host: "127.0.0.1", port: 30001 }];
     const ssub = new Cluster(options);
 
     ssub.ssubscribe("test cluster", function () {
@@ -71,7 +72,8 @@ describe("cluster:spub/ssub", function () {
     };
     new MockServer(30001, handler);
 
-    const ssub = new Redis.Cluster([{ port: "30001", password: "abc" }]);
+    const ssub = new Redis.Cluster([{ port: 30001, password: "abc" }]);
+
 
     ssub.ssubscribe("test cluster", function () {
       ssub.disconnect();
@@ -87,7 +89,7 @@ describe("cluster:spub/ssub", function () {
         return [argv[0], argv[1]];
       }
     });
-    const client = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
+    const client = new Cluster([{ host: "127.0.0.1", port: 30001 }]);
 
     client.ssubscribe("test cluster", function () {
       const stub = sinon

@@ -54,26 +54,19 @@ export default class ClusterSubscriber {
   }
 
   /**
-   * Associate this subscriber to a specific slot range
+   * Associate this subscriber to a specific slot range.
+   *
+   * Returns the range or an empty array if the slot range couldn't be associated.
+   *
+   * BTW: This is more for debugging and testing purposes.
+   *
    * @param range
    */
-  associateSlotRange(range: number[]): boolean {
+  associateSlotRange(range: number[]): number[] {
     if (this.isSharded) {
       this.slotRange = range;
     }
-    return this.isSharded
-  }
-
-
-  /**
-   * Checks if this subscriber is responsible for the given slot
-   * @param slot
-   */
-  isResponsibleFor(slot : number): boolean {
-    if (this.isSharded) {
-     return this.slotRange.includes(slot);
-    }
-    return false;
+    return this.slotRange;
   }
 
   start(): void {
