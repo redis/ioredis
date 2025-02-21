@@ -106,6 +106,8 @@ export default class ClusterSubscriberGroup {
      */
     refreshSlots(cluster: Cluster) : boolean {
         //If there was an actual change, then reassign the slot ranges
+        //TODO: Do I compare the same object here? Better compare the JSON.stringify(...) results
+        //TODO: Test what happens if we move a slot
         if (this.clusterSlots !== cluster.slots) {
 
             debug("Refreshing the slots of the subscriber group.");

@@ -117,13 +117,16 @@ class Cluster extends Commander {
   /**
    * Creates an instance of Cluster.
    */
+  //TODO: Add an option that enables or disables sharded PubSub
   constructor(startupNodes: ClusterNode[], options: ClusterOptions = {}) {
     super();
     EventEmitter.call(this);
 
     this.startupNodes = startupNodes;
-    this.shardedSubscribers = new ClusterSubscriberGroup(this);
     this.options = defaults({}, options, DEFAULT_CLUSTER_OPTIONS, this.options);
+
+    if (this.options.shardedSubscribers == true)
+      this.shardedSubscribers = new ClusterSubscriberGroup(this);
 
     if (
       this.options.redisOptions &&
@@ -550,7 +553,7 @@ class Cluster extends Commander {
           Command.checkFlag("ENTER_SUBSCRIBER_MODE", command.name) ||
           Command.checkFlag("EXIT_SUBSCRIBER_MODE", command.name)
         ) {
-          if (command.name == "ssubscribe") {
+          if (command.name == "ssubscribe" && _this.options.shardedSubscribers == true) {
             const sub: ClusterSubscriber = _this.shardedSubscribers.getResponsibleSubscriber(targetSlot);
             redis = sub.getInstance();
             debug("Subscribing for channel " + command.getKeys() + " on node " + redis.options.port + ".")

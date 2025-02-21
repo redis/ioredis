@@ -133,13 +133,17 @@ export default class ClusterSubscriber {
      * provided for the subscriber is correct, and if not, the current subscriber
      * will be disconnected and a new subscriber will be selected.
      */
+    let connectionPrefix = "subscriber";
+    if (this.isSharded)
+      connectionPrefix = "ssubscriber";
+
     this.subscriber = new Redis({
       port: options.port,
       host: options.host,
       username: options.username,
       password: options.password,
       enableReadyCheck: true,
-      connectionName: getConnectionName("subscriber", options.connectionName),
+      connectionName: getConnectionName(connectionPrefix, options.connectionName),
       lazyConnect: true,
       tls: options.tls,
       // Don't try to reconnect the subscriber connection. If the connection fails
