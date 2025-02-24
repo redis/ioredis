@@ -106,10 +106,10 @@ export default class ClusterSubscriberGroup {
      */
     refreshSlots(cluster: Cluster) : boolean {
         //If there was an actual change, then reassign the slot ranges
-        //TODO: Do I compare the same object here? Better compare the JSON.stringify(...) results
         //TODO: Test what happens if we move a slot
-        if (this.clusterSlots !== cluster.slots) {
-
+        if (this._slotsAreEqual(cluster.slots)) {
+            debug("Nothing to refresh because the new cluster map is equal to the previous one.")
+        } else {
             debug("Refreshing the slots of the subscriber group.");
             //Rebuild the slots index
             this.subscriberToSlotsIndex = new Map();
@@ -136,6 +136,19 @@ export default class ClusterSubscriberGroup {
         return false;
     }
 
+
+    /**
+     * Deep equality of the cluster slots objects
+     *
+     * @param other
+     * @private
+     */
+    private _slotsAreEqual(other: string[][]) {
+        if ( this.clusterSlots === undefined )
+            return false;
+        else
+            return JSON.stringify(this.clusterSlots) === JSON.stringify(other)
+    }
 
     /**
      * Disconnect all subscribers
