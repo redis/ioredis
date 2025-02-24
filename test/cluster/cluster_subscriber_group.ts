@@ -18,7 +18,7 @@ describe("cluster:ClusterSubscriberGroup", () => {
         });
 
         //-- Subscriber
-        const subscriber: Cluster = new Cluster([{host: host, port: port}]);
+        const subscriber: Cluster = new Cluster([{host: host, port: port}], {shardedSubscribers: true});
         let totalNumMessages = 0;
 
         // Register the subscriber callback

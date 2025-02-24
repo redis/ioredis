@@ -4,8 +4,6 @@ import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
 import Redis from "../../../lib/Redis";
 import { noop } from "../../../lib/utils";
-import ClusterSubscriber from "../../../lib/cluster/ClusterSubscriber";
-import {DEFAULT_CLUSTER_OPTIONS} from "../../../lib/cluster/ClusterOptions";
 
 describe("cluster:spub/ssub", function () {
   it("should receive messages", (done) => {
@@ -26,7 +24,6 @@ describe("cluster:spub/ssub", function () {
 
     ssub.ssubscribe("test cluster", function () {
       const clientSocket = node2.findClientByName("ioredis-cluster(ssubscriber)");
-      node2.getAllClients().forEach((client) => {console.log(client.address())})
       node2.write(clientSocket, [
         "smessage",
         "test shard channel",

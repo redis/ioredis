@@ -137,4 +137,24 @@ export default class ClusterSubscriberGroup {
     }
 
 
+    /**
+     * Disconnect all subscribers
+     */
+    stop() {
+        for (const s of this.shardedSubscribers.values()) {
+            s.stop();
+        }
+    }
+
+    /**
+     * Start all not yet started subscribers
+     */
+    start() {
+        for (const s of this.shardedSubscribers.values()) {
+            if (!s.isStarted()) {
+                s.start();
+            }
+        }
+    }
+
 }

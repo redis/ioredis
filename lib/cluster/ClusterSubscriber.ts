@@ -83,6 +83,11 @@ export default class ClusterSubscriber {
     }
   }
 
+  isStarted(): boolean {
+    return this.started;
+  }
+
+
   private onSubscriberEnd = () => {
     if (!this.started) {
       debug(

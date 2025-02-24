@@ -274,6 +274,10 @@ class Cluster extends Commander {
             }
           });
           this.subscriber.start();
+
+          if (this.options.shardedSubscribers) {
+            this.shardedSubscribers.start();
+          }
         })
         .catch((err) => {
           this.setStatus("close");
@@ -302,6 +306,11 @@ class Cluster extends Commander {
     this.clearNodesRefreshInterval();
 
     this.subscriber.stop();
+
+    if (this.options.shardedSubscribers) {
+      this.shardedSubscribers.stop();
+    }
+
     if (status === "wait") {
       this.setStatus("close");
       this.handleCloseEvent();
@@ -326,6 +335,11 @@ class Cluster extends Commander {
     this.clearNodesRefreshInterval();
 
     this.subscriber.stop();
+
+    if (this.options.shardedSubscribers) {
+      this.shardedSubscribers.stop();
+    }
+
 
     if (status === "wait") {
       const ret = asCallback(Promise.resolve<"OK">("OK"), callback);
