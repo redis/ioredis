@@ -3,6 +3,8 @@ import ClusterSubscriber from "./ClusterSubscriber";
 import Cluster from "./index";
 import ConnectionPool from "./ConnectionPool";
 import {getNodeKey} from "./util";
+import * as calculateSlot from "cluster-key-slot";
+
 
 const debug = Debug("cluster:subscriberGroup");
 
@@ -24,6 +26,7 @@ export default class ClusterSubscriberGroup {
     private clusterSlots: string[][] = [];
     //Simple [min, max] slot ranges aren't enough because you can migrate single slots
     private subscriberToSlotsIndex: Map<string, number[]> = new Map();
+    private orphanedChannels: Map<number, Array<string>> = new Map();
 
     /**
      * Register callbacks
@@ -55,34 +58,65 @@ export default class ClusterSubscriberGroup {
         const pool: ConnectionPool= new ConnectionPool(redis.options);
 
         if (pool.addMasterNode(redis)) {
-            const sub = new ClusterSubscriber(pool, this.cluster, true)
+            const sub = new ClusterSubscriber(pool, this.cluster, true);
             const nodeKey = getNodeKey(redis.options);
             this.shardedSubscribers.set(nodeKey, sub);
             sub.start();
             this.cluster.emit("+subscriber");
+            this.attemptToSubscribe();
             return sub;
         }
 
         return null;
     }
 
-
     /**
      * Removes a subscriber from the group
      * @param options
      */
-    removeSubscriber(options: any): Map<string, ClusterSubscriber> {
+    removeSubscriber(redis: any): Map<string, ClusterSubscriber> {
 
-        const nodeKey = getNodeKey(options);
+        const nodeKey = getNodeKey(redis.options);
         const sub = this.shardedSubscribers.get(nodeKey);
 
         if (sub) {
+            this.updateOrphaned(sub.getLastInstance());
             sub.stop();
             this.shardedSubscribers.delete(nodeKey);
             this.cluster.emit("-subscriber");
         }
 
         return this.shardedSubscribers;
+    }
+
+    // Save the list of channels that were orphaned by the subscriber
+    private updateOrphaned(lastActiveSubscriber: any) {
+        if (lastActiveSubscriber) {
+            const condition = lastActiveSubscriber.condition || lastActiveSubscriber.prevCondition;
+            if (condition && condition.subscriber && condition.subscriber.channels("ssubscribe")) {
+                condition.subscriber.channels("ssubscribe").forEach((channel: string) => {
+                    const slot: number = calculateSlot(channel);
+                    const slotChannels = this.orphanedChannels.get(slot);
+                    if (slotChannels){
+                        slotChannels.push(channel);
+                    } else {
+                        this.orphanedChannels.set(slot, [channel]);
+                    }
+                });
+            }
+        }
+    }
+
+    private attemptToSubscribe() {
+        for(const slot of Array.from( this.orphanedChannels.keys())){
+            const subscriber = this.getResponsibleSubscriber(slot);
+            if(subscriber){
+                const instance = subscriber.getInstance();
+                const channels = this.orphanedChannels.get(slot);
+                instance.ssubscribe(channels);
+                this.orphanedChannels.delete(slot);
+            }
+        }
     }
 
     /**

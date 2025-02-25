@@ -89,7 +89,7 @@ describe("cluster:spub/ssub", function () {
         return [argv[0], argv[1]];
       }
     });
-    const client = new Cluster([{ host: "127.0.0.1", port: 30001 }]);
+    const client = new Cluster([{ host: "127.0.0.1", port: 30001 }], {shardedSubscribers: true});
     client.ssubscribe("test cluster", function () {
       const stub = sinon
         .stub(Redis.prototype, "ssubscribe")
