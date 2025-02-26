@@ -63,7 +63,9 @@ export default class ClusterSubscriberGroup {
             this.shardedSubscribers.set(nodeKey, sub);
             sub.start();
             this.cluster.emit("+subscriber");
-            this.attemptToSubscribe();
+            // if there are orphaned channels,
+            // we need to attempt to resubscribe them in case the new node serves their slot
+            this.attemptToResubscribe();
             return sub;
         }
 
@@ -72,7 +74,7 @@ export default class ClusterSubscriberGroup {
 
     /**
      * Removes a subscriber from the group
-     * @param options
+     * @param redis
      */
     removeSubscriber(redis: any): Map<string, ClusterSubscriber> {
 
@@ -80,16 +82,20 @@ export default class ClusterSubscriberGroup {
         const sub = this.shardedSubscribers.get(nodeKey);
 
         if (sub) {
+            // mark all channels that this subscriber was responsible for as orphaned,
+            // as we assume that since they are not unsubscribed from, they are still being used
             this.updateOrphaned(sub.getLastInstance());
             sub.stop();
             this.shardedSubscribers.delete(nodeKey);
             this.cluster.emit("-subscriber");
+            // even though the subscriber to this node is going down, we might have another subscriber
+            // handling the same slots, so we need to attempt to subscribe the orphaned channels
+            this.attemptToResubscribe();
         }
 
         return this.shardedSubscribers;
     }
 
-    // Save the list of channels that were orphaned by the subscriber
     private updateOrphaned(lastActiveSubscriber: any) {
         if (lastActiveSubscriber) {
             const condition = lastActiveSubscriber.condition || lastActiveSubscriber.prevCondition;
@@ -98,8 +104,10 @@ export default class ClusterSubscriberGroup {
                     const slot: number = calculateSlot(channel);
                     const slotChannels = this.orphanedChannels.get(slot);
                     if (slotChannels){
+                        // ... the slot has existing orphaned channels, add to the list
                         slotChannels.push(channel);
                     } else {
+                        // ... the slot has no orphaned channels, create a new list
                         this.orphanedChannels.set(slot, [channel]);
                     }
                 });
@@ -107,7 +115,7 @@ export default class ClusterSubscriberGroup {
         }
     }
 
-    private attemptToSubscribe() {
+    private attemptToResubscribe() {
         for(const slot of Array.from( this.orphanedChannels.keys())){
             const subscriber = this.getResponsibleSubscriber(slot);
             if(subscriber){
