@@ -128,7 +128,8 @@ export default class ClusterSubscriberGroup {
                 s.associateSlotRange(this.subscriberToSlotsIndex.get(nodeKey));
             })
 
-            this.clusterSlots = cluster.slots;
+            this.clusterSlots = JSON.parse(JSON.stringify(cluster.slots));
+
             this.cluster.emit("subscribersReady")
             return true;
         }
