@@ -3,6 +3,8 @@ import ClusterSubscriber from "./ClusterSubscriber";
 import Cluster from "./index";
 import ConnectionPool from "./ConnectionPool";
 import {getNodeKey} from "./util";
+import * as calculateSlot from "cluster-key-slot";
+
 
 const debug = Debug("cluster:subscriberGroup");
 
@@ -24,6 +26,7 @@ export default class ClusterSubscriberGroup {
     private clusterSlots: string[][] = [];
     //Simple [min, max] slot ranges aren't enough because you can migrate single slots
     private subscriberToSlotsIndex: Map<string, number[]> = new Map();
+    private orphanedChannels: Map<number, Array<string>> = new Map();
 
     /**
      * Register callbacks
@@ -55,34 +58,73 @@ export default class ClusterSubscriberGroup {
         const pool: ConnectionPool= new ConnectionPool(redis.options);
 
         if (pool.addMasterNode(redis)) {
-            const sub = new ClusterSubscriber(pool, this.cluster, true)
+            const sub = new ClusterSubscriber(pool, this.cluster, true);
             const nodeKey = getNodeKey(redis.options);
             this.shardedSubscribers.set(nodeKey, sub);
             sub.start();
             this.cluster.emit("+subscriber");
+            // if there are orphaned channels,
+            // we need to attempt to resubscribe them in case the new node serves their slot
+            this.attemptToResubscribe();
             return sub;
         }
 
         return null;
     }
 
-
     /**
      * Removes a subscriber from the group
-     * @param options
+     * @param redis
      */
-    removeSubscriber(options: any): Map<string, ClusterSubscriber> {
+    removeSubscriber(redis: any): Map<string, ClusterSubscriber> {
 
-        const nodeKey = getNodeKey(options);
+        const nodeKey = getNodeKey(redis.options);
         const sub = this.shardedSubscribers.get(nodeKey);
 
         if (sub) {
+            // mark all channels that this subscriber was responsible for as orphaned,
+            // as we assume that since they are not unsubscribed from, they are still being used
+            this.updateOrphaned(sub.getLastInstance());
             sub.stop();
             this.shardedSubscribers.delete(nodeKey);
             this.cluster.emit("-subscriber");
+            // even though the subscriber to this node is going down, we might have another subscriber
+            // handling the same slots, so we need to attempt to subscribe the orphaned channels
+            this.attemptToResubscribe();
         }
 
         return this.shardedSubscribers;
+    }
+
+    private updateOrphaned(lastActiveSubscriber: any) {
+        if (lastActiveSubscriber) {
+            const condition = lastActiveSubscriber.condition || lastActiveSubscriber.prevCondition;
+            if (condition && condition.subscriber && condition.subscriber.channels("ssubscribe")) {
+                condition.subscriber.channels("ssubscribe").forEach((channel: string) => {
+                    const slot: number = calculateSlot(channel);
+                    const slotChannels = this.orphanedChannels.get(slot);
+                    if (slotChannels){
+                        // ... the slot has existing orphaned channels, add to the list
+                        slotChannels.push(channel);
+                    } else {
+                        // ... the slot has no orphaned channels, create a new list
+                        this.orphanedChannels.set(slot, [channel]);
+                    }
+                });
+            }
+        }
+    }
+
+    private attemptToResubscribe() {
+        for(const slot of Array.from( this.orphanedChannels.keys())){
+            const subscriber = this.getResponsibleSubscriber(slot);
+            if(subscriber){
+                const instance = subscriber.getInstance();
+                const channels = this.orphanedChannels.get(slot);
+                instance.ssubscribe(channels);
+                this.orphanedChannels.delete(slot);
+            }
+        }
     }
 
     /**
