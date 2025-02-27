@@ -9,6 +9,11 @@ on:
         default: 'main'
 
 jobs:
+  print-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print branch
+        run: echo  ${{ inputs.branch }}
   test:
     uses: ./.github/workflows/test.yml
     with:
