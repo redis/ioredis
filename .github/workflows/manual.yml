@@ -1,0 +1,15 @@
+name: Manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to run the workflow on'
+        required: true
+        default: 'main'
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+    with:
+      branch: ${{ inputs.branch }}
