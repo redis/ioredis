@@ -1,9 +1,20 @@
 import {expect} from "chai";
 import Redis, {Cluster} from "../../lib";
+import redis from "../../lib";
 
 const host = "127.0.0.1";
 const masters = [30000, 30001, 30002];
 const port: number = masters[0]
+
+/**
+ * Wait for a specified time
+ *
+ * @param ms
+ */
+function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 
 describe("cluster:ClusterSubscriberGroup", () => {
     it("works when you can receive published messages to all primary nodes after having subscribed", async () => {
@@ -24,7 +35,7 @@ describe("cluster:ClusterSubscriberGroup", () => {
         // Register the subscriber callback
         subscriber.on("smessage", (channel, message) => {
             console.log(message);
-            expect(message.startsWith("This is a test message to")).to.eql(true);
+            expect(message.startsWith("This is a test message")).to.eql(true);
             expect(message.endsWith(channel + ".")).to.eql(true);
             totalNumMessages++;
             expect(totalNumMessages).to.lte(3);
@@ -47,15 +58,20 @@ describe("cluster:ClusterSubscriberGroup", () => {
             await subscriber.ssubscribe(c)
 
             //3. Publish a message before initializing the message handling
-            const numSubscribers = await publisher.spublish(c, "This is a test message to " + c + ".");
+            const numSubscribers = await publisher.spublish(c, "This is a test message  " + c + ".");
             expect(numSubscribers).to.eql(1);
         }
+
+        //Give it some time to process messages and then disconnect
+        await sleep(1000);
+        subscriber.disconnect();
     });
 
     it("receive messages on the channel after the slot was moved", async () => {
 
         //The hash slot of interest
         const slot = 2318;
+        const channel = "channel:test:3";
 
         //Used as control connections for orchestrating the slot migration
         const source: Redis = new Redis({host: host, port: 30000});
@@ -83,16 +99,19 @@ describe("cluster:ClusterSubscriberGroup", () => {
 
             if (totalNumMessages == 1) {
                 console.log("Received the first message");
+                expect(message.includes("#1")).to.eql(true);
             }
 
             if (totalNumMessages == 2) {
                 console.log("Received the second message");
+                expect(message.includes("#2")).to.eql(true);
             }
         });
 
         //Subscribe and then publish
-        await subscriber.ssubscribe("channel:test:3");
-        await publisher.spublish("channel:test:3", "This is a test message to slot " + slot + ".");
+        await subscriber.ssubscribe(channel);
+        await publisher.spublish(channel, "This is a test message #1 to slot "
+            + slot + " on channel " + channel + ".");
 
         //Get the target node
         const nodes = await source.cluster('SLOTS');
@@ -113,11 +132,15 @@ describe("cluster:ClusterSubscriberGroup", () => {
 
         //Trigger a topology update on the subscriber. This needs at least one moved response.
         //TODO: What if there is no traffic on the cluster connection?
-        status = await subscriber.set("match_slot{channel:test:3}", "channel 3");
+        status = await subscriber.set("match_slot{" + channel + "}", "channel 3");
         expect(status).to.eql("OK");
         expect(subscriber.slots[slot][0]).eql("127.0.0.1:30001");
 
-        const numSubscribers = await publisher.spublish("channel:test:3", "This is a test message to slot {slot}.");
+        //Wait a bit to let the subscriber resubscribe to previous channels
+        await sleep(1000);
+
+        const numSubscribers = await publisher.spublish(channel, "This is a test message #2 to slot "
+            + slot + " on channel " + channel + ".");
         expect(publisher.slots[slot][0]).eql("127.0.0.1:30001");
         expect(numSubscribers).to.eql(1);
     });

@@ -81,7 +81,6 @@ describe("cluster:spub/ssub", function () {
     });
   });
 
-  //TODO: Why did that test work at all? Test with sharded subscribers!
   it("should re-ssubscribe after reconnection", (done) => {
     new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "SLOTS") {
