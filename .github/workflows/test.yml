@@ -1,5 +1,9 @@
 on:
   workflow_call:
+    inputs:
+      branch:
+        required: false
+        type: string
 
 jobs:
   test:
