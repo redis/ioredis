@@ -33,6 +33,7 @@
     "url": "https://opencollective.com/ioredis"
   },
   "dependencies": {
+    "@ioredis/commands": "^1.0.2",
     "cluster-key-slot": "^1.1.0",
     "debug": "^4.3.1",
     "denque": "^1.1.0",
@@ -40,7 +41,6 @@
     "lodash.flatten": "^4.4.0",
     "lodash.isarguments": "^3.1.0",
     "p-map": "^2.1.0",
-    "redis-commands": "1.7.0",
     "redis-errors": "^1.2.0",
     "redis-parser": "^3.0.0",
     "standard-as-callback": "^2.1.0"
