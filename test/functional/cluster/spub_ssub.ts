@@ -2,13 +2,13 @@ import MockServer, { getConnectionName } from "../../helpers/mock_server";
 import { expect } from "chai";
 import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
-import Redis from "../../../lib/Redis";
+import Redis from "../../../lib/redis";
 import { noop } from "../../../lib/utils";
 
 describe("cluster:spub/ssub", function () {
-  it("should receive messages", (done) => {
+  it("should receive messages", function (done) {
     const handler = function (argv) {
-      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+      if (argv[0] === "cluster" && argv[1] === "slots") {
         return [
           [0, 1, ["127.0.0.1", 30001]],
           [2, 16383, ["127.0.0.1", 30002]],
@@ -19,7 +19,7 @@ describe("cluster:spub/ssub", function () {
     new MockServer(30002, handler);
 
     const options = [{ host: "127.0.0.1", port: "30001" }];
-    const ssub = new Cluster(options);
+    const ssub: any = new Cluster(options);
 
     ssub.ssubscribe("test cluster", function () {
       node1.write(node1.findClientByName("ioredis-cluster(subscriber)"), [
@@ -36,15 +36,15 @@ describe("cluster:spub/ssub", function () {
     });
   });
 
-  it("should works when sending regular commands", (done) => {
+  it("should works when sending regular commands", function (done) {
     const handler = function (argv) {
-      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+      if (argv[0] === "cluster" && argv[1] === "slots") {
         return [[0, 16383, ["127.0.0.1", 30001]]];
       }
     };
     new MockServer(30001, handler);
 
-    const ssub = new Cluster([{ port: "30001" }]);
+    const ssub: any = new Cluster([{ port: "30001" }]);
 
     ssub.ssubscribe("test cluster", function () {
       ssub.set("foo", "bar").then((res) => {
@@ -55,7 +55,7 @@ describe("cluster:spub/ssub", function () {
     });
   });
 
-  it("supports password", (done) => {
+  it("supports password", function (done) {
     const handler = function (argv, c) {
       if (argv[0] === "auth") {
         c.password = argv[1];
@@ -65,13 +65,13 @@ describe("cluster:spub/ssub", function () {
         expect(c.password).to.eql("abc");
         expect(getConnectionName(c)).to.eql("ioredis-cluster(subscriber)");
       }
-      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+      if (argv[0] === "cluster" && argv[1] === "slots") {
         return [[0, 16383, ["127.0.0.1", 30001]]];
       }
     };
     new MockServer(30001, handler);
 
-    const ssub = new Redis.Cluster([{ port: "30001", password: "abc" }]);
+    const ssub: any = new Cluster([{ port: "30001", password: "abc" }]);
 
     ssub.ssubscribe("test cluster", function () {
       ssub.disconnect();
@@ -79,15 +79,15 @@ describe("cluster:spub/ssub", function () {
     });
   });
 
-  it("should re-ssubscribe after reconnection", (done) => {
+  it("should re-subscribe after reconnection", function (done) {
     new MockServer(30001, function (argv) {
-      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+      if (argv[0] === "cluster" && argv[1] === "slots") {
         return [[0, 16383, ["127.0.0.1", 30001]]];
       } else if (argv[0] === "ssubscribe" || argv[0] === "psubscribe") {
         return [argv[0], argv[1]];
       }
     });
-    const client = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
+    const client: any = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
 
     client.ssubscribe("test cluster", function () {
       const stub = sinon
