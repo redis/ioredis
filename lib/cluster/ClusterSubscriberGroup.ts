@@ -4,9 +4,6 @@ import Cluster from "./index";
 import ConnectionPool from "./ConnectionPool";
 import {getNodeKey} from "./util";
 import * as calculateSlot from "cluster-key-slot";
-import {syncBuiltinESMExports} from "node:module";
-
-
 const debug = Debug("cluster:subscriberGroup");
 
 
