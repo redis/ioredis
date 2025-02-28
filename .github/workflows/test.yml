@@ -53,6 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls
+        if: inputs.branch == '' || inputs.branch == null
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
