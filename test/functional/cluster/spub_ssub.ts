@@ -15,14 +15,16 @@ describe("cluster:spub/ssub", function () {
         ];
       }
     };
-    const node1 = new MockServer(30001, handler);
-    new MockServer(30002, handler);
-
-    const options = [{ host: "127.0.0.1", port: "30001" }];
-    const ssub = new Cluster(options);
+    new MockServer(30001, handler);
+    //Node 2 is responsible for the vast majority of slots
+    const node2 = new MockServer(30002, handler);
+    const startupNodes = [{ host: "127.0.0.1", port: 30001 }];
+    const clusterOptions = {shardedSubscribers: true};
+    const ssub = new Cluster(startupNodes, clusterOptions);
 
     ssub.ssubscribe("test cluster", function () {
-      node1.write(node1.findClientByName("ioredis-cluster(subscriber)"), [
+      const clientSocket = node2.findClientByName("ioredis-cluster(ssubscriber)");
+      node2.write(clientSocket, [
         "smessage",
         "test shard channel",
         "hi",
@@ -44,7 +46,7 @@ describe("cluster:spub/ssub", function () {
     };
     new MockServer(30001, handler);
 
-    const ssub = new Cluster([{ port: "30001" }]);
+    const ssub = new Cluster([{ port: "30001" }], {shardedSubscribers: true});
 
     ssub.ssubscribe("test cluster", function () {
       ssub.set("foo", "bar").then((res) => {
@@ -63,7 +65,7 @@ describe("cluster:spub/ssub", function () {
       }
       if (argv[0] === "ssubscribe") {
         expect(c.password).to.eql("abc");
-        expect(getConnectionName(c)).to.eql("ioredis-cluster(subscriber)");
+        expect(getConnectionName(c)).to.eql("ioredis-cluster(ssubscriber)");
       }
       if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return [[0, 16383, ["127.0.0.1", 30001]]];
@@ -71,7 +73,7 @@ describe("cluster:spub/ssub", function () {
     };
     new MockServer(30001, handler);
 
-    const ssub = new Redis.Cluster([{ port: "30001", password: "abc" }]);
+    const ssub = new Redis.Cluster([{ port: 30001, password: "abc" }], {shardedSubscribers: true});
 
     ssub.ssubscribe("test cluster", function () {
       ssub.disconnect();
@@ -87,8 +89,7 @@ describe("cluster:spub/ssub", function () {
         return [argv[0], argv[1]];
       }
     });
-    const client = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
-
+    const client = new Cluster([{ host: "127.0.0.1", port: 30001 }], {shardedSubscribers: true});
     client.ssubscribe("test cluster", function () {
       const stub = sinon
         .stub(Redis.prototype, "ssubscribe")
