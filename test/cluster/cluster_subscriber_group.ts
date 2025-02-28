@@ -17,6 +17,63 @@ function sleep(ms: number) {
 
 
 describe("cluster:ClusterSubscriberGroup", () => {
+
+    it("works when ssubscribe only works for keys that map to the same slot", async () => {
+
+        const cluster: Cluster = new Cluster([{host: host, port: port}], {shardedSubscribers: true});
+
+        //Register the callback
+        cluster.on("smessage", (channel, message) => {
+            console.log(message);
+            expect(message.startsWith("This is a test message")).to.be.true;
+        });
+
+        //Subscribe to the channels on different slots
+        cluster.ssubscribe("channel{my}:1", "channel{yours}:2").then( ( count: number ) => {
+            //Should not be called
+            expect(true).to.equal(false);
+        }).catch( (err) => {
+            expect(err.toString().conaints("CROSSSLOT Keys in request don't hash to the same slot")).to.be.true;
+        });
+
+        //Subscribe to the channels on the same slot
+        cluster.ssubscribe("channel{my}:1", "channel{my}:2").then( ( count: number ) => {
+            console.log(count);
+            expect(count).to.equal(2);
+        }).catch( (err) => {
+            expect(true).to.equal(false);
+        });
+
+        //Subscribe once again on the other slot
+        cluster.ssubscribe("channel{yours}:2").then( ( count: number ) => {
+            console.log(count);
+            expect(count).to.equal(1);
+        }).catch( (err) => {
+            expect(true).to.equal(false);
+        });
+
+        //Publish messages
+        cluster.spublish("channel{my}:1", "This is a test message to my first channel.").then((value: number) => {
+            console.log("Published a message to channel{my}:1");
+            expect(value).to.be.eql(1);
+        });
+
+        cluster.spublish("channel{my}:2", "This is a test message to my second channel.").then((value: number) => {
+            console.log("Published a message to channel{my}:2");
+            expect(value).to.be.eql(1);
+        });
+
+        cluster.spublish("channel{yours}:2", "This is a test message to your second channel.").then((value: number) => {
+            console.log("Published a message to channel{yours}:2");
+            expect(value).to.be.eql(1);
+        });
+
+        //Give it some time to process messages and then disconnect
+        await sleep(1000);
+        await cluster.disconnect();
+    });
+
+
     it("works when you can receive published messages to all primary nodes after having subscribed", async () => {
 
         // 0. Prepare the publisher and the subscriber
