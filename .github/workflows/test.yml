@@ -16,7 +16,7 @@ jobs:
       - name: Git checkout
         uses: actions/checkout@v2
         with:
-          ref: ${{ inputs.branch || github.ref_name }}
+          ref: ${{ inputs.branch || github.event.pull_request.head.ref || github.ref_name }} 
 
       - name: Use Node.js ${{ matrix.node }}
         uses: actions/setup-node@v1
