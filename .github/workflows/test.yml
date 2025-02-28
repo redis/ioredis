@@ -1,5 +1,9 @@
 on:
   workflow_call:
+    inputs:
+      branch:
+        required: false
+        type: string
 
 jobs:
   test:
@@ -11,6 +15,8 @@ jobs:
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
+        with:
+          ref: ${{ inputs.branch || github.ref_name }}
 
       - name: Use Node.js ${{ matrix.node }}
         uses: actions/setup-node@v1
@@ -28,7 +34,7 @@ jobs:
       - run: npm run test:tsd
       - run: npm run test:cov || npm run test:cov || npm run test:cov
       - name: Coveralls
-        if: matrix.node == '18.x'
+        if: matrix.node == '18.x' && (inputs.branch == '' || inputs.branch == null)
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -47,6 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls
+        if: inputs.branch == '' || inputs.branch == null
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

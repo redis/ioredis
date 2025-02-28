@@ -53,10 +53,6 @@ export default class ClusterSubscriber {
     return this.subscriber;
   }
 
-  getLastInstance(): any {
-    return this.lastActiveSubscriber;
-  }
-
   /**
    * Associate this subscriber to a specific slot range.
    *

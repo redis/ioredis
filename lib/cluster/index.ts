@@ -569,8 +569,13 @@ class Cluster extends Commander {
         ) {
           if (command.name == "ssubscribe" && _this.options.shardedSubscribers == true) {
             const sub: ClusterSubscriber = _this.shardedSubscribers.getResponsibleSubscriber(targetSlot);
-            redis = sub.getInstance();
-            debug("Subscribing for channel " + command.getKeys() + " on node " + redis.options.port + ".")
+            const status = _this.shardedSubscribers.addChannels(command.getKeys());
+            if (status !== -1) {
+              redis = sub.getInstance();
+              debug("Subscribing for channel " + command.getKeys() + " on node " + redis.options.port + ".")
+            } else {
+              command.reject(new AbortError("Can't perform a sharded subscription with the given channels."));
+            }
           }
           else {
             redis = _this.subscriber.getInstance();
