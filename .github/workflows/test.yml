@@ -34,7 +34,7 @@ jobs:
       - run: npm run test:tsd
       - run: npm run test:cov || npm run test:cov || npm run test:cov
       - name: Coveralls
-        if: matrix.node == '18.x'
+        if: matrix.node == '18.x' && (inputs.branch == '' || inputs.branch == null)
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
