@@ -840,6 +840,7 @@ class Cluster extends Commander {
       timeout((err: Error, result) => {
         duplicatedConnection.disconnect();
         if (err) {
+          debug("error encountered running CLUSTER.SLOTS: %s", err);
           return callback(err);
         }
         if (
