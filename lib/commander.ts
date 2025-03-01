@@ -1,4 +1,5 @@
 import { defaults } from "./utils/lodash";
+import { list } from "@ioredis/commands";
 import Command from "./command";
 import Script from "./script";
 import * as PromiseContainer from "./promiseContainer";
@@ -34,9 +35,7 @@ export default function Commander() {
   this.addedBuiltinSet = new Set();
 }
 
-const commands = require("redis-commands").list.filter(function (command) {
-  return command !== "monitor";
-});
+const commands = list.filter((command) => command !== "monitor");
 commands.push("sentinel");
 
 /**

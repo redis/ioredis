@@ -136,6 +136,18 @@ export default class DataHandler {
         this.redis.emit("pmessageBuffer", pattern, reply[2], reply[3]);
         break;
       }
+      case "smessage": {
+        if (this.redis.listeners("smessage").length > 0) {
+          this.redis.emit(
+            "smessage",
+            reply[1].toString(),
+            reply[2] ? reply[2].toString() : ""
+          );
+        }
+        this.redis.emit("smessageBuffer", reply[1], reply[2]);
+        break;
+      }
+      case "ssubscribe":
       case "subscribe":
       case "psubscribe": {
         const channel = reply[1].toString();
@@ -149,6 +161,7 @@ export default class DataHandler {
         }
         break;
       }
+      case "sunsubscribe":
       case "unsubscribe":
       case "punsubscribe": {
         const channel = reply[1] ? reply[1].toString() : null;

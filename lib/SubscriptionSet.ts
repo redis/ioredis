@@ -13,6 +13,7 @@ export default class SubscriptionSet {
   private set: { [key: string]: { [channel: string]: boolean } } = {
     subscribe: {},
     psubscribe: {},
+    ssubscribe: {},
   };
 
   add(set: AddSet, channel: string) {
@@ -30,7 +31,8 @@ export default class SubscriptionSet {
   isEmpty(): boolean {
     return (
       this.channels("subscribe").length === 0 &&
-      this.channels("psubscribe").length === 0
+      this.channels("psubscribe").length === 0 &&
+      this.channels("ssubscribe").length === 0
     );
   }
 }
@@ -41,6 +43,9 @@ function mapSet(set: AddSet | DelSet): AddSet {
   }
   if (set === "punsubscribe") {
     return "psubscribe";
+  }
+  if (set === "sunsubscribe") {
+    return "ssubscribe";
   }
   return set;
 }

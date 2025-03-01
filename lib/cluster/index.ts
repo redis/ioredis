@@ -28,7 +28,7 @@ import {
   timeout,
   zipMap,
 } from "../utils";
-import * as commands from "redis-commands";
+import { exists, hasFlag } from "@ioredis/commands";
 import Command from "../command";
 import Redis from "../redis";
 import Commander from "../commander";
@@ -615,8 +615,7 @@ class Cluster extends EventEmitter {
     if (to !== "master") {
       const isCommandReadOnly =
         command.isReadOnly ||
-        (commands.exists(command.name) &&
-          commands.hasFlag(command.name, "readonly"));
+        (exists(command.name) && hasFlag(command.name, "readonly"));
       if (!isCommandReadOnly) {
         to = "master";
       }
