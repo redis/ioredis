@@ -16,7 +16,6 @@ function sleep(ms: number) {
 }
 
 describe("cluster:ClusterSubscriberGroup", () => {
-  //TODO: Check why this test fails on v4
   it("works when ssubscribe only works for keys that map to the same slot", async () => {
     const cluster: Cluster = new Cluster([{ host: host, port: port }], {
       shardedSubscribers: true,
@@ -39,7 +38,7 @@ describe("cluster:ClusterSubscriberGroup", () => {
         expect(
           err
             .toString()
-            .conaints("CROSSSLOT Keys in request don't hash to the same slot")
+            .includes("CROSSSLOT Keys in request don't hash to the same slot")
         ).to.be.true;
       });
 
@@ -64,6 +63,16 @@ describe("cluster:ClusterSubscriberGroup", () => {
       .catch((err) => {
         expect(true).to.equal(false);
       });
+
+    //TODO: Check v4 and v5 behave differently here
+    //The order of publish and subscribe is not guaranteed  in v4, so this test has a timing issue that didn't occur in v5.
+    // 1741028322.033599 [0 172.17.0.1:64008] "info"
+    // 1741028322.035238 [0 172.17.0.1:64008] "cluster" "info"
+    // 1741028322.036603 [0 172.17.0.1:64008] "spublish" "channel{yours}:2" "This is a test message to your second channel."
+    // 1741028322.038495 [0 172.17.0.1:64022] "info"
+    // 1741028322.046968 [0 172.17.0.1:64022] "client" "setname" "ioredis-cluster(ssubscriber)"
+    // 1741028322.047136 [0 172.17.0.1:64022] "ssubscribe" "channel{yours}:2"
+    await sleep(1000);
 
     //Publish messages
     cluster
@@ -149,7 +158,7 @@ describe("cluster:ClusterSubscriberGroup", () => {
     subscriber.disconnect();
   });
 
-  it("receive messages on the channel after the slot was moved", async () => {
+  it("receives messages on the channel after the slot was moved", async () => {
     //The hash slot of interest
     const slot = 2318;
     const channel = "channel:test:3";
