@@ -1,6 +1,5 @@
 import { expect } from "chai";
 import Redis, { Cluster } from "../../lib";
-import redis from "../../lib";
 
 const host = "127.0.0.1";
 const masters = [30000, 30001, 30002];
