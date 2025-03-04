@@ -370,27 +370,28 @@ describe("cluster", () => {
       });
       cluster.on("ready", () => {
         expect(cluster.nodes("master")).to.have.lengthOf(2);
+        expect(cluster.nodes("all")).to.have.lengthOf(3);
         slotTable = [
           [0, 5460, ["127.0.0.1", 30003]],
           [5461, 10922, ["127.0.0.1", 30002]],
         ];
-        cluster.refreshSlotsCache(() => {
-          cluster.once("-node", function (removed) {
-            expect(removed.options.port).to.eql(30001);
-            expect(cluster.nodes("master")).to.have.lengthOf(2);
-            expect(
-              [
-                cluster.nodes("master")[0].options.port,
-                cluster.nodes("master")[1].options.port,
-              ].sort()
-            ).to.eql([30002, 30003]);
-            cluster.nodes("master").forEach(function (node) {
-              expect(node.options).to.have.property("readOnly", false);
-            });
-            cluster.disconnect();
-            done();
+        cluster.once("-node", function (removed) {
+          expect(removed.options.port).to.eql(30001);
+          expect(cluster.nodes("master")).to.have.lengthOf(2);
+          expect(cluster.nodes("all")).to.have.lengthOf(2);
+          expect(
+            [
+              cluster.nodes("master")[0].options.port,
+              cluster.nodes("master")[1].options.port,
+            ].sort()
+          ).to.eql([30002, 30003]);
+          cluster.nodes("master").forEach(function (node) {
+            expect(node.options).to.have.property("readOnly", false);
           });
+          cluster.disconnect();
+          done();
         });
+        cluster.refreshSlotsCache();
       });
     });
   });
