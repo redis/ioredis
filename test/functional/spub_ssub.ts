@@ -1,4 +1,4 @@
-import Redis from "../../lib/Redis";
+import Redis from "../../lib/redis";
 import { expect } from "chai";
 
 describe("spub/ssub", function () {
