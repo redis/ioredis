@@ -15,7 +15,7 @@ import asCallback from "standard-as-callback";
 import * as eventHandler from "./event_handler";
 import { StandaloneConnector, SentinelConnector } from "../connectors";
 import ScanStream from "../ScanStream";
-import * as commands from "redis-commands";
+import { exists, hasFlag } from "@ioredis/commands";
 import * as PromiseContainer from "../promiseContainer";
 import { addTransactionSupport } from "../transaction";
 import {
@@ -759,8 +759,8 @@ Redis.prototype.sendCommand = function (command: Command, stream: NetStream) {
     this.status === "ready" ||
     (!stream &&
       this.status === "connect" &&
-      commands.exists(command.name) &&
-      commands.hasFlag(command.name, "loading"));
+      exists(command.name) &&
+      hasFlag(command.name, "loading"));
   if (!this.stream) {
     writable = false;
   } else if (!this.stream.writable) {

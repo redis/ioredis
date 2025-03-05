@@ -1,7 +1,7 @@
 import Command from "./command";
 import { deprecate } from "util";
 import asCallback from "standard-as-callback";
-import { exists, hasFlag } from "redis-commands";
+import { exists, hasFlag } from "@ioredis/commands";
 import * as calculateSlot from "cluster-key-slot";
 import * as pMap from "p-map";
 import * as PromiseContainer from "./promiseContainer";

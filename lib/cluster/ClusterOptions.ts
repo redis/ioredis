@@ -121,6 +121,16 @@ export interface IClusterOptions {
   slotsRefreshInterval?: number;
 
   /**
+   * Use sharded subscribers instead of a single subscriber.
+   *
+   * If sharded subscribers are used, then one additional subscriber connection per master node
+   * is established. If you don't plan to use SPUBLISH/SSUBSCRIBE, then this should be disabled.
+   *
+   * @default false
+   */
+  shardedSubscribers?: boolean;
+
+  /**
    * Passed to the constructor of `Redis`
    *
    * @default null
@@ -207,4 +217,5 @@ export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {
   enableAutoPipelining: false,
   autoPipeliningIgnoredCommands: [],
   maxScriptsCachingTime: 60000,
+  shardedSubscribers: false,
 };

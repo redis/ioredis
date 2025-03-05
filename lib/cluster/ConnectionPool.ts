@@ -37,6 +37,50 @@ export default class ConnectionPool extends EventEmitter {
   }
 
   /**
+   * Add a master node to the pool
+   * @param node
+   */
+  addMasterNode(node: IRedisOptions) {
+    const key = getNodeKey(node.options);
+    const redis = this.createRedisFromOptions(node, node.options.readOnly);
+
+    //Master nodes aren't read-only
+    if (!node.options.readOnly) {
+      this.nodes.all[key] = redis;
+      this.nodes.master[key] = redis;
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Creates a Redis connection instance from the node options
+   * @param node
+   * @param readOnly
+   */
+  createRedisFromOptions(node: IRedisOptions, readOnly: boolean) {
+    return new Redis(
+      defaults(
+        {
+          // Never try to reconnect when a node is lose,
+          // instead, waiting for a `MOVED` error and
+          // fetch the slots again.
+          retryStrategy: null,
+          // Offline queue should be enabled so that
+          // we don't need to wait for the `ready` event
+          // before sending commands to the node.
+          enableOfflineQueue: true,
+          readOnly: readOnly,
+        },
+        node,
+        this.redisOptions,
+        { lazyConnect: true }
+      )
+    );
+  }
+
+  /**
    * Find or create a connection to the node
    *
    * @param {IRedisOptions} node
@@ -71,24 +115,7 @@ export default class ConnectionPool extends EventEmitter {
       }
     } else {
       debug("Connecting to %s as %s", key, readOnly ? "slave" : "master");
-      redis = new Redis(
-        defaults(
-          {
-            // Never try to reconnect when a node is lose,
-            // instead, waiting for a `MOVED` error and
-            // fetch the slots again.
-            retryStrategy: null,
-            // Offline queue should be enabled so that
-            // we don't need to wait for the `ready` event
-            // before sending commands to the node.
-            enableOfflineQueue: true,
-            readOnly: readOnly,
-          },
-          node,
-          this.redisOptions,
-          { lazyConnect: true }
-        )
-      );
+      redis = this.createRedisFromOptions(node, readOnly);
       this.nodes.all[key] = redis;
       this.nodes[readOnly ? "slave" : "master"][key] = redis;
 

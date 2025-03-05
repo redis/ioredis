@@ -7,7 +7,7 @@
     "built/"
   ],
   "scripts": {
-    "test": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_LOG_ERROR=true NODE_ENV=test mocha \"test/helpers/*.ts\" \"test/**/*.ts\"",
+    "test": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_LOG_ERROR=true NODE_ENV=test mocha \"test/helpers/**/*.ts\" \"test/unit/**/*.ts\" \"test/functional/**/*.ts\"",
     "test-single": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_LOG_ERROR=true NODE_ENV=test mocha \"test/helpers/*.ts\" $1",
     "lint": "eslint --ext .js,.ts .",
     "format": "prettier --write \"{,!(node_modules)/**/}*.{js,ts}\"",
@@ -33,6 +33,7 @@
     "url": "https://opencollective.com/ioredis"
   },
   "dependencies": {
+    "@ioredis/commands": "^1.0.2",
     "cluster-key-slot": "^1.1.0",
     "debug": "^4.3.1",
     "denque": "^1.1.0",
@@ -40,7 +41,6 @@
     "lodash.flatten": "^4.4.0",
     "lodash.isarguments": "^3.1.0",
     "p-map": "^2.1.0",
-    "redis-commands": "1.7.0",
     "redis-errors": "^1.2.0",
     "redis-parser": "^3.0.0",
     "standard-as-callback": "^2.1.0"
@@ -60,7 +60,7 @@
     "@types/redis-errors": "1.2.0",
     "@types/sinon": "^9.0.0",
     "@types/uuid": "^8.3.0",
-    "@typescript-eslint/eslint-plugin": "^1.13.0",
+    "@typescript-eslint/eslint-plugin": "^2.26.0",
     "@typescript-eslint/parser": "^2.26.0",
     "bluebird": "^3.7.2",
     "chai": "^4.2.0",

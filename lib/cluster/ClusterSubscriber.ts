@@ -10,10 +10,12 @@ export default class ClusterSubscriber {
   private started = false;
   private subscriber: any = null;
   private lastActiveSubscriber: any;
+  private slotRange: number[] = [];
 
   constructor(
     private connectionPool: ConnectionPool,
-    private emitter: EventEmitter
+    private emitter: EventEmitter,
+    private isSharded: boolean = false
   ) {
     this.connectionPool.on("-node", (_, key: string) => {
       if (!this.started || !this.subscriber) {
@@ -73,13 +75,19 @@ export default class ClusterSubscriber {
      * provided for the subscriber is correct, and if not, the current subscriber
      * will be disconnected and a new subscriber will be selected.
      */
+    let connectionPrefix = "subscriber";
+    if (this.isSharded) connectionPrefix = "ssubscriber";
+
     this.subscriber = new Redis({
       port: options.port,
       host: options.host,
       username: options.username,
       password: options.password,
       enableReadyCheck: true,
-      connectionName: getConnectionName("subscriber", options.connectionName),
+      connectionName: getConnectionName(
+        connectionPrefix,
+        options.connectionName
+      ),
       lazyConnect: true,
       tls: options.tls,
     });
@@ -88,23 +96,25 @@ export default class ClusterSubscriber {
     this.subscriber.on("error", noop);
 
     // Re-subscribe previous channels
-    const previousChannels = { subscribe: [], psubscribe: [] };
+    const previousChannels = { subscribe: [], psubscribe: [], ssubscribe: [] };
     if (lastActiveSubscriber) {
       const condition =
         lastActiveSubscriber.condition || lastActiveSubscriber.prevCondition;
       if (condition && condition.subscriber) {
         previousChannels.subscribe = condition.subscriber.channels("subscribe");
-        previousChannels.psubscribe = condition.subscriber.channels(
-          "psubscribe"
-        );
+        previousChannels.psubscribe =
+          condition.subscriber.channels("psubscribe");
+        previousChannels.ssubscribe =
+          condition.subscriber.channels("ssubscribe");
       }
     }
     if (
       previousChannels.subscribe.length ||
-      previousChannels.psubscribe.length
+      previousChannels.psubscribe.length ||
+      previousChannels.ssubscribe.length
     ) {
       let pending = 0;
-      for (const type of ["subscribe", "psubscribe"]) {
+      for (const type of ["subscribe", "psubscribe", "ssubscribe"]) {
         const channels = previousChannels[type];
         if (channels.length) {
           pending += 1;
@@ -134,6 +144,29 @@ export default class ClusterSubscriber {
         this.emitter.emit(event, arg1, arg2, arg3);
       });
     }
+    if (this.isSharded == true) {
+      for (const event of ["smessage", "smessageBuffer"]) {
+        this.subscriber.on(event, (arg1, arg2, arg3) => {
+          this.emitter.emit(event, arg1, arg2, arg3);
+        });
+      }
+    }
+  }
+
+  /**
+   * Associate this subscriber to a specific slot range.
+   *
+   * Returns the range or an empty array if the slot range couldn't be associated.
+   *
+   * BTW: This is more for debugging and testing purposes.
+   *
+   * @param range
+   */
+  associateSlotRange(range: number[]): number[] {
+    if (this.isSharded) {
+      this.slotRange = range;
+    }
+    return this.slotRange;
   }
 
   start(): void {
@@ -149,5 +182,9 @@ export default class ClusterSubscriber {
       this.subscriber = null;
     }
     debug("stopped");
+  }
+
+  isStarted(): boolean {
+    return this.started;
   }
 }

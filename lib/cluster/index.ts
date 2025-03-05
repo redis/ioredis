@@ -12,6 +12,7 @@ import {
   groupSrvRecords,
   weightSrvRecords,
   getConnectionName,
+  getNodeKey,
 } from "./util";
 import ClusterSubscriber from "./ClusterSubscriber";
 import DelayQueue from "./DelayQueue";
@@ -28,12 +29,13 @@ import {
   timeout,
   zipMap,
 } from "../utils";
-import * as commands from "redis-commands";
+import { exists, hasFlag } from "@ioredis/commands";
 import Command from "../command";
 import Redis from "../redis";
 import Commander from "../commander";
 import Deque = require("denque");
 import { Pipeline } from "..";
+import ClusterSubscriberGroup from "./ClusterSubscriberGroup";
 
 const debug = Debug("cluster");
 
@@ -57,12 +59,13 @@ class Cluster extends EventEmitter {
   private options: IClusterOptions;
   private startupNodes: (string | number | object)[];
   private connectionPool: ConnectionPool;
-  private slots: NodeKey[][] = [];
+  public slots: NodeKey[][] = [];
   private manuallyClosing: boolean;
   private retryAttempts = 0;
   private delayQueue: DelayQueue = new DelayQueue();
   private offlineQueue = new Deque();
   private subscriber: ClusterSubscriber;
+  private shardedSubscribers: ClusterSubscriberGroup;
   private slotsTimer: NodeJS.Timer;
   private reconnectTimeout: NodeJS.Timer;
   private status: ClusterStatus;
@@ -104,6 +107,9 @@ class Cluster extends EventEmitter {
 
     this.startupNodes = startupNodes;
     this.options = defaults({}, options, DEFAULT_CLUSTER_OPTIONS, this.options);
+
+    if (this.options.shardedSubscribers == true)
+      this.shardedSubscribers = new ClusterSubscriberGroup(this);
 
     // validate options
     if (
@@ -287,6 +293,10 @@ class Cluster extends EventEmitter {
             }.bind(this)
           );
           this.subscriber.start();
+
+          if (this.options.shardedSubscribers) {
+            this.shardedSubscribers.start();
+          }
         })
         .catch((err) => {
           this.setStatus("close");
@@ -362,6 +372,11 @@ class Cluster extends EventEmitter {
     this.clearNodesRefreshInterval();
 
     this.subscriber.stop();
+
+    if (this.options.shardedSubscribers) {
+      this.shardedSubscribers.stop();
+    }
+
     if (status === "wait") {
       this.setStatus("close");
       this.handleCloseEvent();
@@ -615,8 +630,7 @@ class Cluster extends EventEmitter {
     if (to !== "master") {
       const isCommandReadOnly =
         command.isReadOnly ||
-        (commands.exists(command.name) &&
-          commands.hasFlag(command.name, "readonly"));
+        (exists(command.name) && hasFlag(command.name, "readonly"));
       if (!isCommandReadOnly) {
         to = "master";
       }
@@ -680,7 +694,33 @@ class Cluster extends EventEmitter {
           Command.checkFlag("ENTER_SUBSCRIBER_MODE", command.name) ||
           Command.checkFlag("EXIT_SUBSCRIBER_MODE", command.name)
         ) {
-          redis = _this.subscriber.getInstance();
+          if (
+            _this.options.shardedSubscribers == true &&
+            (command.name == "ssubscribe" || command.name == "sunsubscribe")
+          ) {
+            const sub: ClusterSubscriber =
+              _this.shardedSubscribers.getResponsibleSubscriber(targetSlot);
+            let status = -1;
+
+            if (command.name == "ssubscribe")
+              status = _this.shardedSubscribers.addChannels(command.getKeys());
+            if (command.name == "sunsubscribe")
+              status = _this.shardedSubscribers.removeChannels(
+                command.getKeys()
+              );
+            if (status !== -1) {
+              redis = sub.getInstance();
+            } else {
+              command.reject(
+                new AbortError(
+                  "Can't add or remove the given channels. Are they in the same slot?"
+                )
+              );
+            }
+          } else {
+            redis = _this.subscriber.getInstance();
+          }
+
           if (!redis) {
             command.reject(new AbortError("No subscriber for the cluster"));
             return;
