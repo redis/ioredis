@@ -76,8 +76,10 @@ export default class ClusterSubscriberGroup {
       this.channels.set(slot, currChannels.concat(channels));
     }
 
-    // @ts-ignore
-    return [...this.channels.values()].flatMap((v) => v).length;
+    return Array.from(this.channels.values()).reduce(
+      (sum, array) => sum + array.length,
+      0
+    );
   }
 
   /**
@@ -99,8 +101,10 @@ export default class ClusterSubscriberGroup {
       this.channels.set(slot, updatedChannels);
     }
 
-    // @ts-ignore
-    return [...this.channels.values()].flatMap((v) => v).length;
+    return Array.from(this.channels.values()).reduce(
+      (sum, array) => sum + array.length,
+      0
+    );
   }
 
   /**
