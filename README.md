@@ -1205,7 +1205,7 @@ For sharded Pub/Sub, use the `spublish` and `ssubscribe` commands instead of the
 
 The following basic example shows you how to use sharded Pub/Sub:
 
-```
+```javascript
 const cluster: Cluster = new Cluster([{host: host, port: port}], {shardedSubscribers: true});
 
 //Register the callback
