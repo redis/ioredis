@@ -15,6 +15,10 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: "20.x"
+      - name: Start Redis
+        uses: supercharge/redis-github-action@1.4.0
+        with:
+          redis-version: latest
       - run: npm ci
       - run: npm run build
       - run: npm run test
@@ -24,4 +28,4 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GIT_AUTHOR_NAME: "ioredis robot"
           GIT_AUTHOR_EMAIL: "ioredis-robot@zihua.li"
-        run: npx semantic-release --no-ci --branches v4 --force
+        run: npx semantic-release --branches v4
