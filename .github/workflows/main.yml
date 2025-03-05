@@ -28,20 +28,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # Need a new enough git version to install the npm husky module.
-          - NODE_VERSION: 8-buster
-          - NODE_VERSION: 10-buster
-          - NODE_VERSION: 12-bullseye
-          - NODE_VERSION: 14-bullseye
-          - NODE_VERSION: 16-bullseye
-          - NODE_VERSION: 20-bullseye
+        node: [8.x, 10.x, 12.x, 14.x, 16x, 20.x]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      # Runs a single command using the runners shell
-      - name: Build and test in docker
-        run: bash test/docker/main.sh ${{ matrix.NODE_VERSION }}
+      - name: Use Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Start Redis
+        uses: supercharge/redis-github-action@1.4.0
+        with:
+          redis-version: latest
+
+      - run: npm install
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run test
