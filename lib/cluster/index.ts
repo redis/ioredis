@@ -567,14 +567,22 @@ class Cluster extends Commander {
           Command.checkFlag("ENTER_SUBSCRIBER_MODE", command.name) ||
           Command.checkFlag("EXIT_SUBSCRIBER_MODE", command.name)
         ) {
-          if (command.name == "ssubscribe" && _this.options.shardedSubscribers == true) {
+          if (_this.options.shardedSubscribers == true &&
+              (command.name == "ssubscribe" || command.name == "sunsubscribe")) {
+
             const sub: ClusterSubscriber = _this.shardedSubscribers.getResponsibleSubscriber(targetSlot);
-            const status = _this.shardedSubscribers.addChannels(command.getKeys());
+            let status = -1;
+
+            if (command.name == "ssubscribe")
+              status = _this.shardedSubscribers.addChannels(command.getKeys());
+
+            if ( command.name == "sunsubscribe")
+              status = _this.shardedSubscribers.removeChannels(command.getKeys());
+
             if (status !== -1) {
               redis = sub.getInstance();
-              debug("Subscribing for channel " + command.getKeys() + " on node " + redis.options.port + ".")
             } else {
-              command.reject(new AbortError("Can't perform a sharded subscription with the given channels."));
+              command.reject(new AbortError("Can't add or remove the given channels. Are they in the same slot?"));
             }
           }
           else {
