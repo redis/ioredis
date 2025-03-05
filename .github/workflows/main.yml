@@ -35,14 +35,13 @@ jobs:
           - NODE_VERSION: 12-bullseye
           - NODE_VERSION: 14-bullseye
           - NODE_VERSION: 16-bullseye
+          - NODE_VERSION: 20-bullseye
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      - name: Start the docker container for cluster tests
-        run: bash test/cluster/docker/main.sh
       # Runs a single command using the runners shell
       - name: Build and test in docker
         run: bash test/docker/main.sh ${{ matrix.NODE_VERSION }}

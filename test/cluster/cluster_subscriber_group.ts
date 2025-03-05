@@ -14,6 +14,11 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// MANUAL, since they are also not running on the v5 line
+//
+// REQUIRE the docker instance in /docker/main.sh to be running
+// DIRTY the tests leave the environment in a dirty state, restart containers to re-test
+// ALL TESTS pass at the time this change is submitted
 describe("cluster:ClusterSubscriberGroup", () => {
   it("works when ssubscribe only works for keys that map to the same slot", async () => {
     const cluster: Cluster = new Cluster([{ host: host, port: port }], {
