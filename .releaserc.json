@@ -1,5 +1,5 @@
 {
-  "branch": "master",
+  "branch": "v4",
   "verifyConditions": [
     "@semantic-release/npm",
     "@semantic-release/changelog",
