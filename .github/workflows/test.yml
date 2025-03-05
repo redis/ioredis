@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [12.x, 14.x, 16.x, 18.x]
+        node: [12.x, 14.x, 16.x, 18.x, 20.x]
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
@@ -33,27 +33,3 @@ jobs:
       - run: npm run build
       - run: npm run test:tsd
       - run: npm run test:cov || npm run test:cov || npm run test:cov
-      - name: Coveralls
-        if: matrix.node == '18.x'
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          flag-name: node-${{matrix.node}}
-          parallel: true
-
-  # test-cluster:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: Build and test cluster
-  #       run: bash test/cluster/docker/main.sh
-
-  code-coverage:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Coveralls
-        uses: coverallsapp/github-action@master
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          parallel-finished: true

@@ -46,7 +46,7 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 | Version        | Branch | Node.js Version | Redis Version   |
 | -------------- | ------ | --------------- | --------------- |
 | 5.x.x (latest) | main   | >= 12           | 2.6.12 ~ latest |
-| 4.x.x          | v4     | >= 6            | 2.6.12 ~ 7      |
+| 4.x.x          | v4     | >= 8            | 2.6.12 ~ 7      |
 
 Refer to [CHANGELOG.md](CHANGELOG.md) for features and bug fixes introduced in v5.
 
@@ -1195,6 +1195,38 @@ sub.subscribe("news", () => {
   pub.publish("news", "highlights");
 });
 ```
+
+### Sharded Pub/Sub
+
+For sharded Pub/Sub, use the `spublish` and `ssubscribe` commands instead of the traditional `publish` and `subscribe`. With the old commands, the Redis cluster handles message propagation behind the scenes, allowing you to publish or subscribe to any node without considering sharding. However, this approach has scalability limitations that are addressed with sharded Pub/Sub. Here’s what you need to know:
+
+1. Instead of a single subscriber connection, there is now one subscriber connection per shard. Because of the potential overhead, you can enable or disable the use of the cluster subscriber group with the `shardedSubscribers` option. By default, this option is set to `false`, meaning sharded subscriptions are disabled. You should enable this option when establishing your cluster connection before using `ssubscribe`.
+2. All channel names that you pass to a single `ssubscribe` need to map to the same hash slot. You can call `ssubscribe` multiple times on the same cluster client instance to subscribe to channels across slots. The cluster's subscriber group takes care of forwarding the `ssubscribe` command to the shard that is responsible for the channels.
+
+The following basic example shows you how to use sharded Pub/Sub:
+
+```javascript
+const cluster: Cluster = new Cluster([{host: host, port: port}], {shardedSubscribers: true});
+
+//Register the callback
+cluster.on("smessage", (channel, message) => {
+    console.log(message);
+});
+
+        
+//Subscribe to the channels on the same slot
+cluster.ssubscribe("channel{my}:1", "channel{my}:2").then( ( count: number ) => {
+    console.log(count);
+}).catch( (err) => {
+    console.log(err);
+});
+
+//Publish a message
+cluster.spublish("channel{my}:1", "This is a test message to my first channel.").then((value: number) => {
+    console.log("Published a message to channel{my}:1");
+});
+```
+
 
 ### Events
 

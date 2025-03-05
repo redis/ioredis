@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [12.x, 14.x, 16.x, 18.x]
+        node: [12.x, 14.x, 16.x, 18.x, 20.x]
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
