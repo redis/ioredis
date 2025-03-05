@@ -1201,7 +1201,7 @@ sub.subscribe("news", () => {
 For sharded Pub/Sub, use the `spublish` and `ssubscribe` commands instead of the traditional `publish` and `subscribe`. With the old commands, the Redis cluster handles message propagation behind the scenes, allowing you to publish or subscribe to any node without considering sharding. However, this approach has scalability limitations that are addressed with sharded Pub/Sub. Here’s what you need to know:
 
 1. Instead of a single subscriber connection, there is now one subscriber connection per shard. Because of the potential overhead, you can enable or disable the use of the cluster subscriber group with the `shardedSubscribers` option. By default, this option is set to `false`, meaning sharded subscriptions are disabled. You should enable this option when establishing your cluster connection before using `ssubscribe`.
-2. All channel names that you pass to a single `ssubscribe` need to map to the same hash slot. You can call `ssubscribe` multiple times on the same cluster client instance to subscribe to channels across slots. The cluster's subscriber group takes care of forwarding the `ssubscribe` command to the shard that is responsible for it.
+2. All channel names that you pass to a single `ssubscribe` need to map to the same hash slot. You can call `ssubscribe` multiple times on the same cluster client instance to subscribe to channels across slots. The cluster's subscriber group takes care of forwarding the `ssubscribe` command to the shard that is responsible for the channels.
 
 The following basic example shows you how to use sharded Pub/Sub:
 
