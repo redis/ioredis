@@ -20,6 +20,52 @@ function sleep(ms: number) {
 // DIRTY the tests leave the environment in a dirty state, restart containers to re-test
 // ALL TESTS pass at the time this change is submitted
 describe("cluster:ClusterSubscriberGroup", () => {
+  it("should unsubscribe from the given channel", async () => {
+    const cluster: Cluster = new Cluster([{ host: host, port: port }], {
+      shardedSubscribers: true,
+    });
+
+    //Subscribe to the three channels
+    cluster
+      .ssubscribe("channel:1:{1}", "channel:2:{1}", "channel:3:{1}")
+      .then((count: number) => {
+        console.log("Subscribed to 3 channels.");
+        expect(count).to.equal(3);
+      });
+
+    //Publish a message to one of the channels
+    cluster
+      .spublish("channel:2:{1}", "This is a test message to channel 2.")
+      .then((value: number) => {
+        console.log(
+          "Published a message to channel:2:{1} and expect one subscriber."
+        );
+        expect(value).to.be.eql(1);
+      });
+
+    await sleep(500);
+
+    //Unsubscribe from one of the channels
+    cluster.sunsubscribe("channel:2:{1}").then((count: number) => {
+      console.log("Unsubscribed from channel:2:{1}.");
+      expect(count).to.equal(2);
+    });
+
+    await sleep(500);
+
+    //Publish a message to the channel from which we unsubscribed
+    cluster
+      .spublish("channel:2:{1}", "This is a test message to channel 2.")
+      .then((value: number) => {
+        console.log(
+          "Published a second message to channel:2:{1} and expect to have nobody listening."
+        );
+        expect(value).to.be.eql(0);
+      });
+
+    await sleep(1000);
+    await cluster.disconnect();
+  });
   it("works when ssubscribe only works for keys that map to the same slot", async () => {
     const cluster: Cluster = new Cluster([{ host: host, port: port }], {
       shardedSubscribers: true,
