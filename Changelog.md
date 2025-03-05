@@ -1,3 +1,11 @@
+## [4.29.1](https://github.com/luin/ioredis/compare/v4.29.0...v4.29.1) (2025-03-05)
+
+
+### Bug Fixes
+
+* Fixing the release script. ([37ebf0b](https://github.com/luin/ioredis/commit/37ebf0b190ef098ac6c9caa4934a83128c76c773))
+* Turns out the tests need Redis ... ([e82ad68](https://github.com/luin/ioredis/commit/e82ad688485689d4081b0ef9f04e0007610919f9))
+
 # [4.29.0](https://github.com/luin/ioredis/compare/v4.28.5...v4.29.0) (2025-03-05)
 
 
