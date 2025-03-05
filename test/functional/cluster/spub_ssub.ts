@@ -6,7 +6,7 @@ import Redis from "../../../lib/redis";
 import { noop } from "../../../lib/utils";
 
 describe("cluster:spub/ssub", function () {
-  it("should receive messages", function (done) {
+  it("should receive messages", (done) => {
     const handler = function (argv) {
       if (argv[0] === "cluster" && argv[1] === "slots") {
         return [
@@ -15,18 +15,18 @@ describe("cluster:spub/ssub", function () {
         ];
       }
     };
-    const node1 = new MockServer(30001, handler);
-    new MockServer(30002, handler);
-
-    const options = [{ host: "127.0.0.1", port: "30001" }];
-    const ssub: any = new Cluster(options);
+    new MockServer(30001, handler);
+    //Node 2 is responsible for the vast majority of slots
+    const node2 = new MockServer(30002, handler);
+    const startupNodes = [{ host: "127.0.0.1", port: 30001 }];
+    const clusterOptions = { shardedSubscribers: true };
+    const ssub = new Cluster(startupNodes, clusterOptions);
 
     ssub.ssubscribe("test cluster", function () {
-      node1.write(node1.findClientByName("ioredis-cluster(subscriber)"), [
-        "smessage",
-        "test shard channel",
-        "hi",
-      ]);
+      const clientSocket = node2.findClientByName(
+        "ioredis-cluster(ssubscriber)"
+      );
+      node2.write(clientSocket, ["smessage", "test shard channel", "hi"]);
     });
     ssub.on("smessage", function (channel, message) {
       expect(channel).to.eql("test shard channel");

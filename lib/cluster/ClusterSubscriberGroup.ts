@@ -76,19 +76,22 @@ export default class ClusterSubscriberGroup {
       this.channels.set(slot, currChannels.concat(channels));
     }
 
-    return this.channels.size;
+    return Array.from(this.channels.values()).reduce(
+      (sum, array) => sum + array.length,
+      0
+    );
   }
 
   /**
-   * Removes a channel for which the subscriber group is responsible
+   * Removes channels for which the subscriber group is responsible by optionally unsubscribing
    * @param channels
    */
-  removeChannelAndUnsubscribe(channels: (string | Buffer)[]): boolean {
+  removeChannels(channels: (string | Buffer)[]): number {
     const slot = calculateSlot(channels[0]);
 
     //Check if the all channels belong to the same slot and otherwise reject the operation
     channels.forEach((c: string) => {
-      if (calculateSlot(c) != slot) return false;
+      if (calculateSlot(c) != slot) return -1;
     });
 
     const slotChannels = this.channels.get(slot);
@@ -96,11 +99,12 @@ export default class ClusterSubscriberGroup {
     if (slotChannels) {
       const updatedChannels = slotChannels.filter((c) => !channels.includes(c));
       this.channels.set(slot, updatedChannels);
-      this.getResponsibleSubscriber(slot).getInstance().sunscribe(channels);
-      return true;
     }
 
-    return false;
+    return Array.from(this.channels.values()).reduce(
+      (sum, array) => sum + array.length,
+      0
+    );
   }
 
   /**

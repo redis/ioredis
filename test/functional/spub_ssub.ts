@@ -1,4 +1,4 @@
-import Redis from "../../lib/Redis";
+import Redis from "../../lib/redis";
 import { expect } from "chai";
 
 describe("spub/ssub", function () {
@@ -29,7 +29,8 @@ describe("spub/ssub", function () {
     });
   });
 
-  it("should report being in 'subscriber' mode when subscribed", (done) => {
+  // not part of the v4 line, see https://github.com/redis/ioredis/pull/1618
+  xit("should report being in 'subscriber' mode when subscribed", (done) => {
     const redis = new Redis();
     redis.ssubscribe("foo", function () {
       expect(redis.mode).to.equal("subscriber");
@@ -61,7 +62,8 @@ describe("spub/ssub", function () {
     });
   });
 
-  it("should report being in 'normal' mode after sunsubscribing", (done) => {
+  // not part of the v4 line, see https://github.com/redis/ioredis/pull/1618
+  xit("should report being in 'normal' mode after sunsubscribing", (done) => {
     const redis = new Redis();
     redis.ssubscribe("foo", "bar", function () {
       redis.sunsubscribe("foo", "bar", function (err, count) {
