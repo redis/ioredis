@@ -76,6 +76,7 @@ export default class ClusterSubscriberGroup {
       this.channels.set(slot, currChannels.concat(channels));
     }
 
+    // @ts-ignore
     return [...this.channels.values()].flatMap((v) => v).length;
   }
 
@@ -98,6 +99,7 @@ export default class ClusterSubscriberGroup {
       this.channels.set(slot, updatedChannels);
     }
 
+    // @ts-ignore
     return [...this.channels.values()].flatMap((v) => v).length;
   }
 
