@@ -1,3 +1,10 @@
+# [4.29.0](https://github.com/luin/ioredis/compare/v4.28.5...v4.29.0) (2025-03-05)
+
+
+### Features
+
+* Port sharded publish/subscribe from v5 to v4  ([#1967](https://github.com/luin/ioredis/issues/1967)) ([d1042e5](https://github.com/luin/ioredis/commit/d1042e55d2224229f6996f8947fa63ec3f445b11))
+
 ## [4.28.5](https://github.com/luin/ioredis/compare/v4.28.4...v4.28.5) (2022-02-06)
 
 
