@@ -285,14 +285,13 @@ class Cluster extends EventEmitter {
           this.once("close", closeListener);
           this.once("close", this.handleCloseEvent.bind(this));
 
-          this.refreshSlotsCache(
-            function (err) {
-              if (err && err.message === "Failed to refresh slots cache.") {
-                Redis.prototype.silentEmit.call(this, "error", err);
-                this.connectionPool.reset([]);
-              }
-            }.bind(this)
-          );
+          this.refreshSlotsCache((err) => {
+            if (err && err.message === "Failed to refresh slots cache.") {
+              Redis.prototype.silentEmit.call(this, "error", err);
+              this.connectionPool.reset([]);
+            }
+          });
+
           this.subscriber.start();
 
           if (this.options.shardedSubscribers) {
@@ -533,7 +532,7 @@ class Cluster extends EventEmitter {
     this.isRefreshing = true;
 
     const _this = this;
-    const wrapper = function (error?: Error) {
+    const wrapper = (error?: Error) => {
       _this.isRefreshing = false;
       for (const callback of this._refreshSlotsCacheCallbacks) {
         callback(error);
