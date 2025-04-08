@@ -168,7 +168,7 @@ class Cluster extends EventEmitter {
   }
 
   resetNodesRefreshInterval() {
-    if (this.slotsTimer) {
+    if (this.slotsTimer || this.options.slotsRefreshInterval < 0) {
       return;
     }
     const nextRound = () => {
