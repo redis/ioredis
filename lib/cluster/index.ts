@@ -531,9 +531,8 @@ class Cluster extends EventEmitter {
     }
     this.isRefreshing = true;
 
-    const _this = this;
     const wrapper = (error?: Error) => {
-      _this.isRefreshing = false;
+      this.isRefreshing = false;
       for (const callback of this._refreshSlotsCacheCallbacks) {
         callback(error);
       }
@@ -545,7 +544,7 @@ class Cluster extends EventEmitter {
 
     let lastNodeError = null;
 
-    function tryNode(index) {
+    const tryNode = (index: number) => {
       if (index === nodes.length) {
         const error = new ClusterAllFailedError(
           "Failed to refresh slots cache.",
@@ -556,8 +555,8 @@ class Cluster extends EventEmitter {
       const node = nodes[index];
       const key = `${node.options.host}:${node.options.port}`;
       debug("getting slot cache from %s", key);
-      _this.getInfoFromNode(node, function (err) {
-        switch (_this.status) {
+      this.getInfoFromNode(node, (err) => {
+        switch (this.status) {
           case "close":
           case "end":
             return wrapper(new Error("Cluster is disconnected."));
@@ -565,15 +564,15 @@ class Cluster extends EventEmitter {
             return wrapper(new Error("Cluster is disconnecting."));
         }
         if (err) {
-          _this.emit("node error", err, key);
+          this.emit("node error", err, key);
           lastNodeError = err;
           tryNode(index + 1);
         } else {
-          _this.emit("refresh");
+          this.emit("refresh");
           wrapper();
         }
       });
-    }
+    };
 
     tryNode(0);
   }
