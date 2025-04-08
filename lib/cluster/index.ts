@@ -70,6 +70,7 @@ class Cluster extends EventEmitter {
   private reconnectTimeout: NodeJS.Timer;
   private status: ClusterStatus;
   private isRefreshing = false;
+  private _refreshSlotsCacheCallbacks = [];
   public isCluster = true;
   private _autoPipelines: Map<string, typeof Pipeline> = new Map();
   private _groupsIds: { [key: string]: number } = {};
@@ -522,10 +523,11 @@ class Cluster extends EventEmitter {
    * @memberof Cluster
    */
   private refreshSlotsCache(callback?: CallbackFunction<void>): void {
+    if (typeof callback === "function") {
+      this._refreshSlotsCacheCallbacks.push(callback);
+    }
+
     if (this.isRefreshing) {
-      if (typeof callback === "function") {
-        process.nextTick(callback);
-      }
       return;
     }
     this.isRefreshing = true;
@@ -533,9 +535,11 @@ class Cluster extends EventEmitter {
     const _this = this;
     const wrapper = function (error?: Error) {
       _this.isRefreshing = false;
-      if (typeof callback === "function") {
+      for (const callback of this._refreshSlotsCacheCallbacks) {
         callback(error);
       }
+
+      this._refreshSlotsCacheCallbacks = [];
     };
 
     const nodes = shuffle(this.connectionPool.getNodes());
