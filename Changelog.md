@@ -1,3 +1,10 @@
+# [4.30.0](https://github.com/luin/ioredis/compare/v4.29.1...v4.30.0) (2025-04-11)
+
+
+### Features
+
+* added the option for disabling slots refresh, fixed concurrent calls to refreshSlotsCache ([#1972](https://github.com/luin/ioredis/issues/1972)) ([3ef36dc](https://github.com/luin/ioredis/commit/3ef36dc2c28a2a8f6e27401259fadbf561b4ff9f))
+
 ## [4.29.1](https://github.com/luin/ioredis/compare/v4.29.0...v4.29.1) (2025-03-05)
 
 
