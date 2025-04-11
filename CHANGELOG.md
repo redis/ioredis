@@ -1,3 +1,10 @@
+## [5.6.1](https://github.com/luin/ioredis/compare/v5.6.0...v5.6.1) (2025-04-11)
+
+
+### Bug Fixes
+
+* adding debug log on cluster.slots initial connection error ([bedcfb5](https://github.com/luin/ioredis/commit/bedcfb5d4b462c3f0a804ab32152d80029e72710))
+
 # [5.6.0](https://github.com/luin/ioredis/compare/v5.5.0...v5.6.0) (2025-03-05)
 
 
