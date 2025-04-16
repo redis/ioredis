@@ -1,5 +1,11 @@
 {
-  "branches": ["v4"],
+  "branches": [
+    {
+      "name": "v4",
+      "tag": "v4",
+      "channel": "v4"
+    }
+  ],
   "verifyConditions": [
     "@semantic-release/npm",
     "@semantic-release/changelog",
@@ -23,10 +29,7 @@
       ]
     }
   ],
-  "publish": [
-    "@semantic-release/npm",
-    "@semantic-release/github"
-  ],
+  "publish": ["@semantic-release/npm", "@semantic-release/github"],
   "analyzeCommits": {
     "preset": "angular",
     "releaseRules": [
