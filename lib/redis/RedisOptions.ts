@@ -28,7 +28,7 @@ export interface CommonRedisOptions extends CommanderOptions {
    * @link https://nodejs.org/api/net.html#socketsetkeepaliveenable-initialdelay
    * @default 0
    */
-  keepAlive?: number;
+  keepAlive?: number | null;
 
   /**
    * Enable/disable the use of Nagle's algorithm.
