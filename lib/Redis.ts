@@ -188,115 +188,122 @@ class Redis extends Commander implements DataHandledable {
 
       const { options } = this;
 
-      this.condition = {
-        select: options.db,
-        auth: options.username
-          ? [options.username, options.password]
-          : options.password,
-        subscriber: false,
-      };
+      this.resolvePassword().then((resolvedPassword) => {
+        this.condition = {
+          select: options.db,
+          auth: options.username
+            ? [options.username, resolvedPassword]
+            : resolvedPassword,
+          subscriber: false,
+        };
 
-      const _this = this;
-      asCallback(
-        this.connector.connect(function (type, err) {
-          _this.silentEmit(type, err);
-        }) as Promise<NetStream>,
-        function (err: Error | null, stream?: NetStream) {
-          if (err) {
-            _this.flushQueue(err);
-            _this.silentEmit("error", err);
-            reject(err);
-            _this.setStatus("end");
-            return;
-          }
-          let CONNECT_EVENT = options.tls ? "secureConnect" : "connect";
-          if (
-            "sentinels" in options &&
-            options.sentinels &&
-            !options.enableTLSForSentinelMode
-          ) {
-            CONNECT_EVENT = "connect";
-          }
+        const _this = this;
+        asCallback(
+          this.connector.connect(function (type, err) {
+            _this.silentEmit(type, err);
+          }) as Promise<NetStream>,
+          function (err: Error | null, stream?: NetStream) {
+            if (err) {
+              _this.flushQueue(err);
+              _this.silentEmit("error", err);
+              reject(err);
+              _this.setStatus("end");
+              return;
+            }
+            let CONNECT_EVENT = options.tls ? "secureConnect" : "connect";
+            if (
+              "sentinels" in options &&
+              options.sentinels &&
+              !options.enableTLSForSentinelMode
+            ) {
+              CONNECT_EVENT = "connect";
+            }
 
-          _this.stream = stream;
+            _this.stream = stream;
 
-          if (options.noDelay) {
-            stream.setNoDelay(true);
-          }
+            if (options.noDelay) {
+              stream.setNoDelay(true);
+            }
 
-          // Node ignores setKeepAlive before connect, therefore we wait for the event:
-          // https://github.com/nodejs/node/issues/31663
-          if (typeof options.keepAlive === "number") {
-            if (stream.connecting) {
-              stream.once(CONNECT_EVENT, () => {
+            // Node ignores setKeepAlive before connect, therefore we wait for the event:
+            // https://github.com/nodejs/node/issues/31663
+            if (typeof options.keepAlive === "number") {
+              if (stream.connecting) {
+                stream.once(CONNECT_EVENT, () => {
+                  stream.setKeepAlive(true, options.keepAlive);
+                });
+              } else {
                 stream.setKeepAlive(true, options.keepAlive);
-              });
+              }
+            }
+
+            if (stream.connecting) {
+              stream.once(CONNECT_EVENT, eventHandler.connectHandler(_this));
+
+              if (options.connectTimeout) {
+                /*
+                 * Typically, Socket#setTimeout(0) will clear the timer
+                 * set before. However, in some platforms (Electron 3.x~4.x),
+                 * the timer will not be cleared. So we introduce a variable here.
+                 *
+                 * See https://github.com/electron/electron/issues/14915
+                 */
+                let connectTimeoutCleared = false;
+                stream.setTimeout(options.connectTimeout, function () {
+                  if (connectTimeoutCleared) {
+                    return;
+                  }
+                  stream.setTimeout(0);
+                  stream.destroy();
+
+                  const err = new Error("connect ETIMEDOUT");
+                  // @ts-expect-error
+                  err.errorno = "ETIMEDOUT";
+                  // @ts-expect-error
+                  err.code = "ETIMEDOUT";
+                  // @ts-expect-error
+                  err.syscall = "connect";
+                  eventHandler.errorHandler(_this)(err);
+                });
+                stream.once(CONNECT_EVENT, function () {
+                  connectTimeoutCleared = true;
+                  stream.setTimeout(0);
+                });
+              }
+            } else if (stream.destroyed) {
+              const firstError = _this.connector.firstError;
+              if (firstError) {
+                process.nextTick(() => {
+                  eventHandler.errorHandler(_this)(firstError);
+                });
+              }
+              process.nextTick(eventHandler.closeHandler(_this));
             } else {
-              stream.setKeepAlive(true, options.keepAlive);
+              process.nextTick(eventHandler.connectHandler(_this));
             }
-          }
-
-          if (stream.connecting) {
-            stream.once(CONNECT_EVENT, eventHandler.connectHandler(_this));
-
-            if (options.connectTimeout) {
-              /*
-               * Typically, Socket#setTimeout(0) will clear the timer
-               * set before. However, in some platforms (Electron 3.x~4.x),
-               * the timer will not be cleared. So we introduce a variable here.
-               *
-               * See https://github.com/electron/electron/issues/14915
-               */
-              let connectTimeoutCleared = false;
-              stream.setTimeout(options.connectTimeout, function () {
-                if (connectTimeoutCleared) {
-                  return;
-                }
-                stream.setTimeout(0);
-                stream.destroy();
-
-                const err = new Error("connect ETIMEDOUT");
-                // @ts-expect-error
-                err.errorno = "ETIMEDOUT";
-                // @ts-expect-error
-                err.code = "ETIMEDOUT";
-                // @ts-expect-error
-                err.syscall = "connect";
-                eventHandler.errorHandler(_this)(err);
-              });
-              stream.once(CONNECT_EVENT, function () {
-                connectTimeoutCleared = true;
-                stream.setTimeout(0);
-              });
+            if (!stream.destroyed) {
+              stream.once("error", eventHandler.errorHandler(_this));
+              stream.once("close", eventHandler.closeHandler(_this));
             }
-          } else if (stream.destroyed) {
-            const firstError = _this.connector.firstError;
-            if (firstError) {
-              process.nextTick(() => {
-                eventHandler.errorHandler(_this)(firstError);
-              });
-            }
-            process.nextTick(eventHandler.closeHandler(_this));
-          } else {
-            process.nextTick(eventHandler.connectHandler(_this));
-          }
-          if (!stream.destroyed) {
-            stream.once("error", eventHandler.errorHandler(_this));
-            stream.once("close", eventHandler.closeHandler(_this));
-          }
 
-          const connectionReadyHandler = function () {
-            _this.removeListener("close", connectionCloseHandler);
-            resolve();
-          };
-          var connectionCloseHandler = function () {
-            _this.removeListener("ready", connectionReadyHandler);
-            reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
-          };
-          _this.once("ready", connectionReadyHandler);
-          _this.once("close", connectionCloseHandler);
-        }
-      );
+            const connectionReadyHandler = function () {
+              _this.removeListener("close", connectionCloseHandler);
+              resolve();
+            };
+            var connectionCloseHandler = function () {
+              _this.removeListener("ready", connectionReadyHandler);
+              reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
+            };
+            _this.once("ready", connectionReadyHandler);
+            _this.once("close", connectionCloseHandler);
+          }
+        );
+      }).catch((err) => {
+        this.flushQueue(err);
+        this.silentEmit("error", err);
+        reject(err);
+        this.setStatus("end");
+      });
     });
 
     return asCallback(promise, callback);
@@ -856,6 +863,17 @@ class Redis extends Commander implements DataHandledable {
         }, retryTime);
       }
     }).catch(noop);
+  }
+
+  private async resolvePassword(): Promise<string | null> {
+    const { password } = this.options;
+    if (!password) {
+      return null;
+    }
+    if (typeof password === "function") {
+      return await password();
+    }
+    return password;
   }
 }
 
