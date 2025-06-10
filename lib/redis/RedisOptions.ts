@@ -52,8 +52,9 @@ export interface CommonRedisOptions extends CommanderOptions {
 
   /**
    * If set, client will send AUTH command with the value of this option when connected.
+   * Can be a string or a function that returns a string or Promise<string>.
    */
-  password?: string;
+  password?: string | (() => Promise<string> | string);
 
   /**
    * Database index to use.

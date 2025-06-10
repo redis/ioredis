@@ -802,4 +802,101 @@ describe("sentinel", () => {
       });
     });
   });
+
+  describe("sentinel password function support", () => {
+    it("should support static string sentinelPassword (baseline)", (done) => {
+      let sentinelAuthed = false;
+      const sentinel = new MockServer(27379, (argv) => {
+        if (argv[0] === "auth" && argv[1] === "staticsentinelpass") {
+          sentinelAuthed = true;
+        } else if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
+          expect(sentinelAuthed).to.eql(true);
+          sentinel.disconnect();
+          redis.disconnect();
+          done();
+          return ["127.0.0.1", "17380"];
+        }
+      });
+
+      const redis = new Redis({
+        sentinelPassword: "staticsentinelpass",
+        sentinels: [{ host: "127.0.0.1", port: 27379 }],
+        name: "master",
+      });
+    });
+
+    it("should support sync function sentinelPassword", (done) => {
+      let sentinelAuthed = false;
+      let callCount = 0;
+      const passwordFunction = () => {
+        callCount++;
+        return "syncsentinelpass";
+      };
+
+      const sentinel = new MockServer(27379, (argv) => {
+        if (argv[0] === "auth" && argv[1] === "syncsentinelpass") {
+          sentinelAuthed = true;
+        } else if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
+          expect(sentinelAuthed).to.eql(true);
+          expect(callCount).to.eql(1);
+          sentinel.disconnect();
+          redis.disconnect();
+          done();
+          return ["127.0.0.1", "17380"];
+        }
+      });
+
+      const redis = new Redis({
+        sentinelPassword: passwordFunction,
+        sentinels: [{ host: "127.0.0.1", port: 27379 }],
+        name: "master",
+      });
+    });
+
+    it("should support async function sentinelPassword", (done) => {
+      let sentinelAuthed = false;
+      let callCount = 0;
+      const passwordFunction = async () => {
+        callCount++;
+        return new Promise(resolve => setTimeout(() => resolve("asyncsentinelpass"), 10));
+      };
+
+      const sentinel = new MockServer(27379, (argv) => {
+        if (argv[0] === "auth" && argv[1] === "asyncsentinelpass") {
+          sentinelAuthed = true;
+        } else if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
+          expect(sentinelAuthed).to.eql(true);
+          expect(callCount).to.eql(1);
+          sentinel.disconnect();
+          redis.disconnect();
+          done();
+          return ["127.0.0.1", "17380"];
+        }
+      });
+
+      const redis = new Redis({
+        sentinelPassword: passwordFunction,
+        sentinels: [{ host: "127.0.0.1", port: 27379 }],
+        name: "master",
+      });
+    });
+
+    it("should handle sentinelPassword function errors gracefully", (done) => {
+      const passwordFunction = () => {
+        throw new Error("Sentinel password retrieval failed");
+      };
+
+      const redis = new Redis({
+        sentinelPassword: passwordFunction,
+        sentinels: [{ host: "127.0.0.1", port: 27379 }],
+        name: "master",
+      });
+
+      redis.on("error", (error) => {
+        expect(error.message).to.include("Sentinel password retrieval failed");
+        redis.disconnect();
+        done();
+      });
+    });
+  });
 });
