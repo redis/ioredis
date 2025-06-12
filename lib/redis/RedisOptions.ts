@@ -189,6 +189,31 @@ export interface CommonRedisOptions extends CommanderOptions {
     string,
     { lua: string; numberOfKeys?: number; readOnly?: boolean }
   >;
+
+  /**
+   * Scale reads to the specified endpoints or strategy.
+   * For standalone Redis, you can specify read endpoints (e.g., ElastiCache read replicas).
+   * This works similarly to cluster scaleReads but for non-cluster setups.
+   * 
+   * @example
+   * ```js
+   * // Route reads to specific endpoints (array format)
+   * const redis = new Redis({
+   *   host: 'primary.cache.amazonaws.com',
+   *   scaleReads: [
+   *     { host: 'replica1.cache.amazonaws.com', port: 6379 },
+   *     { host: 'replica2.cache.amazonaws.com', port: 6379 }
+   *   ]
+   * });
+   * 
+   * // Or use cluster-style strategies (when you manage read instances separately)
+   * const redis = new Redis({
+   *   host: 'primary.cache.amazonaws.com',
+   *   scaleReads: 'all' // or 'master', 'slave', or a custom function
+   * });
+   * ```
+   */
+  scaleReads?: Array<{ host: string; port?: number }> | "master" | "slave" | "all" | ((nodes: any[], command: any) => any);
 }
 
 export type RedisOptions = CommonRedisOptions &
