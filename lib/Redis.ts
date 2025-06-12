@@ -1,6 +1,7 @@
 import { exists, hasFlag } from "@ioredis/commands";
 import { EventEmitter } from "events";
 import asCallback from "standard-as-callback";
+import { ReadWriteRouter, ScaleReadsFunction } from "./utils/ReadWriteRouter";
 import Cluster from "./cluster";
 import Command from "./Command";
 import { DataHandledable, FlushQueueOptions, Condition } from "./DataHandler";
@@ -119,6 +120,9 @@ class Redis extends Commander implements DataHandledable {
   private _autoPipelines = new Map();
   private _runningAutoPipelines = new Set();
 
+  // Read/write splitting support - using shared router logic
+  private readWriteRouter: ReadWriteRouter;
+
   constructor(port: number, host: string, options: RedisOptions);
   constructor(path: string, options: RedisOptions);
   constructor(port: number, options: RedisOptions);
@@ -152,6 +156,9 @@ class Redis extends Commander implements DataHandledable {
         this.defineCommand(name, definition);
       });
     }
+
+    // Initialize read/write router (using cluster logic)
+    this.initializeReadWriteRouter();
 
     // end(or wait) -> connecting -> connect -> ready -> end
     if (this.options.lazyConnect) {
@@ -344,6 +351,24 @@ class Redis extends Commander implements DataHandledable {
     } else {
       this.connector.disconnect();
     }
+
+    // Disconnect read instances if read/write splitting is enabled
+    if (this.readWriteRouter) {
+      const readInstances = this.readWriteRouter.getReadInstances();
+      if (readInstances.length > 0) {
+        debug("Disconnecting %d read instances", readInstances.length);
+        readInstances.forEach(instance => {
+          try {
+            instance.disconnect(reconnect);
+          } catch (err) {
+            debug("Error disconnecting read instance: %s", err);
+          }
+        });
+        if (!reconnect) {
+          this.readWriteRouter.setReadInstances([]);
+        }
+      }
+    }
   }
 
   /**
@@ -464,6 +489,15 @@ class Redis extends Commander implements DataHandledable {
 
     if (typeof this.options.commandTimeout === "number") {
       command.setTimeout(this.options.commandTimeout);
+    }
+
+    // Read/write splitting using cluster routing logic
+    if (this.options.scaleReads && this.readWriteRouter && this.status === "ready") {
+      const targetInstance = this.readWriteRouter.getInstanceForCommand(command, this);
+      if (targetInstance !== this) {
+        debug("Routing command %s to read instance", command.name);
+        return targetInstance.sendCommand(command, stream);
+      }
     }
 
     const blockingTimeout = this.getBlockingTimeoutInMs(command);
@@ -998,6 +1032,46 @@ class Redis extends Commander implements DataHandledable {
         }, retryTime);
       }
     }).catch(noop);
+  }
+
+  /**
+   * Initialize read/write router using cluster-style logic
+   */
+  private initializeReadWriteRouter(): void {
+    if (!this.options.scaleReads) {
+      this.readWriteRouter = new ReadWriteRouter();
+      return;
+    }
+
+    let scaleReadsOption: string | ScaleReadsFunction;
+    let readInstances: Redis[] = [];
+
+    if (Array.isArray(this.options.scaleReads)) {
+      debug("Initializing %d read instances from endpoint array", this.options.scaleReads.length);
+
+      readInstances = this.options.scaleReads.map((endpoint) => {
+        const readOptions: RedisOptions = {
+          ...this.options,
+          host: endpoint.host,
+          port: endpoint.port || this.options.port,
+          scaleReads: undefined,
+          readOnly: true,
+          // Connect eagerly so routing can check `status === "ready"` and
+          // fall back to the primary while a replica is unreachable, instead
+          // of queuing commands on a connection that may never come up.
+          lazyConnect: false,
+        };
+
+        debug("Creating read instance for %s:%d", endpoint.host, readOptions.port);
+        return new Redis(readOptions);
+      });
+
+      scaleReadsOption = "all";
+    } else {
+      scaleReadsOption = this.options.scaleReads as string | ScaleReadsFunction;
+    }
+
+    this.readWriteRouter = new ReadWriteRouter(scaleReadsOption, readInstances);
   }
 }
 
