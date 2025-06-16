@@ -160,6 +160,10 @@ export default class ClusterSubscriber {
     // Ignore the errors since they're handled in the connection pool.
     this.subscriber.on("error", noop);
 
+    this.subscriber.on("moved", () => {
+      this.emitter.emit("forceRefresh");
+    });
+
     // The node we lost connection to may not come back up in a
     // reasonable amount of time (e.g. a slave that's taken down
     // for maintainence), we could potentially miss many published
