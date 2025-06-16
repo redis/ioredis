@@ -80,6 +80,11 @@ export default class DataHandler {
       args: item.command.args,
     };
 
+    if (item.command.name == "ssubscribe" && err.message.includes("MOVED")) {
+      this.redis.emit("moved");
+      return;
+    }
+
     this.redis.handleReconnection(err, item);
   }
 
