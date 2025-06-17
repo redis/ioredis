@@ -95,6 +95,10 @@ export default class ClusterSubscriber {
     // Ignore the errors since they're handled in the connection pool.
     this.subscriber.on("error", noop);
 
+    this.subscriber.on("moved", () => {
+      this.emitter.emit("forceRefresh");
+    });
+
     // Re-subscribe previous channels
     const previousChannels = { subscribe: [], psubscribe: [], ssubscribe: [] };
     if (lastActiveSubscriber) {
