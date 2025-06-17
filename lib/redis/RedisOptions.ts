@@ -167,7 +167,7 @@ export interface CommonRedisOptions extends CommanderOptions {
    * which happens when the server is just launched) when the connection is established, and only wait until
    * the loading process is finished before emitting the `ready` event.
    *
-   * @default trueßßßß
+   * @default true
    */
   enableReadyCheck?: boolean;
 
