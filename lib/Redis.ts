@@ -170,7 +170,8 @@ class Redis extends Commander implements DataHandledable {
    * unless `lazyConnect: true` is passed.
    *
    * When calling this method manually, a Promise is returned, which will
-   * be resolved when the connection status is ready.
+   * be resolved when the connection status is ready. The promise can reject
+   * if the connection fails, times out, or if Redis is already connecting/connected.
    */
   connect(callback?: Callback<void>): Promise<void> {
     const promise = new Promise<void>((resolve, reject) => {
