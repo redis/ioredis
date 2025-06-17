@@ -12,7 +12,7 @@
     "test:js": "TS_NODE_TRANSPILE_ONLY=true NODE_ENV=test mocha \"test/helpers/*.ts\" \"test/unit/**/*.ts\" \"test/functional/**/*.ts\"",
     "test:cov": "nyc npm run test:js",
     "test:js:cluster": "TS_NODE_TRANSPILE_ONLY=true NODE_ENV=test mocha \"test/cluster/**/*.ts\"",
-    "test": "npm run test:js && npm run test:tsd",
+    "test": "npm run test:js && npm run test:tsd && npm run test:js:cluster",
     "lint": "eslint --ext .js,.ts ./lib",
     "docs": "npx typedoc --logLevel Error --excludeExternals --excludeProtected --excludePrivate --readme none lib/index.ts",
     "format": "prettier --write \"{,!(node_modules)/**/}*.{js,ts}\"",
