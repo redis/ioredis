@@ -1,3 +1,51 @@
+## [5.6.1](https://github.com/luin/ioredis/compare/v5.6.0...v5.6.1) (2025-04-11)
+
+
+### Bug Fixes
+
+* adding debug log on cluster.slots initial connection error ([bedcfb5](https://github.com/luin/ioredis/commit/bedcfb5d4b462c3f0a804ab32152d80029e72710))
+
+# [5.6.0](https://github.com/luin/ioredis/compare/v5.5.0...v5.6.0) (2025-03-05)
+
+
+### Features
+
+* Sharded pub/sub support via dedicated subscribers ([#1956](https://github.com/luin/ioredis/issues/1956)) ([963a395](https://github.com/luin/ioredis/commit/963a395cd52cc12c0aa2b2bd23b55248c5b97d19))
+
+# [5.5.0](https://github.com/luin/ioredis/compare/v5.4.2...v5.5.0) (2025-02-07)
+
+
+### Features
+
+* Add ability for nat mapping through function ([#1948](https://github.com/luin/ioredis/issues/1948)) ([3a04bee](https://github.com/luin/ioredis/commit/3a04bee10995832303916fe8c7854eb6f3dcb65d))
+* **HscanStream:** adding NOVALUES option ([#1943](https://github.com/luin/ioredis/issues/1943)) ([2f9843d](https://github.com/luin/ioredis/commit/2f9843ddfa8d46cbee6c858fefbf9c2cd3852503))
+
+## [5.4.2](https://github.com/luin/ioredis/compare/v5.4.1...v5.4.2) (2024-12-20)
+
+
+### Bug Fixes
+
+* Connection instability when using socketTimeout parameter ([#1937](https://github.com/luin/ioredis/issues/1937)) ([ca5e940](https://github.com/luin/ioredis/commit/ca5e9405f80318ef35c42d23da640df4b88b6670)), closes [#1919](https://github.com/luin/ioredis/issues/1919)
+
+## [5.4.1](https://github.com/luin/ioredis/compare/v5.4.0...v5.4.1) (2024-04-17)
+
+
+### Bug Fixes
+
+* remove console.log ([558497c](https://github.com/luin/ioredis/commit/558497cba8dc7487c06c7765ddbe12b479bd9b9b))
+
+# [5.4.0](https://github.com/luin/ioredis/compare/v5.3.2...v5.4.0) (2024-04-16)
+
+
+### Bug Fixes
+
+* when `refreshSlotsCache` is callback concurrently, call the callback only when the refresh process is done ([#1881](https://github.com/luin/ioredis/issues/1881)) ([804ee07](https://github.com/luin/ioredis/commit/804ee071cab4326d1d69eec0e9d156aac4aa89f4))
+
+
+### Features
+
+* add support for `socketTimeout` in `Redis` ([#1882](https://github.com/luin/ioredis/issues/1882)) ([673ac77](https://github.com/luin/ioredis/commit/673ac77d9d88bd461110da7b4a8b2b98fb45f845))
+
 ## [5.3.2](https://github.com/luin/ioredis/compare/v5.3.1...v5.3.2) (2023-04-15)
 
 

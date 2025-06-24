@@ -2,13 +2,19 @@
 
 [![Build Status](https://github.com/redis/ioredis/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/redis/ioredis/actions/workflows/release.yml?query=branch%3Amain)
 [![Coverage Status](https://coveralls.io/repos/github/luin/ioredis/badge.svg?branch=main)](https://coveralls.io/github/luin/ioredis?branch=main)
-[![Join the chat at https://gitter.im/luin/ioredis](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/luin/ioredis?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
 [![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
 
+[![Discord](https://img.shields.io/discord/697882427875393627.svg?style=social&logo=discord)](https://discord.gg/redis)
+[![Twitch](https://img.shields.io/twitch/status/redisinc?style=social)](https://www.twitch.tv/redisinc)
+[![YouTube](https://img.shields.io/youtube/channel/views/UCD78lHSwYqMlyetR0_P4Vig?style=social)](https://www.youtube.com/redisinc)
+[![Twitter](https://img.shields.io/twitter/follow/redisinc?style=social)](https://twitter.com/redisinc)
+
 A robust, performance-focused and full-featured [Redis](http://redis.io) client for [Node.js](https://nodejs.org).
 
-Supports Redis >= 2.6.12 and the latest version of [Dragonfly](https://dragonflydb.io/). Completely compatible with Redis 7.x.
+Supports Redis >= 2.6.12. Completely compatible with Redis 7.x.
+
+ioredis is a stable project and maintenance is done on a best-effort basis for relevant issues (contributions to ioredis will still be evaluated, reviewed, and merged when they benefit the project). For new projects, node-redis is the recommended client library. [node-redis](https://github.com/redis/node-redis) is the open-source (MIT license) Redis JavaScript client library redesigned from the ground up and actively maintained. [node-redis](https://github.com/redis/node-redis) supports new (hash-field expiration) and future commands and the capabilities available in Redis Stack and Redis 8 (search, JSON, time-series, probabilistic data structures).
 
 # Features
 
@@ -40,7 +46,7 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 | Version        | Branch | Node.js Version | Redis Version   |
 | -------------- | ------ | --------------- | --------------- |
 | 5.x.x (latest) | main   | >= 12           | 2.6.12 ~ latest |
-| 4.x.x          | v4     | >= 6            | 2.6.12 ~ 7      |
+| 4.x.x          | v4     | >= 8            | 2.6.12 ~ 7      |
 
 Refer to [CHANGELOG.md](CHANGELOG.md) for features and bug fixes introduced in v5.
 
@@ -50,40 +56,6 @@ Refer to [CHANGELOG.md](CHANGELOG.md) for features and bug fixes introduced in v
 
 - [API Documentation](https://redis.github.io/ioredis/) ([Redis](https://redis.github.io/ioredis/classes/Redis.html), [Cluster](https://redis.github.io/ioredis/classes/Cluster.html))
 - [Changelog](CHANGELOG.md)
-- [Migrating from node_redis](https://github.com/redis/ioredis/wiki/Migrating-from-node_redis)
-
-<hr>
-
-# Sponsors
-
-### Upstash: Serverless Database for Redis
-
-<a href="https://upstash.com/?utm_source=ioredis"><img align="right" width="320" src="resources/upstash.png" alt="Upstash"></a>
-
-Upstash is a Serverless Database with Redis/REST API and durable storage. It is the perfect database for your applications thanks to its per request pricing and low latency data.
-
-[Start for free in 30 seconds!](https://upstash.com/?utm_source=ioredis)
-
-<br clear="both"/>
-
-### Medis: Redis GUI for macOS
-
-<a href="https://getmedis.com/"><img align="right" width="404" src="resources/medis.png" alt="Download on the App Store"></a>
-
-Looking for a Redis GUI for macOS, Windows and Linux? Here's [Medis](https://getmedis.com/)!
-
-Medis is an open-sourced, beautiful, easy-to-use Redis GUI management application.
-
-Medis starts with all the basic features you need:
-
-- Keys viewing/editing
-- SSH Tunnel for connecting with remote servers
-- Terminal for executing custom commands
-- And other awesome features...
-
-[Medis 1 is open sourced on GitHub](https://github.com/luin/medis)
-
-<br clear="both"/>
 
 <hr>
 
@@ -753,11 +725,17 @@ There are also `hscanStream`, `zscanStream` and `sscanStream` to iterate through
 similar to `scanStream` except the first argument is the key name:
 
 ```javascript
-const stream = redis.hscanStream("myhash", {
+const stream = redis.zscanStream("myhash", {
   match: "age:??",
 });
 ```
-
+The `hscanStream` also accepts the `noValues` option to specify whether Redis should return only the keys in the hash table without their corresponding values.
+```javascript
+const stream = redis.hscanStream("myhash", {
+  match: "age:??",
+  noValues: true,
+});
+```
 You can learn more from the [Redis documentation](http://redis.io/commands/scan).
 
 **Useful Tips**
@@ -848,7 +826,7 @@ The Redis instance will emit some events about the state of the connection to th
 | :----------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | connect      | emits when a connection is established to the Redis server.                                                                                                                                                                                     |
 | ready        | If `enableReadyCheck` is `true`, client will emit `ready` when the server reports that it is ready to receive commands (e.g. finish loading data from disk).<br>Otherwise, `ready` will be emitted immediately right after the `connect` event. |
-| error        | emits when an error occurs while connecting.<br>However, ioredis emits all `error` events silently (only emits when there's at least one listener) so that your application won't crash if you're not listening to the `error` event.           |
+| error        | emits when an error occurs while connecting.<br>However, ioredis emits all `error` events silently (only emits when there's at least one listener) so that your application won't crash if you're not listening to the `error` event.<br>When `redis.connect()` is explicitly called the error will also be rejected from the returned promise, in addition to emitting it. If `redis.connect()` is not called explicitly and `lazyConnect` is true, ioredis will try to connect automatically on the first command and emit the `error` event silently.                                                      |
 | close        | emits when an established Redis server connection has closed.                                                                                                                                                                                   |
 | reconnecting | emits after `close` when a reconnection will be made. The argument of the event is the time (in ms) before reconnecting.                                                                                                                        |
 | end          | emits after `close` when no more reconnections will be made, or the connection is failed to establish.                                                                                                                                          |
@@ -1160,7 +1138,31 @@ const cluster = new Redis.Cluster(
 );
 ```
 
+Or you can specify this parameter through function:
+```javascript
+const cluster = new Redis.Cluster(
+  [
+    {
+      host: "203.0.113.73",
+      port: 30001,
+    },
+  ],
+  {
+    natMap: (key) => {
+      if(key.indexOf('30001')) {
+        return { host: "203.0.113.73", port: 30001 };
+      }
+
+      return null;
+    },
+  }
+);
+```
+
 This option is also useful when the cluster is running inside a Docker container.
+Also it works for Clusters in cloud infrastructure where cluster nodes connected through dedicated subnet.
+
+Specifying through may be useful if you don't know concrete internal host and know only node port.
 
 ### Transaction and Pipeline in Cluster Mode
 
@@ -1193,6 +1195,38 @@ sub.subscribe("news", () => {
   pub.publish("news", "highlights");
 });
 ```
+
+### Sharded Pub/Sub
+
+For sharded Pub/Sub, use the `spublish` and `ssubscribe` commands instead of the traditional `publish` and `subscribe`. With the old commands, the Redis cluster handles message propagation behind the scenes, allowing you to publish or subscribe to any node without considering sharding. However, this approach has scalability limitations that are addressed with sharded Pub/Sub. Here’s what you need to know:
+
+1. Instead of a single subscriber connection, there is now one subscriber connection per shard. Because of the potential overhead, you can enable or disable the use of the cluster subscriber group with the `shardedSubscribers` option. By default, this option is set to `false`, meaning sharded subscriptions are disabled. You should enable this option when establishing your cluster connection before using `ssubscribe`.
+2. All channel names that you pass to a single `ssubscribe` need to map to the same hash slot. You can call `ssubscribe` multiple times on the same cluster client instance to subscribe to channels across slots. The cluster's subscriber group takes care of forwarding the `ssubscribe` command to the shard that is responsible for the channels.
+
+The following basic example shows you how to use sharded Pub/Sub:
+
+```javascript
+const cluster: Cluster = new Cluster([{host: host, port: port}], {shardedSubscribers: true});
+
+//Register the callback
+cluster.on("smessage", (channel, message) => {
+    console.log(message);
+});
+
+        
+//Subscribe to the channels on the same slot
+cluster.ssubscribe("channel{my}:1", "channel{my}:2").then( ( count: number ) => {
+    console.log(count);
+}).catch( (err) => {
+    console.log(err);
+});
+
+//Publish a message
+cluster.spublish("channel{my}:1", "This is a test message to my first channel.").then((value: number) => {
+    console.log("Published a message to channel{my}:1");
+});
+```
+
 
 ### Events
 
@@ -1430,14 +1464,6 @@ $ DEBUG=ioredis:* node app.js
 I'm happy to receive bug reports, fixes, documentation enhancements, and any other improvements.
 
 And since I'm not a native English speaker, if you find any grammar mistakes in the documentation, please also let me know. :)
-
-# Become a Sponsor
-
-Open source is hard and time-consuming. If you want to invest in ioredis's future you can become a sponsor and make us spend more time on this library's improvements and new features.
-
-<a href="https://opencollective.com/ioredis"><img src="https://opencollective.com/ioredis/tiers/sponsor.svg?avatarHeight=36"></a>
-
-Thank you for using ioredis :-)
 
 # Contributors
 

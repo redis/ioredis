@@ -26,7 +26,7 @@ import ClusterSubscriber from "./ClusterSubscriber";
 import ConnectionPool from "./ConnectionPool";
 import DelayQueue from "./DelayQueue";
 import {
-  getConnectionName,
+  getConnectionName, getNodeKey,
   getUniqueHostnamesFromOptions,
   groupSrvRecords,
   NodeKey,
@@ -37,6 +37,7 @@ import {
   weightSrvRecords,
 } from "./util";
 import Deque = require("denque");
+import ClusterSubscriberGroup from "./ClusterSubscriberGroup";
 
 const debug = Debug("cluster");
 
@@ -96,9 +97,11 @@ class Cluster extends Commander {
   private delayQueue: DelayQueue = new DelayQueue();
   private offlineQueue = new Deque<OfflineQueueItem>();
   private subscriber: ClusterSubscriber;
+  private shardedSubscribers: ClusterSubscriberGroup;
   private slotsTimer: NodeJS.Timer;
   private reconnectTimeout: NodeJS.Timer;
   private isRefreshing = false;
+  private _refreshSlotsCacheCallbacks = [];
   private _autoPipelines: Map<string, typeof Pipeline> = new Map();
   private _runningAutoPipelines: Set<string> = new Set();
   private _readyDelayedCallbacks: Callback[] = [];
@@ -114,6 +117,7 @@ class Cluster extends Commander {
   /**
    * Creates an instance of Cluster.
    */
+  //TODO: Add an option that enables or disables sharded PubSub
   constructor(startupNodes: ClusterNode[], options: ClusterOptions = {}) {
     super();
     EventEmitter.call(this);
@@ -123,6 +127,9 @@ class Cluster extends Commander {
       .flat();
 
     this.options = defaults({}, options, DEFAULT_CLUSTER_OPTIONS, this.options);
+
+    if (this.options.shardedSubscribers == true)
+      this.shardedSubscribers = new ClusterSubscriberGroup(this);
 
     if (
       this.options.redisOptions &&
@@ -270,6 +277,10 @@ class Cluster extends Commander {
             }
           });
           this.subscriber.start();
+
+          if (this.options.shardedSubscribers) {
+            this.shardedSubscribers.start();
+          }
         })
         .catch((err) => {
           this.setStatus("close");
@@ -298,6 +309,11 @@ class Cluster extends Commander {
     this.clearNodesRefreshInterval();
 
     this.subscriber.stop();
+
+    if (this.options.shardedSubscribers) {
+      this.shardedSubscribers.stop();
+    }
+
     if (status === "wait") {
       this.setStatus("close");
       this.handleCloseEvent();
@@ -322,6 +338,11 @@ class Cluster extends Commander {
     this.clearNodesRefreshInterval();
 
     this.subscriber.stop();
+
+    if (this.options.shardedSubscribers) {
+      this.shardedSubscribers.stop();
+    }
+
 
     if (status === "wait") {
       const ret = asCallback(Promise.resolve<"OK">("OK"), callback);
@@ -414,20 +435,23 @@ class Cluster extends Commander {
    * @ignore
    */
   refreshSlotsCache(callback?: Callback<void>): void {
+    if (callback) {
+      this._refreshSlotsCacheCallbacks.push(callback);
+    }
+
     if (this.isRefreshing) {
-      if (callback) {
-        process.nextTick(callback);
-      }
       return;
     }
+    
     this.isRefreshing = true;
 
     const _this = this;
     const wrapper = (error?: Error) => {
       this.isRefreshing = false;
-      if (callback) {
+      for (const callback of this._refreshSlotsCacheCallbacks) {
         callback(error);
       }
+      this._refreshSlotsCacheCallbacks = [];
     };
 
     const nodes = shuffle(this.connectionPool.getNodes());
@@ -546,7 +570,28 @@ class Cluster extends Commander {
           Command.checkFlag("ENTER_SUBSCRIBER_MODE", command.name) ||
           Command.checkFlag("EXIT_SUBSCRIBER_MODE", command.name)
         ) {
-          redis = _this.subscriber.getInstance();
+          if (_this.options.shardedSubscribers == true &&
+              (command.name == "ssubscribe" || command.name == "sunsubscribe")) {
+
+            const sub: ClusterSubscriber = _this.shardedSubscribers.getResponsibleSubscriber(targetSlot);
+            let status = -1;
+
+            if (command.name == "ssubscribe")
+              status = _this.shardedSubscribers.addChannels(command.getKeys());
+
+            if ( command.name == "sunsubscribe")
+              status = _this.shardedSubscribers.removeChannels(command.getKeys());
+
+            if (status !== -1) {
+              redis = sub.getInstance();
+            } else {
+              command.reject(new AbortError("Can't add or remove the given channels. Are they in the same slot?"));
+            }
+          }
+          else {
+            redis = _this.subscriber.getInstance();
+          }
+
           if (!redis) {
             command.reject(new AbortError("No subscriber for the cluster"));
             return;
@@ -790,17 +835,23 @@ class Cluster extends Commander {
   }
 
   private natMapper(nodeKey: NodeKey | RedisOptions): RedisOptions {
-    if (this.options.natMap && typeof this.options.natMap === "object") {
-      const key =
-        typeof nodeKey === "string"
-          ? nodeKey
-          : `${nodeKey.host}:${nodeKey.port}`;
-      const mapped = this.options.natMap[key];
-      if (mapped) {
-        debug("NAT mapping %s -> %O", key, mapped);
-        return Object.assign({}, mapped);
-      }
+    const key =
+      typeof nodeKey === "string"
+        ? nodeKey
+        : `${nodeKey.host}:${nodeKey.port}`;
+
+    let mapped = null;
+    if (this.options.natMap && typeof this.options.natMap === "function") {
+      mapped = this.options.natMap(key);
+    } else if (this.options.natMap && typeof this.options.natMap === "object") {
+      mapped = this.options.natMap[key];
     }
+
+    if (mapped) {
+      debug("NAT mapping %s -> %O", key, mapped);
+      return Object.assign({}, mapped);
+    }
+
     return typeof nodeKey === "string"
       ? nodeKeyToRedisOptions(nodeKey)
       : nodeKey;
@@ -833,6 +884,7 @@ class Cluster extends Commander {
       timeout((err: Error, result) => {
         duplicatedConnection.disconnect();
         if (err) {
+          debug("error encountered running CLUSTER.SLOTS: %s", err);
           return callback(err);
         }
         if (

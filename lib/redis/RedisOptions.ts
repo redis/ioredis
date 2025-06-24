@@ -14,6 +14,15 @@ export interface CommonRedisOptions extends CommanderOptions {
    * a "Command timed out" error will be thrown.
    */
   commandTimeout?: number;
+
+  /**
+   * If the socket does not receive data within a set number of milliseconds:
+   * 1. the socket is considered "dead" and will be destroyed
+   * 2. the client will reject any running commands (altought they might have been processed by the server)
+   * 3. the reconnect strategy will kick in (depending on the configuration)
+   */
+  socketTimeout?: number;
+
   /**
    * Enable/disable keep-alive functionality.
    * @link https://nodejs.org/api/net.html#socketsetkeepaliveenable-initialdelay
@@ -165,7 +174,8 @@ export interface CommonRedisOptions extends CommanderOptions {
   /**
    * When a Redis instance is initialized, a connection to the server is immediately established. Set this to
    * true will delay the connection to the server until the first command is sent or `redis.connect()` is called
-   * explicitly.
+   * explicitly. When `redis.connect()` is called explicitly, a Promise is returned, which will be resolved
+   * when the connection is ready or rejected when it fails. The rejection should be handled by the user.
    *
    * @default false
    */
