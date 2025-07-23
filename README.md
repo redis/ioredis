@@ -1149,7 +1149,7 @@ const cluster = new Redis.Cluster(
   ],
   {
     natMap: (key) => {
-      if(key.indexOf('30001')) {
+      if(key.includes('30001')) {
         return { host: "203.0.113.73", port: 30001 };
       }
 
