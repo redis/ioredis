@@ -1,46 +1,72 @@
 import Redis from "../../lib/Redis";
 import { expect } from "chai";
 
-const CUSTOM_PROPERTY = "_myCustomProperty";
-
 describe("hexpire", () => {
-  beforeEach(() => {
-    Object.defineProperty(Object.prototype, CUSTOM_PROPERTY, {
-      value: false,
-      configurable: true,
-      enumerable: false,
-      writable: false,
-    });
-  });
+  const hashKey = "test_hash_key";
+  const field = "test_field";
 
-  afterEach(() => {
-    delete (Object.prototype as any)[CUSTOM_PROPERTY];
-  });
-
-  it("should handle special field names", async () => {
+  it("should handle non-existing field", async () => {
     const redis = new Redis();
-    await redis.hmset(
-      "test_key",
-      "__proto__",
-      "hello",
-      CUSTOM_PROPERTY,
-      "world",
-      "leftbehind",
-      "stays"
-    );
-    var expireResult = await redis.hexpire(
-      "test_key",
-      1,
+
+    const result = await redis.hexpire(
+      "non_existing_hash_key",
+      60,
       "NX",
       "FIELDS",
-      2,
-      "__proto__",
-      CUSTOM_PROPERTY
+      1,
+      "non_existing_field"
     );
-    await new Promise((r) => setTimeout(r, 3000));
-    const ret = await redis.hgetall("test_key");
-    expect(Object.getPrototypeOf(ret)).to.eql(Object.prototype);
-    expect(Object.keys(ret).sort()).to.eql(["leftbehind"].sort());
-    expect(ret.leftbehind).to.eql("stays");
+
+    expect(result).to.deep.equal([-2]);
+  });
+
+  it("should handle existing field", async () => {
+    const redis = new Redis();
+
+    await redis.hset(hashKey, field, "value");
+
+    const result = await redis.hexpire(hashKey, 60, "FIELDS", 1, field);
+
+    expect(result).to.deep.equal([1]);
+  });
+
+  it("should return 0 when condition is not met", async () => {
+    const redis = new Redis();
+
+    await redis.hset(hashKey, field, "value");
+    await redis.hexpire(hashKey, 60, "FIELDS", 1, field); // Set initial expiry
+
+    // Try to set expiry with NX when field already has expiry
+    const result = await redis.hexpire(hashKey, 120, "NX", "FIELDS", 1, field);
+
+    expect(result).to.deep.equal([0]);
+  });
+
+  it("should return 2 when expiring field with 0 seconds", async () => {
+    const redis = new Redis();
+
+    await redis.hset(hashKey, field, "value");
+
+    const result = await redis.hexpire(hashKey, 0, "FIELDS", 1, field);
+
+    expect(result).to.deep.equal([2]);
+  });
+
+  it("should expire multiple fields", async () => {
+    const redis = new Redis();
+
+    await redis.hset(hashKey, field, "value", "field2", "value2");
+
+    const result = await redis.hexpire(
+      hashKey,
+      60,
+      "FIELDS",
+      3,
+      field,
+      "field2",
+      "non_existing_field"
+    );
+
+    expect(result).to.deep.equal([1, 1, -2]);
   });
 });

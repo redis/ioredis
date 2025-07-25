@@ -3871,21 +3871,21 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   ): Result<number, Context>;
 
   /**
-   * Set an expiration (TTL or time to live) on one or more fields of a given hash key. You must specify at least one field. Field(s) will automatically be deleted from the hash key when their TTLs expire.
+   * Set expiry for hash field using relative time to expire (seconds)
    * - _group_: hash
-   * - _complexity_: O(n)
+   * - _complexity_: O(N) where N is the number of specified fields
    * - _since_: 7.4.0
    */
-  hexpire(
-    ...args: [
-      key: RedisKey,
-      value: string | Buffer | number,
-      nx: "NX" | "XX" | "GT" | "LT",
-      fields: "FIELDS",
-      numFields: number,
-      ...fieldValues: string[]
-    ]
-  ): Result<"OK", Context>;
+  hexpire(...args: [key: RedisKey, seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hexpire(...args: [key: RedisKey, seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hexpire(...args: [key: RedisKey, seconds: number | string, nx: 'NX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hexpire(...args: [key: RedisKey, seconds: number | string, nx: 'NX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hexpire(...args: [key: RedisKey, seconds: number | string, xx: 'XX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hexpire(...args: [key: RedisKey, seconds: number | string, xx: 'XX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hexpire(...args: [key: RedisKey, seconds: number | string, gt: 'GT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hexpire(...args: [key: RedisKey, seconds: number | string, gt: 'GT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hexpire(...args: [key: RedisKey, seconds: number | string, lt: 'LT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hexpire(...args: [key: RedisKey, seconds: number | string, lt: 'LT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
 
   /**
    * Get the value of a hash field
