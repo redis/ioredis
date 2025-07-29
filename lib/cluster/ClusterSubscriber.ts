@@ -8,12 +8,18 @@ const debug = Debug("cluster:subscriber");
 
 export default class ClusterSubscriber {
   private started = false;
+
+  //There is only one connection for the entire pool
   private subscriber: any = null;
   private lastActiveSubscriber: any;
 
+  //The slot range for which this subscriber is responsible
+  private slotRange: number[] = []
+
   constructor(
     private connectionPool: ConnectionPool,
-    private emitter: EventEmitter
+    private emitter: EventEmitter,
+    private isSharded : boolean = false
   ) {
     // If the current node we're using as the subscriber disappears
     // from the node pool for some reason, we will select a new one
@@ -47,6 +53,22 @@ export default class ClusterSubscriber {
     return this.subscriber;
   }
 
+  /**
+   * Associate this subscriber to a specific slot range.
+   *
+   * Returns the range or an empty array if the slot range couldn't be associated.
+   *
+   * BTW: This is more for debugging and testing purposes.
+   *
+   * @param range
+   */
+  associateSlotRange(range: number[]): number[] {
+    if (this.isSharded) {
+      this.slotRange = range;
+    }
+    return this.slotRange;
+  }
+
   start(): void {
     this.started = true;
     this.selectSubscriber();
@@ -59,8 +81,12 @@ export default class ClusterSubscriber {
       this.subscriber.disconnect();
       this.subscriber = null;
     }
-    debug("stopped");
   }
+
+  isStarted(): boolean {
+    return this.started;
+  }
+
 
   private onSubscriberEnd = () => {
     if (!this.started) {
@@ -112,13 +138,17 @@ export default class ClusterSubscriber {
      * provided for the subscriber is correct, and if not, the current subscriber
      * will be disconnected and a new subscriber will be selected.
      */
+    let connectionPrefix = "subscriber";
+    if (this.isSharded)
+      connectionPrefix = "ssubscriber";
+
     this.subscriber = new Redis({
       port: options.port,
       host: options.host,
       username: options.username,
       password: options.password,
       enableReadyCheck: true,
-      connectionName: getConnectionName("subscriber", options.connectionName),
+      connectionName: getConnectionName(connectionPrefix, options.connectionName),
       lazyConnect: true,
       tls: options.tls,
       // Don't try to reconnect the subscriber connection. If the connection fails
@@ -179,17 +209,27 @@ export default class ClusterSubscriber {
     for (const event of [
       "message",
       "messageBuffer",
-      "smessage",
-      "smessageBuffer",
     ]) {
       this.subscriber.on(event, (arg1, arg2) => {
         this.emitter.emit(event, arg1, arg2);
       });
     }
+
     for (const event of ["pmessage", "pmessageBuffer"]) {
       this.subscriber.on(event, (arg1, arg2, arg3) => {
         this.emitter.emit(event, arg1, arg2, arg3);
       });
+    }
+
+    if (this.isSharded == true) {
+      for (const event of [
+        "smessage",
+        "smessageBuffer",
+      ]) {
+        this.subscriber.on(event, (arg1, arg2) => {
+          this.emitter.emit(event, arg1, arg2);
+        });
+      }
     }
   }
 }
