@@ -1,3 +1,15 @@
+# [5.7.0](https://github.com/luin/ioredis/compare/v5.6.1...v5.7.0) (2025-07-31)
+
+
+### Bug Fixes
+
+* xread example for TypeScript ([#1872](https://github.com/luin/ioredis/issues/1872)) ([265ea59](https://github.com/luin/ioredis/commit/265ea5975a0447be12d7dd5e209256ecb42fc797))
+
+
+### Features
+
+* Implement hexpire for [#1898](https://github.com/luin/ioredis/issues/1898) ([#1918](https://github.com/luin/ioredis/issues/1918)) ([121202c](https://github.com/luin/ioredis/commit/121202ca1a461c627680d2332e60dd8b33feaff8))
+
 ## [5.6.1](https://github.com/luin/ioredis/compare/v5.6.0...v5.6.1) (2025-04-11)
 
 
