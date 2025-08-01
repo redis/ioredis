@@ -31,7 +31,7 @@ export default class ClusterSubscriberGroup {
      *
      * @param cluster
      */
-    constructor(private cluster: Cluster) {
+    constructor(private cluster: Cluster, refreshSlotsCacheCallback: () => void) {
 
         cluster.on("+node", (redis) => {
             this._addSubscriber(redis);
@@ -43,6 +43,10 @@ export default class ClusterSubscriberGroup {
 
         cluster.on("refresh", () => {
             this._refreshSlots(cluster);
+        });
+
+        cluster.on("forceRefresh", () => {
+          refreshSlotsCacheCallback();
         });
     }
 
