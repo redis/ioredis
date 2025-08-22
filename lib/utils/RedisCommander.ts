@@ -9486,6 +9486,49 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   ): Result<number, Context>;
 
   /**
+   * XDELEX is an extension of the Redis Streams XDEL command that provides more control over how message entries are deleted concerning consumer groups.
+   * - _group_: stream
+   * - _complexity_: O(1) for each single item to delete in the stream, regardless of the stream size.
+   * - _since_: 8.2.0
+   */
+  xdelex(
+      ...args: [
+          key: RedisKey,
+          refMode: "KEEPREF" | "DELREF" | "ACKED",
+          idsToken: "IDS",
+          idCount: number,
+          ...ids: string[],
+          callback: Callback<number>
+      ]
+  ): Result<number, Context>;
+  xdelex(
+      ...args: [
+          key: RedisKey,
+          refMode: "KEEPREF" | "DELREF" | "ACKED",
+          idsToken: "IDS",
+          idCount: number,
+          ...ids: string[],
+      ]
+  ): Result<number, Context>;
+  xdelex(
+      ...args: [
+          key: RedisKey,
+          idsToken: "IDS",
+          idCount: number,
+          ...ids: string[],
+          callback: Callback<number>
+      ]
+  ): Result<number, Context>;
+  xdelex(
+      ...args: [
+          key: RedisKey,
+          idsToken: "IDS",
+          idCount: number,
+          ...ids: string[],
+      ]
+  ): Result<number, Context>;
+
+  /**
    * Create a consumer group.
    * - _group_: stream
    * - _complexity_: O(1)
