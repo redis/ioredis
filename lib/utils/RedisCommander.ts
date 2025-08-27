@@ -4029,6 +4029,23 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   ): Result<"OK", Context>;
 
   /**
+   * Set expiry for hash field using relative time to expire (milliseconds)
+   * - _group_: hash
+   * - _complexity_: O(N) where N is the number of specified fields
+   * - _since_: 7.4.0
+   */
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, nx: 'NX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, nx: 'NX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, xx: 'XX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, xx: 'XX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, gt: 'GT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, gt: 'GT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, lt: 'LT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, lt: 'LT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+
+  /**
    * Get one or multiple random fields from a hash
    * - _group_: hash
    * - _complexity_: O(N) where N is the number of fields returned
