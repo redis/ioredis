@@ -25,7 +25,7 @@ describe("hpexpire", () => {
 
     await redis.hset(hashKey, field, "value");
 
-    const result = await redis.hexpire(hashKey, 60, "FIELDS", 1, field);
+    const result = await redis.hpexpire(hashKey, 60, "FIELDS", 1, field);
 
     expect(result).to.deep.equal([1]);
   });
@@ -34,10 +34,10 @@ describe("hpexpire", () => {
     const redis = new Redis();
 
     await redis.hset(hashKey, field, "value");
-    await redis.hexpire(hashKey, 60, "FIELDS", 1, field); // Set initial expiry
+    await redis.hpexpire(hashKey, 60, "FIELDS", 1, field); // Set initial expiry
 
     // Try to set expiry with NX when field already has expiry
-    const result = await redis.hexpire(hashKey, 120, "NX", "FIELDS", 1, field);
+    const result = await redis.hpexpire(hashKey, 120, "NX", "FIELDS", 1, field);
 
     expect(result).to.deep.equal([0]);
   });
@@ -47,7 +47,7 @@ describe("hpexpire", () => {
 
     await redis.hset(hashKey, field, "value");
 
-    const result = await redis.hexpire(hashKey, 0, "FIELDS", 1, field);
+    const result = await redis.hpexpire(hashKey, 0, "FIELDS", 1, field);
 
     expect(result).to.deep.equal([2]);
   });
@@ -57,7 +57,7 @@ describe("hpexpire", () => {
 
     await redis.hset(hashKey, field, "value", "field2", "value2");
 
-    const result = await redis.hexpire(
+    const result = await redis.hpexpire(
       hashKey,
       60,
       "FIELDS",
