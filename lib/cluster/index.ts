@@ -148,7 +148,10 @@ class Cluster extends Commander {
       );
     }
 
-    this.connectionPool = new ConnectionPool(this.options.redisOptions);
+    this.connectionPool = new ConnectionPool({
+      ...this.options.redisOptions,
+      initialStartupNodes: this.startupNodes
+    });
 
     this.connectionPool.on("-node", (redis, key) => {
       this.emit("-node", redis);
