@@ -7,7 +7,8 @@ import { MaxRetriesPerRequestError } from "../errors";
 import { CommandItem, Respondable } from "../types";
 import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import DataHandler from "../DataHandler";
-import { version } from "../../package.json";
+// This seems to be less problematic, than import
+const { version } = require("../../package.json");
 
 const debug = Debug("connection");
 
