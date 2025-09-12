@@ -7,6 +7,7 @@ import { MaxRetriesPerRequestError } from "../errors";
 import { CommandItem, Respondable } from "../types";
 import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import DataHandler from "../DataHandler";
+import { version } from "../../package.json";
 
 const debug = Debug("connection");
 
@@ -262,6 +263,21 @@ export function readyHandler(self) {
     if (self.options.connectionName) {
       debug("set the connection name [%s]", self.options.connectionName);
       self.client("setname", self.options.connectionName).catch(noop);
+    }
+
+    if (!self.options?.disableClientInfo) {
+      debug("set the client info");
+      self.client("SETINFO", "LIB-VER", version).catch(noop);
+
+      self
+        .client(
+          "SETINFO",
+          "LIB-NAME",
+          self.options?.clientInfoTag
+            ? `ioredis(${self.options.clientInfoTag})`
+            : "ioredis"
+        )
+        .catch(noop);
     }
 
     if (self.options.readOnly) {
