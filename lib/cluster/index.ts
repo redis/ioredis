@@ -126,7 +126,7 @@ class Cluster extends Commander {
     this.options = defaults({}, options, DEFAULT_CLUSTER_OPTIONS, this.options);
 
     if (this.options.shardedSubscribers == true)
-      this.shardedSubscribers = new ClusterSubscriberGroup(this);
+      this.shardedSubscribers = new ClusterSubscriberGroup(this, this.refreshSlotsCache.bind(this));
 
     if (
       this.options.redisOptions &&
