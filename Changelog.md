@@ -1,3 +1,10 @@
+## [4.30.1](https://github.com/luin/ioredis/compare/v4.30.0...v4.30.1) (2025-09-16)
+
+
+### Bug Fixes
+
+* **release:** trigger release ([#2015](https://github.com/luin/ioredis/issues/2015)) ([4d2809a](https://github.com/luin/ioredis/commit/4d2809a8a66a391d460298b4a84cb6505fadf0ea))
+
 # [4.30.0](https://github.com/luin/ioredis/compare/v4.29.1...v4.30.0) (2025-04-11)
 
 
