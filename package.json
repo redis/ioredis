@@ -9,6 +9,8 @@
   "scripts": {
     "test": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_LOG_ERROR=true NODE_ENV=test mocha \"test/helpers/**/*.ts\" \"test/unit/**/*.ts\" \"test/functional/**/*.ts\"",
     "test-single": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_LOG_ERROR=true NODE_ENV=test mocha \"test/helpers/*.ts\" $1",
+    "cluster:setup:env": "docker compose -f test/cluster/docker-compose.cluster.yml up -d",
+    "test:cluster": "TS_NODE_TRANSPILE_ONLY=true NODE_ENV=test mocha \"test/cluster/**/*.ts\"",
     "lint": "eslint --ext .js,.ts .",
     "format": "prettier --write \"{,!(node_modules)/**/}*.{js,ts}\"",
     "format-check": "prettier --check \"{,!(node_modules)/**/}*.{js,ts}\"",
