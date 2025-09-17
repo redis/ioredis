@@ -45,7 +45,7 @@ jobs:
         with:
           redis-version: latest
 
-      - run: npm run cluster:setup:env
+      - run: npm run cluster:setup
 
       - run: npm install
       - run: npm run lint

@@ -12,3 +12,12 @@ services:
       - 3003:3003
       - 3004:3004
       - 3005:3005
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "redis-cli -p 3000 cluster info | grep -q 'cluster_state:ok'",
+        ]
+      interval: 1s
+      timeout: 10s
+      retries: 5
