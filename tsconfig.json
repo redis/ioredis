@@ -10,8 +10,7 @@
     ],
     "moduleResolution": "node",
     "module": "commonjs",
-    "outDir": "./built",
-    "resolveJsonModule": true,
+    "outDir": "./built"
   },
   "include": ["./lib/**/*"]
 }

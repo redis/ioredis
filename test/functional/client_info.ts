@@ -46,7 +46,9 @@ describe("clientInfo", function () {
         (cmd) => cmd.key === "LIB-NAME"
       );
 
-      expect(libVerCommand).to.exist; // version will change over time
+      expect(libVerCommand).to.exist;
+      expect(libVerCommand?.value).to.be.a("string");
+      expect(libVerCommand?.value).to.not.equal("unknown");
       expect(libNameCommand).to.exist;
       expect(libNameCommand?.value).to.equal("ioredis");
     });
@@ -183,6 +185,8 @@ describe("clientInfo", function () {
       );
 
       expect(libVerCommand).to.exist;
+      expect(libVerCommand?.value).to.be.a("string");
+      expect(libVerCommand?.value).to.not.equal("unknown");
       expect(libNameCommand).to.exist;
       expect(libNameCommand?.value).to.equal("ioredis");
     });

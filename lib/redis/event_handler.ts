@@ -5,10 +5,13 @@ import { AbortError } from "redis-errors";
 import Command from "../Command";
 import { MaxRetriesPerRequestError } from "../errors";
 import { CommandItem, Respondable } from "../types";
-import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
+import {
+  Debug,
+  noop,
+  CONNECTION_CLOSED_ERROR_MSG,
+  getPackageMeta,
+} from "../utils";
 import DataHandler from "../DataHandler";
-// This seems to be less problematic, than import
-const { version } = require("../../package.json");
 
 const debug = Debug("connection");
 
@@ -268,7 +271,19 @@ export function readyHandler(self) {
 
     if (!self.options?.disableClientInfo) {
       debug("set the client info");
-      self.client("SETINFO", "LIB-VER", version).catch(noop);
+
+      let version = null;
+
+      getPackageMeta()
+        .then((packageMeta) => {
+          version = packageMeta?.version;
+        })
+        .catch(noop)
+        .finally(() => {
+          self
+            .client("SETINFO", "LIB-VER", version ?? "error-fetching-version")
+            .catch(noop);
+        });
 
       self
         .client(
