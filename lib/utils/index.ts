@@ -347,11 +347,13 @@ export async function getPackageMeta() {
     cachedPackageMeta = {
       version: parsed.version,
     };
+
+    return cachedPackageMeta;
   } catch (err) {
     cachedPackageMeta = {
       version: "error-fetching-version",
     };
-  } finally {
+
     return cachedPackageMeta;
   }
 }

@@ -281,7 +281,7 @@ export function readyHandler(self) {
         .catch(noop)
         .finally(() => {
           self
-            .client("SETINFO", "LIB-VER", version ?? "error-fetching-version")
+            .client("SETINFO", "LIB-VER", version)
             .catch(noop);
         });
 
