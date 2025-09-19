@@ -9503,6 +9503,87 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   ): Result<number, Context>;
 
   /**
+   * Deletes one or multiple entries from the stream.
+   * - _group_: stream
+   * - _complexity_: O(1) for each single item to delete in the stream, regardless of the stream size.
+   * - _since_: 8.2.0
+   */
+  xdelex(
+    ...args: [
+      key: RedisKey,
+      idsToken: "IDS",
+      numids: number | string,
+      ...ids: (string | Buffer | number)[],
+      callback: Callback<unknown>
+    ]
+  ): Result<unknown, Context>;
+  xdelex(
+    ...args: [
+      key: RedisKey,
+      idsToken: "IDS",
+      numids: number | string,
+      ...ids: (string | Buffer | number)[]
+    ]
+  ): Result<unknown, Context>;
+  xdelex(
+    ...args: [
+      key: RedisKey,
+      keepref: "KEEPREF",
+      idsToken: "IDS",
+      numids: number | string,
+      ...ids: (string | Buffer | number)[],
+      callback: Callback<unknown>
+    ]
+  ): Result<unknown, Context>;
+  xdelex(
+    ...args: [
+      key: RedisKey,
+      keepref: "KEEPREF",
+      idsToken: "IDS",
+      numids: number | string,
+      ...ids: (string | Buffer | number)[]
+    ]
+  ): Result<unknown, Context>;
+  xdelex(
+    ...args: [
+      key: RedisKey,
+      delref: "DELREF",
+      idsToken: "IDS",
+      numids: number | string,
+      ...ids: (string | Buffer | number)[],
+      callback: Callback<unknown>
+    ]
+  ): Result<unknown, Context>;
+  xdelex(
+    ...args: [
+      key: RedisKey,
+      delref: "DELREF",
+      idsToken: "IDS",
+      numids: number | string,
+      ...ids: (string | Buffer | number)[]
+    ]
+  ): Result<unknown, Context>;
+  xdelex(
+    ...args: [
+      key: RedisKey,
+      acked: "ACKED",
+      idsToken: "IDS",
+      numids: number | string,
+      ...ids: (string | Buffer | number)[],
+      callback: Callback<unknown>
+    ]
+  ): Result<unknown, Context>;
+  xdelex(
+    ...args: [
+      key: RedisKey,
+      acked: "ACKED",
+      idsToken: "IDS",
+      numids: number | string,
+      ...ids: (string | Buffer | number)[]
+    ]
+  ): Result<unknown, Context>;
+
+  /**
    * Create a consumer group.
    * - _group_: stream
    * - _complexity_: O(1)
