@@ -22,11 +22,14 @@ jobs:
         with:
           redis-version: latest
 
+      - run: npm run cluster:setup
+
       - run: npm install
       - run: npm run lint
       - run: npm run build
       - run: npm run test:tsd
       - run: npm run test:cov || npm run test:cov || npm run test:cov
+      - run: npm run test:cluster
       - name: Coveralls
         if: matrix.node == '18.x'
         uses: coverallsapp/github-action@master

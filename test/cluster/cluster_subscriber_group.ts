@@ -1,9 +1,8 @@
 import {expect} from "chai";
 import Redis, {Cluster} from "../../lib";
-import redis from "../../lib";
 
 const host = "127.0.0.1";
-const masters = [30000, 30001, 30002];
+const masters = [3000, 3001, 3002];
 const port: number = masters[0]
 
 /**
@@ -22,33 +21,44 @@ describe("cluster:ClusterSubscriberGroup", () => {
 
         const cluster: Cluster = new Cluster([{host: host, port: port}], {shardedSubscribers: true});
 
-        //Subscribe to the three channels
-        cluster.ssubscribe("channel:1:{1}", "channel:2:{1}", "channel:3:{1}" ).then( ( count: number ) => {
-            console.log("Subscribed to 3 channels.");
-            expect(count).to.equal(3);
-        });
+        // Subscribe to the three channels
+        const subscribeCount = await cluster.ssubscribe(
+          "channel:1:{1}",
+          "channel:2:{1}",
+          "channel:3:{1}"
+        );
+        expect(subscribeCount, "Should be subscribed to 3 channels.").to.equal(3);
 
-        //Publish a message to one of the channels
-        cluster.spublish("channel:2:{1}", "This is a test message to channel 2.").then((value: number) => {
-            console.log("Published a message to channel:2:{1} and expect one subscriber.");
-            expect(value).to.be.eql(1);
-        });
-
-        await sleep(500);
-
-        //Unsubscribe from one of the channels
-        cluster.sunsubscribe("channel:2:{1}").then( ( count: number ) => {
-            console.log("Unsubscribed from channel:2:{1}.");
-            expect(count).to.equal(2);
-        });
+        // Publish a message to one of the channels
+        const publishValue = await cluster.spublish(
+          "channel:2:{1}",
+          "This is a test message to channel 2."
+        );
+        expect(
+          publishValue,
+          "Should have published a message to channel:2:{1} and expect one subscriber."
+        ).to.be.eql(1);
 
         await sleep(500);
 
-        //Publish a message to the channel from which we unsubscribed
-        cluster.spublish("channel:2:{1}", "This is a test message to channel 2.").then((value: number) => {
-            console.log("Published a second message to channel:2:{1} and expect to have nobody listening.");
-            expect(value).to.be.eql(0);
-        });
+        // Unsubscribe from one of the channels
+        const unsubscribeCount = await cluster.sunsubscribe("channel:2:{1}");
+        expect(unsubscribeCount, "Should be subscribed from 2 channels.").to.equal(
+          2
+        );
+
+        await sleep(500);
+
+        // Publish a message to the channel from which we unsubscribed
+        const value = await cluster.spublish(
+          "channel:2:{1}",
+          "This is a test message to channel 2."
+        );
+
+        expect(
+          value,
+          "Published a second message to channel:2:{1} and expect to have nobody listening."
+        ).to.be.eql(0);
 
         await sleep(1000);
         await cluster.disconnect();
@@ -167,14 +177,14 @@ describe("cluster:ClusterSubscriberGroup", () => {
         const channel = "channel:test:3";
 
         //Used as control connections for orchestrating the slot migration
-        const source: Redis = new Redis({host: host, port: 30000});
-        const target: Redis = new Redis({host: host, port: 30001});
+        const source: Redis = new Redis({host: host, port: 3000});
+        const target: Redis = new Redis({host: host, port: 3001});
 
         //Initialize the publisher cluster connections and verify that the slot is on node 1
         const publisher: Cluster = new Cluster([{host: host, port: port}]);
 
         publisher.on("ready", () => {
-            expect(publisher.slots[slot][0]).eql("127.0.0.1:30000");
+            expect(publisher.slots[slot][0]).eql("127.0.0.1:3000");
         });
 
 
@@ -182,7 +192,7 @@ describe("cluster:ClusterSubscriberGroup", () => {
         const subscriber: Cluster = new Cluster([{host: host, port: port}], {shardedSubscribers: true});
 
         subscriber.on("ready",  () => {
-            expect(subscriber.slots[slot][0]).eql("127.0.0.1:30000")
+            expect(subscriber.slots[slot][0]).eql("127.0.0.1:3000")
         });
 
         //The subscription callback. We should receive both messages
@@ -227,14 +237,20 @@ describe("cluster:ClusterSubscriberGroup", () => {
         //TODO: What if there is no traffic on the cluster connection?
         status = await subscriber.set("match_slot{" + channel + "}", "channel 3");
         expect(status).to.eql("OK");
-        expect(subscriber.slots[slot][0]).eql("127.0.0.1:30001");
+        expect(subscriber.slots[slot][0]).eql("127.0.0.1:3001");
 
         //Wait a bit to let the subscriber resubscribe to previous channels
         await sleep(1000);
 
         const numSubscribers = await publisher.spublish(channel, "This is a test message #2 to slot "
             + slot + " on channel " + channel + ".");
-        expect(publisher.slots[slot][0]).eql("127.0.0.1:30001");
+        expect(publisher.slots[slot][0]).eql("127.0.0.1:3001");
         expect(numSubscribers).to.eql(1);
+
+        await sleep(1000);
+        subscriber.disconnect();
+        publisher.disconnect();
+        source.disconnect();
+        target.disconnect();
     });
 });
