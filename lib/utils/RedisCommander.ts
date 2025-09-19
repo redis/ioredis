@@ -4029,6 +4029,23 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   ): Result<"OK", Context>;
 
   /**
+   * Set expiry for hash field using relative time to expire (milliseconds)
+   * - _group_: hash
+   * - _complexity_: O(N) where N is the number of specified fields
+   * - _since_: 7.4.0
+   */
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, nx: 'NX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, nx: 'NX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, xx: 'XX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, xx: 'XX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, gt: 'GT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, gt: 'GT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, lt: 'LT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpexpire(...args: [key: RedisKey, milliseconds: number | string, lt: 'LT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+
+  /**
    * Get one or multiple random fields from a hash
    * - _group_: hash
    * - _complexity_: O(N) where N is the number of fields returned
@@ -10277,7 +10294,7 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   ): Result<unknown, Context>;
 
   /**
-   * Trims the stream to (approximately if '~' is passed) a certain size
+   * Deletes messages from the beginning of a stream.
    * - _group_: stream
    * - _complexity_: O(N), with N being the number of evicted entries. Constant times are very small however, since entries are organized in macro nodes containing multiple entries that can be released with a single deallocation.
    * - _since_: 5.0.0
@@ -10292,8 +10309,56 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
     key: RedisKey,
     maxlen: "MAXLEN",
     threshold: string | Buffer | number,
+    keepref: "KEEPREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    threshold: string | Buffer | number,
+    delref: "DELREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    threshold: string | Buffer | number,
+    acked: "ACKED",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    threshold: string | Buffer | number,
     countToken: "LIMIT",
     count: number | string,
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    keepref: "KEEPREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    delref: "DELREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    acked: "ACKED",
     callback?: Callback<number>
   ): Result<number, Context>;
   xtrim(
@@ -10308,8 +10373,62 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
     maxlen: "MAXLEN",
     equal: "=",
     threshold: string | Buffer | number,
+    keepref: "KEEPREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    equal: "=",
+    threshold: string | Buffer | number,
+    delref: "DELREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    equal: "=",
+    threshold: string | Buffer | number,
+    acked: "ACKED",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    equal: "=",
+    threshold: string | Buffer | number,
     countToken: "LIMIT",
     count: number | string,
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    equal: "=",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    keepref: "KEEPREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    equal: "=",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    delref: "DELREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    equal: "=",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    acked: "ACKED",
     callback?: Callback<number>
   ): Result<number, Context>;
   xtrim(
@@ -10324,8 +10443,62 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
     maxlen: "MAXLEN",
     approximately: "~",
     threshold: string | Buffer | number,
+    keepref: "KEEPREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    approximately: "~",
+    threshold: string | Buffer | number,
+    delref: "DELREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    approximately: "~",
+    threshold: string | Buffer | number,
+    acked: "ACKED",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    approximately: "~",
+    threshold: string | Buffer | number,
     countToken: "LIMIT",
     count: number | string,
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    approximately: "~",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    keepref: "KEEPREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    approximately: "~",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    delref: "DELREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    maxlen: "MAXLEN",
+    approximately: "~",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    acked: "ACKED",
     callback?: Callback<number>
   ): Result<number, Context>;
   xtrim(
@@ -10338,8 +10511,56 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
     key: RedisKey,
     minid: "MINID",
     threshold: string | Buffer | number,
+    keepref: "KEEPREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    threshold: string | Buffer | number,
+    delref: "DELREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    threshold: string | Buffer | number,
+    acked: "ACKED",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    threshold: string | Buffer | number,
     countToken: "LIMIT",
     count: number | string,
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    keepref: "KEEPREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    delref: "DELREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    acked: "ACKED",
     callback?: Callback<number>
   ): Result<number, Context>;
   xtrim(
@@ -10354,8 +10575,62 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
     minid: "MINID",
     equal: "=",
     threshold: string | Buffer | number,
+    keepref: "KEEPREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    equal: "=",
+    threshold: string | Buffer | number,
+    delref: "DELREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    equal: "=",
+    threshold: string | Buffer | number,
+    acked: "ACKED",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    equal: "=",
+    threshold: string | Buffer | number,
     countToken: "LIMIT",
     count: number | string,
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    equal: "=",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    keepref: "KEEPREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    equal: "=",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    delref: "DELREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    equal: "=",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    acked: "ACKED",
     callback?: Callback<number>
   ): Result<number, Context>;
   xtrim(
@@ -10370,8 +10645,62 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
     minid: "MINID",
     approximately: "~",
     threshold: string | Buffer | number,
+    keepref: "KEEPREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    approximately: "~",
+    threshold: string | Buffer | number,
+    delref: "DELREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    approximately: "~",
+    threshold: string | Buffer | number,
+    acked: "ACKED",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    approximately: "~",
+    threshold: string | Buffer | number,
     countToken: "LIMIT",
     count: number | string,
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    approximately: "~",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    keepref: "KEEPREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    approximately: "~",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    delref: "DELREF",
+    callback?: Callback<number>
+  ): Result<number, Context>;
+  xtrim(
+    key: RedisKey,
+    minid: "MINID",
+    approximately: "~",
+    threshold: string | Buffer | number,
+    countToken: "LIMIT",
+    count: number | string,
+    acked: "ACKED",
     callback?: Callback<number>
   ): Result<number, Context>;
 
