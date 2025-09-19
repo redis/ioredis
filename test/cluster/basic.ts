@@ -1,14 +1,15 @@
 import { expect } from "chai";
 import Redis, { Cluster } from "../../lib";
 
-const masters = [30000, 30001, 30002];
-const replicas = [30003, 30004, 30005];
+const masters = [3000, 3001, 3002];
+const replicas = [3003, 3004, 3005];
 
 async function cleanup() {
   for (const port of masters) {
     const redis = new Redis(port);
     await redis.flushall();
     await redis.script("FLUSH");
+    await redis.quit();
   }
   // Wait for replication
   await new Promise((resolve) => setTimeout(resolve, 500));

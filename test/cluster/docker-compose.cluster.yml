@@ -1,0 +1,23 @@
+services:
+  redis-cluster:
+    image: redislabs/client-libs-test:${REDIS_VERSION:-8.2.1-pre}
+    environment:
+      REDIS_CLUSTER: "yes"
+      NODES: "6"
+      REPLICAS: "1"
+    ports:
+      - 3000:3000
+      - 3001:3001
+      - 3002:3002
+      - 3003:3003
+      - 3004:3004
+      - 3005:3005
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "redis-cli -p 3000 cluster info | grep -q 'cluster_state:ok'",
+        ]
+      interval: 1s
+      timeout: 10s
+      retries: 5
