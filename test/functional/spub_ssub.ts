@@ -1,3 +1,4 @@
+import * as sinon from "sinon";
 import Redis from "../../lib/redis";
 import { expect } from "chai";
 
@@ -144,5 +145,33 @@ describe("spub/ssub", function () {
       });
       redis.disconnect(true);
     });
+  });
+
+  // This ensures we don't get CROSSSLOT exceptions
+  it("should call ssubscribe individually for each channel during auto-resubscription", async () => {
+    const subscriber = new Redis({ autoResubscribe: true });
+
+    await subscriber.ping();
+
+    subscriber.ssubscribe("shard1");
+    subscriber.ssubscribe("shard2");
+    subscriber.ssubscribe("shard3");
+
+    const stub = sinon.stub(Redis.prototype, "ssubscribe");
+
+    subscriber.disconnect({ reconnect: true });
+
+    await new Promise((resolve) => {
+      subscriber.once("ready", resolve);
+    });
+
+    await subscriber.ping();
+
+    expect(stub.getCall(0).args).to.deep.equal(["shard1"]);
+    expect(stub.getCall(1).args).to.deep.equal(["shard2"]);
+    expect(stub.getCall(2).args).to.deep.equal(["shard3"]);
+
+    stub.restore();
+    subscriber.disconnect();
   });
 });

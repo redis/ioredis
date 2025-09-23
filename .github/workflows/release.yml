@@ -28,4 +28,4 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GIT_AUTHOR_NAME: "ioredis robot"
           GIT_AUTHOR_EMAIL: "ioredis-robot@zihua.li"
-        run: npx semantic-release --branches v4
+        run: npx semantic-release

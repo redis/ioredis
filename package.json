@@ -1,14 +1,17 @@
 {
   "name": "ioredis",
-  "version": "4.30.0",
+  "version": "4.30.1",
   "description": "A robust, performance-focused and full-featured Redis client for Node.js.",
   "main": "built/index.js",
   "files": [
     "built/"
   ],
   "scripts": {
-    "test": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_LOG_ERROR=true NODE_ENV=test mocha \"test/helpers/**/*.ts\" \"test/unit/**/*.ts\" \"test/functional/**/*.ts\" \"test/cluster/**/*.ts\"",
+    "cluster:setup": "docker compose -f test/cluster/docker-compose.cluster.yml up -d --wait",
+    "cluster:teardown": "docker compose -f test/cluster/docker-compose.cluster.yml down --volumes --remove-orphans",
+    "test": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_LOG_ERROR=true NODE_ENV=test mocha \"test/helpers/**/*.ts\" \"test/unit/**/*.ts\" \"test/functional/**/*.ts\"",
     "test-single": "TS_NODE_TRANSPILE_ONLY=true TS_NODE_LOG_ERROR=true NODE_ENV=test mocha \"test/helpers/*.ts\" $1",
+    "test:cluster": "TS_NODE_TRANSPILE_ONLY=true NODE_ENV=test mocha \"test/cluster/**/*.ts\"",
     "lint": "eslint --ext .js,.ts .",
     "format": "prettier --write \"{,!(node_modules)/**/}*.{js,ts}\"",
     "format-check": "prettier --check \"{,!(node_modules)/**/}*.{js,ts}\"",
