@@ -1,3 +1,18 @@
+# [5.8.0](https://github.com/luin/ioredis/compare/v5.7.0...v5.8.0) (2025-09-23)
+
+
+### Bug Fixes
+
+* **ssubscribe:** re-subscribe sharded pubsub channels individually on ready ([#2012](https://github.com/luin/ioredis/issues/2012)) ([55a410f](https://github.com/luin/ioredis/commit/55a410fb1d7201d5de90ebb7a18a1c3cbf359b12))
+
+
+### Features
+
+* add more xtrim method overloads and tests ([#2010](https://github.com/luin/ioredis/issues/2010)) ([8a3e052](https://github.com/luin/ioredis/commit/8a3e05205009325c1de417217c3f6156994b7079))
+* implement proper hpexpire command signatures and tests ([#2006](https://github.com/luin/ioredis/issues/2006)) ([95e80af](https://github.com/luin/ioredis/commit/95e80afa3f104a8911610bfeebdfb6c5cfc7a4cc))
+* **stream:** Add XDELEX command ([#2003](https://github.com/luin/ioredis/issues/2003)) ([7be3c8d](https://github.com/luin/ioredis/commit/7be3c8dc23403e247a32472998deff613fd8c9ad))
+* support client setinfo ([#2011](https://github.com/luin/ioredis/issues/2011)) ([a5d808b](https://github.com/luin/ioredis/commit/a5d808bc0bad8beab72ca0e044632a7178db5661))
+
 # [5.7.0](https://github.com/luin/ioredis/compare/v5.6.1...v5.7.0) (2025-07-31)
 
 
