@@ -174,7 +174,8 @@ export interface CommonRedisOptions extends CommanderOptions {
   /**
    * When a Redis instance is initialized, a connection to the server is immediately established. Set this to
    * true will delay the connection to the server until the first command is sent or `redis.connect()` is called
-   * explicitly.
+   * explicitly. When `redis.connect()` is called explicitly, a Promise is returned, which will be resolved
+   * when the connection is ready or rejected when it fails. The rejection should be handled by the user.
    *
    * @default false
    */

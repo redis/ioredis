@@ -1,14 +1,15 @@
 import { expect } from "chai";
 import Redis, { Cluster } from "../../lib";
 
-const masters = [30000, 30001, 30002];
-const replicas = [30003, 30004, 30005];
+const masters = [3000, 3001, 3002];
+const replicas = [3003, 3004, 3005];
 
 async function cleanup() {
   for (const port of masters) {
     const redis = new Redis(port);
     await redis.flushall();
     await redis.script("FLUSH");
+    await redis.quit();
   }
   // Wait for replication
   await new Promise((resolve) => setTimeout(resolve, 500));
@@ -148,4 +149,25 @@ describe("cluster", () => {
       expect(await cluster2.get("prefix:foo")).to.eql("bar");
     });
   });
+
+
+  describe("Test if the client performs the hash-based sharding for simple set operations", () => {
+    it("Works when you don't get MOVED error responses", async () => {
+
+      // Verify that the cluster is configured with 3 master nodes
+      const cluster : Cluster = new Cluster([{ host: "127.0.0.1", port: masters[0] }]);
+      cluster.on("ready", () => {
+        expect(cluster.nodes("master").length).to.eql(3);
+      });
+
+      const keys = ["channel:test:3", "channel:test:2",  "channel:test:0"]
+      for (const k of keys) {
+        let status: string = await cluster.set(k, "Test status per node");
+        expect(status).to.eql("OK");
+        let value: string = await cluster.get(k);
+        expect(value).to.eql("Test status per node");
+      }
+    })
+  });
+
 });

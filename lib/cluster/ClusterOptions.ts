@@ -19,9 +19,11 @@ export type DNSLookupFunction = (
     family?: number
   ) => void
 ) => void;
-export interface NatMap {
+
+export type NatMapFunction = (key: string) => { host: string; port: number } | null;
+export type NatMap = {
   [key: string]: { host: string; port: number };
-}
+} | NatMapFunction
 
 /**
  * Options for Cluster constructor
@@ -119,6 +121,17 @@ export interface ClusterOptions extends CommanderOptions {
    */
   slotsRefreshInterval?: number;
 
+
+  /**
+   * Use sharded subscribers instead of a single subscriber.
+   *
+   * If sharded subscribers are used, then one additional subscriber connection per master node
+   * is established. If you don't plan to use SPUBLISH/SSUBSCRIBE, then this should be disabled.
+   *
+   * @default false
+   */
+  shardedSubscribers?: boolean;
+
   /**
    * Passed to the constructor of `Redis`
    *
@@ -214,4 +227,5 @@ export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = {
   dnsLookup: lookup,
   enableAutoPipelining: false,
   autoPipeliningIgnoredCommands: [],
+  shardedSubscribers: false,
 };
