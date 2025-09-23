@@ -45,6 +45,20 @@ export interface CommonRedisOptions extends CommanderOptions {
   connectionName?: string;
 
   /**
+   * If true, skips setting library info via CLIENT SETINFO.
+   * @link https://redis.io/docs/latest/commands/client-setinfo/
+   * @default false
+   */
+  disableClientInfo?: boolean;
+
+  /**
+   * Tag to append to the library name in CLIENT SETINFO (ioredis(tag)).
+   * @link https://redis.io/docs/latest/commands/client-setinfo/
+   * @default undefined
+   */
+  clientInfoTag?: string;
+
+  /**
    * If set, client will send AUTH command with the value of this option as the first argument when connected.
    * This is supported since Redis 6.
    */
@@ -174,7 +188,8 @@ export interface CommonRedisOptions extends CommanderOptions {
   /**
    * When a Redis instance is initialized, a connection to the server is immediately established. Set this to
    * true will delay the connection to the server until the first command is sent or `redis.connect()` is called
-   * explicitly.
+   * explicitly. When `redis.connect()` is called explicitly, a Promise is returned, which will be resolved
+   * when the connection is ready or rejected when it fails. The rejection should be handled by the user.
    *
    * @default false
    */
@@ -207,6 +222,8 @@ export const DEFAULT_REDIS_OPTIONS: RedisOptions = {
   keepAlive: 0,
   noDelay: true,
   connectionName: null,
+  disableClientInfo: false,
+  clientInfoTag: undefined,
   // Sentinel
   sentinels: null,
   name: null,

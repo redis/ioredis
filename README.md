@@ -262,7 +262,7 @@ async function listenForMessage(lastId = "$") {
   // `results` is an array, each element of which corresponds to a key.
   // Because we only listen to one key (mystream) here, `results` only contains
   // a single element. See more: https://redis.io/commands/xread#return-value
-  const results = await redis.xread("block", 0, "STREAMS", "mystream", lastId);
+  const results = await redis.xread("BLOCK", 0, "STREAMS", "mystream", lastId);
   const [key, messages] = results[0]; // `key` equals to "mystream"
 
   messages.forEach(processMessage);
@@ -826,7 +826,7 @@ The Redis instance will emit some events about the state of the connection to th
 | :----------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | connect      | emits when a connection is established to the Redis server.                                                                                                                                                                                     |
 | ready        | If `enableReadyCheck` is `true`, client will emit `ready` when the server reports that it is ready to receive commands (e.g. finish loading data from disk).<br>Otherwise, `ready` will be emitted immediately right after the `connect` event. |
-| error        | emits when an error occurs while connecting.<br>However, ioredis emits all `error` events silently (only emits when there's at least one listener) so that your application won't crash if you're not listening to the `error` event.           |
+| error        | emits when an error occurs while connecting.<br>However, ioredis emits all `error` events silently (only emits when there's at least one listener) so that your application won't crash if you're not listening to the `error` event.<br>When `redis.connect()` is explicitly called the error will also be rejected from the returned promise, in addition to emitting it. If `redis.connect()` is not called explicitly and `lazyConnect` is true, ioredis will try to connect automatically on the first command and emit the `error` event silently.                                                      |
 | close        | emits when an established Redis server connection has closed.                                                                                                                                                                                   |
 | reconnecting | emits after `close` when a reconnection will be made. The argument of the event is the time (in ms) before reconnecting.                                                                                                                        |
 | end          | emits after `close` when no more reconnections will be made, or the connection is failed to establish.                                                                                                                                          |
@@ -1149,7 +1149,7 @@ const cluster = new Redis.Cluster(
   ],
   {
     natMap: (key) => {
-      if(key.indexOf('30001')) {
+      if(key.includes('30001')) {
         return { host: "203.0.113.73", port: 30001 };
       }
 

@@ -28,9 +28,11 @@ jobs:
         with:
           redis-version: latest
 
+      - run: npm run cluster:setup
+
       - run: npm install
       - run: npm run lint
       - run: npm run build
       - run: npm run test:tsd
       - run: npm run test:cov || npm run test:cov || npm run test:cov
-      - run: npm run test:js || npm run test:js:cluster
+      - run: npm run test:cluster
