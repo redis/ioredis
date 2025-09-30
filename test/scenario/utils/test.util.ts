@@ -55,13 +55,13 @@ const getEnvConfig = (): EnvConfig => {
     );
   }
 
-  if (!process.env["FAULT_INJECTION_API_URL"]) {
-    throw new Error("FAULT_INJECTION_API_URL environment variable must be set");
+  if (!process.env["RE_FAULT_INJECTOR_URL"]) {
+    throw new Error("RE_FAULT_INJECTOR_URL environment variable must be set");
   }
 
   return {
     redisEndpointsConfigPath: process.env["REDIS_ENDPOINTS_CONFIG_PATH"],
-    faultInjectorUrl: process.env["FAULT_INJECTION_API_URL"],
+    faultInjectorUrl: process.env["RE_FAULT_INJECTOR_URL"],
   };
 };
 
