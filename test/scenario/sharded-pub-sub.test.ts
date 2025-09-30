@@ -117,6 +117,7 @@ describe("Sharded Pub/Sub E2E", () => {
     }
 
     messageTracker.reset();
+    isFailedOver = true;
 
     const { controller: afterFailoverController, result: afterFailoverResult } =
       TestCommandRunner.publishMessagesUntilAbortSignal(
@@ -177,9 +178,9 @@ describe("Sharded Pub/Sub E2E", () => {
     messageTracker.reset();
 
     const unsubscribeChannels = [
-      CHANNELS_BY_SLOT["3656"],
-      CHANNELS_BY_SLOT["7071"],
-      CHANNELS_BY_SLOT["14479"],
+      CHANNELS_BY_SLOT["131"],
+      CHANNELS_BY_SLOT["8408"],
+      CHANNELS_BY_SLOT["16279"],
     ];
 
     for (const channel of unsubscribeChannels) {
