@@ -87,7 +87,11 @@ export class FaultInjectorClient {
     while (Date.now() - startTime < maxWaitTime) {
       const action = await this.getActionStatus<ActionStatus>(actionId);
 
-      if (["finished", "failed", "success"].includes(action.status)) {
+      if (action.status === "failed") {
+        throw new Error(
+          `Action id: ${actionId} failed! Error: ${action.error}`
+        );
+      } else if (["finished", "success"].includes(action.status)) {
         return action;
       }
 
