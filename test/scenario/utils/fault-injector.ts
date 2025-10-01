@@ -39,7 +39,7 @@ export class FaultInjectorClient {
    * Lists all available actions.
    * @throws {Error} When the HTTP request fails or response cannot be parsed as JSON
    */
-  public listActions<T = unknown>(): Promise<T> {
+  listActions<T = unknown>(): Promise<T> {
     return this.request<T>("GET", "/action");
   }
 
@@ -48,7 +48,7 @@ export class FaultInjectorClient {
    * @param action The action request to trigger
    * @throws {Error} When the HTTP request fails or response cannot be parsed as JSON
    */
-  public triggerAction<T extends { action_id: string }>(
+  triggerAction<T extends { action_id: string }>(
     action: ActionRequest
   ): Promise<T> {
     return this.request<T>("POST", "/action", action);
@@ -59,7 +59,7 @@ export class FaultInjectorClient {
    * @param actionId The ID of the action to check
    * @throws {Error} When the HTTP request fails or response cannot be parsed as JSON
    */
-  public getActionStatus<T = ActionStatus>(actionId: string): Promise<T> {
+  getActionStatus<T = ActionStatus>(actionId: string): Promise<T> {
     return this.request<T>("GET", `/action/${actionId}`);
   }
 
@@ -69,7 +69,7 @@ export class FaultInjectorClient {
    * @param options Optional timeout and max wait time
    * @throws {Error} When the action does not complete within the max wait time
    */
-  public async waitForAction(
+  async waitForAction(
     actionId: string,
     {
       timeoutMs,
@@ -87,7 +87,11 @@ export class FaultInjectorClient {
     while (Date.now() - startTime < maxWaitTime) {
       const action = await this.getActionStatus<ActionStatus>(actionId);
 
-      if (["finished", "failed", "success"].includes(action.status)) {
+      if (action.status === "failed") {
+        throw new Error(
+          `Action id: ${actionId} failed! Error: ${action.error}`
+        );
+      } else if (["finished", "success"].includes(action.status)) {
         return action;
       }
 
