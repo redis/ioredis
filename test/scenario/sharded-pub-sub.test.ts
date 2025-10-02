@@ -10,6 +10,7 @@ import { FaultInjectorClient } from "./utils/fault-injector";
 import { TestCommandRunner } from "./utils/command-runner";
 import { CHANNELS, CHANNELS_BY_SLOT } from "./utils/test.util";
 import { MessageTracker } from "./utils/message-tracker";
+import { Cluster } from "../../lib";
 import { assert } from "chai";
 
 describe("Sharded Pub/Sub E2E", () => {
@@ -22,30 +23,33 @@ describe("Sharded Pub/Sub E2E", () => {
     faultInjectorClient = new FaultInjectorClient(config.faultInjectorUrl);
   });
 
-  it("should receive messages published to multiple channels", async () => {
-    const subscriber = createClusterTestClient(config.clientConfig, {
-      shardedSubscribers: true,
-    });
-    const publisher = createClusterTestClient(config.clientConfig, {
-      shardedSubscribers: true,
-    });
+  describe("Single Subscriber", () => {
+    let subscriber: Cluster;
+    let publisher: Cluster;
+    let messageTracker: MessageTracker;
 
-    await Promise.all([
-      waitClientReady(subscriber),
-      waitClientReady(publisher),
-    ]);
-
-    try {
-      const messageTracker = new MessageTracker(CHANNELS);
-
-      for (const channel of CHANNELS) {
-        await subscriber.ssubscribe(channel);
-      }
-
+    beforeEach(async () => {
+      messageTracker = new MessageTracker(CHANNELS);
+      subscriber = createClusterTestClient(config.clientConfig, {
+        shardedSubscribers: true,
+      });
+      publisher = createClusterTestClient(config.clientConfig, {
+        shardedSubscribers: true,
+      });
       await Promise.all([
         waitClientReady(subscriber),
         waitClientReady(publisher),
       ]);
+    });
+
+    afterEach(async () => {
+      await Promise.all([subscriber.quit(), publisher.quit()]);
+    });
+
+    it("should receive messages published to multiple channels", async () => {
+      for (const channel of CHANNELS) {
+        await subscriber.ssubscribe(channel);
+      }
 
       subscriber.on("smessage", (channelName, _) => {
         messageTracker.incrementReceived(channelName);
@@ -69,26 +73,9 @@ describe("Sharded Pub/Sub E2E", () => {
           messageTracker.getChannelStats(channel)?.sent
         );
       }
-    } finally {
-      await Promise.all([subscriber.quit(), publisher.quit()]);
-    }
-  });
-
-  it("should resume publishing and receiving after failover", async () => {
-    const subscriber = createClusterTestClient(config.clientConfig, {
-      shardedSubscribers: true,
-    });
-    const publisher = createClusterTestClient(config.clientConfig, {
-      shardedSubscribers: true,
     });
 
-    await Promise.all([
-      waitClientReady(subscriber),
-      waitClientReady(publisher),
-    ]);
-
-    try {
-      const messageTracker = new MessageTracker(CHANNELS);
+    it("should resume publishing and receiving after failover", async () => {
       for (const channel of CHANNELS) {
         await subscriber.ssubscribe(channel);
       }
@@ -163,26 +150,9 @@ describe("Sharded Pub/Sub E2E", () => {
           );
         }
       }
-    } finally {
-      await Promise.all([subscriber.quit(), publisher.quit()]);
-    }
-  });
-
-  it("should NOT receive messages after sunsubscribe", async () => {
-    const subscriber = createClusterTestClient(config.clientConfig, {
-      shardedSubscribers: true,
-    });
-    const publisher = createClusterTestClient(config.clientConfig, {
-      shardedSubscribers: true,
     });
 
-    await Promise.all([
-      waitClientReady(subscriber),
-      waitClientReady(publisher),
-    ]);
-
-    try {
-      const messageTracker = new MessageTracker(CHANNELS);
+    it("should NOT receive messages after sunsubscribe", async () => {
       for (const channel of CHANNELS) {
         await subscriber.ssubscribe(channel);
       }
@@ -256,31 +226,48 @@ describe("Sharded Pub/Sub E2E", () => {
           `Channel ${channel} should have received messages`
         );
       }
-    } finally {
-      await Promise.all([subscriber.quit(), publisher.quit()]);
-    }
+    });
   });
 
-  it("should receive messages published to multiple channels", async () => {
-    const messageTracker1 = new MessageTracker(CHANNELS);
-    const messageTracker2 = new MessageTracker(CHANNELS);
-    const subscriber1 = createClusterTestClient(config.clientConfig, {
-      shardedSubscribers: true,
-    });
-    const subscriber2 = createClusterTestClient(config.clientConfig, {
-      shardedSubscribers: true,
-    });
-    const publisher = createClusterTestClient(config.clientConfig, {
-      shardedSubscribers: true,
+  // TODO this seems to fail with 6 Nodes
+  // TODO update the test infra
+  describe("Multiple Subscribers", () => {
+    let subscriber1: Cluster;
+    let subscriber2: Cluster;
+
+    let publisher: Cluster;
+
+    let messageTracker1: MessageTracker;
+    let messageTracker2: MessageTracker;
+
+    beforeEach(async () => {
+      messageTracker1 = new MessageTracker(CHANNELS);
+      messageTracker2 = new MessageTracker(CHANNELS);
+      subscriber1 = createClusterTestClient(config.clientConfig, {
+        shardedSubscribers: true,
+      });
+      subscriber2 = createClusterTestClient(config.clientConfig, {
+        shardedSubscribers: true,
+      });
+      publisher = createClusterTestClient(config.clientConfig, {
+        shardedSubscribers: true,
+      });
+      await Promise.all([
+        waitClientReady(subscriber1),
+        waitClientReady(subscriber2),
+        waitClientReady(publisher),
+      ]);
     });
 
-    await Promise.all([
-      waitClientReady(subscriber1),
-      waitClientReady(subscriber2),
-      waitClientReady(publisher),
-    ]);
+    afterEach(async () => {
+      await Promise.all([
+        subscriber1.quit(),
+        subscriber2.quit(),
+        publisher.quit(),
+      ]);
+    });
 
-    try {
+    it("should receive messages published to multiple channels", async () => {
       for (const channel of CHANNELS) {
         await subscriber1.ssubscribe(channel);
         await subscriber2.ssubscribe(channel);
@@ -316,35 +303,9 @@ describe("Sharded Pub/Sub E2E", () => {
           messageTracker1.getChannelStats(channel)?.sent
         );
       }
-    } finally {
-      await Promise.all([
-        subscriber1.quit(),
-        subscriber2.quit(),
-        publisher.quit(),
-      ]);
-    }
-  });
-
-  it("should resume publishing and receiving after failover", async () => {
-    const messageTracker1 = new MessageTracker(CHANNELS);
-    const messageTracker2 = new MessageTracker(CHANNELS);
-    const subscriber1 = createClusterTestClient(config.clientConfig, {
-      shardedSubscribers: true,
-    });
-    const subscriber2 = createClusterTestClient(config.clientConfig, {
-      shardedSubscribers: true,
-    });
-    const publisher = createClusterTestClient(config.clientConfig, {
-      shardedSubscribers: true,
     });
 
-    await Promise.all([
-      waitClientReady(subscriber1),
-      waitClientReady(subscriber2),
-      waitClientReady(publisher),
-    ]);
-
-    try {
+    it("should resume publishing and receiving after failover", async () => {
       for (const channel of CHANNELS) {
         await subscriber1.ssubscribe(channel);
         await subscriber2.ssubscribe(channel);
@@ -438,12 +399,6 @@ describe("Sharded Pub/Sub E2E", () => {
           `Channel ${channel} received (${received2}) should equal sent (${sent}) once resumed after failover by subscriber 2`
         );
       }
-    } finally {
-      await Promise.all([
-        subscriber1.quit(),
-        subscriber2.quit(),
-        publisher.quit(),
-      ]);
-    }
+    });
   });
 });
