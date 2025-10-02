@@ -36,10 +36,6 @@ describe("Sharded Pub/Sub E2E", () => {
       publisher = createClusterTestClient(config.clientConfig, {
         shardedSubscribers: true,
       });
-      await Promise.all([
-        waitClientReady(subscriber),
-        waitClientReady(publisher),
-      ]);
     });
 
     afterEach(async () => {
@@ -252,11 +248,6 @@ describe("Sharded Pub/Sub E2E", () => {
       publisher = createClusterTestClient(config.clientConfig, {
         shardedSubscribers: true,
       });
-      await Promise.all([
-        waitClientReady(subscriber1),
-        waitClientReady(subscriber2),
-        waitClientReady(publisher),
-      ]);
     });
 
     afterEach(async () => {
