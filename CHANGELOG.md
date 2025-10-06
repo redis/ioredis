@@ -1,3 +1,10 @@
+## [5.8.1](https://github.com/luin/ioredis/compare/v5.8.0...v5.8.1) (2025-10-06)
+
+
+### Bug Fixes
+
+* **ssubscribe:** re-subscribe sharded pubsub channels individually ([#2021](https://github.com/luin/ioredis/issues/2021)) ([f161367](https://github.com/luin/ioredis/commit/f161367e4f2965b1ffe076f7e87e750772f56234))
+
 # [5.8.0](https://github.com/luin/ioredis/compare/v5.7.0...v5.8.0) (2025-09-23)
 
 
