@@ -1,3 +1,4 @@
 built/
 node_modules/
 coverage/
+test/scenario
