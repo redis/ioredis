@@ -116,6 +116,9 @@ describe("Sharded Pub/Sub E2E", () => {
           );
         }
 
+        // Wait for 2 seconds before resuming publishing
+        await wait(2_000);
+
         messageTracker.reset();
 
         const {
@@ -349,6 +352,9 @@ describe("Sharded Pub/Sub E2E", () => {
           `Channel ${channel}: received2 (${received2}) should be <= sent (${sent})`
         );
       }
+
+      // Wait for 2 seconds before resuming publishing
+      await wait(2_000);
 
       messageTracker1.reset();
       messageTracker2.reset();
