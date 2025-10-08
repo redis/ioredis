@@ -411,6 +411,10 @@ class Cluster extends EventEmitter {
 
     this.subscriber.stop();
 
+    if (this.options.shardedSubscribers) {
+      this.shardedSubscribers.stop();
+    }
+
     const Promise = PromiseContainer.get();
     if (status === "wait") {
       const ret = asCallback(Promise.resolve<"OK">("OK"), callback);
