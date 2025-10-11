@@ -25,6 +25,9 @@ async function main() {
 
   await redis.persist("foo"); // Remove the existing timeout on key "foo"
   console.log(await redis.ttl("foo")); // -1
+
+  await redis.hset("foo", "bar", "foobar");
+  await redis.hexpire("foo", 10, "FIELDS", 1, "bar"); // Add TTL to hset field
 }
 
 main();
