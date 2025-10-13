@@ -213,7 +213,7 @@ export const DEFAULT_REDIS_OPTIONS: RedisOptions = {
   // Connection
   port: 6379,
   host: "localhost",
-  family: 4,
+  family: 0,
   connectTimeout: 10000,
   disconnectTimeout: 2000,
   retryStrategy: function (times) {
