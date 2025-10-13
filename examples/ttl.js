@@ -26,8 +26,13 @@ async function main() {
   await redis.persist("foo"); // Remove the existing timeout on key "foo"
   console.log(await redis.ttl("foo")); // -1
 
-  await redis.hset("foo", "bar", "foobar");
-  await redis.hexpire("foo", 10, "FIELDS", 1, "bar"); // Add TTL to hset field
+  await redis.hset("hfoo", "hbar", "hfoobar");
+  // hexpire is available since Redis 7.4.0
+  await redis.hexpire("hfoo", 20, "FIELDS", 1, "hbar"); // Add TTL to hset field 
+  console.log(await redis.call("httl", "hfoo", "FIELDS", "1", "hbar")); // [ 20 ]
+  
+  await redis.hpexpire("hfoo", 10 * 1000, "FIELDS", 1, "hbar"); // unit is millisecond for hpexpire
+  console.log(await redis.call("httl", "hfoo", "FIELDS", "1", "hbar")); // [ 10 ]
 }
 
 main();
