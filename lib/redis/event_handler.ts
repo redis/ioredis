@@ -120,7 +120,7 @@ function abortError(command: Respondable) {
 // aborting and purging we'll have a queue that looks like this: [0, 1, 2]
 function abortIncompletePipelines(commandQueue: Deque<CommandItem>) {
   let expectedIndex = 0;
-  for (let i = 0; i < commandQueue.length; ) {
+  for (let i = 0; i < commandQueue.length;) {
     const command = commandQueue.peekAt(i)?.command as Command;
     const pipelineIndex = command.pipelineIndex;
     if (pipelineIndex === undefined || pipelineIndex === 0) {
@@ -139,7 +139,7 @@ function abortIncompletePipelines(commandQueue: Deque<CommandItem>) {
 // we have to abort any transaction fragments that may have ended up in the
 // offline queue
 function abortTransactionFragments(commandQueue: Deque<CommandItem>) {
-  for (let i = 0; i < commandQueue.length; ) {
+  for (let i = 0; i < commandQueue.length;) {
     const command = commandQueue.peekAt(i)?.command as Command;
     if (command.name === "multi") {
       break;
@@ -236,8 +236,8 @@ export function errorHandler(self) {
 }
 
 export function readyHandler(self) {
-  return function () {
-    self.setStatus("ready");
+  return async function () {
+    self.status = "ready";
     self.retryAttempts = 0;
 
     if (self.options.monitor) {
@@ -264,37 +264,42 @@ export function readyHandler(self) {
       ? self.prevCondition.select
       : self.condition.select;
 
+    const setInfoPromises = [];
+
     if (self.options.connectionName) {
       debug("set the connection name [%s]", self.options.connectionName);
-      self.client("setname", self.options.connectionName).catch(noop);
+      setInfoPromises.push(
+        self.client("setname", self.options.connectionName).catch(noop)
+      );
     }
 
     if (!self.options?.disableClientInfo) {
       debug("set the client info");
 
-      let version = null;
+      setInfoPromises.push(
+        self
+          .client(
+            "SETINFO",
+            "LIB-NAME",
+            self.options?.clientInfoTag
+              ? `ioredis(${self.options.clientInfoTag})`
+              : "ioredis"
+          )
+          .catch(noop)
+      );
 
-      getPackageMeta()
-        .then((packageMeta) => {
-          version = packageMeta?.version;
-        })
-        .catch(noop)
-        .finally(() => {
-          self
-            .client("SETINFO", "LIB-VER", version)
-            .catch(noop);
-        });
-
-      self
-        .client(
-          "SETINFO",
-          "LIB-NAME",
-          self.options?.clientInfoTag
-            ? `ioredis(${self.options.clientInfoTag})`
-            : "ioredis"
-        )
-        .catch(noop);
+      setInfoPromises.push(
+        getPackageMeta()
+          .then((packageMeta) =>
+            self.client("SETINFO", "LIB-VER", packageMeta?.version)
+          )
+          .catch(noop)
+      );
     }
+
+    await Promise.all(setInfoPromises);
+
+    process.nextTick(() => self.emit("ready"));
 
     if (self.options.readOnly) {
       debug("set the connection to readonly mode");
