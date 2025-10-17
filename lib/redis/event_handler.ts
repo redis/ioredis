@@ -280,9 +280,10 @@ export function readyHandler(self) {
         })
         .catch(noop)
         .finally(() => {
-          self
-            .client("SETINFO", "LIB-VER", version)
-            .catch(noop);
+          self.client("SETINFO", "LIB-VER", version).catch(() => {
+            // If the server doesn't support CLIENT SETINFO, disable it
+            self.options.disableClientInfo = true;
+          });
         });
 
       self
@@ -293,7 +294,10 @@ export function readyHandler(self) {
             ? `ioredis(${self.options.clientInfoTag})`
             : "ioredis"
         )
-        .catch(noop);
+        .catch(() => {
+          // If the server doesn't support CLIENT SETINFO, disable it
+          self.options.disableClientInfo = true;
+        });
     }
 
     if (self.options.readOnly) {
