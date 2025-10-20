@@ -14,6 +14,7 @@ export interface Condition {
   select: number;
   auth?: string | [string, string];
   subscriber: false | SubscriptionSet;
+  setInfo?: boolean;
 }
 
 export type FlushQueueOptions = {

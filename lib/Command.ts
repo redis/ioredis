@@ -55,6 +55,10 @@ export interface CommandNameFlags {
   EXIT_SUBSCRIBER_MODE: ["unsubscribe", "punsubscribe", "sunsubscribe"];
   // Commands that will make client disconnect from server TODO shutdown?
   WILL_DISCONNECT: ["quit"];
+  // Commands that are sent when the client is connecting
+  HANDSHAKE_COMMANDS: ["auth", "select", "client", "readonly", "info"];
+  // Commands that should not trigger a reconnection when errors occur
+  IGNORE_RECONNECT_ON_ERROR: ["client"];
 }
 
 /**
@@ -95,6 +99,8 @@ export default class Command implements Respondable {
     ENTER_SUBSCRIBER_MODE: ["subscribe", "psubscribe", "ssubscribe"],
     EXIT_SUBSCRIBER_MODE: ["unsubscribe", "punsubscribe", "sunsubscribe"],
     WILL_DISCONNECT: ["quit"],
+    HANDSHAKE_COMMANDS: ["auth", "select", "client", "readonly", "info"],
+    IGNORE_RECONNECT_ON_ERROR: ["client"],
   };
 
   private static flagMap?: FlagMap;
