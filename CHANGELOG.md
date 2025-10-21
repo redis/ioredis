@@ -1,3 +1,11 @@
+## [5.8.2](https://github.com/luin/ioredis/compare/v5.8.1...v5.8.2) (2025-10-21)
+
+
+### Bug Fixes
+
+* default IP family selection to 0 ([#2028](https://github.com/luin/ioredis/issues/2028)) ([fb082d6](https://github.com/luin/ioredis/commit/fb082d6a8ece4b0921379ac449215c7ec7435023)), closes [#2026](https://github.com/luin/ioredis/issues/2026)
+* move CLIENT SETINFO commands to connection handshake ([#2033](https://github.com/luin/ioredis/issues/2033)) ([fcbbbe8](https://github.com/luin/ioredis/commit/fcbbbe898fc2540f5c14ad1f5d301f89bc2e4c22))
+
 ## [5.8.1](https://github.com/luin/ioredis/compare/v5.8.0...v5.8.1) (2025-10-06)
 
 
