@@ -147,4 +147,20 @@ describe("reconnectOnError", () => {
         done();
       });
   });
+
+  it("should not reconnect if reconnectOnError if ignored command fails", (done) => {
+    const redis = new Redis({
+      reconnectOnError: function (err) {
+        return true;
+      },
+    });
+
+    redis.disconnect = () => {
+      throw new Error("should not disconnect");
+    };
+
+    redis.client("some-wrong-arg", function (err) {
+      done();
+    });
+  });
 });

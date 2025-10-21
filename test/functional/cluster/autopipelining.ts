@@ -123,6 +123,7 @@ describe("autoPipelining for cluster", () => {
 
     promises.push(cluster.subscribe("subscribe").catch(() => {}));
     promises.push(cluster.unsubscribe("subscribe").catch(() => {}));
+    promises.push(cluster.client("help").catch(() => {}));
 
     expect(cluster.autoPipelineQueueSize).to.eql(0);
     await promises;
