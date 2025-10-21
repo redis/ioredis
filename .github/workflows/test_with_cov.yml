@@ -7,7 +7,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [12.x, 14.x, 16.x, 18.x, 20.x]
+        node: [20.x, 22.x, 24.x]
+        redis: ["rs-7.4.0-v1", "8.0.2", "8.2"]
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
@@ -17,12 +18,9 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - name: Start Redis
-        uses: supercharge/redis-github-action@1.4.0
-        with:
-          redis-version: latest
-
-      - run: npm run cluster:setup
+      - run: npm run docker:setup
+        env:
+          REDIS_VERSION: ${{ matrix.redis }}
 
       - run: npm install
       - run: npm run lint
@@ -31,7 +29,7 @@ jobs:
       - run: npm run test:cov || npm run test:cov || npm run test:cov
       - run: npm run test:cluster
       - name: Coveralls
-        if: matrix.node == '18.x'
+        if: matrix.node == '24.x'
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
