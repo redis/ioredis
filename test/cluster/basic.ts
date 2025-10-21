@@ -161,23 +161,24 @@ describe("cluster", () => {
     });
   });
 
+
   describe("Test if the client performs the hash-based sharding for simple set operations", () => {
     it("Works when you don't get MOVED error responses", async () => {
+
       // Verify that the cluster is configured with 3 master nodes
-      const cluster: Cluster = new Cluster([
-        { host: "127.0.0.1", port: masters[0] },
-      ]);
+      const cluster : Cluster = new Cluster([{ host: "127.0.0.1", port: masters[0] }]);
       cluster.on("ready", () => {
         expect(cluster.nodes("master").length).to.eql(3);
       });
 
-      const keys = ["channel:test:3", "channel:test:2", "channel:test:0"];
+      const keys = ["channel:test:3", "channel:test:2",  "channel:test:0"]
       for (const k of keys) {
         let status: string = await cluster.set(k, "Test status per node");
         expect(status).to.eql("OK");
         let value: string = await cluster.get(k);
         expect(value).to.eql("Test status per node");
       }
-    });
+    })
   });
+
 });

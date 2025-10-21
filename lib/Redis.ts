@@ -195,7 +195,6 @@ class Redis extends Commander implements DataHandledable {
           ? [options.username, options.password]
           : options.password,
         subscriber: false,
-        setInfo: !options?.disableClientInfo,
       };
 
       const _this = this;

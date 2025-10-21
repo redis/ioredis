@@ -84,7 +84,7 @@ export function connectHandler(self) {
       );
     }
 
-    if (self.condition.setInfo) {
+    if (!self.options.disableClientInfo) {
       debug("set the client info");
       clientCommandPromises.push(
         getPackageMeta()
@@ -108,7 +108,7 @@ export function connectHandler(self) {
           .catch(noop)
       );
     }
-    
+
     Promise.all(clientCommandPromises)
       .catch(noop)
       .finally(() => {
