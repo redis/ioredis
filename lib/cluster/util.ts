@@ -9,7 +9,7 @@ export interface RedisOptions {
   port: number;
   host: string;
   username?: string;
-  password?: string;
+  password?: string | (() => Promise<string> | string);
   [key: string]: any;
 }
 
