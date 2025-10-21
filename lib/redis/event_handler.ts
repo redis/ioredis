@@ -66,10 +66,6 @@ export function connectHandler(self) {
       });
     }
 
-    if (!self.options.enableReadyCheck) {
-      exports.readyHandler(self)();
-    }
-
     /*
       No need to keep the reference of DataHandler here
       because we don't need to do the cleanup.
@@ -79,27 +75,69 @@ export function connectHandler(self) {
       stringNumbers: self.options.stringNumbers,
     });
 
-    if (self.options.enableReadyCheck) {
-      self._readyCheck(function (err, info) {
-        if (connectionEpoch !== self.connectionEpoch) {
-          return;
+    const clientCommandPromises = [];
+
+    if (self.options.connectionName) {
+      debug("set the connection name [%s]", self.options.connectionName);
+      clientCommandPromises.push(
+        self.client("setname", self.options.connectionName).catch(noop)
+      );
+    }
+
+    if (!self.options.disableClientInfo) {
+      debug("set the client info");
+      clientCommandPromises.push(
+        getPackageMeta()
+          .then((packageMeta) => {
+            return self
+              .client("SETINFO", "LIB-VER", packageMeta.version)
+              .catch(noop);
+          })
+          .catch(noop)
+      );
+
+      clientCommandPromises.push(
+        self
+          .client(
+            "SETINFO",
+            "LIB-NAME",
+            self.options?.clientInfoTag
+              ? `ioredis(${self.options.clientInfoTag})`
+              : "ioredis"
+          )
+          .catch(noop)
+      );
+    }
+
+    Promise.all(clientCommandPromises)
+      .catch(noop)
+      .finally(() => {
+        if (!self.options.enableReadyCheck) {
+          exports.readyHandler(self)();
         }
-        if (err) {
-          if (!flushed) {
-            self.recoverFromFatalError(
-              new Error("Ready check failed: " + err.message),
-              err
-            );
-          }
-        } else {
-          if (self.connector.check(info)) {
-            exports.readyHandler(self)();
-          } else {
-            self.disconnect(true);
-          }
+
+        if (self.options.enableReadyCheck) {
+          self._readyCheck(function (err, info) {
+            if (connectionEpoch !== self.connectionEpoch) {
+              return;
+            }
+            if (err) {
+              if (!flushed) {
+                self.recoverFromFatalError(
+                  new Error("Ready check failed: " + err.message),
+                  err
+                );
+              }
+            } else {
+              if (self.connector.check(info)) {
+                exports.readyHandler(self)();
+              } else {
+                self.disconnect(true);
+              }
+            }
+          });
         }
       });
-    }
   };
 }
 
@@ -263,38 +301,6 @@ export function readyHandler(self) {
     const finalSelect = self.prevCondition
       ? self.prevCondition.select
       : self.condition.select;
-
-    if (self.options.connectionName) {
-      debug("set the connection name [%s]", self.options.connectionName);
-      self.client("setname", self.options.connectionName).catch(noop);
-    }
-
-    if (!self.options?.disableClientInfo) {
-      debug("set the client info");
-
-      let version = null;
-
-      getPackageMeta()
-        .then((packageMeta) => {
-          version = packageMeta?.version;
-        })
-        .catch(noop)
-        .finally(() => {
-          self
-            .client("SETINFO", "LIB-VER", version)
-            .catch(noop);
-        });
-
-      self
-        .client(
-          "SETINFO",
-          "LIB-NAME",
-          self.options?.clientInfoTag
-            ? `ioredis(${self.options.clientInfoTag})`
-            : "ioredis"
-        )
-        .catch(noop);
-    }
 
     if (self.options.readOnly) {
       debug("set the connection to readonly mode");

@@ -34,7 +34,7 @@ describe("clientInfo", function () {
     it("should send client info by default", async () => {
       redis = new Redis({ port: 30001 });
 
-      // Wait for the client info to be sent, as it happens after the ready event
+      // Wait for the client info to be sent, to make sure the connection is established
       await redis.ping();
 
       expect(clientInfoCommands).to.have.length(2);
@@ -56,7 +56,7 @@ describe("clientInfo", function () {
     it("should not send client info when disableClientInfo is true", async () => {
       redis = new Redis({ port: 30001, disableClientInfo: true });
 
-      // Wait for the client info to be sent, as it happens after the ready event
+      // Wait for the client info to be sent, to make sure the commands are sent
       await redis.ping();
 
       expect(clientInfoCommands).to.have.length(0);
@@ -65,7 +65,7 @@ describe("clientInfo", function () {
     it("should append tag to library name when clientInfoTag is set", async () => {
       redis = new Redis({ port: 30001, clientInfoTag: "tag-test" });
 
-      // Wait for the client info to be sent, as it happens after the ready event
+      // Wait for the client info to be sent, to make sure the commands are sent
       await redis.ping();
 
       expect(clientInfoCommands).to.have.length(2);
@@ -80,7 +80,7 @@ describe("clientInfo", function () {
     it("should send client info after reconnection", async () => {
       redis = new Redis({ port: 30001 });
 
-      // Wait for the client info to be sent, as it happens after the ready event
+      // Wait for the client info to be sent, to make sure the commands are sent
       await redis.ping();
       redis.disconnect();
 
@@ -171,7 +171,7 @@ describe("clientInfo", function () {
     it("should send client info by default", async () => {
       cluster = new Redis.Cluster([{ host: "127.0.0.1", port: 30001 }]);
 
-      // Wait for cluster to be ready and send a command to ensure connection
+      // Wait for the client info to be sent, to make sure the commands are sent
       await cluster.ping();
 
       // Should have sent 2 SETINFO commands (LIB-VER and LIB-NAME)

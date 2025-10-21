@@ -450,7 +450,8 @@ class Redis extends Commander implements DataHandledable {
       (!stream &&
         this.status === "connect" &&
         exists(command.name) &&
-        hasFlag(command.name, "loading"));
+        (hasFlag(command.name, "loading") ||
+          Command.checkFlag("HANDSHAKE_COMMANDS", command.name)));
     if (!this.stream) {
       writable = false;
     } else if (!this.stream.writable) {
@@ -646,7 +647,10 @@ class Redis extends Commander implements DataHandledable {
    */
   handleReconnection(err: Error, item: CommandItem) {
     let needReconnect: ReturnType<ReconnectOnError> = false;
-    if (this.options.reconnectOnError) {
+    if (
+      this.options.reconnectOnError &&
+      !Command.checkFlag("IGNORE_RECONNECT_ON_ERROR", item.command.name)
+    ) {
       needReconnect = this.options.reconnectOnError(err);
     }
 

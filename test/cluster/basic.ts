@@ -128,6 +128,17 @@ describe("cluster", () => {
       cluster.set("foo", "auto pipelining");
       expect(await cluster.get("foo")).to.eql("auto pipelining");
     });
+
+    it("client setinfo works with auto pipelining", async () => {
+      const cluster = new Cluster([{ host: "127.0.0.1", port: masters[0] }], {
+        enableAutoPipelining: true,
+      });
+
+      for (let i = 0; i < 100; i++) {
+        await cluster.set(`foo${i}`, "bar");
+        expect(await cluster.get(`foo${i}`)).to.eql("bar");
+      }
+    });
   });
 
   describe("key prefixing", () => {
