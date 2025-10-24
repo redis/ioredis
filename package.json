@@ -1,6 +1,6 @@
 {
   "name": "ioredis",
-  "version": "5.6.1",
+  "version": "5.8.2",
   "description": "A robust, performance-focused and full-featured Redis client for Node.js.",
   "main": "./built/index.js",
   "types": "./built/index.d.ts",
@@ -8,10 +8,12 @@
     "built/"
   ],
   "scripts": {
+    "docker:setup": "docker compose -f test/docker-compose.yml up -d --wait",
+    "docker:teardown": "docker compose -f test/docker-compose.yml down --volumes --remove-orphans",
     "test:tsd": "npm run build && tsd",
-    "test:js": "TS_NODE_TRANSPILE_ONLY=true NODE_ENV=test mocha \"test/helpers/*.ts\" \"test/unit/**/*.ts\" \"test/functional/**/*.ts\"",
+    "test:js": "TS_NODE_TRANSPILE_ONLY=true NODE_ENV=test mocha --no-experimental-strip-types \"test/helpers/*.ts\" \"test/unit/**/*.ts\" \"test/functional/**/*.ts\"",
     "test:cov": "nyc npm run test:js",
-    "test:js:cluster": "TS_NODE_TRANSPILE_ONLY=true NODE_ENV=test mocha \"test/cluster/**/*.ts\"",
+    "test:cluster": "TS_NODE_TRANSPILE_ONLY=true NODE_ENV=test mocha --no-experimental-strip-types \"test/cluster/**/*.ts\"",
     "test": "npm run test:js && npm run test:tsd",
     "lint": "eslint --ext .js,.ts ./lib",
     "docs": "npx typedoc --logLevel Error --excludeExternals --excludeProtected --excludePrivate --readme none lib/index.ts",
@@ -41,7 +43,7 @@
     "url": "https://opencollective.com/ioredis"
   },
   "dependencies": {
-    "@ioredis/commands": "^1.1.1",
+    "@ioredis/commands": "1.4.0",
     "cluster-key-slot": "^1.1.0",
     "debug": "^4.3.4",
     "denque": "^2.1.0",

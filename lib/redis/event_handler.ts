@@ -5,7 +5,12 @@ import { AbortError } from "redis-errors";
 import Command from "../Command";
 import { MaxRetriesPerRequestError } from "../errors";
 import { CommandItem, Respondable } from "../types";
-import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
+import {
+  Debug,
+  noop,
+  CONNECTION_CLOSED_ERROR_MSG,
+  getPackageMeta,
+} from "../utils";
 import DataHandler from "../DataHandler";
 
 const debug = Debug("connection");
@@ -61,10 +66,6 @@ export function connectHandler(self) {
       });
     }
 
-    if (!self.options.enableReadyCheck) {
-      exports.readyHandler(self)();
-    }
-
     /*
       No need to keep the reference of DataHandler here
       because we don't need to do the cleanup.
@@ -74,27 +75,69 @@ export function connectHandler(self) {
       stringNumbers: self.options.stringNumbers,
     });
 
-    if (self.options.enableReadyCheck) {
-      self._readyCheck(function (err, info) {
-        if (connectionEpoch !== self.connectionEpoch) {
-          return;
+    const clientCommandPromises = [];
+
+    if (self.options.connectionName) {
+      debug("set the connection name [%s]", self.options.connectionName);
+      clientCommandPromises.push(
+        self.client("setname", self.options.connectionName).catch(noop)
+      );
+    }
+
+    if (!self.options.disableClientInfo) {
+      debug("set the client info");
+      clientCommandPromises.push(
+        getPackageMeta()
+          .then((packageMeta) => {
+            return self
+              .client("SETINFO", "LIB-VER", packageMeta.version)
+              .catch(noop);
+          })
+          .catch(noop)
+      );
+
+      clientCommandPromises.push(
+        self
+          .client(
+            "SETINFO",
+            "LIB-NAME",
+            self.options?.clientInfoTag
+              ? `ioredis(${self.options.clientInfoTag})`
+              : "ioredis"
+          )
+          .catch(noop)
+      );
+    }
+
+    Promise.all(clientCommandPromises)
+      .catch(noop)
+      .finally(() => {
+        if (!self.options.enableReadyCheck) {
+          exports.readyHandler(self)();
         }
-        if (err) {
-          if (!flushed) {
-            self.recoverFromFatalError(
-              new Error("Ready check failed: " + err.message),
-              err
-            );
-          }
-        } else {
-          if (self.connector.check(info)) {
-            exports.readyHandler(self)();
-          } else {
-            self.disconnect(true);
-          }
+
+        if (self.options.enableReadyCheck) {
+          self._readyCheck(function (err, info) {
+            if (connectionEpoch !== self.connectionEpoch) {
+              return;
+            }
+            if (err) {
+              if (!flushed) {
+                self.recoverFromFatalError(
+                  new Error("Ready check failed: " + err.message),
+                  err
+                );
+              }
+            } else {
+              if (self.connector.check(info)) {
+                exports.readyHandler(self)();
+              } else {
+                self.disconnect(true);
+              }
+            }
+          });
         }
       });
-    }
   };
 }
 
@@ -259,11 +302,6 @@ export function readyHandler(self) {
       ? self.prevCondition.select
       : self.condition.select;
 
-    if (self.options.connectionName) {
-      debug("set the connection name [%s]", self.options.connectionName);
-      self.client("setname", self.options.connectionName).catch(noop);
-    }
-
     if (self.options.readOnly) {
       debug("set the connection to readonly mode");
       self.readonly().catch(noop);
@@ -291,8 +329,10 @@ export function readyHandler(self) {
         }
         const ssubscribeChannels = condition.subscriber.channels("ssubscribe");
         if (ssubscribeChannels.length) {
-          debug("ssubscribe %d channels", ssubscribeChannels.length);
-          self.ssubscribe(ssubscribeChannels);
+          debug("ssubscribe %s", ssubscribeChannels.length);
+          for (const channel of ssubscribeChannels) {
+            self.ssubscribe(channel);
+          }
         }
       }
     }

@@ -31,9 +31,11 @@ describe("connection", function () {
       times += 1;
       if (times === 1) {
         expect(command.name).to.eql("auth");
-      } else if (times === 2) {
+      } else if (times === 2 || times === 3) {
+        expect(command.name).to.eql("client");
+      } else if (times === 4) {
         expect(command.name).to.eql("info");
-      } else if (times === 3) {
+      } else if (times === 5) {
         redis.disconnect();
         setImmediate(() => done());
       }

@@ -160,6 +160,10 @@ export default class ClusterSubscriber {
     // Ignore the errors since they're handled in the connection pool.
     this.subscriber.on("error", noop);
 
+    this.subscriber.on("moved", () => {
+      this.emitter.emit("forceRefresh");
+    });
+
     // The node we lost connection to may not come back up in a
     // reasonable amount of time (e.g. a slave that's taken down
     // for maintainence), we could potentially miss many published
@@ -188,9 +192,28 @@ export default class ClusterSubscriber {
       let pending = 0;
       for (const type of ["subscribe", "psubscribe", "ssubscribe"]) {
         const channels = previousChannels[type];
-        if (channels.length) {
+        if (channels.length == 0) {
+          continue;
+        }
+
+        debug("%s %d channels", type, channels.length);
+
+        if (type === "ssubscribe") {
+          for (const channel of channels) {
+            pending += 1;
+            this.subscriber[type](channel)
+              .then(() => {
+                if (!--pending) {
+                  this.lastActiveSubscriber = this.subscriber;
+                }
+              })
+              .catch(() => {
+                // TODO: should probably disconnect the subscriber and try again.
+                debug("failed to ssubscribe to channel: %s", channel);
+              });
+          }
+        } else {
           pending += 1;
-          debug("%s %d channels", type, channels.length);
           this.subscriber[type](channels)
             .then(() => {
               if (!--pending) {

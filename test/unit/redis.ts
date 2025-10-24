@@ -14,7 +14,7 @@ describe("Redis", () => {
         option = getOption();
         expect(option).to.have.property("port", 6379);
         expect(option).to.have.property("host", "localhost");
-        expect(option).to.have.property("family", 4);
+        expect(option).to.have.property("family", 0);
 
         option = getOption(6380);
         expect(option).to.have.property("port", 6380);
