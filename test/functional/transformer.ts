@@ -183,5 +183,17 @@ describe("transformer", () => {
         });
       });
     });
+
+    describe("call", () => {
+      it("keyPrefix should be case insensitive for command name", async () => {
+        const redis = new Redis({ keyPrefix: "foo:" });
+
+        const value = "value1";
+        expect(await redis.call("SeT", "mykey", value)).to.eql("OK");
+
+        const otherRedis = new Redis();
+        expect(await otherRedis.call("get", "foo:mykey")).to.eql(value);
+      });
+    });
   });
 });

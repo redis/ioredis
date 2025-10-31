@@ -449,8 +449,8 @@ class Redis extends Commander implements DataHandledable {
       this.status === "ready" ||
       (!stream &&
         this.status === "connect" &&
-        exists(command.name) &&
-        (hasFlag(command.name, "loading") ||
+        exists(command.name, { caseInsensitive: true }) &&
+        (hasFlag(command.name, "loading", { nameCaseInsensitive: true }) ||
           Command.checkFlag("HANDSHAKE_COMMANDS", command.name)));
     if (!this.stream) {
       writable = false;
