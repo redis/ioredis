@@ -165,5 +165,15 @@ describe("Command", () => {
       );
       expect(Command.checkFlag("WILL_DISCONNECT", "quit")).to.eql(true);
     });
+
+    it('should be case insensitive for command name', () => {
+      expect(Command.checkFlag("VALID_IN_SUBSCRIBER_MODE", "PING")).to.eql(
+        true
+      );
+      expect(Command.checkFlag("VALID_IN_SUBSCRIBER_MODE", "Get")).to.eql(
+        false
+      );
+      expect(Command.checkFlag("WILL_DISCONNECT", "QuIt")).to.eql(true);
+    });
   });
 });

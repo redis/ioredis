@@ -119,6 +119,7 @@ export default class Command implements Respondable {
     flagName: T,
     commandName: string
   ): commandName is CommandNameFlags[T][number] {
+    commandName = commandName.toLowerCase();
     return !!this.getFlagMap()[flagName][commandName];
   }
 
@@ -358,9 +359,11 @@ export default class Command implements Respondable {
   ): (string | Buffer)[] {
     if (typeof this.keys === "undefined") {
       this.keys = [];
-      if (exists(this.name)) {
+      if (exists(this.name, { caseInsensitive: true })) {
         // @ts-expect-error
-        const keyIndexes = getKeyIndexes(this.name, this.args);
+        const keyIndexes = getKeyIndexes(this.name, this.args, {
+          nameCaseInsensitive: true,
+        });
         for (const index of keyIndexes) {
           this.args[index] = transform(this.args[index]);
           this.keys.push(this.args[index] as string | Buffer);

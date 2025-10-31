@@ -43,7 +43,7 @@
     "url": "https://opencollective.com/ioredis"
   },
   "dependencies": {
-    "@ioredis/commands": "1.4.0",
+    "@ioredis/commands": "/home/rglr/projects/ioredis-commands/ioredis-commands-0.2.1.tgz",
     "cluster-key-slot": "^1.1.0",
     "debug": "^4.3.4",
     "denque": "^2.1.0",
