@@ -189,6 +189,9 @@ class Redis extends Commander implements DataHandledable {
 
       const { options } = this;
 
+      // Note that `this.condition` has to be set _before_ any asynchronous work
+      // takes place as the `select` value is required when queueing commands
+      // into the offline queue (see sendCommand)
       this.condition = {
         select: options.db,
         subscriber: false,
