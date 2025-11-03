@@ -1,5 +1,5 @@
 x-redis-common: &redis-common
-  image: redislabs/client-libs-test:${REDIS_VERSION:-8.4-M01-pre}
+  image: redislabs/client-libs-test:${REDIS_VERSION:-8.4-RC1-pre.2}
 
 services:
   single:
