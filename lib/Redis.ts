@@ -189,14 +189,21 @@ class Redis extends Commander implements DataHandledable {
 
       const { options } = this;
 
-      this.resolvePassword().then((resolvedPassword) => {
-        this.condition = {
-          select: options.db,
-          auth: options.username
-            ? [options.username, resolvedPassword]
-            : resolvedPassword,
-          subscriber: false,
-        };
+      this.condition = {
+        select: options.db,
+        subscriber: false,
+      };
+      this.resolvePassword((err, resolvedPassword) => {
+        if (err) {
+          this.flushQueue(err);
+          this.silentEmit("error", err);
+          this.setStatus("end");
+          reject(err);
+          return;
+        }
+        this.condition.auth = options.username
+          ? [options.username, resolvedPassword]
+          : resolvedPassword
 
         const _this = this;
         asCallback(
@@ -299,11 +306,6 @@ class Redis extends Commander implements DataHandledable {
             _this.once("close", connectionCloseHandler);
           }
         );
-      }).catch((err) => {
-        this.flushQueue(err);
-        this.silentEmit("error", err);
-        reject(err);
-        this.setStatus("end");
       });
     });
 
@@ -870,15 +872,25 @@ class Redis extends Commander implements DataHandledable {
     }).catch(noop);
   }
 
-  private async resolvePassword(): Promise<string | null> {
+  private resolvePassword(callback: (err: Error | null, password?: string | null) => void) {
     const { password } = this.options;
     if (!password) {
-      return null;
+      return callback(null, null);
     }
-    if (typeof password === "function") {
-      return await password();
+    if (typeof password === 'function') {
+      let p: ReturnType<typeof password> = null;
+      try {
+        p = password();
+      } catch (err) {
+        return callback(err);
+      }
+      if (typeof p === 'string' || !p) {
+        return callback(null, p as string);
+      }
+      return p.then((pw) => callback(null, pw), callback);
     }
-    return password;
+
+    return callback(null, password);
   }
 }
 

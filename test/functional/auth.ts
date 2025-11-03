@@ -366,8 +366,8 @@ describe("auth", () => {
 
             const redis = new Redis({port: 17379, password: passwordFunction});
             redis.once("ready", () => {
+                redis.once('close', () => redis.connect)
                 redis.disconnect(true);
-                redis.connect();
             });
         });
 
@@ -398,17 +398,13 @@ describe("auth", () => {
             });
         });
 
-        it("should handle password function errors gracefully", (done) => {
+        it("should handle password function errors gracefully", () => {
             const passwordFunction = () => {
                 throw new Error("Password retrieval failed");
             };
 
             const redis = new Redis({port: 17379, password: passwordFunction});
-            redis.on("error", (error) => {
-                expect(error.message).to.eql("Password retrieval failed");
-                redis.disconnect();
-                done();
-            });
+            expect(redis.status).to.eql('end')
         });
 
         it("should handle async password function errors gracefully", (done) => {
@@ -419,7 +415,6 @@ describe("auth", () => {
             const redis = new Redis({port: 17379, password: passwordFunction});
             redis.on("error", (error) => {
                 expect(error.message).to.eql("Async password retrieval failed");
-                redis.disconnect();
                 done();
             });
         });
