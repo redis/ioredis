@@ -123,7 +123,8 @@ class Pipeline extends Commander<{ type: "pipeline" }> {
           }
         } else if (!command.inTransaction) {
           const isReadOnly =
-            exists(command.name) && hasFlag(command.name, "readonly");
+            exists(command.name, { caseInsensitive: true }) &&
+            hasFlag(command.name, "readonly", { nameCaseInsensitive: true });
           if (!isReadOnly) {
             retriable = false;
             break;
