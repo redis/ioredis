@@ -17,8 +17,7 @@ describe("auth", () => {
             }
         });
         const redis = new Redis({port: 17379, password: "pass"});
-        redis.get("foo").catch(() => {
-        });
+        redis.get("foo").catch(() => {});
     });
 
     it("should resend auth after reconnect", (done) => {
@@ -40,8 +39,7 @@ describe("auth", () => {
         redis.once("ready", () => {
             begin = true;
             redis.disconnect(true);
-            redis.get("foo").catch(() => {
-            });
+            redis.get("foo").catch(() => {});
         });
     });
 
@@ -89,14 +87,12 @@ describe("auth", () => {
             });
             const redis = new Redis({port: 17379, password: "pass"});
             let pending = 2;
-
             function check() {
                 if (!--pending) {
                     redis.disconnect();
                     done();
                 }
             }
-
             redis.on("error", (error) => {
                 expect(error).to.have.property("message", "ERR invalid password");
                 check();
