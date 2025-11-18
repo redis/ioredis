@@ -32,9 +32,11 @@ describe("Sharded Pub/Sub E2E", () => {
       messageTracker = new MessageTracker(CHANNELS);
       subscriber = createClusterTestClient(config.clientConfig, {
         shardedSubscribers: true,
+        slotsRefreshInterval: -1,
       });
       publisher = createClusterTestClient(config.clientConfig, {
         shardedSubscribers: true,
+        slotsRefreshInterval: -1,
       });
     });
 
@@ -244,12 +246,15 @@ describe("Sharded Pub/Sub E2E", () => {
       messageTracker2 = new MessageTracker(CHANNELS);
       subscriber1 = createClusterTestClient(config.clientConfig, {
         shardedSubscribers: true,
+        slotsRefreshInterval: -1,
       });
       subscriber2 = createClusterTestClient(config.clientConfig, {
         shardedSubscribers: true,
+        slotsRefreshInterval: -1,
       });
       publisher = createClusterTestClient(config.clientConfig, {
         shardedSubscribers: true,
+        slotsRefreshInterval: -1,
       });
     });
 
