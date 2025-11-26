@@ -89,7 +89,7 @@ describe("cluster:ClusterSubscriberGroup", () => {
         expect(
           err
             .toString()
-            .includes("CROSSSLOT Keys in request don't hash to the same slot")
+            .includes("CROSSSLOT")
         ).to.be.true;
       });
 

@@ -3,7 +3,6 @@ import {
   createClusterTestClient,
   getConfig,
   wait,
-  waitClientReady,
 } from "./utils/test.util";
 
 import { FaultInjectorClient } from "./utils/fault-injector";
@@ -24,25 +23,41 @@ describe("Sharded Pub/Sub E2E", () => {
   });
 
   describe("Single Subscriber", () => {
-    let subscriber: Cluster;
-    let publisher: Cluster;
-    let messageTracker: MessageTracker;
+    let cleanup: (() => Promise<void>) | null = null;
 
-    beforeEach(async () => {
-      messageTracker = new MessageTracker(CHANNELS);
-      subscriber = createClusterTestClient(config.clientConfig, {
+    const setup = async (subscriberOverrides = {}, publisherOverrides = {}) => {
+      const messageTracker = new MessageTracker(CHANNELS);
+      const subscriber = createClusterTestClient(config.clientConfig, {
         shardedSubscribers: true,
+        ...subscriberOverrides,
       });
-      publisher = createClusterTestClient(config.clientConfig, {
-        shardedSubscribers: true,
-      });
-    });
+      const publisher = createClusterTestClient(
+        config.clientConfig,
+        publisherOverrides
+      );
+
+      // Return cleanup function along with the resources
+      cleanup = async () => {
+        await Promise.all([subscriber.quit(), publisher.quit()]);
+      };
+
+      return { subscriber, publisher, messageTracker };
+    };
 
     afterEach(async () => {
-      await Promise.all([subscriber.quit(), publisher.quit()]);
+      if (cleanup) {
+        try {
+          await cleanup();
+        } catch {
+        } finally {
+          cleanup = null;
+        }
+      }
     });
 
     it("should receive messages published to multiple channels", async () => {
+      const { subscriber, publisher, messageTracker } = await setup();
+
       for (const channel of CHANNELS) {
         await subscriber.ssubscribe(channel);
       }
@@ -71,87 +86,110 @@ describe("Sharded Pub/Sub E2E", () => {
       }
     });
 
-    it("should resume publishing and receiving after failover", async () => {
-      for (const channel of CHANNELS) {
-        await subscriber.ssubscribe(channel);
-      }
+    [
+      {
+        name: "slotsRefreshInterval: -1",
+        subscriberOverrides: {
+          slotsRefreshInterval: -1,
+          slotsRefreshOnDisconnect: true,
+          shardedSubscribers: true,
+        },
+      },
+      {
+        name: "slotsRefreshInterval: default",
+        subscriberOverrides: {
+          shardedSubscribers: true,
+        },
+      },
+    ].map((testCase) => {
+      it(`should resume publishing and receiving after failover - ${testCase.name}`, async () => {
+        const { subscriber, publisher, messageTracker } = await setup(
+          testCase.subscriberOverrides
+        );
 
-      subscriber.on("smessage", (channelName, _) => {
-        messageTracker.incrementReceived(channelName);
-      });
+        for (const channel of CHANNELS) {
+          await subscriber.ssubscribe(channel);
+        }
 
-      // Trigger failover twice
-      for (let i = 0; i < 2; i++) {
-        // Start publishing messages
-        const { controller: publishAbort, result: publishResult } =
-          TestCommandRunner.publishMessagesUntilAbortSignal(
+        subscriber.on("smessage", (channelName, _) => {
+          messageTracker.incrementReceived(channelName);
+        });
+
+        // Trigger failover twice
+        for (let i = 0; i < 2; i++) {
+          // Start publishing messages
+          const { controller: publishAbort, result: publishResult } =
+            TestCommandRunner.publishMessagesUntilAbortSignal(
+              publisher,
+              CHANNELS,
+              messageTracker
+            );
+
+          // Trigger failover during publishing
+          const { action_id: failoverActionId } =
+            await faultInjectorClient.triggerAction({
+              type: "failover",
+              parameters: {
+                bdb_id: config.clientConfig.bdbId.toString(),
+                cluster_index: 0,
+              },
+            });
+
+          // Wait for failover to complete
+          await faultInjectorClient.waitForAction(failoverActionId);
+
+          publishAbort.abort();
+          await publishResult;
+
+          for (const channel of CHANNELS) {
+            const sent = messageTracker.getChannelStats(channel)!.sent;
+            const received = messageTracker.getChannelStats(channel)!.received;
+
+            assert.ok(
+              received <= sent,
+              `Channel ${channel}: received (${received}) should be <= sent (${sent})`
+            );
+          }
+
+          // Wait for 3 seconds before resuming publishing
+          await wait(5_000);
+
+          messageTracker.reset();
+
+          const {
+            controller: afterFailoverController,
+            result: afterFailoverResult,
+          } = TestCommandRunner.publishMessagesUntilAbortSignal(
             publisher,
             CHANNELS,
             messageTracker
           );
 
-        // Trigger failover during publishing
-        const { action_id: failoverActionId } =
-          await faultInjectorClient.triggerAction({
-            type: "failover",
-            parameters: {
-              bdb_id: config.clientConfig.bdbId.toString(),
-              cluster_index: 0,
-            },
-          });
+          await wait(10_000);
+          afterFailoverController.abort();
+          await afterFailoverResult;
 
-        // Wait for failover to complete
-        await faultInjectorClient.waitForAction(failoverActionId);
-
-        publishAbort.abort();
-        await publishResult;
-
-        for (const channel of CHANNELS) {
-          const sent = messageTracker.getChannelStats(channel)!.sent;
-          const received = messageTracker.getChannelStats(channel)!.received;
-
-          assert.ok(
-            received <= sent,
-            `Channel ${channel}: received (${received}) should be <= sent (${sent})`
-          );
+          for (const channel of CHANNELS) {
+            const sent = messageTracker.getChannelStats(channel)!.sent;
+            const received = messageTracker.getChannelStats(channel)!.received;
+            assert.ok(sent > 0, `Channel ${channel} should have sent messages`);
+            assert.ok(
+              received > 0,
+              `Channel ${channel} should have received messages`
+            );
+            assert.strictEqual(
+              messageTracker.getChannelStats(channel)!.received,
+              messageTracker.getChannelStats(channel)!.sent,
+              `Channel ${channel} received (${received}) should equal sent (${sent}) once resumed after failover`
+            );
+          }
         }
-
-        // Wait for 2 seconds before resuming publishing
-        await wait(2_000);
-
-        messageTracker.reset();
-
-        const {
-          controller: afterFailoverController,
-          result: afterFailoverResult,
-        } = TestCommandRunner.publishMessagesUntilAbortSignal(
-          publisher,
-          CHANNELS,
-          messageTracker
-        );
-
-        await wait(10_000);
-        afterFailoverController.abort();
-        await afterFailoverResult;
-
-        for (const channel of CHANNELS) {
-          const sent = messageTracker.getChannelStats(channel)!.sent;
-          const received = messageTracker.getChannelStats(channel)!.received;
-          assert.ok(sent > 0, `Channel ${channel} should have sent messages`);
-          assert.ok(
-            received > 0,
-            `Channel ${channel} should have received messages`
-          );
-          assert.strictEqual(
-            messageTracker.getChannelStats(channel)!.received,
-            messageTracker.getChannelStats(channel)!.sent,
-            `Channel ${channel} received (${received}) should equal sent (${sent}) once resumed after failover`
-          );
-        }
-      }
+      });
     });
 
     it("should NOT receive messages after sunsubscribe", async () => {
+      const { subscriber, publisher, messageTracker } = await setup();
+
       for (const channel of CHANNELS) {
         await subscriber.ssubscribe(channel);
       }
@@ -353,8 +391,8 @@ describe("Sharded Pub/Sub E2E", () => {
         );
       }
 
-      // Wait for 2 seconds before resuming publishing
-      await wait(2_000);
+      // Wait for 5 seconds before resuming publishing
+      await wait(5_000);
 
       messageTracker1.reset();
       messageTracker2.reset();
