@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [8.x, 10.x, 12.x, 14.x, 16.x, 20.x]
+        node: [10.x, 12.x, 14.x, 16.x, 20.x, 22.x]
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
