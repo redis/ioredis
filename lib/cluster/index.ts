@@ -130,10 +130,6 @@ class Cluster extends EventEmitter {
 
     this.connectionPool.on("-node", (redis, key) => {
       this.emit("-node", redis);
-
-      if (this.options.slotsRefreshOnDisconnect) {
-        this.refreshSlotsCache();
-      }
     });
     this.connectionPool.on("+node", (redis) => {
       this.emit("+node", redis);
@@ -1140,9 +1136,7 @@ class Cluster extends EventEmitter {
     this.subscriberGroupEmitter.on("-node", (redis, nodeKey) => {
       this.emit("-node", redis, nodeKey);
 
-      if (this.options.slotsRefreshOnDisconnect) {
-        this.refreshSlotsCache();
-      }
+      this.refreshSlotsCache();
     });
 
     this.subscriberGroupEmitter.on("moved", () => {

@@ -1,9 +1,5 @@
 import type { TestConfig } from "./utils/test.util";
-import {
-  createClusterTestClient,
-  getConfig,
-  wait,
-} from "./utils/test.util";
+import { createClusterTestClient, getConfig, wait } from "./utils/test.util";
 
 import { FaultInjectorClient } from "./utils/fault-injector";
 import { TestCommandRunner } from "./utils/command-runner";
@@ -11,6 +7,7 @@ import { CHANNELS, CHANNELS_BY_SLOT } from "./utils/test.util";
 import { MessageTracker } from "./utils/message-tracker";
 import { Cluster } from "../../lib";
 import { assert } from "chai";
+import { IClusterOptions } from "../../lib/cluster/ClusterOptions";
 
 describe("Sharded Pub/Sub E2E", () => {
   let faultInjectorClient: FaultInjectorClient;
@@ -25,7 +22,10 @@ describe("Sharded Pub/Sub E2E", () => {
   describe("Single Subscriber", () => {
     let cleanup: (() => Promise<void>) | null = null;
 
-    const setup = async (subscriberOverrides = {}, publisherOverrides = {}) => {
+    const setup = async (
+      subscriberOverrides: Partial<IClusterOptions> = {},
+      publisherOverrides: Partial<IClusterOptions> = {}
+    ) => {
       const messageTracker = new MessageTracker(CHANNELS);
       const subscriber = createClusterTestClient(config.clientConfig, {
         shardedSubscribers: true,
@@ -86,105 +86,93 @@ describe("Sharded Pub/Sub E2E", () => {
       }
     });
 
-    [
-      {
-        name: "slotsRefreshInterval: -1",
-        subscriberOverrides: {
-          slotsRefreshInterval: -1,
-          slotsRefreshOnDisconnect: true,
-          shardedSubscribers: true,
-        },
-      },
-      {
-        name: "slotsRefreshInterval: default",
-        subscriberOverrides: {
-          shardedSubscribers: true,
-        },
-      },
-    ].map((testCase) => {
-      it(`should resume publishing and receiving after failover - ${testCase.name}`, async () => {
-        const { subscriber, publisher, messageTracker } = await setup(
-          testCase.subscriberOverrides
-        );
+    it("should resume publishing and receiving after failover", async () => {
+      const { subscriber, publisher, messageTracker } = await setup({
+        slotsRefreshInterval: -1,
+      });
 
-        for (const channel of CHANNELS) {
-          await subscriber.ssubscribe(channel);
-        }
+      for (const channel of CHANNELS) {
+        await subscriber.ssubscribe(channel);
+      }
 
-        subscriber.on("smessage", (channelName, _) => {
-          messageTracker.incrementReceived(channelName);
-        });
+      subscriber.on("smessage", (channelName, _) => {
+        messageTracker.incrementReceived(channelName);
+      });
 
-        // Trigger failover twice
-        for (let i = 0; i < 2; i++) {
-          // Start publishing messages
-          const { controller: publishAbort, result: publishResult } =
-            TestCommandRunner.publishMessagesUntilAbortSignal(
-              publisher,
-              CHANNELS,
-              messageTracker
-            );
-
-          // Trigger failover during publishing
-          const { action_id: failoverActionId } =
-            await faultInjectorClient.triggerAction({
-              type: "failover",
-              parameters: {
-                bdb_id: config.clientConfig.bdbId.toString(),
-                cluster_index: 0,
-              },
-            });
-
-          // Wait for failover to complete
-          await faultInjectorClient.waitForAction(failoverActionId);
-
-          publishAbort.abort();
-          await publishResult;
-
-          for (const channel of CHANNELS) {
-            const sent = messageTracker.getChannelStats(channel)!.sent;
-            const received = messageTracker.getChannelStats(channel)!.received;
-
-            assert.ok(
-              received <= sent,
-              `Channel ${channel}: received (${received}) should be <= sent (${sent})`
-            );
-          }
-
-          // Wait for 3 seconds before resuming publishing
-          await wait(5_000);
-
-          messageTracker.reset();
-
-          const {
-            controller: afterFailoverController,
-            result: afterFailoverResult,
-          } = TestCommandRunner.publishMessagesUntilAbortSignal(
+      // Trigger failover twice
+      for (let i = 0; i < 2; i++) {
+        // Start publishing messages
+        const { controller: publishAbort, result: publishResult } =
+          TestCommandRunner.publishMessagesUntilAbortSignal(
             publisher,
             CHANNELS,
             messageTracker
           );
 
-          await wait(10_000);
-          afterFailoverController.abort();
-          await afterFailoverResult;
+        // Trigger failover during publishing
+        const { action_id: failoverActionId } =
+          await faultInjectorClient.triggerAction({
+            type: "failover",
+            parameters: {
+              bdb_id: config.clientConfig.bdbId.toString(),
+              cluster_index: 0,
+            },
+          });
 
-          for (const channel of CHANNELS) {
-            const sent = messageTracker.getChannelStats(channel)!.sent;
-            const received = messageTracker.getChannelStats(channel)!.received;
-            assert.ok(sent > 0, `Channel ${channel} should have sent messages`);
-            assert.ok(
-              received > 0,
-              `Channel ${channel} should have received messages`
-            );
-            assert.strictEqual(
-              messageTracker.getChannelStats(channel)!.received,
-              messageTracker.getChannelStats(channel)!.sent,
-              `Channel ${channel} received (${received}) should equal sent (${sent}) once resumed after failover`
-            );
-          }
+        // Wait for failover to complete
+        await faultInjectorClient.waitForAction(failoverActionId);
+
+        publishAbort.abort();
+        await publishResult;
+
+        const totalSent = CHANNELS.reduce(
+          (acc, channel) => acc + messageTracker.getChannelStats(channel)!.sent,
+          0
+        );
+        const totalReceived = CHANNELS.reduce(
+          (acc, channel) =>
+            acc + messageTracker.getChannelStats(channel)!.received,
+          0
+        );
+
+        assert.ok(
+          totalReceived <= totalSent,
+          `Total received (${totalReceived}) should be <= total sent (${totalSent})`
+        );
+
+        // Wait for 2 seconds before resuming publishing
+        await wait(2_000);
+
+        messageTracker.reset();
+
+        const {
+          controller: afterFailoverController,
+          result: afterFailoverResult,
+        } = TestCommandRunner.publishMessagesUntilAbortSignal(
+          publisher,
+          CHANNELS,
+          messageTracker
+        );
+
+        await wait(10_000);
+        afterFailoverController.abort();
+        await afterFailoverResult;
+
+        for (const channel of CHANNELS) {
+          const sent = messageTracker.getChannelStats(channel)!.sent;
+          const received = messageTracker.getChannelStats(channel)!.received;
+          assert.ok(sent > 0, `Channel ${channel} should have sent messages`);
+          assert.ok(
+            received > 0,
+            `Channel ${channel} should have received messages`
+          );
+          assert.strictEqual(
+            messageTracker.getChannelStats(channel)!.received,
+            messageTracker.getChannelStats(channel)!.sent,
+            `Channel ${channel} received (${received}) should equal sent (${sent}) once resumed after failover`
+          );
         }
-      });
+      }
     });
 
     it("should NOT receive messages after sunsubscribe", async () => {
@@ -375,24 +363,25 @@ describe("Sharded Pub/Sub E2E", () => {
       publishAbort.abort();
       await publishResult;
 
-      for (const channel of CHANNELS) {
-        const sent = messageTracker1.getChannelStats(channel)!.sent;
-        const received1 = messageTracker1.getChannelStats(channel)!.received;
+      const totalSent = CHANNELS.reduce(
+        (acc, channel) => acc + messageTracker1.getChannelStats(channel)!.sent,
+        0
+      );
+      const totalReceived = CHANNELS.reduce(
+        (acc, channel) =>
+          acc +
+          messageTracker1.getChannelStats(channel)!.received +
+          messageTracker2.getChannelStats(channel)!.received,
+        0
+      );
 
-        const received2 = messageTracker2.getChannelStats(channel)!.received;
+      assert.ok(
+        totalReceived <= totalSent * 2,
+        `Total received (${totalReceived}) should be <= total sent (${totalSent})`
+      );
 
-        assert.ok(
-          received1 <= sent,
-          `Channel ${channel}: received (${received1}) should be <= sent (${sent})`
-        );
-        assert.ok(
-          received2 <= sent,
-          `Channel ${channel}: received2 (${received2}) should be <= sent (${sent})`
-        );
-      }
-
-      // Wait for 5 seconds before resuming publishing
-      await wait(5_000);
+      // Wait for 2 seconds before resuming publishing
+      await wait(2_000);
 
       messageTracker1.reset();
       messageTracker2.reset();

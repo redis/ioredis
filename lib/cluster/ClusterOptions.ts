@@ -121,16 +121,6 @@ export interface IClusterOptions {
   slotsRefreshInterval?: number;
 
   /**
-   * Whether to refresh the cluster slot cache when a node connection is closed.
-   *
-   * Useful when slotsRefreshInterval is disabled (-1) but you still want
-   * topology to be updated promptly on node disconnect/failover.
-   *
-   * @default false
-   */
-  slotsRefreshOnDisconnect?: boolean;
-
-  /**
    * Use sharded subscribers instead of a single subscriber.
    *
    * If sharded subscribers are used, then one additional subscriber connection per master node
@@ -221,7 +211,6 @@ export const DEFAULT_CLUSTER_OPTIONS: IClusterOptions = {
   retryDelayOnTryAgain: 100,
   slotsRefreshTimeout: 1000,
   slotsRefreshInterval: 5000,
-  slotsRefreshOnDisconnect: false,
   useSRVRecords: false,
   resolveSrv: resolveSrv,
   dnsLookup: lookup,
