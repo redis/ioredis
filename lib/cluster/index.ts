@@ -26,7 +26,7 @@ import ClusterSubscriber from "./ClusterSubscriber";
 import ConnectionPool from "./ConnectionPool";
 import DelayQueue from "./DelayQueue";
 import {
-  getConnectionName, getNodeKey,
+  getConnectionName,
   getUniqueHostnamesFromOptions,
   groupSrvRecords,
   NodeKey,
@@ -105,6 +105,7 @@ class Cluster extends Commander {
   private _autoPipelines: Map<string, typeof Pipeline> = new Map();
   private _runningAutoPipelines: Set<string> = new Set();
   private _readyDelayedCallbacks: Callback[] = [];
+  private subscriberGroupEmitter: EventEmitter | null;
 
   /**
    * Every time Cluster#connect() is called, this value will be
@@ -125,8 +126,9 @@ class Cluster extends Commander {
     this.startupNodes = startupNodes;
     this.options = defaults({}, options, DEFAULT_CLUSTER_OPTIONS, this.options);
 
-    if (this.options.shardedSubscribers == true)
-      this.shardedSubscribers = new ClusterSubscriberGroup(this, this.refreshSlotsCache.bind(this));
+    if (this.options.shardedSubscribers) {
+      this.createShardedSubscriberGroup();
+    }
 
     if (
       this.options.redisOptions &&
@@ -222,6 +224,15 @@ class Cluster extends Commander {
           }
           this.connectionPool.reset(nodes);
 
+          if (this.options.shardedSubscribers) {
+            this.shardedSubscribers
+              .reset(this.slots, this.connectionPool.getNodes("all"))
+              .catch((err) => {
+                // TODO should we emit an error event here?
+                debug("Error while starting subscribers: %s", err);
+              });
+          }
+
           const readyHandler = () => {
             this.setStatus("ready");
             this.retryAttempts = 0;
@@ -276,7 +287,10 @@ class Cluster extends Commander {
           this.subscriber.start();
 
           if (this.options.shardedSubscribers) {
-            this.shardedSubscribers.start();
+            this.shardedSubscribers.start().catch((err) => {
+              // TODO should we emit an error event here?
+              debug("Error while starting subscribers: %s", err);
+            });
           }
         })
         .catch((err) => {
@@ -567,25 +581,42 @@ class Cluster extends Commander {
           Command.checkFlag("ENTER_SUBSCRIBER_MODE", command.name) ||
           Command.checkFlag("EXIT_SUBSCRIBER_MODE", command.name)
         ) {
-          if (_this.options.shardedSubscribers == true &&
-              (command.name == "ssubscribe" || command.name == "sunsubscribe")) {
+          if (
+            _this.options.shardedSubscribers &&
+            (command.name == "ssubscribe" || command.name == "sunsubscribe")
+          ) {
+            const sub =
+              _this.shardedSubscribers.getResponsibleSubscriber(targetSlot);
 
-            const sub: ClusterSubscriber = _this.shardedSubscribers.getResponsibleSubscriber(targetSlot);
+            if (!sub) {
+              command.reject(
+                new AbortError(`No sharded subscriber for slot: ${targetSlot}`)
+              );
+              return;
+            }
+
             let status = -1;
 
-            if (command.name == "ssubscribe")
+            if (command.name == "ssubscribe") {
               status = _this.shardedSubscribers.addChannels(command.getKeys());
+            }
 
-            if ( command.name == "sunsubscribe")
-              status = _this.shardedSubscribers.removeChannels(command.getKeys());
+            if (command.name == "sunsubscribe") {
+              status = _this.shardedSubscribers.removeChannels(
+                command.getKeys()
+              );
+            }
 
             if (status !== -1) {
               redis = sub.getInstance();
             } else {
-              command.reject(new AbortError("Can't add or remove the given channels. Are they in the same slot?"));
+              command.reject(
+                new AbortError(
+                  "Possible CROSSSLOT error: All channels must hash to the same slot"
+                )
+              );
             }
-          }
-          else {
+          } else {
             redis = _this.subscriber.getInstance();
           }
 
@@ -804,6 +835,10 @@ class Cluster extends Commander {
         });
       }, retryDelay);
     } else {
+      if (this.options.shardedSubscribers) {
+        this.subscriberGroupEmitter?.removeAllListeners();
+      }
+
       this.setStatus("end");
       this.flushQueue(new Error("None of startup nodes is available"));
     }
@@ -952,6 +987,15 @@ class Cluster extends Commander {
         }
 
         this.connectionPool.reset(nodes);
+
+        if (this.options.shardedSubscribers) {
+          this.shardedSubscribers
+            .reset(this.slots, this.connectionPool.getNodes("all"))
+            .catch((err) => {
+              // TODO should we emit an error event here?
+              debug("Error while starting subscribers: %s", err);
+            });
+        }
         callback();
       }, this.options.slotsRefreshTimeout)
     );
@@ -1104,6 +1148,46 @@ class Cluster extends Commander {
       command: command,
       ...options,
     });
+  }
+
+  private createShardedSubscriberGroup() {
+    this.subscriberGroupEmitter = new EventEmitter();
+
+    this.shardedSubscribers = new ClusterSubscriberGroup(
+      this.subscriberGroupEmitter
+    );
+
+    this.subscriberGroupEmitter.on("-node", (redis, nodeKey) => {
+      this.emit("-node", redis, nodeKey);
+
+      this.refreshSlotsCache();
+    });
+
+    this.subscriberGroupEmitter.on("moved", () => {
+      this.refreshSlotsCache();
+    });
+
+    this.subscriberGroupEmitter.on("-subscriber", () => {
+      this.emit("-subscriber");
+    });
+
+    this.subscriberGroupEmitter.on("+subscriber", () => {
+      this.emit("+subscriber");
+    });
+
+    this.subscriberGroupEmitter.on("nodeError", (error, nodeKey) => {
+      this.emit("nodeError", error, nodeKey);
+    });
+
+    this.subscriberGroupEmitter.on("subscribersReady", () => {
+      this.emit("subscribersReady");
+    });
+
+    for (const event of ["smessage", "smessageBuffer"]) {
+      this.subscriberGroupEmitter.on(event, (arg1, arg2, arg3) => {
+        this.emit(event, arg1, arg2, arg3);
+      });
+    }
   }
 }
 

@@ -81,7 +81,8 @@ describe("cluster:spub/ssub", function () {
     });
   });
 
-  it("should re-ssubscribe after reconnection", (done) => {
+  // This is no longer true, since we do NOT reconnect but recreate the subscriber
+  it.skip("should re-ssubscribe after reconnection", (done) => {
     new MockServer(30001, function (argv) {
       if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return [[0, 16383, ["127.0.0.1", 30001]]];
