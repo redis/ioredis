@@ -110,7 +110,11 @@ export default class ClusterSubscriberGroup {
     const startPromises = [];
     for (const s of this.shardedSubscribers.values()) {
       if (!s.isStarted()) {
-        startPromises.push(s.start());
+        startPromises.push(
+          s.start().catch((err) => {
+            this.subscriberGroupEmitter.emit("subscriberConnectFailed", err);
+          })
+        );
       }
     }
     return Promise.all(startPromises);
@@ -123,8 +127,13 @@ export default class ClusterSubscriberGroup {
     clusterSlots: string[][],
     clusterNodes: any[]
   ): Promise<void> {
-    // Update the slots cache and continue if there was a change
-    if (!this._refreshSlots(clusterSlots)) {
+    const hasTopologyChanged = this._refreshSlots(clusterSlots);
+    const hasFailedSubscribers = this.hasUnhealthySubscribers();
+
+    if (!hasTopologyChanged && !hasFailedSubscribers) {
+      debug(
+        "No topology change detected or failed subscribers. Skipping reset."
+      );
       return;
     }
 
@@ -135,9 +144,11 @@ export default class ClusterSubscriberGroup {
         this.subscriberToSlotsIndex.has(nodeKey) &&
         shardedSubscriber.isStarted()
       ) {
+        debug("Skipping deleting subscriber for %s", nodeKey);
         continue;
       }
 
+      debug("Removing subscriber for %s", nodeKey);
       // Otherwise stop the subscriber and remove it
       shardedSubscriber.stop();
       this.shardedSubscribers.delete(nodeKey);
@@ -150,9 +161,11 @@ export default class ClusterSubscriberGroup {
     for (const [nodeKey, _] of this.subscriberToSlotsIndex) {
       // If we already have a subscriber for this node then keep it
       if (this.shardedSubscribers.has(nodeKey)) {
+        debug("Skipping creating new subscriber for %s", nodeKey);
         continue;
       }
 
+      debug("Creating new subscriber for %s", nodeKey);
       // Otherwise create a new subscriber
       const redis = clusterNodes.find((node) => {
         return getNodeKey(node.options) === nodeKey;
@@ -170,7 +183,11 @@ export default class ClusterSubscriberGroup {
 
       this.shardedSubscribers.set(nodeKey, sub);
 
-      startPromises.push(sub.start());
+      startPromises.push(
+        sub.start().catch((err) => {
+          this.subscriberGroupEmitter.emit("subscriberConnectFailed", err);
+        })
+      );
 
       this.subscriberGroupEmitter.emit("+subscriber");
     }
@@ -271,5 +288,26 @@ export default class ClusterSubscriberGroup {
     } else {
       return JSON.stringify(this.clusterSlots) === JSON.stringify(other);
     }
+  }
+
+  /**
+   * Checks if any subscribers are in an unhealthy state.
+   *
+   * A subscriber is considered unhealthy if:
+   * - It exists but is not started (failed/disconnected)
+   * - It's missing entirely for a node that should have one
+   *
+   * @returns true if any subscribers need to be recreated
+   */
+  private hasUnhealthySubscribers(): boolean {
+    const hasFailedSubscribers = Array.from(
+      this.shardedSubscribers.values()
+    ).some((sub) => !sub.isStarted());
+
+    const hasMissingSubscribers = Array.from(
+      this.subscriberToSlotsIndex.keys()
+    ).some((nodeKey) => !this.shardedSubscribers.has(nodeKey));
+
+    return hasFailedSubscribers || hasMissingSubscribers;
   }
 }

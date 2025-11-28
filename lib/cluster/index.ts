@@ -1139,6 +1139,12 @@ class Cluster extends EventEmitter {
       this.refreshSlotsCache();
     });
 
+    this.subscriberGroupEmitter.on("subscriberConnectFailed", (err) => {
+      this.emit("error", err);
+
+      this.refreshSlotsCache();
+    });
+
     this.subscriberGroupEmitter.on("moved", () => {
       this.refreshSlotsCache();
     });

@@ -101,8 +101,16 @@ export default class ShardedSubscriber {
     debug("stopped %s", this.nodeKey);
   }
 
+  /**
+   * Checks if the subscriber is started and NOT explicitly disconnected.
+   */
   isStarted(): boolean {
-    return this.started;
+    const status = this.instance?.status;
+
+    const isDisconnected =
+      status === "end" || status === "close" || !this.instance;
+
+    return this.started && !isDisconnected;
   }
 
   getInstance(): any {
