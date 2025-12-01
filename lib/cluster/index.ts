@@ -1163,6 +1163,17 @@ class Cluster extends Commander {
       this.refreshSlotsCache();
     });
 
+    this.subscriberGroupEmitter.on(
+      "subscriberConnectFailed",
+      ({ delay, error }) => {
+        this.emit("error", error);
+
+        setTimeout(() => {
+          this.refreshSlotsCache();
+        }, delay);
+      }
+    );
+
     this.subscriberGroupEmitter.on("moved", () => {
       this.refreshSlotsCache();
     });

@@ -10,9 +10,6 @@ export default class ShardedSubscriber {
   private instance: Redis | null = null;
 
   // Store listener references for cleanup
-  private readonly onEnd: () => void;
-  private readonly onError: (error: Error) => void;
-  private readonly onMoved: () => void;
   private readonly messageListeners: Map<string, (...args: any[]) => void> =
     new Map();
 
@@ -36,20 +33,6 @@ export default class ShardedSubscriber {
 
     this.nodeKey = getNodeKey(options);
 
-    // Define listeners as instance methods so we can remove them later
-    this.onEnd = () => {
-      this.started = false;
-      this.emitter.emit("-node", this.instance, this.nodeKey);
-    };
-
-    this.onError = (error: Error) => {
-      this.emitter.emit("nodeError", error, this.nodeKey);
-    };
-
-    this.onMoved = () => {
-      this.emitter.emit("moved");
-    };
-
     // Register listeners
     this.instance.once("end", this.onEnd);
     this.instance.on("error", this.onError);
@@ -63,6 +46,19 @@ export default class ShardedSubscriber {
       this.instance.on(event, listener);
     }
   }
+
+  private onEnd = () => {
+    this.started = false;
+    this.emitter.emit("-node", this.instance, this.nodeKey);
+  };
+
+  private onError = (error: Error) => {
+    this.emitter.emit("nodeError", error, this.nodeKey);
+  };
+
+  private onMoved = () => {
+    this.emitter.emit("moved");
+  };
 
   async start(): Promise<void> {
     if (this.started) {
@@ -85,17 +81,9 @@ export default class ShardedSubscriber {
     this.started = false;
 
     if (this.instance) {
-      // Remove all listeners before disconnecting
-      this.instance.off("end", this.onEnd);
-      this.instance.off("error", this.onError);
-      this.instance.off("moved", this.onMoved);
-
-      for (const [event, listener] of this.messageListeners) {
-        this.instance.off(event, listener);
-      }
-      this.messageListeners.clear();
-
       this.instance.disconnect();
+      this.instance.removeAllListeners();
+      this.messageListeners.clear();
       this.instance = null;
     }
 
@@ -108,5 +96,9 @@ export default class ShardedSubscriber {
 
   getInstance(): Redis | null {
     return this.instance;
+  }
+
+  getNodeKey(): string {
+    return this.nodeKey;
   }
 }
