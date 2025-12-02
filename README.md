@@ -21,7 +21,7 @@ ioredis is a stable project and maintenance is done on a best-effort basis for r
 ioredis is a robust, full-featured Redis client that is
 used in the world's biggest online commerce company [Alibaba](http://www.alibaba.com/) and many other awesome companies.
 
-0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](https://redis.io/docs/reference/sentinel-clients), [Streams](https://redis.io/topics/streams-intro), [Pipelining](http://redis.io/topics/pipelining), and of course [Lua scripting](http://redis.io/commands/eval), [Redis Functions](https://redis.io/topics/functions-intro), [Pub/Sub](http://redis.io/topics/pubsub) (with the support of binary messages).
+0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](https://redis.io/docs/latest/operate/oss_and_stack/management/sentinel/), [Streams](https://redis.io/topics/streams-intro), [Pipelining](http://redis.io/topics/pipelining), and of course [Lua scripting](http://redis.io/commands/eval), [Redis Functions](https://redis.io/topics/functions-intro), [Pub/Sub](http://redis.io/topics/pubsub) (with the support of binary messages).
 1. High performance 🚀.
 2. Delightful API 😄. It works with Node callbacks and Native promises.
 3. Transformation of command arguments and replies.
@@ -1213,7 +1213,7 @@ cluster.on("smessage", (channel, message) => {
     console.log(message);
 });
 
-        
+
 //Subscribe to the channels on the same slot
 cluster.ssubscribe("channel{my}:1", "channel{my}:2").then( ( count: number ) => {
     console.log(count);
