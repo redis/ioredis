@@ -3,7 +3,8 @@
     {
       "name": "v4-beta",
       "tag": "v4-beta",
-      "channel": "v4-beta"
+      "channel": "v4-beta",
+      "prerelease": "beta"
     }
   ],
   "verifyConditions": [
