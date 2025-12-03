@@ -4,6 +4,12 @@
       "name": "v4",
       "tag": "v4",
       "channel": "v4"
+    },
+    {
+      "name": "v4-beta",
+      "channel": "v4-beta",
+      "tag": "v4-beta",
+      "prerelease": "v4-beta"
     }
   ],
   "verifyConditions": [
