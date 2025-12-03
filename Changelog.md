@@ -1,3 +1,10 @@
+## [4.30.2-v4-beta.1](https://github.com/luin/ioredis/compare/v4.30.1...v4.30.2-v4-beta.1) (2025-12-03)
+
+
+### Bug Fixes
+
+* refactor sharded pub/sub ([7503bd3](https://github.com/luin/ioredis/commit/7503bd3796c71ecca26cbc20eeb138f14b5f0e91))
+
 ## [4.30.1](https://github.com/luin/ioredis/compare/v4.30.0...v4.30.1) (2025-09-16)
 
 
