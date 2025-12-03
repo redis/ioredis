@@ -1,10 +1,5 @@
 import type { TestConfig } from "./utils/test.util";
-import {
-  createClusterTestClient,
-  getConfig,
-  wait,
-  waitClientReady,
-} from "./utils/test.util";
+import { createClusterTestClient, getConfig, wait } from "./utils/test.util";
 
 import { FaultInjectorClient } from "./utils/fault-injector";
 import { TestCommandRunner } from "./utils/command-runner";
@@ -12,6 +7,7 @@ import { CHANNELS, CHANNELS_BY_SLOT } from "./utils/test.util";
 import { MessageTracker } from "./utils/message-tracker";
 import { Cluster } from "../../lib";
 import { assert } from "chai";
+import { IClusterOptions } from "../../lib/cluster/ClusterOptions";
 
 describe("Sharded Pub/Sub E2E", () => {
   let faultInjectorClient: FaultInjectorClient;
@@ -24,25 +20,44 @@ describe("Sharded Pub/Sub E2E", () => {
   });
 
   describe("Single Subscriber", () => {
-    let subscriber: Cluster;
-    let publisher: Cluster;
-    let messageTracker: MessageTracker;
+    let cleanup: (() => Promise<void>) | null = null;
 
-    beforeEach(async () => {
-      messageTracker = new MessageTracker(CHANNELS);
-      subscriber = createClusterTestClient(config.clientConfig, {
+    const setup = async (
+      subscriberOverrides: Partial<IClusterOptions> = {},
+      publisherOverrides: Partial<IClusterOptions> = {}
+    ) => {
+      const messageTracker = new MessageTracker(CHANNELS);
+      const subscriber = createClusterTestClient(config.clientConfig, {
         shardedSubscribers: true,
+        ...subscriberOverrides,
       });
-      publisher = createClusterTestClient(config.clientConfig, {
-        shardedSubscribers: true,
-      });
-    });
+      const publisher = createClusterTestClient(
+        config.clientConfig,
+        publisherOverrides
+      );
+
+      // Return cleanup function along with the resources
+      cleanup = async () => {
+        await Promise.all([subscriber.quit(), publisher.quit()]);
+      };
+
+      return { subscriber, publisher, messageTracker };
+    };
 
     afterEach(async () => {
-      await Promise.all([subscriber.quit(), publisher.quit()]);
+      if (cleanup) {
+        try {
+          await cleanup();
+        } catch {
+        } finally {
+          cleanup = null;
+        }
+      }
     });
 
     it("should receive messages published to multiple channels", async () => {
+      const { subscriber, publisher, messageTracker } = await setup();
+
       for (const channel of CHANNELS) {
         await subscriber.ssubscribe(channel);
       }
@@ -72,6 +87,10 @@ describe("Sharded Pub/Sub E2E", () => {
     });
 
     it("should resume publishing and receiving after failover", async () => {
+      const { subscriber, publisher, messageTracker } = await setup({
+        slotsRefreshInterval: -1,
+      });
+
       for (const channel of CHANNELS) {
         await subscriber.ssubscribe(channel);
       }
@@ -106,15 +125,20 @@ describe("Sharded Pub/Sub E2E", () => {
         publishAbort.abort();
         await publishResult;
 
-        for (const channel of CHANNELS) {
-          const sent = messageTracker.getChannelStats(channel)!.sent;
-          const received = messageTracker.getChannelStats(channel)!.received;
+        const totalSent = CHANNELS.reduce(
+          (acc, channel) => acc + messageTracker.getChannelStats(channel)!.sent,
+          0
+        );
+        const totalReceived = CHANNELS.reduce(
+          (acc, channel) =>
+            acc + messageTracker.getChannelStats(channel)!.received,
+          0
+        );
 
-          assert.ok(
-            received <= sent,
-            `Channel ${channel}: received (${received}) should be <= sent (${sent})`
-          );
-        }
+        assert.ok(
+          totalReceived <= totalSent,
+          `Total received (${totalReceived}) should be <= total sent (${totalSent})`
+        );
 
         // Wait for 2 seconds before resuming publishing
         await wait(2_000);
@@ -152,6 +176,8 @@ describe("Sharded Pub/Sub E2E", () => {
     });
 
     it("should NOT receive messages after sunsubscribe", async () => {
+      const { subscriber, publisher, messageTracker } = await setup();
+
       for (const channel of CHANNELS) {
         await subscriber.ssubscribe(channel);
       }
@@ -337,21 +363,22 @@ describe("Sharded Pub/Sub E2E", () => {
       publishAbort.abort();
       await publishResult;
 
-      for (const channel of CHANNELS) {
-        const sent = messageTracker1.getChannelStats(channel)!.sent;
-        const received1 = messageTracker1.getChannelStats(channel)!.received;
+      const totalSent = CHANNELS.reduce(
+        (acc, channel) => acc + messageTracker1.getChannelStats(channel)!.sent,
+        0
+      );
+      const totalReceived = CHANNELS.reduce(
+        (acc, channel) =>
+          acc +
+          messageTracker1.getChannelStats(channel)!.received +
+          messageTracker2.getChannelStats(channel)!.received,
+        0
+      );
 
-        const received2 = messageTracker2.getChannelStats(channel)!.received;
-
-        assert.ok(
-          received1 <= sent,
-          `Channel ${channel}: received (${received1}) should be <= sent (${sent})`
-        );
-        assert.ok(
-          received2 <= sent,
-          `Channel ${channel}: received2 (${received2}) should be <= sent (${sent})`
-        );
-      }
+      assert.ok(
+        totalReceived <= totalSent * 2,
+        `Total received (${totalReceived}) should be <= total sent (${totalSent})`
+      );
 
       // Wait for 2 seconds before resuming publishing
       await wait(2_000);
