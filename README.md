@@ -788,6 +788,18 @@ This behavior can be disabled by setting the `autoResubscribe` option to `false`
 And if the previous connection has some unfulfilled commands (most likely blocking commands such as `brpop` and `blpop`),
 the client will resend them when reconnected. This behavior can be disabled by setting the `autoResendUnfulfilledCommands` option to `false`.
 
+### Blocking command watchdog
+
+Blocking commands such as `BZPOP*`, `BLPOP`, `XREAD BLOCK`, etc. normally rely on Redis itself to respond before the specified timeout elapses. When the underlying TCP connection silently disappears (for example because of a network partition), the server never has a chance to send that response and the client would previously wait forever. You can now enable a client-side safeguard via the `blockingConnectionTimeout` option:
+
+```ts
+const redis = new Redis({
+  blockingConnectionTimeout: 15_000, // force a reconnect after 15 seconds of silence
+});
+```
+
+If the blocking command includes its own timeout argument (e.g. `redis.bzpopmin("key", 5)`), ioredis will infer that value automatically and add a small grace period before forcing a reconnect. When the command uses `timeout = 0`, ioredis keeps the legacy “wait forever” behaviour by default; setting `blockingConnectionTimeout` simply adds an optional upper bound so your application can recover from silent network partitions without waiting for the operating system’s TCP timeout.
+
 By default, all pending commands will be flushed with an error every 20 retry attempts. That makes sure commands won't wait forever when the connection is down. You can change this behavior by setting `maxRetriesPerRequest`:
 
 ```javascript

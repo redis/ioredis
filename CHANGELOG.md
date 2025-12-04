@@ -1,3 +1,9 @@
+## [Unreleased]
+
+### Bug Fixes
+
+* force-reconnect blocking commands that exceed their timeout and add `blockingConnectionTimeout` fallback option
+
 ## [5.8.2](https://github.com/luin/ioredis/compare/v5.8.1...v5.8.2) (2025-10-21)
 
 

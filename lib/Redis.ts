@@ -68,6 +68,23 @@ class Redis extends Commander implements DataHandledable {
    * Default options
    */
   private static defaultOptions = DEFAULT_REDIS_OPTIONS;
+  private static readonly TAIL_TIMEOUT_COMMANDS = new Set([
+    "blpop",
+    "brpop",
+    "brpoplpush",
+    "blmove",
+    "bzpopmin",
+    "bzpopmax",
+  ]);
+  private static readonly HEAD_TIMEOUT_COMMANDS = new Set([
+    "bzmpop",
+    "blmpop",
+  ]);
+  private static readonly BLOCK_OPTION_COMMANDS = new Set([
+    "xread",
+    "xreadgroup",
+  ]);
+  private static readonly BLOCKING_TIMEOUT_GRACE_MS = 1000;
 
   /**
    * Create a Redis instance.
@@ -107,6 +124,8 @@ class Redis extends Commander implements DataHandledable {
   private retryAttempts = 0;
   private manuallyClosing = false;
   private socketTimeoutTimer: NodeJS.Timeout | undefined;
+  private blockingCommandTimer: NodeJS.Timeout | undefined;
+  private activeBlockingCommand: Command | undefined;
 
   // Prepare autopipelines structures
   private _autoPipelines = new Map();
@@ -125,6 +144,7 @@ class Redis extends Commander implements DataHandledable {
     this.parseOptions(arg1, arg2, arg3);
 
     EventEmitter.call(this);
+    this.on("close", () => this.clearBlockingCommandTimeout());
 
     this.resetCommandQueue();
     this.resetOfflineQueue();
@@ -445,6 +465,15 @@ class Redis extends Commander implements DataHandledable {
       command.setTimeout(this.options.commandTimeout);
     }
 
+    if (typeof command.promise.finally === "function") {
+      command.promise.finally(() => this.clearBlockingCommandTimeout(command));
+    } else {
+      command.promise.then(
+        () => this.clearBlockingCommandTimeout(command),
+        () => this.clearBlockingCommandTimeout(command)
+      );
+    }
+
     let writable =
       this.status === "ready" ||
       (!stream &&
@@ -530,6 +559,8 @@ class Redis extends Commander implements DataHandledable {
       if (this.options.socketTimeout !== undefined && this.socketTimeoutTimer === undefined) {
         this.setSocketTimeout();
       }
+
+      this.scheduleBlockingReconnectTimeout(command);
     }
 
     if (command.name === "select" && isInt(command.args[0])) {
@@ -558,6 +589,147 @@ class Redis extends Commander implements DataHandledable {
       if (this.commandQueue.length === 0) return;
       this.setSocketTimeout();
     });
+  }
+
+  private scheduleBlockingReconnectTimeout(command: Command) {
+    const timeout = this.getBlockingTimeoutInMs(command);
+    if (timeout === undefined) {
+      return;
+    }
+
+    this.clearBlockingCommandTimeout();
+    this.activeBlockingCommand = command;
+    this.blockingCommandTimer = setTimeout(() => {
+      if (this.activeBlockingCommand !== command) {
+        return;
+      }
+
+      const err = new Error(
+        `Blocking command "${command.name}" exceeded ${timeout}ms without a reply. Forcing reconnect.`
+      );
+      this.stream?.destroy(err);
+      this.clearBlockingCommandTimeout(command);
+    }, timeout);
+
+    if (typeof this.blockingCommandTimer.unref === "function") {
+      this.blockingCommandTimer.unref();
+    }
+  }
+
+  private clearBlockingCommandTimeout(command?: Command) {
+    if (command && this.activeBlockingCommand !== command) {
+      return;
+    }
+
+    if (this.blockingCommandTimer) {
+      clearTimeout(this.blockingCommandTimer);
+      this.blockingCommandTimer = undefined;
+    }
+
+    if (!command || this.activeBlockingCommand === command) {
+      this.activeBlockingCommand = undefined;
+    }
+  }
+
+  private getBlockingTimeoutInMs(command: Command): number | undefined {
+    if (!this.isPotentiallyBlockingCommand(command)) {
+      return undefined;
+    }
+
+    const timeoutFromCommand = this.extractTimeoutFromCommand(command);
+    if (typeof timeoutFromCommand === "number") {
+      if (timeoutFromCommand > 0) {
+        return timeoutFromCommand + Redis.BLOCKING_TIMEOUT_GRACE_MS;
+      }
+    }
+
+    const optionTimeout = this.options.blockingConnectionTimeout;
+    if (typeof optionTimeout === "number" && optionTimeout > 0) {
+      return optionTimeout;
+    }
+
+    return undefined;
+  }
+
+  private isPotentiallyBlockingCommand(command: Command): boolean {
+    const name = command.name?.toLowerCase();
+    if (!name) {
+      return false;
+    }
+
+    return (
+      Redis.TAIL_TIMEOUT_COMMANDS.has(name) ||
+      Redis.HEAD_TIMEOUT_COMMANDS.has(name) ||
+      Redis.BLOCK_OPTION_COMMANDS.has(name)
+    );
+  }
+
+  private extractTimeoutFromCommand(command: Command): number | undefined {
+    const name = command.name?.toLowerCase();
+    if (!name) {
+      return undefined;
+    }
+
+    if (Redis.TAIL_TIMEOUT_COMMANDS.has(name)) {
+      const arg = command.args[command.args.length - 1];
+      return this.parseCommandArgumentAsSeconds(arg);
+    }
+
+    if (Redis.HEAD_TIMEOUT_COMMANDS.has(name)) {
+      const arg = command.args[0];
+      return this.parseCommandArgumentAsSeconds(arg);
+    }
+
+    if (Redis.BLOCK_OPTION_COMMANDS.has(name)) {
+      return this.extractBlockOption(command.args);
+    }
+
+    return undefined;
+  }
+
+  private parseCommandArgumentAsSeconds(arg: unknown): number | undefined {
+    const numericValue = this.parseCommandArgumentAsNumber(arg);
+    if (numericValue === undefined) {
+      return undefined;
+    }
+
+    return numericValue * 1000;
+  }
+
+  private parseCommandArgumentAsNumber(arg: unknown): number | undefined {
+    if (arg === null || typeof arg === "undefined") {
+      return undefined;
+    }
+
+    const normalized = Buffer.isBuffer(arg) ? arg.toString() : String(arg);
+    if (normalized.trim() === "") {
+      return undefined;
+    }
+
+    const parsed = Number(normalized);
+    if (!Number.isFinite(parsed)) {
+      return undefined;
+    }
+
+    return parsed;
+  }
+
+  private extractBlockOption(args: unknown[]): number | undefined {
+    for (let i = 0; i < args.length - 1; i++) {
+      const token = Buffer.isBuffer(args[i])
+        ? args[i].toString().toUpperCase()
+        : String(args[i]).toUpperCase();
+      if (token !== "BLOCK") {
+        continue;
+      }
+
+      const blockValue = this.parseCommandArgumentAsNumber(args[i + 1]);
+      if (blockValue && blockValue > 0) {
+        return blockValue;
+      }
+    }
+
+    return undefined;
   }
 
   scanStream(options?: ScanStreamOptions) {
