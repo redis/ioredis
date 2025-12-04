@@ -16,6 +16,13 @@ export interface CommonRedisOptions extends CommanderOptions {
   commandTimeout?: number;
 
   /**
+   * Maximum amount of time (in milliseconds) to wait for a blocking command
+   * before forcefully reconnecting. Defaults to 0, which disables the safeguard
+   * and relies entirely on the server-side timeout.
+   */
+  blockingConnectionTimeout?: number;
+
+  /**
    * If the socket does not receive data within a set number of milliseconds:
    * 1. the socket is considered "dead" and will be destroyed
    * 2. the client will reject any running commands (altought they might have been processed by the server)
@@ -221,6 +228,7 @@ export const DEFAULT_REDIS_OPTIONS: RedisOptions = {
   },
   keepAlive: 0,
   noDelay: true,
+  blockingConnectionTimeout: 0,
   connectionName: null,
   disableClientInfo: false,
   clientInfoTag: undefined,
