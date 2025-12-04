@@ -445,6 +445,19 @@ class Redis extends Commander implements DataHandledable {
       command.setTimeout(this.options.commandTimeout);
     }
 
+    if (
+      typeof this.options.blockingTimeout === "number" &&
+      this.options.blockingTimeout > 0 &&
+      Command.checkFlag("BLOCKING_COMMANDS", command.name)
+    ) {
+      command.setBlockingTimeout(this.options.blockingTimeout, () => {
+        // Destroy stream to force reconnection
+        this.stream?.destroy(
+          new Error("Blocking command timed out - reconnecting")
+        );
+      });
+    }
+
     let writable =
       this.status === "ready" ||
       (!stream &&

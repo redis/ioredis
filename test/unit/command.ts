@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import Command from "../../lib/Command";
+import * as sinon from "sinon";
 
 describe("Command", () => {
   describe("constructor()", () => {
@@ -166,7 +167,7 @@ describe("Command", () => {
       expect(Command.checkFlag("WILL_DISCONNECT", "quit")).to.eql(true);
     });
 
-    it('should be case insensitive for command name', () => {
+    it("should be case insensitive for command name", () => {
       expect(Command.checkFlag("VALID_IN_SUBSCRIBER_MODE", "PING")).to.eql(
         true
       );
@@ -174,6 +175,66 @@ describe("Command", () => {
         false
       );
       expect(Command.checkFlag("WILL_DISCONNECT", "QuIt")).to.eql(true);
+    });
+  });
+
+  describe("#setBlockingTimeout()", () => {
+    it("should reject command when blocking timeout expires", (done) => {
+      const command = new Command("blpop", ["key", "0"]);
+      command.setBlockingTimeout(50); // 50ms timeout
+
+      command.promise.catch((err) => {
+        expect(err.message).to.include("Blocking command timed out");
+        done();
+      });
+    });
+
+    it("should not reject if command resolves before timeout", async () => {
+      const command = new Command("blpop", ["key", "0"]);
+      command.setBlockingTimeout(100);
+
+      // Resolve immediately
+      setTimeout(() => command.resolve(["key", "value"]), 10);
+
+      const result = await command.promise;
+      expect(result).to.deep.equal(["key", "value"]);
+    });
+
+    it("should call onTimeout callback when timeout expires", (done) => {
+      const command = new Command("bzpopmin", ["key", "0"]);
+      let callbackCalled = false;
+
+      command.setBlockingTimeout(50, () => {
+        callbackCalled = true;
+      });
+
+      command.promise.catch(() => {
+        expect(callbackCalled).to.be.true;
+        done();
+      });
+    });
+
+    it("should clear timer when command is resolved", (done) => {
+      const clock = sinon.useFakeTimers();
+      const command = new Command("blpop", ["key", "0"]);
+      command.setBlockingTimeout(100);
+
+      command.resolve(["key", "value"]);
+
+      command.promise.then(() => {
+        clock.tick(150); // Advance past timeout
+        // Should not throw/reject since already resolved
+        clock.restore();
+        done();
+      });
+    });
+
+    it("should not set timer if already resolved", () => {
+      const command = new Command("blpop", ["key", "0"]);
+      command.resolve(["key", "value"]);
+      expect(() => {
+        command.setBlockingTimeout(100);
+      }).to.not.throw();
     });
   });
 });

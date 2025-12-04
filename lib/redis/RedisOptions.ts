@@ -16,6 +16,12 @@ export interface CommonRedisOptions extends CommanderOptions {
   commandTimeout?: number;
 
   /**
+   * If a blocking command does not return a reply within a set number of milliseconds,
+   * the connection will be reestablished.
+   */
+  blockingTimeout?: number;
+
+  /**
    * If the socket does not receive data within a set number of milliseconds:
    * 1. the socket is considered "dead" and will be destroyed
    * 2. the client will reject any running commands (altought they might have been processed by the server)
