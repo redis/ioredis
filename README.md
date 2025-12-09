@@ -798,6 +798,18 @@ const redis = new Redis({
 
 Set maxRetriesPerRequest to `null` to disable this behavior, and every command will wait forever until the connection is alive again (which is the default behavior before ioredis v4).
 
+### Blocking Command Timeout
+
+Blocking commands (such as `blpop`, `brpop`, `bzpopmin`, `bzpopmax`, `xread`, `xreadgroup`, etc.) can sometimes hang indefinitely if a connection issue occurs while the command is blocked. To prevent this, you can set the `blockingTimeout` option:
+
+```javascript
+const redis = new Redis({
+  blockingTimeout: 30000, // 30 seconds
+});
+```
+
+If a blocking command does not return a reply within the specified time, the connection will be destroyed and re-established, and the command's promise will be rejected with a "Blocking command timed out" error.
+
 ### Reconnect on Error
 
 Besides auto-reconnect when the connection is closed, ioredis supports reconnecting on certain Redis errors using the `reconnectOnError` option. Here's an example that will reconnect when receiving `READONLY` error:
