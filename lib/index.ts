@@ -14,6 +14,7 @@ export {
 // Type Exports
 export { ISentinelAddress } from "./connectors/SentinelConnector";
 export { IRedisOptions } from "./redis/RedisOptions";
+export { default as Script } from "./script";
 
 // No TS typings
 export const ReplyError = require("redis-errors").ReplyError;
