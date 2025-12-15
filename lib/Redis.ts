@@ -827,7 +827,7 @@ class Redis extends Commander implements DataHandledable {
           );
           return callback(null, {});
         }
-        return callback(err);
+        return callback(err, undefined);
       }
       if (typeof res !== "string") {
         return callback(null, res);
