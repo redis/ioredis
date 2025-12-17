@@ -191,6 +191,7 @@ export default class Command implements Respondable {
   private transformed = false;
   private _commandTimeoutTimer?: NodeJS.Timeout;
   private _blockingTimeoutTimer?: NodeJS.Timeout;
+  private _blockingDeadline?: number;
 
   private slot?: number | null;
   private keys?: Array<string | Buffer>;
@@ -352,20 +353,50 @@ export default class Command implements Respondable {
       }, ms);
     }
   }
+
   /**
-   * Set the wait time before terminating a blocking command
-   * and generating an error and reconnecting.
+   * Set a timeout for blocking commands.
+   * When the timeout expires, the command resolves with null (matching Redis behavior).
+   * This handles the case of undetectable network failures (e.g., docker network disconnect)
+   * where the TCP connection becomes a zombie and no close event fires.
    */
-  setBlockingTimeout(ms: number, onTimeout?: () => void) {
-    if (!this._blockingTimeoutTimer) {
-      this._blockingTimeoutTimer = setTimeout(() => {
-        if (!this.isResolved) {
-          const err = new Error("Blocking command timed out");
-          this.reject(err);
-          onTimeout?.();
-        }
-      }, ms);
+  setBlockingTimeout(ms: number) {
+    if (!(ms > 0)) {
+      return;
     }
+
+    // Clear existing timer if any (can happen when command moves from offline to command queue)
+    if (this._blockingTimeoutTimer) {
+      clearTimeout(this._blockingTimeoutTimer);
+      this._blockingTimeoutTimer = undefined;
+    }
+
+    const now = Date.now();
+
+    // First call: establish absolute deadline
+    if (this._blockingDeadline === undefined) {
+      this._blockingDeadline = now + ms;
+    }
+
+    // Check if we've already exceeded the deadline
+    const remaining = this._blockingDeadline - now;
+    if (remaining <= 0) {
+      // Resolve with null to indicate timeout (same as Redis behavior)
+      this.resolve(null);
+      return;
+    }
+
+    this._blockingTimeoutTimer = setTimeout(() => {
+      if (this.isResolved) {
+        this._blockingTimeoutTimer = undefined;
+        return;
+      }
+
+      this._blockingTimeoutTimer = undefined;
+
+      // Timeout expired - resolve with null (same as Redis behavior when blocking command times out)
+      this.resolve(null);
+    }, remaining);
   }
 
   /**

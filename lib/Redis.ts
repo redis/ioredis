@@ -18,6 +18,7 @@ import { addTransactionSupport, Transaction } from "./transaction";
 import {
   Callback,
   CommandItem,
+  CommandParameter,
   NetStream,
   ScanStreamOptions,
   WriteableStream,
@@ -34,6 +35,18 @@ import Commander from "./utils/Commander";
 import { defaults, noop } from "./utils/lodash";
 import Deque = require("denque");
 const debug = Debug("redis");
+
+const BLOCKING_COMMAND_GRACE_MS = 100;
+const LAST_ARG_TIMEOUT_COMMANDS = new Set([
+  "blpop",
+  "brpop",
+  "brpoplpush",
+  "blmove",
+  "bzpopmin",
+  "bzpopmax",
+]);
+const FIRST_ARG_TIMEOUT_COMMANDS = new Set(["bzmpop", "blmpop"]);
+const BLOCK_OPTION_COMMANDS = new Set(["xread", "xreadgroup"]);
 
 type RedisStatus =
   | "wait"
@@ -445,18 +458,7 @@ class Redis extends Commander implements DataHandledable {
       command.setTimeout(this.options.commandTimeout);
     }
 
-    if (
-      typeof this.options.blockingTimeout === "number" &&
-      this.options.blockingTimeout > 0 &&
-      Command.checkFlag("BLOCKING_COMMANDS", command.name)
-    ) {
-      command.setBlockingTimeout(this.options.blockingTimeout, () => {
-        // Destroy stream to force reconnection
-        this.stream?.destroy(
-          new Error("Blocking command timed out - reconnecting")
-        );
-      });
-    }
+    const blockingTimeout = this.getBlockingTimeoutInMs(command);
 
     let writable =
       this.status === "ready" ||
@@ -508,6 +510,18 @@ class Redis extends Commander implements DataHandledable {
         stream: stream,
         select: this.condition.select,
       });
+
+      // For blocking commands, set a timeout while queued to ensure they don't wait forever
+      // if connection never becomes ready (e.g., docker network disconnect scenario)
+      // Use blockingTimeout if configured, otherwise fall back to the command's own timeout
+      if (Command.checkFlag("BLOCKING_COMMANDS", command.name)) {
+        const offlineTimeout =
+          this.getConfiguredBlockingTimeout() ?? blockingTimeout;
+
+        if (offlineTimeout !== undefined) {
+          command.setBlockingTimeout(offlineTimeout);
+        }
+      }
     } else {
       // @ts-expect-error
       if (debug.enabled) {
@@ -536,6 +550,10 @@ class Redis extends Commander implements DataHandledable {
         select: this.condition.select,
       });
 
+      if (blockingTimeout !== undefined) {
+        command.setBlockingTimeout(blockingTimeout);
+      }
+
       if (Command.checkFlag("WILL_DISCONNECT", command.name)) {
         this.manuallyClosing = true;
       }
@@ -555,6 +573,143 @@ class Redis extends Commander implements DataHandledable {
     }
 
     return command.promise;
+  }
+
+  private getBlockingTimeoutInMs(command: Command): number | undefined {
+    if (!Command.checkFlag("BLOCKING_COMMANDS", command.name)) {
+      return undefined;
+    }
+
+    const timeout = this.extractBlockingTimeoutFromCommand(command);
+    if (typeof timeout === "number") {
+      if (timeout > 0) {
+        // Finite timeout from command args - add grace period
+        return timeout + BLOCKING_COMMAND_GRACE_MS;
+      }
+      // Command has timeout=0 (block forever), use blockingTimeout option as safety net
+      return this.getConfiguredBlockingTimeout();
+    }
+
+    if (timeout === null) {
+      // No BLOCK option found (e.g., XREAD without BLOCK), use blockingTimeout as safety net
+      return this.getConfiguredBlockingTimeout();
+    }
+
+    return undefined;
+  }
+
+  private extractBlockingTimeoutFromCommand(
+    command: Command
+  ): number | null | undefined {
+    const args = command.args;
+    if (!args || args.length === 0) {
+      return undefined;
+    }
+
+    const name = command.name.toLowerCase();
+
+    if (LAST_ARG_TIMEOUT_COMMANDS.has(name)) {
+      return this.parseSecondsArgument(args[args.length - 1]);
+    }
+
+    if (FIRST_ARG_TIMEOUT_COMMANDS.has(name)) {
+      return this.parseSecondsArgument(args[0]);
+    }
+
+    if (BLOCK_OPTION_COMMANDS.has(name)) {
+      return this.parseBlockOption(args);
+    }
+
+    return undefined;
+  }
+
+  private parseSecondsArgument(
+    arg: CommandParameter | undefined
+  ): number | null | undefined {
+    const value = this.parseNumberArgument(arg);
+    if (typeof value === "undefined") {
+      return undefined;
+    }
+
+    if (value <= 0) {
+      return 0;
+    }
+
+    return value * 1000;
+  }
+
+  private parseBlockOption(
+    args: CommandParameter[]
+  ): number | null | undefined {
+    for (let i = 0; i < args.length; i++) {
+      const token = this.parseStringArgument(args[i]);
+      if (token && token.toLowerCase() === "block") {
+        const duration = this.parseNumberArgument(args[i + 1]);
+        if (typeof duration === "undefined") {
+          return undefined;
+        }
+
+        if (duration <= 0) {
+          return 0;
+        }
+
+        return duration;
+      }
+    }
+
+    return null;
+  }
+
+  private parseNumberArgument(
+    arg: CommandParameter | undefined
+  ): number | undefined {
+    if (typeof arg === "undefined") {
+      return undefined;
+    }
+
+    if (typeof arg === "number") {
+      return arg;
+    }
+
+    if (Buffer.isBuffer(arg)) {
+      return this.parseNumberArgument(arg.toString());
+    }
+
+    if (typeof arg === "string") {
+      const value = Number(arg);
+      return Number.isFinite(value) ? value : undefined;
+    }
+
+    return undefined;
+  }
+
+  private parseStringArgument(
+    arg: CommandParameter | undefined
+  ): string | undefined {
+    if (typeof arg === "undefined") {
+      return undefined;
+    }
+
+    if (typeof arg === "string") {
+      return arg;
+    }
+
+    if (Buffer.isBuffer(arg)) {
+      return arg.toString();
+    }
+
+    return undefined;
+  }
+
+  private getConfiguredBlockingTimeout(): number | undefined {
+    if (
+      typeof this.options.blockingTimeout === "number" &&
+      this.options.blockingTimeout > 0
+    ) {
+      return this.options.blockingTimeout;
+    }
+
+    return undefined;
   }
 
   private setSocketTimeout() {

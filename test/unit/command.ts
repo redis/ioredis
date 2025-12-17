@@ -179,62 +179,63 @@ describe("Command", () => {
   });
 
   describe("#setBlockingTimeout()", () => {
-    it("should reject command when blocking timeout expires", (done) => {
-      const command = new Command("blpop", ["key", "0"]);
-      command.setBlockingTimeout(50); // 50ms timeout
-
-      command.promise.catch((err) => {
-        expect(err.message).to.include("Blocking command timed out");
-        done();
-      });
-    });
-
-    it("should not reject if command resolves before timeout", async () => {
-      const command = new Command("blpop", ["key", "0"]);
-      command.setBlockingTimeout(100);
-
-      // Resolve immediately
-      setTimeout(() => command.resolve(["key", "value"]), 10);
-
-      const result = await command.promise;
-      expect(result).to.deep.equal(["key", "value"]);
-    });
-
-    it("should call onTimeout callback when timeout expires", (done) => {
-      const command = new Command("bzpopmin", ["key", "0"]);
-      let callbackCalled = false;
-
-      command.setBlockingTimeout(50, () => {
-        callbackCalled = true;
-      });
-
-      command.promise.catch(() => {
-        expect(callbackCalled).to.be.true;
-        done();
-      });
-    });
-
-    it("should clear timer when command is resolved", (done) => {
+    it("should resolve command with null when timeout fires", async () => {
       const clock = sinon.useFakeTimers();
       const command = new Command("blpop", ["key", "0"]);
-      command.setBlockingTimeout(100);
 
-      command.resolve(["key", "value"]);
+      command.setBlockingTimeout(25);
 
-      command.promise.then(() => {
-        clock.tick(150); // Advance past timeout
-        // Should not throw/reject since already resolved
-        clock.restore();
-        done();
-      });
+      clock.tick(30);
+
+      const value = await command.promise;
+      expect(value).to.be.null;
+
+      clock.restore();
     });
 
-    it("should not set timer if already resolved", () => {
+    it("should clear timer when command resolves", async () => {
+      const clock = sinon.useFakeTimers();
       const command = new Command("blpop", ["key", "0"]);
+
+      command.setBlockingTimeout(50);
+
       command.resolve(["key", "value"]);
-      expect(() => {
-        command.setBlockingTimeout(100);
-      }).to.not.throw();
+
+      clock.tick(100);
+      const value = await command.promise;
+      expect(value).to.deep.equal(["key", "value"]);
+      clock.restore();
+    });
+
+    it("should not re-resolve after already resolved with value", async () => {
+      const clock = sinon.useFakeTimers();
+      const command = new Command("blpop", ["key", "0"]);
+
+      command.resolve(["key", "value"]);
+
+      command.setBlockingTimeout(10);
+
+      clock.tick(20);
+
+      const value = await command.promise;
+      expect(value).to.deep.equal(["key", "value"]);
+      clock.restore();
+    });
+
+    it("should ignore non-positive durations", () => {
+      const clock = sinon.useFakeTimers();
+      const command = new Command("blpop", ["key", "0"]);
+      let resolved = false;
+
+      command.promise.then(() => {
+        resolved = true;
+      });
+
+      command.setBlockingTimeout(0);
+      clock.tick(100);
+
+      expect(resolved).to.be.false;
+      clock.restore();
     });
   });
 });

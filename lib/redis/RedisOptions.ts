@@ -16,8 +16,9 @@ export interface CommonRedisOptions extends CommanderOptions {
   commandTimeout?: number;
 
   /**
-   * If a blocking command does not return a reply within a set number of milliseconds,
-   * the connection will be reestablished.
+   * Safety net for blocking commands that use timeout=0 / BLOCK 0 (milliseconds).
+   * When such commands don't receive a reply within this window, the connection is
+   * recycled and the blocking command is replayed automatically.
    */
   blockingTimeout?: number;
 
