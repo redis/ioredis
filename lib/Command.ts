@@ -9,6 +9,10 @@ import {
   convertObjectToArray,
 } from "./utils";
 import { Callback, Respondable, CommandParameter } from "./types";
+import {
+  parseBlockOption,
+  parseSecondsArgument,
+} from "./utils/argumentParsers";
 
 export type ArgumentType =
   | string
@@ -59,7 +63,7 @@ export interface CommandNameFlags {
   HANDSHAKE_COMMANDS: ["auth", "select", "client", "readonly", "info"];
   // Commands that should not trigger a reconnection when errors occur
   IGNORE_RECONNECT_ON_ERROR: ["client"];
-  // Commands that are blocking or could block optionally
+  // Commands that block
   BLOCKING_COMMANDS: [
     "blpop",
     "brpop",
@@ -72,6 +76,19 @@ export interface CommandNameFlags {
     "xread",
     "xreadgroup"
   ];
+  // Commands that have timeout as the last argument
+  LAST_ARG_TIMEOUT_COMMANDS: [
+    "blpop",
+    "brpop",
+    "brpoplpush",
+    "blmove",
+    "bzpopmin",
+    "bzpopmax"
+  ];
+  // Commands that have timeout as the first argument
+  FIRST_ARG_TIMEOUT_COMMANDS: ["bzmpop", "blmpop"];
+  // Commands that have BLOCK option
+  BLOCK_OPTION_COMMANDS: ["xread", "xreadgroup"];
 }
 
 /**
@@ -126,6 +143,16 @@ export default class Command implements Respondable {
       "xread",
       "xreadgroup",
     ],
+    LAST_ARG_TIMEOUT_COMMANDS: [
+      "blpop",
+      "brpop",
+      "brpoplpush",
+      "blmove",
+      "bzpopmin",
+      "bzpopmax",
+    ],
+    FIRST_ARG_TIMEOUT_COMMANDS: ["bzmpop", "blmpop"],
+    BLOCK_OPTION_COMMANDS: ["xread", "xreadgroup"],
   };
 
   private static flagMap?: FlagMap;
@@ -361,7 +388,7 @@ export default class Command implements Respondable {
    * where the TCP connection becomes a zombie and no close event fires.
    */
   setBlockingTimeout(ms: number) {
-    if (!(ms > 0)) {
+    if (ms <= 0) {
       return;
     }
 
@@ -397,6 +424,30 @@ export default class Command implements Respondable {
       // Timeout expired - resolve with null (same as Redis behavior when blocking command times out)
       this.resolve(null);
     }, remaining);
+  }
+
+  extractBlockingTimeout(): number | null | undefined {
+    const args = this.args;
+
+    if (!args || args.length === 0) {
+      return undefined;
+    }
+
+    const name = this.name.toLowerCase();
+
+    if (Command.checkFlag("LAST_ARG_TIMEOUT_COMMANDS", name)) {
+      return parseSecondsArgument(args[args.length - 1]);
+    }
+
+    if (Command.checkFlag("FIRST_ARG_TIMEOUT_COMMANDS", name)) {
+      return parseSecondsArgument(args[0]);
+    }
+
+    if (Command.checkFlag("BLOCK_OPTION_COMMANDS", name)) {
+      return parseBlockOption(args);
+    }
+
+    return undefined;
   }
 
   /**

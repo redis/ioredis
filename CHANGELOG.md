@@ -1,9 +1,3 @@
-## [Unreleased]
-
-### Bug Fixes
-
-* resolve blocking commands with `null` when their timeout expires without a response, preventing indefinite hangs during undetectable network failures; add `blockingTimeout` option as a safety net for commands that block forever ([#2051](https://github.com/redis/ioredis/pull/2051))
-
 ## [5.8.2](https://github.com/luin/ioredis/compare/v5.8.1...v5.8.2) (2025-10-21)
 
 

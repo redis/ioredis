@@ -18,7 +18,6 @@ import { addTransactionSupport, Transaction } from "./transaction";
 import {
   Callback,
   CommandItem,
-  CommandParameter,
   NetStream,
   ScanStreamOptions,
   WriteableStream,
@@ -37,16 +36,6 @@ import Deque = require("denque");
 const debug = Debug("redis");
 
 const BLOCKING_COMMAND_GRACE_MS = 100;
-const LAST_ARG_TIMEOUT_COMMANDS = new Set([
-  "blpop",
-  "brpop",
-  "brpoplpush",
-  "blmove",
-  "bzpopmin",
-  "bzpopmax",
-]);
-const FIRST_ARG_TIMEOUT_COMMANDS = new Set(["bzmpop", "blmpop"]);
-const BLOCK_OPTION_COMMANDS = new Set(["xread", "xreadgroup"]);
 
 type RedisStatus =
   | "wait"
@@ -580,7 +569,7 @@ class Redis extends Commander implements DataHandledable {
       return undefined;
     }
 
-    const timeout = this.extractBlockingTimeoutFromCommand(command);
+    const timeout = command.extractBlockingTimeout();
     if (typeof timeout === "number") {
       if (timeout > 0) {
         // Finite timeout from command args - add grace period
@@ -593,109 +582,6 @@ class Redis extends Commander implements DataHandledable {
     if (timeout === null) {
       // No BLOCK option found (e.g., XREAD without BLOCK), use blockingTimeout as safety net
       return this.getConfiguredBlockingTimeout();
-    }
-
-    return undefined;
-  }
-
-  private extractBlockingTimeoutFromCommand(
-    command: Command
-  ): number | null | undefined {
-    const args = command.args;
-    if (!args || args.length === 0) {
-      return undefined;
-    }
-
-    const name = command.name.toLowerCase();
-
-    if (LAST_ARG_TIMEOUT_COMMANDS.has(name)) {
-      return this.parseSecondsArgument(args[args.length - 1]);
-    }
-
-    if (FIRST_ARG_TIMEOUT_COMMANDS.has(name)) {
-      return this.parseSecondsArgument(args[0]);
-    }
-
-    if (BLOCK_OPTION_COMMANDS.has(name)) {
-      return this.parseBlockOption(args);
-    }
-
-    return undefined;
-  }
-
-  private parseSecondsArgument(
-    arg: CommandParameter | undefined
-  ): number | null | undefined {
-    const value = this.parseNumberArgument(arg);
-    if (typeof value === "undefined") {
-      return undefined;
-    }
-
-    if (value <= 0) {
-      return 0;
-    }
-
-    return value * 1000;
-  }
-
-  private parseBlockOption(
-    args: CommandParameter[]
-  ): number | null | undefined {
-    for (let i = 0; i < args.length; i++) {
-      const token = this.parseStringArgument(args[i]);
-      if (token && token.toLowerCase() === "block") {
-        const duration = this.parseNumberArgument(args[i + 1]);
-        if (typeof duration === "undefined") {
-          return undefined;
-        }
-
-        if (duration <= 0) {
-          return 0;
-        }
-
-        return duration;
-      }
-    }
-
-    return null;
-  }
-
-  private parseNumberArgument(
-    arg: CommandParameter | undefined
-  ): number | undefined {
-    if (typeof arg === "undefined") {
-      return undefined;
-    }
-
-    if (typeof arg === "number") {
-      return arg;
-    }
-
-    if (Buffer.isBuffer(arg)) {
-      return this.parseNumberArgument(arg.toString());
-    }
-
-    if (typeof arg === "string") {
-      const value = Number(arg);
-      return Number.isFinite(value) ? value : undefined;
-    }
-
-    return undefined;
-  }
-
-  private parseStringArgument(
-    arg: CommandParameter | undefined
-  ): string | undefined {
-    if (typeof arg === "undefined") {
-      return undefined;
-    }
-
-    if (typeof arg === "string") {
-      return arg;
-    }
-
-    if (Buffer.isBuffer(arg)) {
-      return arg.toString();
     }
 
     return undefined;
