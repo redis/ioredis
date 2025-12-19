@@ -239,4 +239,26 @@ describe("blocking command recovery", function () {
       await server.disconnectPromise();
     }
   });
+
+  it("uses blockingTimeout for XREAD without BLOCK option", async () => {
+    const server = new MockServer(30001, (argv, _socket, flags) => {
+      if (argv[0] === "xread") {
+        flags.hang = true;
+      }
+    });
+
+    const redis = new Redis({ port: 30001, blockingTimeout: 100 });
+    redis.on("error", () => {});
+
+    try {
+      const start = Date.now();
+      // XREAD without BLOCK - should use blockingTimeout as safety net
+      const result = await redis.xread("STREAMS", "stream", "0");
+      expect(result).to.be.null;
+      expect(Date.now() - start).to.be.lessThan(500);
+    } finally {
+      redis.disconnect();
+      await server.disconnectPromise();
+    }
+  });
 });

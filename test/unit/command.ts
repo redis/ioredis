@@ -237,6 +237,45 @@ describe("Command", () => {
       expect(resolved).to.be.false;
       clock.restore();
     });
+
+    it("should preserve original deadline when setBlockingTimeout is called multiple times", async () => {
+      const clock = sinon.useFakeTimers();
+      const command = new Command("blpop", ["key", "0"]);
+
+      // First call sets deadline at now + 100ms
+      command.setBlockingTimeout(100);
+      
+      clock.tick(50);
+      
+      // Second call (e.g., command moved from offline to command queue)
+      // Should NOT extend deadline - should still fire at original 100ms
+      command.setBlockingTimeout(100);
+      
+      // At 100ms mark, command should resolve
+      clock.tick(50);
+      
+      const value = await command.promise;
+      expect(value).to.be.null;
+      
+      clock.restore();
+    });
+
+    it("should resolve immediately if deadline has already passed", () => {
+      const clock = sinon.useFakeTimers();
+      const command = new Command("blpop", ["key", "0"]);
+
+      // Set deadline at now + 100ms
+      command.setBlockingTimeout(100);
+      
+      clock.tick(150);
+      
+      // Second call - deadline already passed, should resolve immediately
+      command.setBlockingTimeout(100);
+      
+      expect(command.isResolved).to.be.true;
+      
+      clock.restore();
+    });
   });
 
   describe("#extractBlockingTimeout()", () => {

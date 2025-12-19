@@ -426,6 +426,12 @@ export default class Command implements Respondable {
     }, remaining);
   }
 
+  /**
+   * Extract the blocking timeout from the command arguments.
+   *
+   * @returns The timeout in seconds, null for indefinite blocking (timeout of 0),
+   *          or undefined if this is not a blocking command
+   */
   extractBlockingTimeout(): number | null | undefined {
     const args = this.args;
 
