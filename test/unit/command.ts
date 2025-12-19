@@ -238,4 +238,153 @@ describe("Command", () => {
       clock.restore();
     });
   });
+
+  describe("#extractBlockingTimeout()", () => {
+    describe("returns undefined for", () => {
+      it("non-blocking commands", () => {
+        const command = new Command("get", ["key"]);
+        expect(command.extractBlockingTimeout()).to.be.undefined;
+      });
+
+      it("commands with empty args", () => {
+        const command = new Command("blpop", []);
+        expect(command.extractBlockingTimeout()).to.be.undefined;
+      });
+    });
+
+    describe("LAST_ARG_TIMEOUT_COMMANDS", () => {
+      const lastArgCommands = [
+        "blpop",
+        "brpop",
+        "brpoplpush",
+        "blmove",
+        "bzpopmin",
+        "bzpopmax",
+      ];
+
+      lastArgCommands.forEach((cmd) => {
+        it(`extracts timeout from ${cmd} with number arg`, () => {
+          const command = new Command(cmd, ["key1", "key2", 5]);
+          expect(command.extractBlockingTimeout()).to.equal(5000);
+        });
+
+        it(`extracts timeout from ${cmd} with string arg`, () => {
+          const command = new Command(cmd, ["key1", "key2", "10"]);
+          expect(command.extractBlockingTimeout()).to.equal(10000);
+        });
+
+        it(`extracts timeout from ${cmd.toUpperCase()} (case insensitive)`, () => {
+          const command = new Command(cmd.toUpperCase(), ["key", 3]);
+          expect(command.extractBlockingTimeout()).to.equal(3000);
+        });
+
+        it(`returns 0 for ${cmd} with zero timeout`, () => {
+          const command = new Command(cmd, ["key", 0]);
+          expect(command.extractBlockingTimeout()).to.equal(0);
+        });
+
+        it(`returns 0 for ${cmd} with negative timeout`, () => {
+          const command = new Command(cmd, ["key", -5]);
+          expect(command.extractBlockingTimeout()).to.equal(0);
+        });
+
+        it(`returns undefined for ${cmd} with invalid timeout arg`, () => {
+          const command = new Command(cmd, ["key", "invalid"]);
+          expect(command.extractBlockingTimeout()).to.be.undefined;
+        });
+      });
+
+      it("handles Buffer timeout arg", () => {
+        const command = new Command("blpop", ["key", Buffer.from("5")]);
+        expect(command.extractBlockingTimeout()).to.equal(5000);
+      });
+
+      it("handles fractional seconds", () => {
+        const command = new Command("blpop", ["key", "1.5"]);
+        expect(command.extractBlockingTimeout()).to.equal(1500);
+      });
+    });
+
+    describe("FIRST_ARG_TIMEOUT_COMMANDS", () => {
+      const firstArgCommands = ["bzmpop", "blmpop"];
+
+      firstArgCommands.forEach((cmd) => {
+        it(`extracts timeout from ${cmd} with number arg`, () => {
+          const command = new Command(cmd, [5, "1", "MIN", "key1"]);
+          expect(command.extractBlockingTimeout()).to.equal(5000);
+        });
+
+        it(`extracts timeout from ${cmd} with string arg`, () => {
+          const command = new Command(cmd, ["10", "1", "MAX", "key1"]);
+          expect(command.extractBlockingTimeout()).to.equal(10000);
+        });
+
+        it(`extracts timeout from ${cmd.toUpperCase()} (case insensitive)`, () => {
+          const command = new Command(cmd.toUpperCase(), [3, "1", "MIN", "key"]);
+          expect(command.extractBlockingTimeout()).to.equal(3000);
+        });
+
+        it(`returns 0 for ${cmd} with zero timeout`, () => {
+          const command = new Command(cmd, [0, "1", "MIN", "key"]);
+          expect(command.extractBlockingTimeout()).to.equal(0);
+        });
+
+        it(`returns 0 for ${cmd} with negative timeout`, () => {
+          const command = new Command(cmd, [-5, "1", "MIN", "key"]);
+          expect(command.extractBlockingTimeout()).to.equal(0);
+        });
+
+        it(`returns undefined for ${cmd} with invalid timeout arg`, () => {
+          const command = new Command(cmd, ["invalid", "1", "MIN", "key"]);
+          expect(command.extractBlockingTimeout()).to.be.undefined;
+        });
+      });
+    });
+
+    describe("BLOCK_OPTION_COMMANDS", () => {
+      const blockOptionCommands = ["xread", "xreadgroup"];
+
+      blockOptionCommands.forEach((cmd) => {
+        it(`extracts timeout from ${cmd} with BLOCK option`, () => {
+          const command = new Command(cmd, ["BLOCK", 5000, "STREAMS", "stream", "0"]);
+          expect(command.extractBlockingTimeout()).to.equal(5000);
+        });
+
+        it(`extracts timeout from ${cmd} with lowercase block option`, () => {
+          const command = new Command(cmd, ["block", 3000, "STREAMS", "stream", "0"]);
+          expect(command.extractBlockingTimeout()).to.equal(3000);
+        });
+
+        it(`returns null for ${cmd} without BLOCK option`, () => {
+          const command = new Command(cmd, ["STREAMS", "stream", "0"]);
+          expect(command.extractBlockingTimeout()).to.be.null;
+        });
+
+        it(`returns 0 for ${cmd} with zero BLOCK duration`, () => {
+          const command = new Command(cmd, ["BLOCK", 0, "STREAMS", "stream", "0"]);
+          expect(command.extractBlockingTimeout()).to.equal(0);
+        });
+
+        it(`returns 0 for ${cmd} with negative BLOCK duration`, () => {
+          const command = new Command(cmd, ["BLOCK", -100, "STREAMS", "stream", "0"]);
+          expect(command.extractBlockingTimeout()).to.equal(0);
+        });
+
+        it(`returns undefined for ${cmd} with invalid BLOCK duration`, () => {
+          const command = new Command(cmd, ["BLOCK", "invalid", "STREAMS", "stream", "0"]);
+          expect(command.extractBlockingTimeout()).to.be.undefined;
+        });
+      });
+
+      it("handles BLOCK option with Buffer value", () => {
+        const command = new Command("xread", ["BLOCK", Buffer.from("5000"), "STREAMS", "s", "0"]);
+        expect(command.extractBlockingTimeout()).to.equal(5000);
+      });
+
+      it("handles BLOCK as Buffer token", () => {
+        const command = new Command("xread", [Buffer.from("BLOCK"), 2000, "STREAMS", "s", "0"]);
+        expect(command.extractBlockingTimeout()).to.equal(2000);
+      });
+    });
+  });
 });

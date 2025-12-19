@@ -798,19 +798,19 @@ const redis = new Redis({
 
 Set maxRetriesPerRequest to `null` to disable this behavior, and every command will wait forever until the connection is alive again (which is the default behavior before ioredis v4).
 
-### Blocking Command Recovery
+### Blocking Command Timeout
 
-ioredis automatically tracks blocking commands (such as `blpop`, `brpop`, `bzpopmin`, `bzmpop`, `blmpop`, `xread`, `xreadgroup`, etc.) and infers the timeout from the command arguments (`timeout` or `BLOCK`). If Redis never replies before that timeout expires—typically because of a silent network issue—the client destroys the socket, reconnects, and transparently replays the blocking command. The pending promise stays in-flight, so your code simply keeps waiting for data instead of hanging forever.
+ioredis can apply a client-side timeout to blocking commands (such as `blpop`, `brpop`, `bzpopmin`, `bzmpop`, `blmpop`, `xread`, `xreadgroup`, etc.). This protects against scenarios where the TCP connection becomes a zombie (e.g., due to a silent network failure like a Docker network disconnect) and Redis never replies.
 
-For commands that intentionally block forever (e.g. `timeout = 0` or `BLOCK 0`), you can provide a safety net via the optional `blockingTimeout` option (milliseconds). When no finite timeout exists on the command itself, ioredis waits this long before forcing a reconnect:
+For commands with a finite timeout (e.g., `blpop("key", 5)`), ioredis automatically sets a client-side deadline based on the command's timeout plus a small grace period. If no reply arrives before the deadline, the command resolves with `null`—the same value Redis returns when a blocking command times out normally.
+
+For commands that intentionally block forever (e.g., `timeout = 0` or `BLOCK 0`), you can provide a safety net via the optional `blockingTimeout` option (milliseconds):
 
 ```javascript
 const redis = new Redis({
-  blockingTimeout: 30000, // Reconnect after 30 seconds when timeout=0/BLOCK 0
+  blockingTimeout: 30000, // Resolve with null after 30 seconds when timeout=0/BLOCK 0
 });
 ```
-
-This reconnection flow happens behind the scenes—no new errors are thrown, and the blocking command continues waiting once the connection is re-established.
 
 ### Reconnect on Error
 
