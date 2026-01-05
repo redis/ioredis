@@ -1,3 +1,10 @@
+# [4.31.0](https://github.com/luin/ioredis/compare/v4.30.1...v4.31.0) (2026-01-05)
+
+
+### Features
+
+* **cluster:** refactor sharded pub/sub v4 ([#2042](https://github.com/luin/ioredis/issues/2042)) ([7213d88](https://github.com/luin/ioredis/commit/7213d882b1655b9ebb52ad42f8e8d3b494333b91))
+
 ## [4.30.1](https://github.com/luin/ioredis/compare/v4.30.0...v4.30.1) (2025-09-16)
 
 
