@@ -35,8 +35,6 @@ import { defaults, noop } from "./utils/lodash";
 import Deque = require("denque");
 const debug = Debug("redis");
 
-const BLOCKING_COMMAND_GRACE_MS = 100;
-
 type RedisStatus =
   | "wait"
   | "reconnecting"
@@ -573,7 +571,7 @@ class Redis extends Commander implements DataHandledable {
     if (typeof timeout === "number") {
       if (timeout > 0) {
         // Finite timeout from command args - add grace period
-        return timeout + BLOCKING_COMMAND_GRACE_MS;
+        return timeout + (this.options.blockingTimeoutGrace ?? DEFAULT_REDIS_OPTIONS.blockingTimeoutGrace);
       }
       // Command has timeout=0 (block forever), use blockingTimeout option as safety net
       return this.getConfiguredBlockingTimeout();

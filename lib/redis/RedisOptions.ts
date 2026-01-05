@@ -16,11 +16,16 @@ export interface CommonRedisOptions extends CommanderOptions {
   commandTimeout?: number;
 
   /**
-   * Safety net for blocking commands that use timeout=0 / BLOCK 0 (milliseconds).
-   * When such commands don't receive a reply within this window, the connection is
-   * recycled and the blocking command is replayed automatically.
+   * Timeout (ms) for blocking commands with timeout=0 / BLOCK 0.
+   * When exceeded, the command resolves with null.
    */
   blockingTimeout?: number;
+
+  /**
+   * Grace period (ms) added to blocking command timeouts to account for network latency.
+   * @default 100
+   */
+  blockingTimeoutGrace?: number;
 
   /**
    * If the socket does not receive data within a set number of milliseconds:
@@ -269,4 +274,5 @@ export const DEFAULT_REDIS_OPTIONS: RedisOptions = {
   enableAutoPipelining: false,
   autoPipeliningIgnoredCommands: [],
   sentinelMaxConnections: 10,
+  blockingTimeoutGrace: 100,
 };
