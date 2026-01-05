@@ -1,3 +1,16 @@
+# [5.9.0](https://github.com/luin/ioredis/compare/v5.8.2...v5.9.0) (2026-01-05)
+
+
+### Bug Fixes
+
+* remove unnecessary case-sensitivity when working with commands ([#2036](https://github.com/luin/ioredis/issues/2036)) ([f33a2c8](https://github.com/luin/ioredis/commit/f33a2c823c8e908eb79cb5dc7f0a68b40c51422a))
+
+
+### Features
+
+* add timeout blocking commands ([#2052](https://github.com/luin/ioredis/issues/2052)) ([6ec78be](https://github.com/luin/ioredis/commit/6ec78bee58be2b2d7be9684e9ea05e897727aa91))
+* **cluster:** refactor sharded pub/sub v5 ([#2043](https://github.com/luin/ioredis/issues/2043)) ([a523f3a](https://github.com/luin/ioredis/commit/a523f3a3007ec4e4f58ff874699365c876da60d8))
+
 ## [5.8.2](https://github.com/luin/ioredis/compare/v5.8.1...v5.8.2) (2025-10-21)
 
 
