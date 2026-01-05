@@ -9,6 +9,10 @@ import {
   convertObjectToArray,
 } from "./utils";
 import { Callback, Respondable, CommandParameter } from "./types";
+import {
+  parseBlockOption,
+  parseSecondsArgument,
+} from "./utils/argumentParsers";
 
 export type ArgumentType =
   | string
@@ -59,6 +63,32 @@ export interface CommandNameFlags {
   HANDSHAKE_COMMANDS: ["auth", "select", "client", "readonly", "info"];
   // Commands that should not trigger a reconnection when errors occur
   IGNORE_RECONNECT_ON_ERROR: ["client"];
+  // Commands that block
+  BLOCKING_COMMANDS: [
+    "blpop",
+    "brpop",
+    "brpoplpush",
+    "blmove",
+    "bzpopmin",
+    "bzpopmax",
+    "bzmpop",
+    "blmpop",
+    "xread",
+    "xreadgroup"
+  ];
+  // Commands that have timeout as the last argument
+  LAST_ARG_TIMEOUT_COMMANDS: [
+    "blpop",
+    "brpop",
+    "brpoplpush",
+    "blmove",
+    "bzpopmin",
+    "bzpopmax"
+  ];
+  // Commands that have timeout as the first argument
+  FIRST_ARG_TIMEOUT_COMMANDS: ["bzmpop", "blmpop"];
+  // Commands that have BLOCK option
+  BLOCK_OPTION_COMMANDS: ["xread", "xreadgroup"];
 }
 
 /**
@@ -101,6 +131,28 @@ export default class Command implements Respondable {
     WILL_DISCONNECT: ["quit"],
     HANDSHAKE_COMMANDS: ["auth", "select", "client", "readonly", "info"],
     IGNORE_RECONNECT_ON_ERROR: ["client"],
+    BLOCKING_COMMANDS: [
+      "blpop",
+      "brpop",
+      "brpoplpush",
+      "blmove",
+      "bzpopmin",
+      "bzpopmax",
+      "bzmpop",
+      "blmpop",
+      "xread",
+      "xreadgroup",
+    ],
+    LAST_ARG_TIMEOUT_COMMANDS: [
+      "blpop",
+      "brpop",
+      "brpoplpush",
+      "blmove",
+      "bzpopmin",
+      "bzpopmax",
+    ],
+    FIRST_ARG_TIMEOUT_COMMANDS: ["bzmpop", "blmpop"],
+    BLOCK_OPTION_COMMANDS: ["xread", "xreadgroup"],
   };
 
   private static flagMap?: FlagMap;
@@ -165,6 +217,8 @@ export default class Command implements Respondable {
   private callback: Callback;
   private transformed = false;
   private _commandTimeoutTimer?: NodeJS.Timeout;
+  private _blockingTimeoutTimer?: NodeJS.Timeout;
+  private _blockingDeadline?: number;
 
   private slot?: number | null;
   private keys?: Array<string | Buffer>;
@@ -327,6 +381,98 @@ export default class Command implements Respondable {
     }
   }
 
+  /**
+   * Set a timeout for blocking commands.
+   * When the timeout expires, the command resolves with null (matching Redis behavior).
+   * This handles the case of undetectable network failures (e.g., docker network disconnect)
+   * where the TCP connection becomes a zombie and no close event fires.
+   */
+  setBlockingTimeout(ms: number) {
+    if (ms <= 0) {
+      return;
+    }
+
+    // Clear existing timer if any (can happen when command moves from offline to command queue)
+    if (this._blockingTimeoutTimer) {
+      clearTimeout(this._blockingTimeoutTimer);
+      this._blockingTimeoutTimer = undefined;
+    }
+
+    const now = Date.now();
+
+    // First call: establish absolute deadline
+    if (this._blockingDeadline === undefined) {
+      this._blockingDeadline = now + ms;
+    }
+
+    // Check if we've already exceeded the deadline
+    const remaining = this._blockingDeadline - now;
+    if (remaining <= 0) {
+      // Resolve with null to indicate timeout (same as Redis behavior)
+      this.resolve(null);
+      return;
+    }
+
+    this._blockingTimeoutTimer = setTimeout(() => {
+      if (this.isResolved) {
+        this._blockingTimeoutTimer = undefined;
+        return;
+      }
+
+      this._blockingTimeoutTimer = undefined;
+
+      // Timeout expired - resolve with null (same as Redis behavior when blocking command times out)
+      this.resolve(null);
+    }, remaining);
+  }
+
+  /**
+   * Extract the blocking timeout from the command arguments.
+   *
+   * @returns The timeout in seconds, null for indefinite blocking (timeout of 0),
+   *          or undefined if this is not a blocking command
+   */
+  extractBlockingTimeout(): number | null | undefined {
+    const args = this.args;
+
+    if (!args || args.length === 0) {
+      return undefined;
+    }
+
+    const name = this.name.toLowerCase();
+
+    if (Command.checkFlag("LAST_ARG_TIMEOUT_COMMANDS", name)) {
+      return parseSecondsArgument(args[args.length - 1]);
+    }
+
+    if (Command.checkFlag("FIRST_ARG_TIMEOUT_COMMANDS", name)) {
+      return parseSecondsArgument(args[0]);
+    }
+
+    if (Command.checkFlag("BLOCK_OPTION_COMMANDS", name)) {
+      return parseBlockOption(args);
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Clear the command and blocking timers
+   */
+  private _clearTimers() {
+    const existingTimer = this._commandTimeoutTimer;
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      delete this._commandTimeoutTimer;
+    }
+
+    const blockingTimer = this._blockingTimeoutTimer;
+    if (blockingTimer) {
+      clearTimeout(blockingTimer);
+      delete this._blockingTimeoutTimer;
+    }
+  }
+
   private initPromise() {
     const promise = new Promise((resolve, reject) => {
       if (!this.transformed) {
@@ -339,13 +485,14 @@ export default class Command implements Respondable {
       }
 
       this.resolve = this._convertValue(resolve);
-      if (this.errorStack) {
-        this.reject = (err) => {
+      this.reject = (err: Error) => {
+        this._clearTimers();
+        if (this.errorStack) {
           reject(optimizeErrorStack(err, this.errorStack.stack, __dirname));
-        };
-      } else {
-        this.reject = reject;
-      }
+        } else {
+          reject(err);
+        }
+      };
     });
 
     this.promise = asCallback(promise, this.callback);
@@ -379,12 +526,7 @@ export default class Command implements Respondable {
   private _convertValue(resolve: Function): (result: any) => void {
     return (value) => {
       try {
-        const existingTimer = this._commandTimeoutTimer;
-        if (existingTimer) {
-          clearTimeout(existingTimer);
-          delete this._commandTimeoutTimer;
-        }
-
+        this._clearTimers();
         resolve(this.transformReply(value));
         this.isResolved = true;
       } catch (err) {

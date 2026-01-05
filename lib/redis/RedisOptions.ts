@@ -16,6 +16,18 @@ export interface CommonRedisOptions extends CommanderOptions {
   commandTimeout?: number;
 
   /**
+   * Timeout (ms) for blocking commands with timeout=0 / BLOCK 0.
+   * When exceeded, the command resolves with null.
+   */
+  blockingTimeout?: number;
+
+  /**
+   * Grace period (ms) added to blocking command timeouts to account for network latency.
+   * @default 100
+   */
+  blockingTimeoutGrace?: number;
+
+  /**
    * If the socket does not receive data within a set number of milliseconds:
    * 1. the socket is considered "dead" and will be destroyed
    * 2. the client will reject any running commands (altought they might have been processed by the server)
@@ -262,4 +274,5 @@ export const DEFAULT_REDIS_OPTIONS: RedisOptions = {
   enableAutoPipelining: false,
   autoPipeliningIgnoredCommands: [],
   sentinelMaxConnections: 10,
+  blockingTimeoutGrace: 100,
 };

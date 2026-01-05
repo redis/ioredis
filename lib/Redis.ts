@@ -445,6 +445,8 @@ class Redis extends Commander implements DataHandledable {
       command.setTimeout(this.options.commandTimeout);
     }
 
+    const blockingTimeout = this.getBlockingTimeoutInMs(command);
+
     let writable =
       this.status === "ready" ||
       (!stream &&
@@ -495,6 +497,18 @@ class Redis extends Commander implements DataHandledable {
         stream: stream,
         select: this.condition.select,
       });
+
+      // For blocking commands, set a timeout while queued to ensure they don't wait forever
+      // if connection never becomes ready (e.g., docker network disconnect scenario)
+      // Use blockingTimeout if configured, otherwise fall back to the command's own timeout
+      if (Command.checkFlag("BLOCKING_COMMANDS", command.name)) {
+        const offlineTimeout =
+          this.getConfiguredBlockingTimeout() ?? blockingTimeout;
+
+        if (offlineTimeout !== undefined) {
+          command.setBlockingTimeout(offlineTimeout);
+        }
+      }
     } else {
       // @ts-expect-error
       if (debug.enabled) {
@@ -523,6 +537,10 @@ class Redis extends Commander implements DataHandledable {
         select: this.condition.select,
       });
 
+      if (blockingTimeout !== undefined) {
+        command.setBlockingTimeout(blockingTimeout);
+      }
+
       if (Command.checkFlag("WILL_DISCONNECT", command.name)) {
         this.manuallyClosing = true;
       }
@@ -542,6 +560,40 @@ class Redis extends Commander implements DataHandledable {
     }
 
     return command.promise;
+  }
+
+  private getBlockingTimeoutInMs(command: Command): number | undefined {
+    if (!Command.checkFlag("BLOCKING_COMMANDS", command.name)) {
+      return undefined;
+    }
+
+    const timeout = command.extractBlockingTimeout();
+    if (typeof timeout === "number") {
+      if (timeout > 0) {
+        // Finite timeout from command args - add grace period
+        return timeout + (this.options.blockingTimeoutGrace ?? DEFAULT_REDIS_OPTIONS.blockingTimeoutGrace);
+      }
+      // Command has timeout=0 (block forever), use blockingTimeout option as safety net
+      return this.getConfiguredBlockingTimeout();
+    }
+
+    if (timeout === null) {
+      // No BLOCK option found (e.g., XREAD without BLOCK), use blockingTimeout as safety net
+      return this.getConfiguredBlockingTimeout();
+    }
+
+    return undefined;
+  }
+
+  private getConfiguredBlockingTimeout(): number | undefined {
+    if (
+      typeof this.options.blockingTimeout === "number" &&
+      this.options.blockingTimeout > 0
+    ) {
+      return this.options.blockingTimeout;
+    }
+
+    return undefined;
   }
 
   private setSocketTimeout() {

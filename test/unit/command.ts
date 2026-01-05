@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import Command from "../../lib/Command";
+import * as sinon from "sinon";
 
 describe("Command", () => {
   describe("constructor()", () => {
@@ -166,7 +167,7 @@ describe("Command", () => {
       expect(Command.checkFlag("WILL_DISCONNECT", "quit")).to.eql(true);
     });
 
-    it('should be case insensitive for command name', () => {
+    it("should be case insensitive for command name", () => {
       expect(Command.checkFlag("VALID_IN_SUBSCRIBER_MODE", "PING")).to.eql(
         true
       );
@@ -174,6 +175,255 @@ describe("Command", () => {
         false
       );
       expect(Command.checkFlag("WILL_DISCONNECT", "QuIt")).to.eql(true);
+    });
+  });
+
+  describe("#setBlockingTimeout()", () => {
+    it("should resolve command with null when timeout fires", async () => {
+      const clock = sinon.useFakeTimers();
+      const command = new Command("blpop", ["key", "0"]);
+
+      command.setBlockingTimeout(25);
+
+      clock.tick(30);
+
+      const value = await command.promise;
+      expect(value).to.be.null;
+
+      clock.restore();
+    });
+
+    it("should clear timer when command resolves", async () => {
+      const clock = sinon.useFakeTimers();
+      const command = new Command("blpop", ["key", "0"]);
+
+      command.setBlockingTimeout(50);
+
+      command.resolve(["key", "value"]);
+
+      clock.tick(100);
+      const value = await command.promise;
+      expect(value).to.deep.equal(["key", "value"]);
+      clock.restore();
+    });
+
+    it("should not re-resolve after already resolved with value", async () => {
+      const clock = sinon.useFakeTimers();
+      const command = new Command("blpop", ["key", "0"]);
+
+      command.resolve(["key", "value"]);
+
+      command.setBlockingTimeout(10);
+
+      clock.tick(20);
+
+      const value = await command.promise;
+      expect(value).to.deep.equal(["key", "value"]);
+      clock.restore();
+    });
+
+    it("should ignore non-positive durations", () => {
+      const clock = sinon.useFakeTimers();
+      const command = new Command("blpop", ["key", "0"]);
+      let resolved = false;
+
+      command.promise.then(() => {
+        resolved = true;
+      });
+
+      command.setBlockingTimeout(0);
+      clock.tick(100);
+
+      expect(resolved).to.be.false;
+      clock.restore();
+    });
+
+    it("should preserve original deadline when setBlockingTimeout is called multiple times", async () => {
+      const clock = sinon.useFakeTimers();
+      const command = new Command("blpop", ["key", "0"]);
+
+      // First call sets deadline at now + 100ms
+      command.setBlockingTimeout(100);
+      
+      clock.tick(50);
+      
+      // Second call (e.g., command moved from offline to command queue)
+      // Should NOT extend deadline - should still fire at original 100ms
+      command.setBlockingTimeout(100);
+      
+      // At 100ms mark, command should resolve
+      clock.tick(50);
+      
+      const value = await command.promise;
+      expect(value).to.be.null;
+      
+      clock.restore();
+    });
+
+    it("should resolve immediately if deadline has already passed", () => {
+      const clock = sinon.useFakeTimers();
+      const command = new Command("blpop", ["key", "0"]);
+
+      // Set deadline at now + 100ms
+      command.setBlockingTimeout(100);
+      
+      clock.tick(150);
+      
+      // Second call - deadline already passed, should resolve immediately
+      command.setBlockingTimeout(100);
+      
+      expect(command.isResolved).to.be.true;
+      
+      clock.restore();
+    });
+  });
+
+  describe("#extractBlockingTimeout()", () => {
+    describe("returns undefined for", () => {
+      it("non-blocking commands", () => {
+        const command = new Command("get", ["key"]);
+        expect(command.extractBlockingTimeout()).to.be.undefined;
+      });
+
+      it("commands with empty args", () => {
+        const command = new Command("blpop", []);
+        expect(command.extractBlockingTimeout()).to.be.undefined;
+      });
+    });
+
+    describe("LAST_ARG_TIMEOUT_COMMANDS", () => {
+      const lastArgCommands = [
+        "blpop",
+        "brpop",
+        "brpoplpush",
+        "blmove",
+        "bzpopmin",
+        "bzpopmax",
+      ];
+
+      lastArgCommands.forEach((cmd) => {
+        it(`extracts timeout from ${cmd} with number arg`, () => {
+          const command = new Command(cmd, ["key1", "key2", 5]);
+          expect(command.extractBlockingTimeout()).to.equal(5000);
+        });
+
+        it(`extracts timeout from ${cmd} with string arg`, () => {
+          const command = new Command(cmd, ["key1", "key2", "10"]);
+          expect(command.extractBlockingTimeout()).to.equal(10000);
+        });
+
+        it(`extracts timeout from ${cmd.toUpperCase()} (case insensitive)`, () => {
+          const command = new Command(cmd.toUpperCase(), ["key", 3]);
+          expect(command.extractBlockingTimeout()).to.equal(3000);
+        });
+
+        it(`returns 0 for ${cmd} with zero timeout`, () => {
+          const command = new Command(cmd, ["key", 0]);
+          expect(command.extractBlockingTimeout()).to.equal(0);
+        });
+
+        it(`returns 0 for ${cmd} with negative timeout`, () => {
+          const command = new Command(cmd, ["key", -5]);
+          expect(command.extractBlockingTimeout()).to.equal(0);
+        });
+
+        it(`returns undefined for ${cmd} with invalid timeout arg`, () => {
+          const command = new Command(cmd, ["key", "invalid"]);
+          expect(command.extractBlockingTimeout()).to.be.undefined;
+        });
+      });
+
+      it("handles Buffer timeout arg", () => {
+        const command = new Command("blpop", ["key", Buffer.from("5")]);
+        expect(command.extractBlockingTimeout()).to.equal(5000);
+      });
+
+      it("handles fractional seconds", () => {
+        const command = new Command("blpop", ["key", "1.5"]);
+        expect(command.extractBlockingTimeout()).to.equal(1500);
+      });
+    });
+
+    describe("FIRST_ARG_TIMEOUT_COMMANDS", () => {
+      const firstArgCommands = ["bzmpop", "blmpop"];
+
+      firstArgCommands.forEach((cmd) => {
+        it(`extracts timeout from ${cmd} with number arg`, () => {
+          const command = new Command(cmd, [5, "1", "MIN", "key1"]);
+          expect(command.extractBlockingTimeout()).to.equal(5000);
+        });
+
+        it(`extracts timeout from ${cmd} with string arg`, () => {
+          const command = new Command(cmd, ["10", "1", "MAX", "key1"]);
+          expect(command.extractBlockingTimeout()).to.equal(10000);
+        });
+
+        it(`extracts timeout from ${cmd.toUpperCase()} (case insensitive)`, () => {
+          const command = new Command(cmd.toUpperCase(), [3, "1", "MIN", "key"]);
+          expect(command.extractBlockingTimeout()).to.equal(3000);
+        });
+
+        it(`returns 0 for ${cmd} with zero timeout`, () => {
+          const command = new Command(cmd, [0, "1", "MIN", "key"]);
+          expect(command.extractBlockingTimeout()).to.equal(0);
+        });
+
+        it(`returns 0 for ${cmd} with negative timeout`, () => {
+          const command = new Command(cmd, [-5, "1", "MIN", "key"]);
+          expect(command.extractBlockingTimeout()).to.equal(0);
+        });
+
+        it(`returns undefined for ${cmd} with invalid timeout arg`, () => {
+          const command = new Command(cmd, ["invalid", "1", "MIN", "key"]);
+          expect(command.extractBlockingTimeout()).to.be.undefined;
+        });
+      });
+    });
+
+    describe("BLOCK_OPTION_COMMANDS", () => {
+      const blockOptionCommands = ["xread", "xreadgroup"];
+
+      blockOptionCommands.forEach((cmd) => {
+        it(`extracts timeout from ${cmd} with BLOCK option`, () => {
+          const command = new Command(cmd, ["BLOCK", 5000, "STREAMS", "stream", "0"]);
+          expect(command.extractBlockingTimeout()).to.equal(5000);
+        });
+
+        it(`extracts timeout from ${cmd} with lowercase block option`, () => {
+          const command = new Command(cmd, ["block", 3000, "STREAMS", "stream", "0"]);
+          expect(command.extractBlockingTimeout()).to.equal(3000);
+        });
+
+        it(`returns null for ${cmd} without BLOCK option`, () => {
+          const command = new Command(cmd, ["STREAMS", "stream", "0"]);
+          expect(command.extractBlockingTimeout()).to.be.null;
+        });
+
+        it(`returns 0 for ${cmd} with zero BLOCK duration`, () => {
+          const command = new Command(cmd, ["BLOCK", 0, "STREAMS", "stream", "0"]);
+          expect(command.extractBlockingTimeout()).to.equal(0);
+        });
+
+        it(`returns 0 for ${cmd} with negative BLOCK duration`, () => {
+          const command = new Command(cmd, ["BLOCK", -100, "STREAMS", "stream", "0"]);
+          expect(command.extractBlockingTimeout()).to.equal(0);
+        });
+
+        it(`returns undefined for ${cmd} with invalid BLOCK duration`, () => {
+          const command = new Command(cmd, ["BLOCK", "invalid", "STREAMS", "stream", "0"]);
+          expect(command.extractBlockingTimeout()).to.be.undefined;
+        });
+      });
+
+      it("handles BLOCK option with Buffer value", () => {
+        const command = new Command("xread", ["BLOCK", Buffer.from("5000"), "STREAMS", "s", "0"]);
+        expect(command.extractBlockingTimeout()).to.equal(5000);
+      });
+
+      it("handles BLOCK as Buffer token", () => {
+        const command = new Command("xread", [Buffer.from("BLOCK"), 2000, "STREAMS", "s", "0"]);
+        expect(command.extractBlockingTimeout()).to.equal(2000);
+      });
     });
   });
 });
