@@ -115,6 +115,13 @@ redis.zrange("sortedSet", 0, 2, "WITHSCORES").then((elements) => {
 // The format is: redis[SOME_REDIS_COMMAND_IN_LOWERCASE](ARGUMENTS_ARE_JOINED_INTO_COMMAND_STRING)
 // so the following statement is equivalent to the CLI: `redis> SET mykey hello EX 10`
 redis.set("mykey", "hello", "EX", 10);
+
+// Read the value of a redis key in chunks using nodejs streams
+// Retuns a nodejs readable stream
+const readStream = redis.getStream("mykey", { chunkSize: 100 * 1000 /* In Bytes */ });
+
+
+
 ```
 
 See the `examples/` folder for more examples. For example:
