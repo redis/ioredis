@@ -22,7 +22,7 @@ describe("blocking command recovery", function () {
       }
     });
 
-    const redis = new Redis({ port: 30001 });
+    const redis = new Redis({ port: 30001, blockingTimeout: 1000 });
     redis.on("error", () => {});
 
     try {
@@ -72,7 +72,7 @@ describe("blocking command recovery", function () {
       }
     });
 
-    const redis = new Redis({ port: 30001 });
+    const redis = new Redis({ port: 30001, blockingTimeout: 1000 });
     redis.on("error", () => {});
 
     try {
@@ -92,9 +92,9 @@ describe("blocking command recovery", function () {
     }
   });
 
-  it("arms blocking timer for finite-timeout commands in offline queue", async () => {
-    // Now that we have protection against commands stuck in offline queue,
-    // we DO arm the timer when a blocking command with finite timeout enters offline queue
+  it("arms blocking timer for finite-timeout commands in offline queue when blockingTimeout is set", async () => {
+    // When blockingTimeout is set (feature opt-in), we arm the timer
+    // for blocking commands with finite timeout in offline queue
     const originalSetter = Command.prototype.setBlockingTimeout;
     let timerCalls = 0;
     Command.prototype.setBlockingTimeout = function (
@@ -105,7 +105,7 @@ describe("blocking command recovery", function () {
       return originalSetter.apply(this, args);
     };
 
-    const redis = new Redis({ lazyConnect: true });
+    const redis = new Redis({ lazyConnect: true, blockingTimeout: 1000 });
     redis.on("error", () => {});
     redis.connect = async () => {
       /* no-op to keep connection in wait state */
@@ -129,9 +129,9 @@ describe("blocking command recovery", function () {
     }
   });
 
-  it("does not arm timer for infinite blocking commands without blockingTimeout option", async () => {
-    // For commands that block forever (timeout 0), we should NOT arm a timer
-    // unless blockingTimeout option is configured
+  it("feature is opt-in: does not arm timer for any blocking commands without blockingTimeout option", async () => {
+    // The blocking timeout feature is opt-in: without blockingTimeout configured,
+    // NO timer should be armed for ANY blocking commands (regardless of their timeout value)
     const originalSetter = Command.prototype.setBlockingTimeout;
     let timerCalls = 0;
     Command.prototype.setBlockingTimeout = function (
@@ -153,13 +153,15 @@ describe("blocking command recovery", function () {
       subscriber: false,
     } as Condition;
 
-    // Block forever (0 timeout) - should NOT arm timer without blockingTimeout option
-    const pending = redis.blpop("queue", 0);
-    pending.catch(() => {});
+    // Test both infinite timeout (0) and finite timeout - neither should arm timer
+    const pending1 = redis.blpop("queue", 0);
+    const pending2 = redis.blpop("queue", 5);
+    pending1.catch(() => {});
+    pending2.catch(() => {});
 
     try {
       await new Promise((resolve) => setTimeout(resolve, 50));
-      // Timer should NOT be armed for infinite blocking commands without blockingTimeout
+      // Timer should NOT be armed for any blocking commands without blockingTimeout
       expect(timerCalls).to.equal(0);
     } finally {
       Command.prototype.setBlockingTimeout = originalSetter;
