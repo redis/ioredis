@@ -16,14 +16,16 @@ export interface CommonRedisOptions extends CommanderOptions {
   commandTimeout?: number;
 
   /**
-   * Timeout (ms) for blocking commands with timeout=0 / BLOCK 0.
-   * When exceeded, the command resolves with null.
+   * Enables client-side timeout protection for blocking commands when set
+   * to a positive number. If `blockingTimeout` is undefined, `0`, or
+   * negative (e.g. `-1`), the protection is disabled and no client-side
+   * timers are installed for blocking commands.
    */
   blockingTimeout?: number;
 
   /**
-   * Grace period (ms) added to blocking command timeouts to account for network latency.
-   * @default 100
+   * Grace period (ms) added to blocking command timeouts. Only used when
+   * `blockingTimeout` is a positive number. Defaults to 100ms.
    */
   blockingTimeoutGrace?: number;
 
