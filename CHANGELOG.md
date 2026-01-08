@@ -1,3 +1,10 @@
+## [5.9.1](https://github.com/luin/ioredis/compare/v5.9.0...v5.9.1) (2026-01-08)
+
+
+### Bug Fixes
+
+* make client-side blocking timeouts opt-in ([#2058](https://github.com/luin/ioredis/issues/2058)) ([07ed493](https://github.com/luin/ioredis/commit/07ed4939ce4228efa1f85f75c16528aa5f25862e))
+
 # [5.9.0](https://github.com/luin/ioredis/compare/v5.8.2...v5.9.0) (2026-01-05)
 
 
