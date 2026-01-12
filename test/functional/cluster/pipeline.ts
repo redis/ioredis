@@ -273,17 +273,18 @@ describe("cluster:pipeline", () => {
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
     let movedCount = 0;
+    // Use "bar" which maps to slot 5061 (in range 0-12181 with replica)
     new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
-      if (argv[0] === "get" && argv[1] === "foo") {
+      if (argv[0] === "get" && argv[1] === "bar") {
         if (movedCount === 0) {
           // First request - return MOVED to trigger the fix
           movedCount++;
-          return new Error("MOVED " + calculateSlot("foo") + " 127.0.0.1:30001");
+          return new Error("MOVED " + calculateSlot("bar") + " 127.0.0.1:30001");
         }
-        return "bar";
+        return "value";
       }
     });
     new MockServer(30002, (argv) => {
@@ -304,18 +305,18 @@ describe("cluster:pipeline", () => {
 
     cluster.on("ready", () => {
       // Verify initial slot setup includes replica
-      const slot = calculateSlot("foo");
+      const slot = calculateSlot("bar");
       expect(cluster.slots[slot]).to.include("127.0.0.1:30003");
 
       // This should trigger autopipelining and MOVED handling
       Promise.all([
-        cluster.get("foo"),
-        cluster.get("foo"),
-        cluster.get("foo"),
+        cluster.get("bar"),
+        cluster.get("bar"),
+        cluster.get("bar"),
       ])
         .then((results) => {
           // All should succeed
-          expect(results).to.eql(["bar", "bar", "bar"]);
+          expect(results).to.eql(["value", "value", "value"]);
 
           // Verify that replica information is preserved after MOVED
           // Since MOVED points to the same master (30001), the slot array should not be overridden
@@ -343,18 +344,19 @@ describe("cluster:pipeline", () => {
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
     let movedCount = 0;
+    // Use "bar" which maps to slot 5061 (in range 0-12181 with replica)
     new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
-      if (argv[0] === "get" && argv[1] === "foo") {
+      if (argv[0] === "get" && argv[1] === "bar") {
         if (movedCount === 0) {
           movedCount++;
-          return new Error("MOVED " + calculateSlot("foo") + " 127.0.0.1:30001");
+          return new Error("MOVED " + calculateSlot("bar") + " 127.0.0.1:30001");
         }
-        return "bar";
+        return "value";
       }
-      if (argv[0] === "set" && argv[1] === "foo") {
+      if (argv[0] === "set" && argv[1] === "bar") {
         return "OK";
       }
     });
@@ -363,9 +365,13 @@ describe("cluster:pipeline", () => {
         return slotTable;
       }
     });
+    // Replica also needs to handle commands (scaleReads=all can send reads here)
     new MockServer(30003, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
+      }
+      if (argv[0] === "get" && argv[1] === "bar") {
+        return "value";
       }
     });
 
@@ -375,19 +381,21 @@ describe("cluster:pipeline", () => {
     });
 
     cluster.on("ready", () => {
-      // Mix reads and writes to trigger the specific issue scenario
+      // Use explicit pipeline to test the fix - should not throw allocation group error
+      // even when MOVED error occurs and slot info might be changed
       cluster
         .pipeline()
-        .get("foo")
-        .set("foo", "bar")
-        .get("foo")
+        .get("bar")
+        .set("bar", "value")
+        .get("bar")
         .exec((err, results) => {
           // Should not throw the allocation group error
           expect(err).to.eql(null);
           if (results) {
-            expect(results[0][1]).to.eql("bar");
+            // Results should be in order: get, set, get
+            expect(results[0][1]).to.eql("value");
             expect(results[1][1]).to.eql("OK");
-            expect(results[2][1]).to.eql("bar");
+            expect(results[2][1]).to.eql("value");
           }
 
           cluster.disconnect();
