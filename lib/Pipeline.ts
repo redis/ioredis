@@ -164,7 +164,11 @@ class Pipeline extends Commander<{ type: "pipeline" }> {
         cluster.handleError(commonError, this.leftRedirections, {
           moved: function (_slot: string, key: string) {
             _this.preferKey = key;
-            cluster.slots[errv[1]] = [key];
+            if (cluster.slots[errv[1]]) {
+                if (cluster.slots[errv[1]][0] !== key) {
+                cluster.slots[errv[1]] = [key];
+                }
+            }
             cluster._groupsBySlot[errv[1]] =
               cluster._groupsIds[cluster.slots[errv[1]].join(";")];
             cluster.refreshSlotsCache();
