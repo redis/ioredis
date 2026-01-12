@@ -166,7 +166,7 @@ class Pipeline extends Commander<{ type: "pipeline" }> {
             _this.preferKey = key;
             if (cluster.slots[errv[1]]) {
                 if (cluster.slots[errv[1]][0] !== key) {
-                cluster.slots[errv[1]] = [key];
+                  cluster.slots[errv[1]] = [key];
                 }
             }
             cluster._groupsBySlot[errv[1]] =
