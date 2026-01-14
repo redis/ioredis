@@ -105,12 +105,18 @@ export default class ClusterSubscriberGroup {
   }
 
   /**
-   * Disconnect all subscribers
+   * Disconnect all subscribers and clear some of the internal state.
    */
   stop() {
     for (const s of this.shardedSubscribers.values()) {
       s.stop();
     }
+
+    // Clear subscriber instances and pending operations.
+    // Channels are preserved for resubscription on reconnect.
+    this.pendingReset = null;
+    this.shardedSubscribers.clear();
+    this.subscriberToSlotsIndex.clear();
   }
 
   /**
@@ -138,10 +144,7 @@ export default class ClusterSubscriberGroup {
   /**
    * Resets the subscriber group by disconnecting all subscribers that are no longer needed and connecting new ones.
    */
-  public async reset(
-    clusterSlots: string[][],
-    clusterNodes: any[]
-  ): Promise<void> {
+  async reset(clusterSlots: string[][], clusterNodes: any[]): Promise<void> {
     if (this.isResetting) {
       this.pendingReset = { slots: clusterSlots, nodes: clusterNodes };
       return;
