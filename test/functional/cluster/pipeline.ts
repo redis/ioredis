@@ -361,7 +361,7 @@ describe("cluster:pipeline", () => {
       ],
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
-    let movedHappened = false;
+    let movedCommandCount = 0;
     // Use "bar" which maps to slot 5061 (in range 0-12181 with replica)
     // For pipeline retry to work with mixed readonly/write commands,
     // ALL commands in the pipeline need to get the same MOVED error initially
@@ -373,14 +373,14 @@ describe("cluster:pipeline", () => {
       const cmd = String(argv[0]).toLowerCase();
       const key = String(argv[1] || "");
       
-      // Return MOVED for ALL commands (GET and SET) on first attempt
-      // This allows the pipeline retry logic to work properly
       if ((cmd === "get" || cmd === "set") && key === "bar") {
-        if (!movedHappened) {
-          movedHappened = true;
+        // Return MOVED for the first 3 commands (the entire initial pipeline)
+        // This ensures ALL commands get the same error, allowing pipeline retry
+        if (movedCommandCount < 3) {
+          movedCommandCount++;
           return new Error("MOVED " + calculateSlot("bar") + " 127.0.0.1:30001");
         }
-        // After MOVED, all requests should succeed
+        // After all 3 commands have gotten MOVED once, all retries should succeed
         if (cmd === "get") {
           return "value";
         }
@@ -393,9 +393,18 @@ describe("cluster:pipeline", () => {
       if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
+      // Add handlers to avoid "OK" default
+      const cmd = String(argv[0]).toLowerCase();
+      const key = String(argv[1] || "");
+      if (cmd === "get" && key === "bar") {
+        return "value";
+      }
+      if (cmd === "set" && key === "bar") {
+        return "OK";
+      }
     });
     // Replica also needs to handle commands (scaleReads=all can send reads here)
-    // Replica should forward to master, not return MOVED itself
+    // Replica should never return MOVED - it should just serve reads
     new MockServer(30003, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
@@ -403,8 +412,7 @@ describe("cluster:pipeline", () => {
       const cmd = String(argv[0]).toLowerCase();
       const key = String(argv[1] || "");
       if (cmd === "get" && key === "bar") {
-        // Replica can serve reads, but if MOVED happens, it should go to master
-        // Never return MOVED from replica - let master handle it
+        // Replica can serve reads, never return MOVED
         return "value";
       }
     });
@@ -423,8 +431,21 @@ describe("cluster:pipeline", () => {
         .set("bar", "value")
         .get("bar")
         .exec((err, results) => {
-          // Should not throw the allocation group error - this is the main test
-          expect(err).to.eql(null);
+          // The main test: should not throw the allocation group error
+          // Even if MOVED happens, the pipeline should retry successfully
+          // If err is not null, it means the pipeline failed (possibly allocation group error)
+          if (err) {
+            // Check if it's the allocation group error we're trying to prevent
+            if (err.message && err.message.includes("All keys in the pipeline should belong to the same slots allocation group")) {
+              cluster.disconnect();
+              return done(new Error("Allocation group error occurred - fix is not working"));
+            }
+            // Other errors (like MOVED not being retried) are also failures
+            cluster.disconnect();
+            return done(err);
+          }
+          
+          // Pipeline succeeded - verify results
           expect(results).to.be.an("array");
           expect(results.length).to.eql(3);
           
