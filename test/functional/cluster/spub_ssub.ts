@@ -81,6 +81,48 @@ describe("cluster:spub/ssub", function () {
     });
   });
 
+	// This test covers the error handler used only for sharded-subscriber-triggered
+	// slots cache refreshes. Normal (non-subscriber) connections are created with
+	// lazyConnect: true and can become zombied. For sharded subscribers, a
+	// ClusterAllFailedError means we have lost all nodes from the subscriber
+	// perspective and must tear down.
+	it("should trigger reconnect when subscriber node goes down and refresh fails", (done) => {
+    let clusterSlotsCallCount = 0;
+    const handler = function (argv) {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        clusterSlotsCallCount++;
+        // First call: during connect() - must succeed to reach "ready" state
+        // Second call: subscriber-triggered refresh after we kill the subscriber - fail to trigger reconnect
+        if (clusterSlotsCallCount === 2) {
+          return new Error("CLUSTERDOWN The cluster is down");
+        }
+        return [[0, 16383, ["127.0.0.1", 30001]]];
+      }
+    };
+    const server = new MockServer(30001, handler);
+
+    const ssub = new Cluster([{ host: "127.0.0.1", port: 30001 }], {
+      shardedSubscribers: true,
+      slotsRefreshInterval: 0,  // Disable periodic refresh - test subscriber-triggered path only
+    });
+
+    ssub.once("ready", () => {
+      // Close ONLY the subscriber connections, not the main connection.
+      // The main connection stays open ("zombied") so that the reconnect is
+      // driven solely by the sharded-subscriber error path, not by pool drain.
+      server.getAllClients()
+        .filter(client => getConnectionName(client)?.includes("ssub"))
+        .forEach(client => client.destroy());
+    });
+
+    // After the subscriber-triggered slots refresh fails, we expect the
+    // Cluster instance to transition into the reconnecting state.
+    ssub.on("reconnecting", () => {
+      ssub.disconnect();
+      done();
+    });
+  });
+
   // This is no longer true, since we do NOT reconnect but recreate the subscriber
   it.skip("should re-ssubscribe after reconnection", (done) => {
     new MockServer(30001, function (argv) {
