@@ -361,20 +361,26 @@ describe("cluster:pipeline", () => {
       ],
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
-    let movedCount = 0;
+    let movedHappened = false;
     // Use "bar" which maps to slot 5061 (in range 0-12181 with replica)
     new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
-      if (argv[0] === "get" && argv[1] === "bar") {
-        if (movedCount === 0) {
-          movedCount++;
+      // Handle both individual commands and pipeline commands
+      const cmd = String(argv[0]).toLowerCase();
+      const key = String(argv[1] || "");
+      
+      if (cmd === "get" && key === "bar") {
+        // Only return MOVED once globally to trigger the fix
+        // After MOVED happens, all subsequent requests should succeed
+        if (!movedHappened) {
+          movedHappened = true;
           return new Error("MOVED " + calculateSlot("bar") + " 127.0.0.1:30001");
         }
         return "value";
       }
-      if (argv[0] === "set" && argv[1] === "bar") {
+      if (cmd === "set" && key === "bar") {
         return "OK";
       }
     });
@@ -389,8 +395,11 @@ describe("cluster:pipeline", () => {
       if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
-      if (argv[0] === "get" && argv[1] === "bar") {
+      const cmd = String(argv[0]).toLowerCase();
+      const key = String(argv[1] || "");
+      if (cmd === "get" && key === "bar") {
         // Replica can serve reads, but if MOVED happens, it should go to master
+        // Never return MOVED from replica - let master handle it
         return "value";
       }
     });
@@ -411,22 +420,20 @@ describe("cluster:pipeline", () => {
         .exec((err, results) => {
           // Should not throw the allocation group error - this is the main test
           expect(err).to.eql(null);
-          if (results) {
-            expect(results).to.be.an("array");
-            expect(results.length).to.eql(3);
-            
-            // All commands should succeed (no errors in results)
-            for (let i = 0; i < results.length; i++) {
-              expect(results[i][0]).to.eql(null); // No error
-            }
-            
-            // Verify we got the expected values (order may vary with retries)
-            const values = results.map((r) => r[1]);
-            const valueCount = values.filter((v) => v === "value").length;
-            const okCount = values.filter((v) => v === "OK").length;
-            expect(valueCount).to.eql(2); // Two GET commands
-            expect(okCount).to.eql(1); // One SET command
+          expect(results).to.be.an("array");
+          expect(results.length).to.eql(3);
+          
+          // All commands should succeed (no errors in results)
+          for (let i = 0; i < results.length; i++) {
+            expect(results[i][0]).to.eql(null); // No error
           }
+          
+          // Verify we got the expected values (order may vary with retries)
+          const values = results.map((r) => r[1]);
+          const valueCount = values.filter((v) => v === "value").length;
+          const okCount = values.filter((v) => v === "OK").length;
+          expect(valueCount).to.eql(2); // Two GET commands
+          expect(okCount).to.eql(1); // One SET command
 
           cluster.disconnect();
           done();
