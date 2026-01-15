@@ -1157,10 +1157,21 @@ class Cluster extends Commander {
       this.subscriberGroupEmitter
     );
 
+    // Error handler used only for sharded-subscriber-triggered slots cache refreshes.
+    // Normal (non-subscriber) connections are created with lazyConnect: true and can
+    // become zombied. For sharded subscribers, a ClusterAllFailedError means
+    // we have lost all nodes from the subscriber perspective and must tear down.
+    const refreshSlotsCacheCallback = (err?: Error) => {
+      // Disconnect only when refreshing the slots cache fails with ClusterAllFailedError
+      if (err instanceof ClusterAllFailedError) {
+        this.disconnect(true);
+      }
+    };
+
     this.subscriberGroupEmitter.on("-node", (redis, nodeKey) => {
       this.emit("-node", redis, nodeKey);
 
-      this.refreshSlotsCache();
+      this.refreshSlotsCache(refreshSlotsCacheCallback);
     });
 
     this.subscriberGroupEmitter.on(
@@ -1169,13 +1180,13 @@ class Cluster extends Commander {
         this.emit("error", error);
 
         setTimeout(() => {
-          this.refreshSlotsCache();
+          this.refreshSlotsCache(refreshSlotsCacheCallback);
         }, delay);
       }
     );
 
     this.subscriberGroupEmitter.on("moved", () => {
-      this.refreshSlotsCache();
+      this.refreshSlotsCache(refreshSlotsCacheCallback);
     });
 
     this.subscriberGroupEmitter.on("-subscriber", () => {
