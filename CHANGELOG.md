@@ -1,3 +1,16 @@
+## [5.9.2](https://github.com/luin/ioredis/compare/v5.9.1...v5.9.2) (2026-01-15)
+
+
+### Bug Fixes
+
+* **cluster:** Cluster reconnect sharded subscribers ([#2060](https://github.com/luin/ioredis/issues/2060)) ([def9804](https://github.com/luin/ioredis/commit/def9804dd44faa13dd57347c7353142ec0bd2d8f))
+* preserve replica slots on MOVED in pipelines ([#2059](https://github.com/luin/ioredis/issues/2059)) ([a1c3e9d](https://github.com/luin/ioredis/commit/a1c3e9d3a1915cf4a699aff9781629e492f75076))
+
+
+### Reverts
+
+* Revert "fix: preserve replica slots on MOVED in pipelines (#2059)" (#2062) ([517b932](https://github.com/luin/ioredis/commit/517b93239648c06829c695112223c9f17c2e7f80)), closes [#2059](https://github.com/luin/ioredis/issues/2059) [#2062](https://github.com/luin/ioredis/issues/2062)
+
 ## [5.9.1](https://github.com/luin/ioredis/compare/v5.9.0...v5.9.1) (2026-01-08)
 
 
