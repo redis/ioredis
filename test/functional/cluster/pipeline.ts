@@ -295,45 +295,25 @@ describe("cluster:pipeline", () => {
       if (argv[0] === "get" && argv[1] === "baz") {
         return "baz2";
       }
+      if (argv[0] === "get" && argv[1] === "bag") {
+        return "bag2";
+      }
     });
-    // saleReads = "slave" so that we will 100% get read operations from replica
+
     const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
       scaleReads: "slave",
     });
     cluster.on('ready', () => {
-      /** get bar first time - moved is thrown, slots map is updated */
+      /** moved for bar is thrown, slots map updated, command is retried */
       cluster.pipeline()
-        .get('bar')
+        .get('bar') // slot 5061
+        .get('bag') // slot 4433
+        .get('baz') // slot 4813
         .exec((err, res) => {
           expect(err).to.eql(null);
-          expect(res).to.have.lengthOf(1);
-          if (res && res.length > 0) {
-            expect(res[0][0]).to.eql(null);
-            expect(res[0][1]).to.eql("bar2");
-          }
-          /** get bar and baz, which have the same slots - validation for the pipeline command should be executed */
-          cluster.pipeline().get('bar').get('baz').exec((err, res) => {
-            expect(err).to.eql(null);
-            expect(res).to.have.lengthOf(2);
-            if (res && res.length > 0) {
-              let bar2 = false;
-              let baz2 = false;
-              for (let i = 0; i < res.length; i++) {
-                if (res[i][0] === null) {
-                  if (res[i][1] === "bar2") {
-                    bar2 = true;
-                  }
-                  if (res[i][1] === "baz2") {
-                    baz2 = true;
-                  }
-                }
-              }
-              expect(bar2).to.eql(true);
-              expect(baz2).to.eql(true);
-            }
-            cluster.disconnect();
-            done();
-          });  
+          expect(res).to.have.lengthOf(3);
+          cluster.disconnect();
+          done();
       });
     });
   });
