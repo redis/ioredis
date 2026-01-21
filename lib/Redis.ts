@@ -228,12 +228,16 @@ class Redis extends Commander implements DataHandledable {
           // Node ignores setKeepAlive before connect, therefore we wait for the event:
           // https://github.com/nodejs/node/issues/31663
           if (typeof options.keepAlive === "number") {
+
+            // prevents TypeScript error when used inside arrow function
+            const { keepAlive } = options;
+
             if (stream.connecting) {
               stream.once(CONNECT_EVENT, () => {
-                stream.setKeepAlive(true, options.keepAlive);
+                stream.setKeepAlive(true, keepAlive);
               });
             } else {
-              stream.setKeepAlive(true, options.keepAlive);
+              stream.setKeepAlive(true, keepAlive);
             }
           }
 
