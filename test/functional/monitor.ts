@@ -15,11 +15,15 @@ describe("monitor", () => {
           return;
         }
         monitor.on("monitor", function (time, args) {
-          expect(args[0]).to.match(/get/i);
-          expect(args[1]).to.eql("foo");
-          redis.disconnect();
-          monitor.disconnect();
-          done();
+          // Filter out handshake commands (client, info, select, auth, readonly)
+          // and keep-alive commands (ping) - only process the actual 'get' command
+          if (args[0] && args[0].toLowerCase() === "get") {
+            expect(args[0]).to.match(/get/i);
+            expect(args[1]).to.eql("foo");
+            redis.disconnect();
+            monitor.disconnect();
+            done();
+          }
         });
 
         await waitForMonitorReady();
