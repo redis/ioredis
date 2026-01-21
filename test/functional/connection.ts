@@ -32,6 +32,7 @@ describe("connection", function () {
       times += 1;
       if (times === 1) {
         expect(command.name).to.eql("auth");
+        return command.resolve("OK");
       } else if (times === 2) {
         expect(command.name).to.eql("info");
       } else if (times === 3) {

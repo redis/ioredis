@@ -19,9 +19,14 @@ export function connectHandler(self) {
     // AUTH command should be processed before any other commands
     let flushed = false;
     const { connectionEpoch } = self;
+    let authResolve;
+    const authPromise = new Promise((resolve) => {
+      authResolve = resolve;
+    });
     if (self.condition.auth) {
       self.auth(self.condition.auth, function (err) {
         if (connectionEpoch !== self.connectionEpoch) {
+          authResolve();
           return;
         }
         if (err) {
@@ -50,7 +55,11 @@ export function connectHandler(self) {
             self.recoverFromFatalError(err, err);
           }
         }
+        
+        authResolve();
       });
+    } else {
+      authResolve();
     }
 
     if (self.condition.select) {
@@ -76,25 +85,27 @@ export function connectHandler(self) {
     });
 
     if (self.options.enableReadyCheck) {
-      self._readyCheck(function (err, info) {
-        if (connectionEpoch !== self.connectionEpoch) {
-          return;
-        }
-        if (err) {
-          if (!flushed) {
-            self.recoverFromFatalError(
-              new Error("Ready check failed: " + err.message),
-              err
-            );
+      authPromise.then(() => {
+        self._readyCheck(function (err, info) {
+          if (connectionEpoch !== self.connectionEpoch) {
+            return;
           }
-        } else {
-          self.serverInfo = info;
-          if (self.connector.check(info)) {
-            exports.readyHandler(self)();
+          if (err) {
+            if (!flushed) {
+              self.recoverFromFatalError(
+                new Error("Ready check failed: " + err.message),
+                err
+              );
+            }
           } else {
-            self.disconnect(true);
+            self.serverInfo = info;
+            if (self.connector.check(info)) {
+              exports.readyHandler(self)();
+            } else {
+              self.disconnect(true);
+            }
           }
-        }
+        });
       });
     }
   };
