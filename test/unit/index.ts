@@ -1,6 +1,6 @@
 import * as sinon from "sinon";
 import { expect } from "chai";
-import { print } from "../../lib";
+import { print, Script } from "../../lib";
 
 describe("index", function () {
   describe("print()", function () {
@@ -10,6 +10,12 @@ describe("index", function () {
       print(null, "success");
       expect(stub.calledTwice).to.eql(true);
       stub.restore();
+    });
+  });
+  describe("Script", function () {
+    it("is exported", function () {
+      const script = new Script("return 1;", 1);
+      expect(script.sha).to.eql("b639ab24886e7d0cc4a63fe21aee40ba60dcac14");
     });
   });
 });
