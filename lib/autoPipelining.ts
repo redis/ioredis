@@ -1,6 +1,7 @@
 import { isArguments, noop } from "./utils/lodash";
 import * as calculateSlot from "cluster-key-slot";
 import asCallback from "standard-as-callback";
+import { exists, hasFlag } from "@ioredis/commands";
 import { ArgumentType } from "./Command";
 
 export const kExec = Symbol("exec");
@@ -147,11 +148,18 @@ export function executeWithAutoPipelining(
   // Note that the first value in args may be a (possibly empty) array.
   // ioredis will only flatten one level of the array, in the Command constructor.
   const prefix = client.options.keyPrefix || "";
-  const slotKey = client.isCluster
+  let slotKey = client.isCluster
     ? client.slots[
         calculateSlot(`${prefix}${getFirstValueInFlattenedArray(args)}`)
       ].join(",")
     : "main";
+
+  // When scaleReads is enabled, separate read and write commands into different pipelines
+  // so they can be routed to replicas and masters respectively
+  if (client.isCluster && client.options.scaleReads !== "master") {
+    const isReadOnly = exists(commandName) && hasFlag(commandName, "readonly");
+    slotKey += isReadOnly ? ":read" : ":write";
+  }
 
   if (!client._autoPipelines.has(slotKey)) {
     const pipeline = client.pipeline();
