@@ -8,8 +8,8 @@ export type NodeRole = "master" | "slave" | "all";
 export interface RedisOptions {
   port: number;
   host: string;
-  username?: string;
-  password?: string;
+  username?: string | undefined;
+  password?: string | undefined;
   [key: string]: any;
 }
 
