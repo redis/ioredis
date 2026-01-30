@@ -42,7 +42,7 @@ export interface SentinelConnectionOptions {
   role?: "master" | "slave";
   tls?: ConnectionOptions;
   sentinelUsername?: string;
-  sentinelPassword?: string;
+  sentinelPassword?: string | (() => Promise<string> | string);
   sentinels?: Array<Partial<SentinelAddress>>;
   sentinelRetryStrategy?: (retryAttempts: number) => number | void | null;
   sentinelReconnectStrategy?: (retryAttempts: number) => number | void | null;
@@ -294,15 +294,27 @@ export default class SentinelConnector extends AbstractConnector {
     return result;
   }
 
-  private connectToSentinel(
+  private async resolveSentinelPassword(): Promise<string | null> {
+    const { sentinelPassword } = this.options;
+    if (!sentinelPassword) {
+      return null;
+    }
+    if (typeof sentinelPassword === "function") {
+      return await sentinelPassword();
+    }
+    return sentinelPassword;
+  }
+
+  private async connectToSentinel(
     endpoint: Partial<SentinelAddress>,
     options?: Partial<RedisOptions>
-  ): RedisClient {
+  ): Promise<RedisClient> {
+    const resolvedPassword = await this.resolveSentinelPassword();
     const redis = new Redis({
       port: endpoint.port || 26379,
       host: endpoint.host,
       username: this.options.sentinelUsername || null,
-      password: this.options.sentinelPassword || null,
+      password: resolvedPassword,
       family:
         endpoint.family ||
         // @ts-expect-error
@@ -324,7 +336,7 @@ export default class SentinelConnector extends AbstractConnector {
   private async resolve(
     endpoint: Partial<SentinelAddress>
   ): Promise<TcpNetConnectOpts | null> {
-    const client = this.connectToSentinel(endpoint);
+    const client = await this.connectToSentinel(endpoint);
 
     // ignore the errors since resolve* methods will handle them
     client.on("error", noop);
@@ -357,7 +369,7 @@ export default class SentinelConnector extends AbstractConnector {
         break;
       }
 
-      const client = this.connectToSentinel(value, {
+      const client = await this.connectToSentinel(value, {
         lazyConnect: true,
         retryStrategy: this.options.sentinelReconnectStrategy,
       });
