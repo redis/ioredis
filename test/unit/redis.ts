@@ -99,6 +99,9 @@ describe("Redis", () => {
 
         option = getOption("redis://localhost?family=6");
         expect(option).to.have.property("family", 6);
+
+        option = getOption(1234, { keepAlive: null });
+        expect(option).to.have.property('keepAlive', null);
       } catch (err) {
         stub.restore();
         throw err;
