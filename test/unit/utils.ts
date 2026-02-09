@@ -4,6 +4,64 @@ import * as utils from "../../lib/utils";
 import TLSProfiles from "../../lib/constants/TLSProfiles";
 
 describe("utils", () => {
+  describe(".getSafeCommandForError", () => {
+    it("should redact auth command arguments", () => {
+      const result = utils.getSafeCommandForError("auth", ["password"]);
+      expect(result.name).to.eql("auth");
+      expect(result.args).to.eql(["[REDACTED]"]);
+    });
+
+    it("should redact auth command with username and password", () => {
+      const result = utils.getSafeCommandForError("auth", ["username", "password"]);
+      expect(result.name).to.eql("auth");
+      expect(result.args).to.eql(["[REDACTED]", "[REDACTED]"]);
+    });
+
+    it("should redact AUTH command (case insensitive)", () => {
+      const result = utils.getSafeCommandForError("AUTH", ["password"]);
+      expect(result.name).to.eql("AUTH");
+      expect(result.args).to.eql(["[REDACTED]"]);
+    });
+
+    it("should redact acl command arguments", () => {
+      const result = utils.getSafeCommandForError("acl", ["setuser", "myuser", ">mypass"]);
+      expect(result.name).to.eql("acl");
+      expect(result.args).to.eql(["[REDACTED]", "[REDACTED]", "[REDACTED]"]);
+    });
+
+    it("should redact config command arguments", () => {
+      const result = utils.getSafeCommandForError("config", ["set", "requirepass", "secret"]);
+      expect(result.name).to.eql("config");
+      expect(result.args).to.eql(["[REDACTED]", "[REDACTED]", "[REDACTED]"]);
+    });
+
+    it("should not redact non-sensitive commands", () => {
+      const result = utils.getSafeCommandForError("get", ["mykey"]);
+      expect(result.name).to.eql("get");
+      expect(result.args).to.eql(["mykey"]);
+    });
+
+    it("should not redact set command", () => {
+      const result = utils.getSafeCommandForError("set", ["key", "value"]);
+      expect(result.name).to.eql("set");
+      expect(result.args).to.eql(["key", "value"]);
+    });
+
+    it("should handle empty args", () => {
+      const result = utils.getSafeCommandForError("ping", []);
+      expect(result.name).to.eql("ping");
+      expect(result.args).to.eql([]);
+    });
+
+    it("should handle buffer arguments in non-sensitive commands", () => {
+      const buffer = Buffer.from("test");
+      const result = utils.getSafeCommandForError("get", [buffer]);
+      expect(result.name).to.eql("get");
+      expect(result.args[0]).to.eql(buffer);
+    });
+  });
+
+
   describe(".convertBufferToString", () => {
     it("should return correctly", () => {
       expect(utils.convertBufferToString(Buffer.from("123"))).to.eql("123");
