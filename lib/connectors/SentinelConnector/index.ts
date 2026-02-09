@@ -40,7 +40,7 @@ export interface SentinelConnectionOptions {
    * @default "master"
    */
   role?: "master" | "slave" | undefined;
-  tls?: ConnectionOptions;
+  tls?: ConnectionOptions | undefined;
   sentinelUsername?: string | undefined;
   sentinelPassword?: string | undefined;
   sentinels?: Array<Partial<SentinelAddress>> | undefined;

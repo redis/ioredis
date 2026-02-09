@@ -6,7 +6,7 @@ import { StandaloneConnectionOptions } from "../connectors/StandaloneConnector";
 export type ReconnectOnError = (err: Error) => boolean | 1 | 2;
 
 export interface CommonRedisOptions extends CommanderOptions {
-  Connector?: ConnectorConstructor;
+  Connector?: ConnectorConstructor | undefined;
   retryStrategy?: ((times: number) => number | void | null) | undefined;
 
   /**

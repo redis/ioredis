@@ -8,8 +8,8 @@ type TcpOptions = Pick<TcpNetConnectOpts, "port" | "host" | "family">;
 type IpcOptions = Pick<IpcNetConnectOpts, "path">;
 
 export type StandaloneConnectionOptions = Partial<TcpOptions & IpcOptions> & {
-  disconnectTimeout?: number;
-  tls?: ConnectionOptions;
+  disconnectTimeout?: number | undefined;
+  tls?: ConnectionOptions | undefined;
 };
 
 export default class StandaloneConnector extends AbstractConnector {
