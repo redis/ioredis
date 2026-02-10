@@ -21,13 +21,13 @@ const debug = Debug("SentinelConnector");
 interface AddressFromResponse {
   port: string;
   ip: string;
-  flags?: string;
+  flags?: string | undefined;
 }
 
 type PreferredSlaves =
   | ((slaves: AddressFromResponse[]) => AddressFromResponse | null)
-  | Array<{ port: string; ip: string; prio?: number }>
-  | { port: string; ip: string; prio?: number };
+  | Array<{ port: string; ip: string; prio?: number | undefined }>
+  | { port: string; ip: string; prio?: number | undefined };
 
 export { SentinelAddress, SentinelIterator };
 
@@ -35,30 +35,34 @@ export interface SentinelConnectionOptions {
   /**
    * Master group name of the Sentinel
    */
-  name?: string;
+  name?: string | undefined;
   /**
    * @default "master"
    */
-  role?: "master" | "slave";
-  tls?: ConnectionOptions;
-  sentinelUsername?: string;
-  sentinelPassword?: string;
-  sentinels?: Array<Partial<SentinelAddress>>;
-  sentinelRetryStrategy?: (retryAttempts: number) => number | void | null;
-  sentinelReconnectStrategy?: (retryAttempts: number) => number | void | null;
-  preferredSlaves?: PreferredSlaves;
-  connectTimeout?: number;
-  disconnectTimeout?: number;
-  sentinelCommandTimeout?: number;
-  enableTLSForSentinelMode?: boolean;
-  sentinelTLS?: ConnectionOptions;
-  natMap?: NatMap;
-  updateSentinels?: boolean;
+  role?: "master" | "slave" | undefined;
+  tls?: ConnectionOptions | undefined;
+  sentinelUsername?: string | undefined;
+  sentinelPassword?: string | undefined;
+  sentinels?: Array<Partial<SentinelAddress>> | undefined;
+  sentinelRetryStrategy?:
+    | ((retryAttempts: number) => number | void | null)
+    | undefined;
+  sentinelReconnectStrategy?:
+    | ((retryAttempts: number) => number | void | null)
+    | undefined;
+  preferredSlaves?: PreferredSlaves | undefined;
+  connectTimeout?: number | undefined;
+  disconnectTimeout?: number | undefined;
+  sentinelCommandTimeout?: number | undefined;
+  enableTLSForSentinelMode?: boolean | undefined;
+  sentinelTLS?: ConnectionOptions | undefined;
+  natMap?: NatMap | undefined;
+  updateSentinels?: boolean | undefined;
   /**
    * @default 10
    */
-  sentinelMaxConnections?: number;
-  failoverDetector?: boolean;
+  sentinelMaxConnections?: number | undefined;
+  failoverDetector?: boolean | undefined;
 }
 
 export default class SentinelConnector extends AbstractConnector {
@@ -169,7 +173,10 @@ export default class SentinelConnector extends AbstractConnector {
         if (this.options.enableTLSForSentinelMode && this.options.tls) {
           Object.assign(resolved, this.options.tls);
           this.stream = createTLSConnection(resolved);
-          this.stream.once("secureConnect", this.initFailoverDetector.bind(this));
+          this.stream.once(
+            "secureConnect",
+            this.initFailoverDetector.bind(this)
+          );
         } else {
           this.stream = createConnection(resolved);
           this.stream.once("connect", this.initFailoverDetector.bind(this));
@@ -285,7 +292,7 @@ export default class SentinelConnector extends AbstractConnector {
     const key = `${item.host}:${item.port}`;
 
     let result = item;
-    if(typeof this.options.natMap === "function") {
+    if (typeof this.options.natMap === "function") {
       result = this.options.natMap(key) || item;
     } else if (typeof this.options.natMap === "object") {
       result = this.options.natMap[key] || item;

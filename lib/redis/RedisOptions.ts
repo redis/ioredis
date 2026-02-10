@@ -6,14 +6,14 @@ import { StandaloneConnectionOptions } from "../connectors/StandaloneConnector";
 export type ReconnectOnError = (err: Error) => boolean | 1 | 2;
 
 export interface CommonRedisOptions extends CommanderOptions {
-  Connector?: ConnectorConstructor;
-  retryStrategy?: (times: number) => number | void | null;
+  Connector?: ConnectorConstructor | undefined;
+  retryStrategy?: ((times: number) => number | void | null) | undefined;
 
   /**
    * If a command does not return a reply within a set number of milliseconds,
    * a "Command timed out" error will be thrown.
    */
-  commandTimeout?: number;
+  commandTimeout?: number | undefined;
 
   /**
    * Enables client-side timeout protection for blocking commands when set
@@ -21,13 +21,13 @@ export interface CommonRedisOptions extends CommanderOptions {
    * negative (e.g. `-1`), the protection is disabled and no client-side
    * timers are installed for blocking commands.
    */
-  blockingTimeout?: number;
+  blockingTimeout?: number | undefined;
 
   /**
    * Grace period (ms) added to blocking command timeouts. Only used when
    * `blockingTimeout` is a positive number. Defaults to 100ms.
    */
-  blockingTimeoutGrace?: number;
+  blockingTimeoutGrace?: number | undefined;
 
   /**
    * If the socket does not receive data within a set number of milliseconds:
@@ -35,74 +35,74 @@ export interface CommonRedisOptions extends CommanderOptions {
    * 2. the client will reject any running commands (altought they might have been processed by the server)
    * 3. the reconnect strategy will kick in (depending on the configuration)
    */
-  socketTimeout?: number;
+  socketTimeout?: number | undefined;
 
   /**
    * Enable/disable keep-alive functionality.
    * @link https://nodejs.org/api/net.html#socketsetkeepaliveenable-initialdelay
    * @default 0
    */
-  keepAlive?: number;
+  keepAlive?: number | undefined;
 
   /**
    * Enable/disable the use of Nagle's algorithm.
    * @link https://nodejs.org/api/net.html#socketsetnodelaynodelay
    * @default true
    */
-  noDelay?: boolean;
+  noDelay?: boolean | undefined;
 
   /**
    * Set the name of the connection to make it easier to identity the connection
    * in client list.
    * @link https://redis.io/commands/client-setname
    */
-  connectionName?: string;
+  connectionName?: string | undefined;
 
   /**
    * If true, skips setting library info via CLIENT SETINFO.
    * @link https://redis.io/docs/latest/commands/client-setinfo/
    * @default false
    */
-  disableClientInfo?: boolean;
+  disableClientInfo?: boolean | undefined;
 
   /**
    * Tag to append to the library name in CLIENT SETINFO (ioredis(tag)).
    * @link https://redis.io/docs/latest/commands/client-setinfo/
    * @default undefined
    */
-  clientInfoTag?: string;
+  clientInfoTag?: string | undefined;
 
   /**
    * If set, client will send AUTH command with the value of this option as the first argument when connected.
    * This is supported since Redis 6.
    */
-  username?: string;
+  username?: string | undefined;
 
   /**
    * If set, client will send AUTH command with the value of this option when connected.
    */
-  password?: string;
+  password?: string | undefined;
 
   /**
    * Database index to use.
    *
    * @default 0
    */
-  db?: number;
+  db?: number | undefined;
 
   /**
    * When the client reconnects, channels subscribed in the previous connection will be
    * resubscribed automatically if `autoResubscribe` is `true`.
    * @default true
    */
-  autoResubscribe?: boolean;
+  autoResubscribe?: boolean | undefined;
 
   /**
    * Whether or not to resend unfulfilled commands on reconnect.
    * Unfulfilled commands are most likely to be blocking commands such as `brpop` or `blpop`.
    * @default true
    */
-  autoResendUnfulfilledCommands?: boolean;
+  autoResendUnfulfilledCommands?: boolean | undefined;
   /**
    * Whether or not to reconnect on certain Redis errors.
    * This options by default is `null`, which means it should never reconnect on Redis errors.
@@ -124,24 +124,24 @@ export interface CommonRedisOptions extends CommanderOptions {
    * ```
    * @default null
    */
-  reconnectOnError?: ReconnectOnError | null;
+  reconnectOnError?: ReconnectOnError | null | undefined;
 
   /**
    * @default false
    */
-  readOnly?: boolean;
+  readOnly?: boolean | undefined;
   /**
    * When enabled, numbers returned by Redis will be converted to JavaScript strings instead of numbers.
    * This is necessary if you want to handle big numbers (above `Number.MAX_SAFE_INTEGER` === 2^53).
    * @default false
    */
-  stringNumbers?: boolean;
+  stringNumbers?: boolean | undefined;
 
   /**
    * How long the client will wait before killing a socket due to inactivity during initial connection.
    * @default 10000
    */
-  connectTimeout?: number;
+  connectTimeout?: number | undefined;
 
   /**
    * This option is used internally when you call `redis.monitor()` to tell Redis
@@ -149,7 +149,7 @@ export interface CommonRedisOptions extends CommanderOptions {
    *
    * @default false
    */
-  monitor?: boolean;
+  monitor?: boolean | undefined;
 
   /**
    * The commands that don't get a reply due to the connection to the server is lost are
@@ -161,22 +161,22 @@ export interface CommonRedisOptions extends CommanderOptions {
    *
    * @default 20
    */
-  maxRetriesPerRequest?: number | null;
+  maxRetriesPerRequest?: number | null | undefined;
 
   /**
    * @default 10000
    */
-  maxLoadingRetryTime?: number;
+  maxLoadingRetryTime?: number | undefined;
   /**
    * @default false
    */
-  enableAutoPipelining?: boolean;
+  enableAutoPipelining?: boolean | undefined;
   /**
    * @default []
    */
-  autoPipeliningIgnoredCommands?: string[];
-  offlineQueue?: boolean;
-  commandQueue?: boolean;
+  autoPipeliningIgnoredCommands?: string[] | undefined;
+  offlineQueue?: boolean | undefined;
+  commandQueue?: boolean | undefined;
 
   /**
    *
@@ -188,7 +188,7 @@ export interface CommonRedisOptions extends CommanderOptions {
    *
    * @default true
    */
-  enableOfflineQueue?: boolean;
+  enableOfflineQueue?: boolean | undefined;
 
   /**
    * The client will sent an INFO command to check whether the server is still loading data from the disk (
@@ -197,7 +197,7 @@ export interface CommonRedisOptions extends CommanderOptions {
    *
    * @default true
    */
-  enableReadyCheck?: boolean;
+  enableReadyCheck?: boolean | undefined;
 
   /**
    * When a Redis instance is initialized, a connection to the server is immediately established. Set this to
@@ -208,15 +208,15 @@ export interface CommonRedisOptions extends CommanderOptions {
    * @default false
    */
 
-  lazyConnect?: boolean;
+  lazyConnect?: boolean | undefined;
 
   /**
    * @default undefined
    */
   scripts?: Record<
     string,
-    { lua: string; numberOfKeys?: number; readOnly?: boolean }
-  >;
+    { lua: string; numberOfKeys?: number | undefined; readOnly?: boolean | undefined }
+  > | undefined;
 }
 
 export type RedisOptions = CommonRedisOptions &
