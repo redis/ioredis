@@ -7,6 +7,15 @@
 * fix issue with moved command for replicas ([#2064](https://github.com/luin/ioredis/issues/2064)) ([de4eed4](https://github.com/luin/ioredis/commit/de4eed4c88c1222002223b17d6d481c2a12df329))
 * **types:** optional properties on RedisOptions allow explicit undefined ([#2066](https://github.com/luin/ioredis/issues/2066)) ([0a1a898](https://github.com/luin/ioredis/commit/0a1a8982f9c912c78de68295e1f56136b62a645e))
 
+## [5.9.3](https://github.com/luin/ioredis/compare/v5.9.2...v5.9.3) (2026-02-12)
+
+
+### Bug Fixes
+
+* autopipelining to route writes to masters with scaleReads ([#2072](https://github.com/luin/ioredis/issues/2072)) ([8adb1ae](https://github.com/luin/ioredis/commit/8adb1aeb6f01cb2cf832c1f218033daf2a722925))
+* fix issue with moved command for replicas ([#2064](https://github.com/luin/ioredis/issues/2064)) ([de4eed4](https://github.com/luin/ioredis/commit/de4eed4c88c1222002223b17d6d481c2a12df329))
+* **types:** optional properties on RedisOptions allow explicit undefined ([#2066](https://github.com/luin/ioredis/issues/2066)) ([0a1a898](https://github.com/luin/ioredis/commit/0a1a8982f9c912c78de68295e1f56136b62a645e))
+
 ## [5.9.2](https://github.com/luin/ioredis/compare/v5.9.1...v5.9.2) (2026-01-15)
 
 
