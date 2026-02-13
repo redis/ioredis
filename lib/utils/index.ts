@@ -358,4 +358,39 @@ export async function getPackageMeta() {
   }
 }
 
+/**
+ * Commands that contain sensitive data that should be redacted
+ * when attached to error objects.
+ */
+const SENSITIVE_COMMANDS = new Set([
+  "auth",
+  "acl",
+  "config",
+]);
+
+type CommandParameter = string | Buffer | number | any[];
+
+/**
+ * Create a safe command object for attaching to errors,
+ * with sensitive arguments redacted.
+ */
+export function getSafeCommandForError(
+  name: string,
+  args: CommandParameter[]
+): { name: string; args: (CommandParameter | "[REDACTED]")[] } {
+  const lowerName = name.toLowerCase();
+
+  // Check if this is a sensitive command
+  if (SENSITIVE_COMMANDS.has(lowerName)) {
+    // For auth, acl setuser, config set requirepass - redact all args
+    // to avoid leaking username/password combinations
+    return {
+      name,
+      args: args.map(() => "[REDACTED]"),
+    };
+  }
+
+  return { name, args };
+}
+
 export { Debug, defaults, noop };
