@@ -14,6 +14,10 @@ export interface Condition {
   select: number;
   auth?: string | [string, string];
   subscriber: false | SubscriptionSet;
+  /**
+   * Whether the connection has issued a subscribe command during `connect` or `ready`.
+   */
+  hasIssuedSubscribe: boolean;
 }
 
 export type FlushQueueOptions = {

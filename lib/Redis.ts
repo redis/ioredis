@@ -195,6 +195,7 @@ class Redis extends Commander implements DataHandledable {
           ? [options.username, options.password]
           : options.password,
         subscriber: false,
+        hasIssuedSubscribe: false,
       };
 
       const _this = this;
@@ -429,6 +430,17 @@ class Redis extends Commander implements DataHandledable {
       command.reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
       return command.promise;
     }
+
+    // Make sure know that a subscribe command is sent to the server
+    // In order to prevent race condition by sending another non-subscribe command
+    // before we've received the response of the previous subscribe command
+    if (
+      (this.status === "connect" || this.status === "ready") &&
+      Command.checkFlag("ENTER_SUBSCRIBER_MODE", command.name)
+    ) {
+      this.condition.hasIssuedSubscribe = true;
+    }
+
     if (
       this.condition?.subscriber &&
       !Command.checkFlag("VALID_IN_SUBSCRIBER_MODE", command.name)
