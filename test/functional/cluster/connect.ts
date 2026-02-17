@@ -119,6 +119,17 @@ describe("cluster:connect", () => {
     });
   });
 
+  it("should support url schema with mutiple nodes", (done) => {
+    const node = new MockServer(30001);
+
+    const cluster = new Cluster([30002, "127.0.0.4:30001", { host:"127.0.0.3", port: 30001 }, "redis://127.0.0.2:30001,127.0.0.1:30001"]);
+
+    node.once("connect", () => {
+      cluster.disconnect();
+      done();
+    });
+  });
+
   it("should support a single port", (done) => {
     const node = new MockServer(30001);
 
