@@ -209,19 +209,23 @@ export function parseURL(url: string): Record<string, unknown> {
   if (isInt(url)) {
     return { port: url };
   }
+  // Re-assert string type: isInt's type guard (value is string) incorrectly
+  // narrows url to 'never' in the false branch since url is already string.
+  const rawUrl: string = url;
+
   // Determine if the URL has a known protocol (redis:// or rediss://)
   const hasProtocol =
-    url.startsWith("redis://") || url.startsWith("rediss://");
+    rawUrl.startsWith("redis://") || rawUrl.startsWith("rediss://");
 
   // Unix socket paths (starting with "/") are not valid URLs — handle separately.
   // Preserve query params (e.g., /tmp/redis.sock?db=2)
-  if (url[0] === "/") {
-    const qIdx = url.indexOf("?");
+  if (rawUrl[0] === "/") {
+    const qIdx = rawUrl.indexOf("?");
     const result: Record<string, unknown> = {
-      path: qIdx === -1 ? url : url.slice(0, qIdx),
+      path: qIdx === -1 ? rawUrl : rawUrl.slice(0, qIdx),
     };
     if (qIdx !== -1) {
-      const params = new URLSearchParams(url.slice(qIdx + 1));
+      const params = new URLSearchParams(rawUrl.slice(qIdx + 1));
       params.forEach((value, key) => {
         result[key] = value;
       });
@@ -231,10 +235,10 @@ export function parseURL(url: string): Record<string, unknown> {
 
   let parsed: URL;
   if (hasProtocol) {
-    parsed = new URL(url);
+    parsed = new URL(rawUrl);
   } else {
     // Prepend a dummy protocol so new URL() can parse "host:port?query" correctly
-    parsed = new URL("redis://" + url);
+    parsed = new URL("redis://" + rawUrl);
   }
 
   // Convert searchParams to a plain object (equivalent to url.parse(url, true).query)
