@@ -1,6 +1,5 @@
 import { promises as fsPromises } from "fs";
 import { resolve } from "path";
-import { parse as urllibParse } from "url";
 import { defaults, noop } from "./lodash";
 import { Callback } from "../types";
 import Debug from "./debug";
@@ -210,23 +209,44 @@ export function parseURL(url: string): Record<string, unknown> {
   if (isInt(url)) {
     return { port: url };
   }
-  let parsed = urllibParse(url, true, true);
+  const urlStr: string = url;
 
-  if (!parsed.slashes && url[0] !== "/") {
-    url = "//" + url;
-    parsed = urllibParse(url, true, true);
+  // Determine if the URL has a known protocol (redis:// or rediss://)
+  const hasProtocol =
+    urlStr.startsWith("redis://") || urlStr.startsWith("rediss://");
+
+  // For URLs without a protocol that don't start with "/" (e.g. "127.0.0.1:6379"),
+  // use a dummy base so that `new URL()` can parse them as authority-based URLs.
+  // Unix socket paths (starting with "/") are not valid URLs and are handled separately.
+  if (urlStr[0] === "/") {
+    return { path: urlStr.split("?")[0] };
   }
 
-  const options = parsed.query || {};
+  let parsed: URL;
+  if (hasProtocol) {
+    parsed = new URL(urlStr);
+  } else {
+    // Prepend a dummy protocol so new URL() can parse "host:port?query" correctly
+    parsed = new URL("redis://" + urlStr);
+  }
+
+  // Convert searchParams to a plain object (equivalent to url.parse(url, true).query)
+  const options: Record<string, string> = {};
+  parsed.searchParams.forEach((value, key) => {
+    options[key] = value;
+  });
 
   const result: any = {};
-  if (parsed.auth) {
-    const index = parsed.auth.indexOf(":");
-    result.username = index === -1 ? parsed.auth : parsed.auth.slice(0, index);
-    result.password = index === -1 ? "" : parsed.auth.slice(index + 1);
+
+  // Extract auth — WHATWG URL percent-encodes special chars, so decode them
+  if (parsed.username) {
+    result.username = decodeURIComponent(parsed.username);
+    result.password = decodeURIComponent(parsed.password);
   }
-  if (parsed.pathname) {
-    if (parsed.protocol === "redis:" || parsed.protocol === "rediss:") {
+
+  if (parsed.pathname && parsed.pathname !== "/") {
+    if (hasProtocol) {
+      // For redis:// and rediss://, the path after / is the db number
       if (parsed.pathname.length > 1) {
         result.db = parsed.pathname.slice(1);
       }
@@ -234,12 +254,14 @@ export function parseURL(url: string): Record<string, unknown> {
       result.path = parsed.pathname;
     }
   }
-  if (parsed.host) {
+
+  if (parsed.hostname) {
     result.host = parsed.hostname;
   }
   if (parsed.port) {
     result.port = parsed.port;
   }
+
   if (typeof options.family === "string") {
     const intFamily = Number.parseInt(options.family, 10);
     if (!Number.isNaN(intFamily)) {
