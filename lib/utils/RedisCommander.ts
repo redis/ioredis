@@ -3888,6 +3888,32 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   hexpire(...args: [key: RedisKey, seconds: number | string, lt: 'LT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
 
   /**
+   * Set expiry for hash field using an absolute Unix timestamp (seconds)
+   * - _group_: hash
+   * - _complexity_: O(N) where N is the number of specified fields
+   * - _since_: 7.4.0
+   */
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, nx: 'NX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, nx: 'NX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, xx: 'XX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, xx: 'XX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, gt: 'GT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, gt: 'GT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, lt: 'LT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, lt: 'LT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+
+  /**
+   * Returns the expiration time of a hash field as a Unix timestamp, in seconds.
+   * - _group_: hash
+   * - _complexity_: O(N) where N is the number of specified fields
+   * - _since_: 7.4.0
+   */
+  hexpiretime(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<number[], Context>;
+  hexpiretime(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+
+  /**
    * Get the value of a hash field
    * - _group_: hash
    * - _complexity_: O(1)
