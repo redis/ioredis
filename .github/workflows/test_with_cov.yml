@@ -30,6 +30,7 @@ jobs:
       - run: npm run test:cluster
       - name: Coveralls
         if: matrix.node == '24.x'
+        continue-on-error: true
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -41,6 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls
+        continue-on-error: true
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
