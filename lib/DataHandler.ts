@@ -2,7 +2,7 @@ import { NetStream, CommandItem, Respondable } from "./types";
 import Deque = require("denque");
 import { EventEmitter } from "events";
 import Command from "./Command";
-import { Debug } from "./utils";
+import { Debug, getSafeCommandForError } from "./utils";
 import * as RedisParser from "redis-parser";
 import SubscriptionSet from "./SubscriptionSet";
 
@@ -75,10 +75,10 @@ export default class DataHandler {
       return;
     }
 
-    (err as any).command = {
-      name: item.command.name,
-      args: item.command.args,
-    };
+    (err as any).command = getSafeCommandForError(
+      item.command.name,
+      item.command.args
+    );
 
     if (item.command.name == "ssubscribe" && err.message.includes("MOVED")) {
       this.redis.emit("moved");
