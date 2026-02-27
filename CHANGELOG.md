@@ -1,3 +1,11 @@
+# [5.10.0](https://github.com/luin/ioredis/compare/v5.9.3...v5.10.0) (2026-02-27)
+
+
+### Features
+
+* add hash field expiration commands and tests ([5219f9f](https://github.com/luin/ioredis/commit/5219f9f6ae40c5b4e9bc40581d6513da27dbf1c2))
+* add hexpireat & hexpiretime ([#2082](https://github.com/luin/ioredis/issues/2082)) ([b38124f](https://github.com/luin/ioredis/commit/b38124f784cc6d170ff60f508f3bc34269806f47))
+
 ## [5.9.3](https://github.com/luin/ioredis/compare/v5.9.2...v5.9.3) (2026-02-12)
 
 
