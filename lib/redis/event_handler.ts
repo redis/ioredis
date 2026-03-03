@@ -77,14 +77,14 @@ export function connectHandler(self) {
 
     const clientCommandPromises = [];
 
-    if (self.options.connectionName) {
+    if (self.options.connectionName && !self.condition.hasIssuedSubscribe) {
       debug("set the connection name [%s]", self.options.connectionName);
       clientCommandPromises.push(
         self.client("setname", self.options.connectionName).catch(noop)
       );
     }
 
-    if (!self.options.disableClientInfo) {
+    if (!self.options.disableClientInfo && !self.condition.hasIssuedSubscribe) {
       debug("set the client info");
       clientCommandPromises.push(
         getPackageMeta()
@@ -112,11 +112,16 @@ export function connectHandler(self) {
     Promise.all(clientCommandPromises)
       .catch(noop)
       .finally(() => {
-        if (!self.options.enableReadyCheck) {
+        // Ready check should not be performed after a subscribe command
+        // Because it might result in a race condition
+        // Additionally because we're using RESP2 another client should be used for normal commands
+        const shouldReadyCheck = self.options.enableReadyCheck && !self.condition.hasIssuedSubscribe;
+
+        if (!shouldReadyCheck) {
           exports.readyHandler(self)();
         }
 
-        if (self.options.enableReadyCheck) {
+        if (shouldReadyCheck) {
           self._readyCheck(function (err, info) {
             if (connectionEpoch !== self.connectionEpoch) {
               return;
