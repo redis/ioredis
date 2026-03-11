@@ -383,6 +383,26 @@ describe("autoPipelining for cluster", () => {
     });
   });
 
+  it("should handle large pipelines without RangeError", async () => {
+    const cluster = new Cluster(hosts, { enableAutoPipelining: true });
+    await new Promise((resolve) => cluster.once("connect", resolve));
+
+    const largeValue = "x".repeat(1024 * 1024);
+
+    await Promise.all(
+      Array.from({ length: 600 }, () => cluster.set("foo1", largeValue))
+    );
+
+    const results = await Promise.all(
+      Array.from({ length: 600 }, () => cluster.get("foo1"))
+    );
+
+    expect(results[0]).to.eql("bar1");
+    expect(results[599]).to.eql("bar1");
+
+    cluster.disconnect();
+  });
+
   it("should handle callbacks failures", (done) => {
     const listeners = process.listeners("uncaughtException");
     process.removeAllListeners("uncaughtException");
