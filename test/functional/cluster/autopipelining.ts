@@ -384,21 +384,48 @@ describe("autoPipelining for cluster", () => {
   });
 
   it("should handle large pipelines without RangeError", async () => {
-    const cluster = new Cluster(hosts, { enableAutoPipelining: true });
+    const largeValue = "x".repeat(1024 * 1024);
+    const store = {};
+
+    const slotTable = [
+      [0, 8191, ["127.0.0.1", 30005]],
+      [8192, 16383, ["127.0.0.1", 30006]],
+    ];
+
+    const handler = (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+
+      if (argv[0] === "set") {
+        store[argv[1]] = argv[2];
+        return "OK";
+      }
+
+      if (argv[0] === "get") {
+        return store[argv[1]] || null;
+      }
+    };
+
+    new MockServer(30005, handler);
+    new MockServer(30006, handler);
+
+    const cluster = new Cluster(
+      [{ host: "127.0.0.1", port: 30005 }, { host: "127.0.0.1", port: 30006 }],
+      { enableAutoPipelining: true }
+    );
     await new Promise((resolve) => cluster.once("connect", resolve));
 
-    const largeValue = "x".repeat(1024 * 1024);
-
     await Promise.all(
-      Array.from({ length: 600 }, () => cluster.set("foo1", largeValue))
+      Array.from({ length: 600 }, (_, i) => cluster.set(`key${i}`, largeValue))
     );
 
     const results = await Promise.all(
-      Array.from({ length: 600 }, () => cluster.get("foo1"))
+      Array.from({ length: 600 }, (_, i) => cluster.get(`key${i}`))
     );
 
-    expect(results[0]).to.eql("bar1");
-    expect(results[599]).to.eql("bar1");
+    expect(results[0]).to.eql(largeValue);
+    expect(results[599]).to.eql(largeValue);
 
     cluster.disconnect();
   });
