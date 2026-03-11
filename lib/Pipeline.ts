@@ -393,7 +393,15 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
       },
     };
 
+    // Determine batch mode: if any command is inTransaction, this is a multi
+    const batchMode = _this._queue.some((cmd) => cmd.inTransaction)
+      ? "multi" as const
+      : "pipeline" as const;
+    const batchSize = _this._queue.length;
+
     for (let i = 0; i < _this._queue.length; ++i) {
+      _this._queue[i].batchMode = batchMode;
+      _this._queue[i].batchSize = batchSize;
       _this.redis.sendCommand(_this._queue[i], stream, node);
     }
     return _this.promise;
