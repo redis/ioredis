@@ -149,18 +149,18 @@ describeOrSkip("tracing", function () {
           .exec();
         redis.disconnect();
 
-        const pipelineEvents = events.filter((e) => e.batchMode === "pipeline");
+        const pipelineEvents = events.filter((e) => e.batchMode === "PIPELINE");
         expect(pipelineEvents.length).to.eql(3);
         for (const evt of pipelineEvents) {
           expect(evt.batchSize).to.eql(3);
-          expect(evt.batchMode).to.eql("pipeline");
+          expect(evt.batchMode).to.eql("PIPELINE");
         }
       } finally {
         channel.unsubscribe(subscriber);
       }
     });
 
-    it("should trace MULTI/EXEC commands with batchMode 'multi'", async function () {
+    it("should trace MULTI/EXEC commands with batchMode 'MULTI'", async function () {
       const events: any[] = [];
       const subscriber = {
         start(message: any) { events.push(message); },
@@ -183,10 +183,10 @@ describeOrSkip("tracing", function () {
           .exec();
         redis.disconnect();
 
-        const multiEvents = events.filter((e) => e.batchMode === "multi");
+        const multiEvents = events.filter((e) => e.batchMode === "MULTI");
         expect(multiEvents.length).to.be.greaterThan(0);
         for (const evt of multiEvents) {
-          expect(evt.batchMode).to.eql("multi");
+          expect(evt.batchMode).to.eql("MULTI");
         }
       } finally {
         channel.unsubscribe(subscriber);

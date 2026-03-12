@@ -10,7 +10,7 @@ export interface CommandTraceContext {
 }
 
 export interface BatchCommandTraceContext extends CommandTraceContext {
-  batchMode: "pipeline" | "multi";
+  batchMode: "PIPELINE" | "MULTI";
   batchSize: number;
 }
 
