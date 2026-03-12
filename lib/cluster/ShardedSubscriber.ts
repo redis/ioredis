@@ -1,40 +1,83 @@
 import EventEmitter = require("events");
 import { getConnectionName, getNodeKey, RedisOptions } from "./util";
-import { Debug } from "../utils";
+import { Debug, defaults } from "../utils";
 import Redis from "../Redis";
+import { ClusterOptions } from "./ClusterOptions";
 const debug = Debug("cluster:subscriberGroup:shardedSubscriber");
+
+const SubscriberStatus = {
+  IDLE: "idle",
+  STARTING: "starting",
+  CONNECTED: "connected",
+  STOPPING: "stopping",
+  ENDED: "ended",
+} as const;
+
+type SubscriberStatus = typeof SubscriberStatus[keyof typeof SubscriberStatus];
+
+const ALLOWED_STATUS_UPDATES: Record<SubscriberStatus, SubscriberStatus[]> = {
+  [SubscriberStatus.IDLE]: [
+    SubscriberStatus.STARTING,
+    SubscriberStatus.STOPPING,
+    SubscriberStatus.ENDED,
+  ],
+  [SubscriberStatus.STARTING]: [
+    SubscriberStatus.CONNECTED,
+    SubscriberStatus.STOPPING,
+    SubscriberStatus.ENDED,
+  ],
+  [SubscriberStatus.CONNECTED]: [
+    SubscriberStatus.STOPPING,
+    SubscriberStatus.ENDED,
+  ],
+  [SubscriberStatus.STOPPING]: [SubscriberStatus.ENDED],
+  [SubscriberStatus.ENDED]: [],
+};
 
 export default class ShardedSubscriber {
   private readonly nodeKey: string;
-  private started = false;
+  private status: SubscriberStatus = SubscriberStatus.IDLE;
   private instance: Redis | null = null;
+  private connectPromise: Promise<void> | null = null;
+  private lazyConnect: boolean;
 
   // Store listener references for cleanup
   private readonly messageListeners: Map<string, (...args: any[]) => void> =
     new Map();
 
-  constructor(private readonly emitter: EventEmitter, options: RedisOptions) {
-    this.instance = new Redis({
-      port: options.port,
-      host: options.host,
-      username: options.username,
-      password: options.password,
-      enableReadyCheck: false,
-      offlineQueue: true,
-      connectionName: getConnectionName("ssubscriber", options.connectionName),
-      lazyConnect: true,
-      tls: options.tls,
-      /**
-       * Disable auto reconnection for subscribers.
-       * The ClusterSubscriberGroup will handle the reconnection.
-       */
-      retryStrategy: null,
-    });
+  constructor(
+    private readonly emitter: EventEmitter,
+    options: RedisOptions,
+    redisOptions?: ClusterOptions["redisOptions"],
+  ) {
+    this.instance = new Redis(
+      defaults(
+        {
+          enableReadyCheck: false,
+          enableOfflineQueue: true,
+          connectionName: getConnectionName(
+            "ssubscriber",
+            options.connectionName,
+          ),
+          /**
+           * Disable auto reconnection for subscribers.
+           * The ClusterSubscriberGroup will handle the reconnection.
+           */
+          retryStrategy: null,
+          lazyConnect: true,
+          disableClientInfo: true,
+        },
+        options,
+        redisOptions,
+      ),
+    );
+
+    this.lazyConnect = redisOptions?.lazyConnect ?? true;
 
     this.nodeKey = getNodeKey(options);
 
     // Register listeners
-    this.instance.once("end", this.onEnd);
+    this.instance.on("end", this.onEnd);
     this.instance.on("error", this.onError);
     this.instance.on("moved", this.onMoved);
 
@@ -47,8 +90,81 @@ export default class ShardedSubscriber {
     }
   }
 
+  async start(): Promise<void> {
+    if (this.connectPromise) {
+      return this.connectPromise;
+    }
+
+    if (
+      this.status === SubscriberStatus.STARTING ||
+      this.status === SubscriberStatus.CONNECTED
+    ) {
+      return;
+    }
+
+    if (this.status === SubscriberStatus.ENDED || !this.instance) {
+      throw new Error(
+        `Sharded subscriber ${this.nodeKey} cannot be restarted once ended.`,
+      );
+    }
+
+    this.updateStatus(SubscriberStatus.STARTING);
+    this.connectPromise = this.instance.connect();
+
+    try {
+      await this.connectPromise;
+      this.updateStatus(SubscriberStatus.CONNECTED);
+    } catch (err) {
+      this.updateStatus(SubscriberStatus.ENDED);
+      throw err;
+    } finally {
+      this.connectPromise = null;
+    }
+  }
+
+  stop(): void {
+    this.updateStatus(SubscriberStatus.STOPPING);
+
+    if (this.instance) {
+      this.instance.disconnect();
+      this.instance.removeAllListeners();
+      this.messageListeners.clear();
+      this.instance = null;
+    }
+
+    this.updateStatus(SubscriberStatus.ENDED);
+    debug("stopped %s", this.nodeKey);
+  }
+
+  isConnected(): boolean {
+    return ([SubscriberStatus.CONNECTED] as SubscriberStatus[]).includes(
+      this.status,
+    );
+  }
+
+  isHealthy(): boolean {
+    return (
+      (this.status === SubscriberStatus.IDLE ||
+        this.status === SubscriberStatus.CONNECTED ||
+        this.status === SubscriberStatus.STARTING) &&
+      this.instance !== null
+    );
+  }
+
+  getInstance(): Redis | null {
+    return this.instance;
+  }
+
+  getNodeKey(): string {
+    return this.nodeKey;
+  }
+
+  isLazyConnect(): boolean {
+    return this.lazyConnect;
+  }
+
   private onEnd = () => {
-    this.started = false;
+    this.updateStatus(SubscriberStatus.ENDED);
     this.emitter.emit("-node", this.instance, this.nodeKey);
   };
 
@@ -60,45 +176,20 @@ export default class ShardedSubscriber {
     this.emitter.emit("moved");
   };
 
-  async start(): Promise<void> {
-    if (this.started) {
-      debug("already started %s", this.nodeKey);
+  private updateStatus(nextStatus: SubscriberStatus): void {
+    if (this.status === nextStatus) {
       return;
     }
 
-    try {
-      await this.instance.connect();
-      debug("started %s", this.nodeKey);
-      this.started = true;
-    } catch (err) {
-      debug("failed to start %s: %s", this.nodeKey, err);
-      this.started = false;
-      throw err; // Re-throw so caller knows it failed
-    }
-  }
-
-  stop(): void {
-    this.started = false;
-
-    if (this.instance) {
-      this.instance.disconnect();
-      this.instance.removeAllListeners();
-      this.messageListeners.clear();
-      this.instance = null;
+    if (!ALLOWED_STATUS_UPDATES[this.status].includes(nextStatus)) {
+      debug(
+        "Unexpected status transition for %s: %s -> %s",
+        this.nodeKey,
+        this.status,
+        nextStatus,
+      );
     }
 
-    debug("stopped %s", this.nodeKey);
-  }
-
-  isStarted(): boolean {
-    return this.started;
-  }
-
-  getInstance(): Redis | null {
-    return this.instance;
-  }
-
-  getNodeKey(): string {
-    return this.nodeKey;
+    this.status = nextStatus;
   }
 }
