@@ -219,18 +219,20 @@ describeOrSkip("tracing", function () {
       try {
         const redis = new Redis({ lazyConnect: true });
         await redis.connect();
-        // HSET requires at least 3 arguments; calling with wrong type triggers an error
+        // Set key as string, then HSET on it to trigger WRONGTYPE error
+        await redis.set("tracing-error-key", "string-value");
         try {
-          // @ts-expect-error intentionally passing wrong args
-          await redis.hget("tracing-test-key"); // key was set as string, not hash
+          await redis.hset("tracing-error-key", "field", "value");
         } catch {
-          // Expected error
+          // Expected WRONGTYPE error
         }
         redis.disconnect();
 
-        // We should still get error events traced
-        // Note: some Redis servers may not error on hget of a string key,
-        // so we just verify the mechanism works without asserting on specific errors
+        expect(errorEvents.length).to.be.greaterThan(0);
+        const errorContext = errorEvents[0];
+        expect(errorContext).to.have.property("command");
+        expect(errorContext).to.have.property("serverAddress");
+        expect(errorContext).to.have.property("serverPort");
       } finally {
         channel.unsubscribe(subscriber);
       }
