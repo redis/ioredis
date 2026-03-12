@@ -29,7 +29,7 @@ import {
   parseURL,
   resolveTLSProfile,
 } from "./utils";
-import { traceCommand, traceConnect, type CommandContext } from "./tracing";
+import { traceCommand, traceConnect, type CommandTraceContext, type BatchCommandTraceContext } from "./tracing";
 import applyMixin from "./utils/applyMixin";
 import Commander from "./utils/Commander";
 import { defaults, noop } from "./utils/lodash";
@@ -765,9 +765,9 @@ class Redis extends Commander implements DataHandledable {
     };
   }
 
-  private _buildCommandContext(command: Command): CommandContext {
+  private _buildCommandContext(command: Command): CommandTraceContext | BatchCommandTraceContext {
     const { address, port } = this._getServerAddress();
-    const ctx: CommandContext = {
+    const base: CommandTraceContext = {
       command: command.name,
       args: command.args,
       database: this.condition?.select ?? this.options.db ?? 0,
@@ -775,10 +775,13 @@ class Redis extends Commander implements DataHandledable {
       serverPort: port,
     };
     if (command.batchMode) {
-      ctx.batchMode = command.batchMode;
-      ctx.batchSize = command.batchSize;
+      return {
+        ...base,
+        batchMode: command.batchMode,
+        batchSize: command.batchSize!,
+      };
     }
-    return ctx;
+    return base;
   }
 
   /**

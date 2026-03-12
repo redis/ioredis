@@ -1,20 +1,25 @@
 import type { CommandParameter } from "./types";
 
 // Context types for the two tracing channels
-export interface CommandContext {
+export interface CommandTraceContext {
   command: string;
   args: CommandParameter[];
   database: number;
   serverAddress: string;
   serverPort: number | undefined;
-  batchMode?: "pipeline" | "multi";
-  batchSize?: number;
 }
 
-export interface ConnectContext {
+export interface BatchCommandTraceContext extends CommandTraceContext {
+  batchMode: "pipeline" | "multi";
+  batchSize: number;
+}
+
+export interface ConnectTraceContext {
   serverAddress: string;
   serverPort: number | undefined;
 }
+
+type CommandContext = CommandTraceContext | BatchCommandTraceContext;
 
 // Shim interface to fix @types/node gaps:
 // - hasSubscribers is missing on TracingChannel
@@ -45,9 +50,9 @@ const commandChannel: TracingChannel<CommandContext> | undefined =
     ? (dc.tracingChannel("ioredis:command") as TracingChannel<CommandContext>)
     : undefined;
 
-const connectChannel: TracingChannel<ConnectContext> | undefined =
+const connectChannel: TracingChannel<ConnectTraceContext> | undefined =
   hasTracingChannel
-    ? (dc.tracingChannel("ioredis:connect") as TracingChannel<ConnectContext>)
+    ? (dc.tracingChannel("ioredis:connect") as TracingChannel<ConnectTraceContext>)
     : undefined;
 
 export function traceCommand<T>(
@@ -62,7 +67,7 @@ export function traceCommand<T>(
 
 export function traceConnect<T>(
   fn: () => Promise<T>,
-  contextFactory: () => ConnectContext
+  contextFactory: () => ConnectTraceContext
 ): Promise<T> {
   if (connectChannel?.hasSubscribers) {
     return connectChannel.tracePromise(fn, contextFactory());
