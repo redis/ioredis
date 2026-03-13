@@ -1154,7 +1154,8 @@ class Cluster extends Commander {
     this.subscriberGroupEmitter = new EventEmitter();
 
     this.shardedSubscribers = new ClusterSubscriberGroup(
-      this.subscriberGroupEmitter
+      this.subscriberGroupEmitter,
+      this.options
     );
 
     // Error handler used only for sharded-subscriber-triggered slots cache refreshes.
