@@ -55,11 +55,17 @@ const connectChannel: TracingChannel<ConnectTraceContext> | undefined =
     ? (dc.tracingChannel("ioredis:connect") as TracingChannel<ConnectTraceContext>)
     : undefined;
 
+function shouldTrace(
+  channel: TracingChannel<any> | undefined
+): channel is TracingChannel<any> {
+  return !!channel && channel.hasSubscribers !== false;
+}
+
 export function traceCommand<T>(
   fn: () => Promise<T>,
   contextFactory: () => CommandContext
 ): Promise<T> {
-  if (commandChannel?.hasSubscribers) {
+  if (shouldTrace(commandChannel)) {
     return commandChannel.tracePromise(fn, contextFactory());
   }
   return fn();
@@ -69,7 +75,7 @@ export function traceConnect<T>(
   fn: () => Promise<T>,
   contextFactory: () => ConnectTraceContext
 ): Promise<T> {
-  if (connectChannel?.hasSubscribers) {
+  if (shouldTrace(connectChannel)) {
     return connectChannel.tracePromise(fn, contextFactory());
   }
   return fn();
