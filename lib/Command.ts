@@ -205,6 +205,8 @@ export default class Command implements Respondable {
   args: CommandParameter[];
   inTransaction = false;
   pipelineIndex?: number;
+  batchMode?: "PIPELINE" | "MULTI";
+  batchSize?: number;
 
   isResolved = false;
   reject: (err: Error) => void;
