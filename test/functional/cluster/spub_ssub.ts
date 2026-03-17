@@ -228,6 +228,56 @@ describe("cluster:spub/ssub", function () {
     }
   });
 
+  it("does not revive after stop when an in-flight start resolves later", async () => {
+    let resolveConnect: (() => void) | undefined;
+    const connectStub = sinon.stub(Redis.prototype, "connect").callsFake(() => {
+      return new Promise<void>((resolve) => {
+        resolveConnect = resolve;
+      });
+    });
+
+    const emitter = new EventEmitter();
+    const forwardedMessages: string[] = [];
+    const subscriber = new ShardedSubscriber(emitter, {
+      host: "127.0.0.1",
+      port: 30001,
+    });
+
+    emitter.on("smessage", (_, message) => {
+      forwardedMessages.push(message);
+    });
+
+    const zombieInstance = subscriber.getInstance();
+    expect(zombieInstance).to.exist;
+
+    try {
+      const startPromise = subscriber.start();
+
+      await Promise.resolve();
+
+      expect(connectStub.calledOnce).to.equal(true);
+      expect(resolveConnect).to.be.a("function");
+
+      subscriber.stop();
+
+      expect(subscriber.getInstance()).to.equal(null);
+      expect(subscriber.isConnected()).to.equal(false);
+      expect(subscriber.isHealthy()).to.equal(false);
+
+      resolveConnect();
+      await startPromise;
+
+      expect(subscriber.getInstance()).to.equal(null);
+      expect(subscriber.isConnected()).to.equal(false);
+      expect(subscriber.isHealthy()).to.equal(false);
+
+      zombieInstance.emit("smessage", "channel", "late-message");
+      expect(forwardedMessages).to.eql([]);
+    } finally {
+      connectStub.restore();
+    }
+  });
+
   // This is no longer true, since we do NOT reconnect but recreate the subscriber
   it.skip("should re-ssubscribe after reconnection", (done) => {
     new MockServer(30001, function (argv) {

@@ -65,7 +65,6 @@ export default class ShardedSubscriber {
            */
           retryStrategy: null,
           lazyConnect: true,
-          disableClientInfo: true,
         },
         options,
         redisOptions,
@@ -183,11 +182,13 @@ export default class ShardedSubscriber {
 
     if (!ALLOWED_STATUS_UPDATES[this.status].includes(nextStatus)) {
       debug(
-        "Unexpected status transition for %s: %s -> %s",
+        "Invalid status transition for %s: %s -> %s",
         this.nodeKey,
         this.status,
         nextStatus,
       );
+
+      return;
     }
 
     this.status = nextStatus;
