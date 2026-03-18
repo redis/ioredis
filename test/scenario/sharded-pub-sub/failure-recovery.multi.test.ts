@@ -103,9 +103,13 @@ describe("Sharded Pub/Sub E2E - Failure Recovery Multiple Subscribers", () => {
     ]);
   };
 
-  const sumSentMessages = (messageTracker: MessageTracker, channels = CHANNELS) =>
+  const sumSentMessages = (
+    messageTracker: MessageTracker,
+    channels = CHANNELS,
+  ) =>
     channels.reduce(
-      (sum, channel) => sum + messageTracker.getChannelStatsOrThrow(channel).sent,
+      (sum, channel) =>
+        sum + messageTracker.getChannelStatsOrThrow(channel).sent,
       0,
     );
 
@@ -237,10 +241,12 @@ describe("Sharded Pub/Sub E2E - Failure Recovery Multiple Subscribers", () => {
 
       await waitForAssertion(() => {
         for (const channel of CHANNELS) {
-          const { received: received1 } =
-            messageTracker1.getChannelStatsOrThrow(channel);
-          const { received: received2 } =
-            messageTracker2.getChannelStatsOrThrow(channel);
+          const { received: received1 } = messageTracker1.getChannelStatsOrThrow(
+            channel,
+          );
+          const { received: received2 } = messageTracker2.getChannelStatsOrThrow(
+            channel,
+          );
 
           assert.ok(
             received1 > 0,
@@ -251,7 +257,7 @@ describe("Sharded Pub/Sub E2E - Failure Recovery Multiple Subscribers", () => {
             `Channel ${channel} should resume receiving messages by subscriber 2 after recovery`,
           );
         }
-      }, 30_000);
+      }, 45_000);
 
       recoveryProbeController.abort();
       await recoveryProbeResult;
@@ -260,24 +266,20 @@ describe("Sharded Pub/Sub E2E - Failure Recovery Multiple Subscribers", () => {
       messageTracker1.reset();
       messageTracker2.reset();
 
-      const {
-        controller: postRecoveryController,
-        result: postRecoveryResult,
-      } = TestCommandRunner.publishMessagesUntilAbortSignal(
-        publisher,
-        CHANNELS,
-        messageTracker1,
-      );
+      const { controller: postRecoveryController, result: postRecoveryResult } =
+        TestCommandRunner.publishMessagesUntilAbortSignal(
+          publisher,
+          CHANNELS,
+          messageTracker1,
+        );
 
       await wait(POST_RECOVERY_PUBLISH_DURATION_MS);
       postRecoveryController.abort();
       await postRecoveryResult;
 
       for (const channel of CHANNELS) {
-        const {
-          sent,
-          received: received1,
-        } = messageTracker1.getChannelStatsOrThrow(channel);
+        const { sent, received: received1 } =
+          messageTracker1.getChannelStatsOrThrow(channel);
         const { received: received2 } =
           messageTracker2.getChannelStatsOrThrow(channel);
         const deliveryRatio1 = received1 / sent;

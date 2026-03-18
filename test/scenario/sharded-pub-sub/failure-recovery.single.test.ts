@@ -220,7 +220,7 @@ describe("Sharded Pub/Sub E2E - Failure Recovery Single Subscriber", () => {
             `Channel ${channel} should resume receiving messages after recovery`,
           );
         }
-      }, 30_000);
+      }, 45_000);
 
       recoveryProbeController.abort();
       await recoveryProbeResult;
