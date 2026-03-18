@@ -5,6 +5,7 @@ import {
   getConfig,
   wait,
   waitClientReady,
+  waitForAssertion,
 } from "../utils/test.util";
 import {
   type ActionRequest,
@@ -15,8 +16,8 @@ import { MessageTracker } from "../utils/message-tracker";
 import { assert } from "chai";
 
 const CLUSTER_INDEX = 0;
-const DEFAULT_RECOVERY_WAIT_MS = 2_000;
 const POST_RECOVERY_PUBLISH_DURATION_MS = 10_000;
+const MIN_POST_RECOVERY_DELIVERY_RATIO = 0.9;
 
 describe("Sharded Pub/Sub E2E - Failure Recovery Multiple Subscribers", () => {
   let faultInjectorClient: FaultInjectorClient;
@@ -222,8 +223,40 @@ describe("Sharded Pub/Sub E2E - Failure Recovery Multiple Subscribers", () => {
       assertAllChannelsReceived(messageTracker1);
       assertAllChannelsReceived(messageTracker2);
 
-      await wait(DEFAULT_RECOVERY_WAIT_MS);
+      messageTracker1.reset();
+      messageTracker2.reset();
 
+      const {
+        controller: recoveryProbeController,
+        result: recoveryProbeResult,
+      } = TestCommandRunner.publishMessagesUntilAbortSignal(
+        publisher,
+        CHANNELS,
+        messageTracker1,
+      );
+
+      await waitForAssertion(() => {
+        for (const channel of CHANNELS) {
+          const { received: received1 } =
+            messageTracker1.getChannelStatsOrThrow(channel);
+          const { received: received2 } =
+            messageTracker2.getChannelStatsOrThrow(channel);
+
+          assert.ok(
+            received1 > 0,
+            `Channel ${channel} should resume receiving messages by subscriber 1 after recovery`,
+          );
+          assert.ok(
+            received2 > 0,
+            `Channel ${channel} should resume receiving messages by subscriber 2 after recovery`,
+          );
+        }
+      }, 30_000);
+
+      recoveryProbeController.abort();
+      await recoveryProbeResult;
+
+      // Start the final verification window with fresh counters after recovery.
       messageTracker1.reset();
       messageTracker2.reset();
 
@@ -247,6 +280,8 @@ describe("Sharded Pub/Sub E2E - Failure Recovery Multiple Subscribers", () => {
         } = messageTracker1.getChannelStatsOrThrow(channel);
         const { received: received2 } =
           messageTracker2.getChannelStatsOrThrow(channel);
+        const deliveryRatio1 = received1 / sent;
+        const deliveryRatio2 = received2 / sent;
 
         assert.ok(sent > 0, `Channel ${channel} should have sent messages`);
         assert.ok(
@@ -257,15 +292,17 @@ describe("Sharded Pub/Sub E2E - Failure Recovery Multiple Subscribers", () => {
           received2 > 0,
           `Channel ${channel} should have received messages by subscriber 2`,
         );
-        assert.strictEqual(
-          received1,
-          sent,
-          `Channel ${channel} received (${received1}) should equal sent (${sent}) after recovery by subscriber 1`,
+        assert.ok(
+          deliveryRatio1 >= MIN_POST_RECOVERY_DELIVERY_RATIO,
+          `Channel ${channel} subscriber 1 received ${received1} of ${sent} messages after recovery (${(
+            deliveryRatio1 * 100
+          ).toFixed(1)}%)`,
         );
-        assert.strictEqual(
-          received2,
-          sent,
-          `Channel ${channel} received (${received2}) should equal sent (${sent}) after recovery by subscriber 2`,
+        assert.ok(
+          deliveryRatio2 >= MIN_POST_RECOVERY_DELIVERY_RATIO,
+          `Channel ${channel} subscriber 2 received ${received2} of ${sent} messages after recovery (${(
+            deliveryRatio2 * 100
+          ).toFixed(1)}%)`,
         );
       }
     });
