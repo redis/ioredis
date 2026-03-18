@@ -46,6 +46,16 @@ export class MessageTracker {
     return this.stats[channel];
   }
 
+  getChannelStatsOrThrow(channel: string): MessageStats {
+    const stats = this.getChannelStats(channel);
+
+    if (!stats) {
+      throw new Error(`Expected stats for channel ${channel}`);
+    }
+
+    return stats;
+  }
+
   getAllStats(): Record<string, MessageStats> {
     return this.stats;
   }

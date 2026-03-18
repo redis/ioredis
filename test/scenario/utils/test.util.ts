@@ -37,10 +37,140 @@ export interface RedisConnectionConfig {
   bdbId: number;
 }
 
+export interface DatabaseModule {
+  module_name: string;
+  [key: string]: unknown;
+}
+
+export interface ShardKeyRegexPattern {
+  regex: string;
+  [key: string]: unknown;
+}
+
+export interface CreateDatabaseConfig {
+  name: string;
+  port: number;
+  memory_size: number;
+  replication: boolean;
+  eviction_policy: string;
+  sharding: boolean;
+  auto_upgrade: boolean;
+  shards_count: number;
+  module_list?: DatabaseModule[];
+  oss_cluster: boolean;
+  oss_cluster_api_preferred_ip_type?: string;
+  proxy_policy?: string;
+  shards_placement?: string;
+  shard_key_regex?: ShardKeyRegexPattern[];
+}
+
 export interface TestConfig {
   clientConfig: RedisConnectionConfig;
   faultInjectorUrl: string;
 }
+
+export const CreateDatabaseConfigType = {
+  CLUSTER: "cluster",
+  STANDALONE: "standalone",
+} as const;
+
+type ConfigType =
+  (typeof CreateDatabaseConfigType)[keyof typeof CreateDatabaseConfigType];
+
+// 10000-19999
+const randomPort = () => Math.floor(Math.random() * (19999 - 10000) + 10000);
+
+const getTestDatabaseName = (namePrefix: string) => {
+  return `${namePrefix}-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+};
+
+const DB_CONFIGS: Record<
+  ConfigType,
+  (namePrefix: string, port?: number, size?: number) => CreateDatabaseConfig
+> = {
+  [CreateDatabaseConfigType.CLUSTER]: (
+    namePrefix: string,
+    port: number = randomPort(),
+    size = 1073741824 // 1GB
+  ) => {
+    return {
+      name: getTestDatabaseName(namePrefix),
+      port,
+      memory_size: size,
+      replication: true,
+      eviction_policy: "noeviction",
+      sharding: true,
+      auto_upgrade: true,
+      shards_count: 3,
+      module_list: [
+        {
+          module_args: "",
+          module_name: "ReJSON",
+        },
+        {
+          module_args: "",
+          module_name: "search",
+        },
+        {
+          module_args: "",
+          module_name: "timeseries",
+        },
+        {
+          module_args: "",
+          module_name: "bf",
+        },
+      ],
+      oss_cluster: true,
+      oss_cluster_api_preferred_ip_type: "external",
+      proxy_policy: "all-master-shards",
+      shards_placement: "sparse",
+      shard_key_regex: [
+        {
+          regex: ".*\\{(?<tag>.*)\\}.*",
+        },
+        {
+          regex: "(?<tag>.*)",
+        },
+      ],
+    };
+  },
+  [CreateDatabaseConfigType.STANDALONE]: (
+    namePrefix: string,
+    port: number = randomPort(),
+    size = 1073741824 // 1GB
+  ) => {
+    return {
+      name: getTestDatabaseName(namePrefix),
+      port,
+      memory_size: size,
+      replication: true,
+      eviction_policy: "noeviction",
+      sharding: true,
+      auto_upgrade: true,
+      shards_count: 2,
+      oss_cluster: false,
+      proxy_policy: "single",
+      shards_placement: "dense",
+      shard_key_regex: [
+        {
+          regex: ".*\\{(?<tag>.*)\\}.*",
+        },
+        {
+          regex: "(?<tag>.*)",
+        },
+      ],
+    };
+  },
+};
+
+export const getCreateDatabaseConfig = (
+  type: ConfigType,
+  namePrefix = `ioredis-${type}`
+) => {
+  return DB_CONFIGS[type](namePrefix);
+};
 
 /**
  * Reads environment variables required for the test scenario
@@ -143,6 +273,8 @@ export const createClusterTestClient = (
   clientConfig: RedisConnectionConfig,
   options: Partial<ClusterOptions> = {}
 ) => {
+  const { redisOptions, ...clusterOptions } = options;
+
   return new Cluster(
     [
       {
@@ -151,12 +283,12 @@ export const createClusterTestClient = (
       },
     ],
     {
+      ...clusterOptions,
       redisOptions: {
-        ...options.redisOptions,
+        ...redisOptions,
         ...(clientConfig.password && { password: clientConfig.password }),
         ...(clientConfig.username && { username: clientConfig.username }),
       },
-      ...options,
     }
   );
 };
@@ -207,6 +339,25 @@ export const waitClientReady = async (client: Cluster, timeoutMs = 5_000) => {
 
 export const wait = (ms: number) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+export const waitForAssertion = async (
+  assertion: () =>  void | Promise<void>,
+  timeoutMs = 5_000,
+  intervalMs = 100
+) => {
+  const start = Date.now();
+
+  while (Date.now() - start < timeoutMs) {
+    try {
+      await assertion();
+      return;
+    } catch {
+      await wait(intervalMs);
+    }
+  }
+
+  await assertion();
 };
 
 /**
