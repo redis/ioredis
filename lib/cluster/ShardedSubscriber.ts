@@ -136,9 +136,11 @@ export default class ShardedSubscriber {
   }
 
   isConnected(): boolean {
-    return ([SubscriberStatus.CONNECTED] as SubscriberStatus[]).includes(
-      this.status,
-    );
+    return this.status === SubscriberStatus.CONNECTED;
+  }
+
+  get subscriberStatus(): SubscriberStatus {
+    return this.status;
   }
 
   isHealthy(): boolean {

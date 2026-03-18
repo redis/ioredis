@@ -51,7 +51,7 @@ export default class ClusterSubscriberGroup {
     const nodeKey = this.clusterSlots[slot][0];
     const sub = this.shardedSubscribers.get(nodeKey);
 
-    if (sub && !sub.isConnected()) {
+    if (sub && sub.subscriberStatus === "idle") {
       sub
         .start()
         .then(() => {
