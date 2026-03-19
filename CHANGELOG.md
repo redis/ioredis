@@ -1,3 +1,10 @@
+## [5.10.1](https://github.com/luin/ioredis/compare/v5.10.0...v5.10.1) (2026-03-19)
+
+
+### Bug Fixes
+
+* **cluster:** lazily start sharded subscribers ([#2090](https://github.com/luin/ioredis/issues/2090)) ([4f167bb](https://github.com/luin/ioredis/commit/4f167bb9f494f0e8200a20dedd8bbdf1810fcd22))
+
 # [5.10.0](https://github.com/luin/ioredis/compare/v5.9.3...v5.10.0) (2026-02-27)
 
 
