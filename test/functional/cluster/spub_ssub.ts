@@ -211,7 +211,7 @@ describe("cluster:spub/ssub", function () {
       await Promise.resolve();
 
       expect(connectStub.calledOnce).to.equal(true);
-      expect(subscriber.isConnected()).to.equal(false);
+      expect(subscriber.subscriberStatus).to.equal('starting');
       expect(firstSettled).to.equal(false);
       expect(secondSettled).to.equal(false);
       expect(resolveConnect).to.be.a("function");
@@ -219,7 +219,7 @@ describe("cluster:spub/ssub", function () {
       resolveConnect();
       await Promise.all([firstStart, secondStart]);
 
-      expect(subscriber.isConnected()).to.equal(true);
+      expect(subscriber.subscriberStatus).to.equal('connected');
       expect(firstSettled).to.equal(true);
       expect(secondSettled).to.equal(true);
     } finally {
@@ -261,14 +261,14 @@ describe("cluster:spub/ssub", function () {
       subscriber.stop();
 
       expect(subscriber.getInstance()).to.equal(null);
-      expect(subscriber.isConnected()).to.equal(false);
+      expect(subscriber.isStarted()).to.equal(false);
       expect(subscriber.isHealthy()).to.equal(false);
 
       resolveConnect();
       await startPromise;
 
       expect(subscriber.getInstance()).to.equal(null);
-      expect(subscriber.isConnected()).to.equal(false);
+      expect(subscriber.isStarted()).to.equal(false);
       expect(subscriber.isHealthy()).to.equal(false);
 
       zombieInstance.emit("smessage", "channel", "late-message");

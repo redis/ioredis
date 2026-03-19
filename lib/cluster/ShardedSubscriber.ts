@@ -135,8 +135,13 @@ export default class ShardedSubscriber {
     debug("stopped %s", this.nodeKey);
   }
 
-  isConnected(): boolean {
-    return this.status === SubscriberStatus.CONNECTED;
+  isStarted(): boolean {
+    return (
+      [
+        SubscriberStatus.CONNECTED,
+        SubscriberStatus.STARTING,
+      ] as SubscriberStatus[]
+    ).includes(this.status);
   }
 
   get subscriberStatus(): SubscriberStatus {

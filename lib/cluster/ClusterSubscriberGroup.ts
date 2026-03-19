@@ -212,7 +212,7 @@ export default class ClusterSubscriberGroup {
           debug("Skipping creating new subscriber for %s", nodeKey);
 
           if (
-            !existingSubscriber.isConnected() &&
+            !existingSubscriber.isStarted() &&
             this.shouldStartSubscriber(existingSubscriber)
           ) {
             startPromises.push(
@@ -455,7 +455,7 @@ export default class ClusterSubscriberGroup {
   };
 
   private shouldStartSubscriber(sub: ShardedSubscriber): boolean {
-    if (sub.isConnected()) {
+    if (sub.isStarted()) {
       return false;
     }
 
