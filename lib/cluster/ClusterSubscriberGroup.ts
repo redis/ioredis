@@ -299,7 +299,8 @@ export default class ClusterSubscriberGroup {
    */
   private _refreshSlots(targetSlots: string[][]): boolean {
     //If there was an actual change, then reassign the slot ranges
-    if (this._slotsAreEqual(targetSlots)) {
+    // Also rebuild if subscriberToSlotsIndex is empty (e.g., after stop() was called)
+    if (this._slotsAreEqual(targetSlots) && this.subscriberToSlotsIndex.size > 0) {
       debug(
         "Nothing to refresh because the new cluster map is equal to the previous one.",
       );

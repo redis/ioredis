@@ -161,14 +161,12 @@ describe("Sharded Pub/Sub E2E - Failure Recovery Multiple Subscribers", () => {
     try {
       await cleanupClients();
     } finally {
-      if (!currentDatabaseConfig) {
-        return;
-      }
-
       try {
-        await faultInjectorClient.deleteDatabaseWithRetry(
-          currentDatabaseConfig.bdbId,
-        );
+        if (currentDatabaseConfig) {
+          await faultInjectorClient.deleteDatabaseWithRetry(
+            currentDatabaseConfig.bdbId,
+          );
+        }
       } finally {
         currentDatabaseConfig = null;
       }

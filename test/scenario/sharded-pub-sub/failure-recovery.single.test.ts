@@ -121,14 +121,12 @@ describe("Sharded Pub/Sub E2E - Failure Recovery Single Subscriber", () => {
     try {
       await cleanupClients();
     } finally {
-      if (!currentDatabaseConfig) {
-        return;
-      }
-
       try {
-        await faultInjectorClient.deleteDatabaseWithRetry(
-          currentDatabaseConfig.bdbId,
-        );
+        if (currentDatabaseConfig) {
+          await faultInjectorClient.deleteDatabaseWithRetry(
+            currentDatabaseConfig.bdbId,
+          );
+        }
       } finally {
         currentDatabaseConfig = null;
       }
@@ -228,21 +226,20 @@ describe("Sharded Pub/Sub E2E - Failure Recovery Single Subscriber", () => {
       // Start the final verification window with fresh counters after recovery.
       messageTracker.reset();
 
-      const {
-        controller: postRecoveryController,
-        result: postRecoveryResult,
-      } = TestCommandRunner.publishMessagesUntilAbortSignal(
-        publisher,
-        CHANNELS,
-        messageTracker,
-      );
+      const { controller: postRecoveryController, result: postRecoveryResult } =
+        TestCommandRunner.publishMessagesUntilAbortSignal(
+          publisher,
+          CHANNELS,
+          messageTracker,
+        );
 
       await wait(POST_RECOVERY_PUBLISH_DURATION_MS);
       postRecoveryController.abort();
       await postRecoveryResult;
 
       for (const channel of CHANNELS) {
-        const { sent, received } = messageTracker.getChannelStatsOrThrow(channel);
+        const { sent, received } =
+          messageTracker.getChannelStatsOrThrow(channel);
         const deliveryRatio = received / sent;
 
         assert.ok(sent > 0, `Channel ${channel} should have sent messages`);
