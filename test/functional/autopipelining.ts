@@ -219,6 +219,22 @@ describe("autoPipelining for single node", () => {
     expect(redis.autoPipelineQueueSize).to.eql(2);
   });
 
+  it("should handle large pipelines without RangeError", async () => {
+    const redis = new Redis({ enableAutoPipelining: true });
+
+    const largeValue = "x".repeat(1024 * 1024);
+    await Promise.all(
+      Array.from({ length: 600 }, (_, i) => redis.set(`key${i}`, largeValue))
+    );
+
+    const results = await Promise.all(
+      Array.from({ length: 600 }, (_, i) => redis.get(`key${i}`))
+    );
+
+    expect(results[0]).to.eql(largeValue);
+    expect(results[599]).to.eql(largeValue);
+  });
+
   it("should handle callbacks failures", (done) => {
     const listeners = process.listeners("uncaughtException");
     process.removeAllListeners("uncaughtException");
