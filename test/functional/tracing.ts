@@ -205,6 +205,37 @@ describeOrSkip("tracing", function () {
       redis.disconnect();
     });
 
+    it("should not produce duplicate trace events for offline-queued commands", async function () {
+      const events: any[] = [];
+      const subscriber = {
+        start(message: any) { events.push(message); },
+        end() {},
+        asyncStart() {},
+        asyncEnd() {},
+        error() {},
+      };
+
+      const channel = dc.tracingChannel("ioredis:command");
+      channel.subscribe(subscriber);
+
+      try {
+        const redis = new Redis({ lazyConnect: true });
+        // Start connecting but don't await — puts Redis in "connecting" state
+        const connectPromise = redis.connect();
+        // Issue command while still connecting — it goes to the offline queue
+        const setPromise = redis.set("offline-key", "offline-value");
+        await connectPromise;
+        await setPromise;
+        redis.disconnect();
+
+        const setEvents = events.filter((e) => e.command === "set");
+        // Should trace exactly once, not twice
+        expect(setEvents.length).to.eql(1);
+      } finally {
+        channel.unsubscribe(subscriber);
+      }
+    });
+
     it("should trace errors on failed commands", async function () {
       const errorEvents: any[] = [];
       const subscriber = {
