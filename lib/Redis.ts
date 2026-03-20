@@ -29,6 +29,7 @@ import {
   parseURL,
   resolveTLSProfile,
 } from "./utils";
+import { traceCommand, traceConnect, type CommandTraceContext, type BatchCommandTraceContext } from "./tracing";
 import applyMixin from "./utils/applyMixin";
 import Commander from "./utils/Commander";
 import { defaults, noop } from "./utils/lodash";
@@ -174,7 +175,19 @@ class Redis extends Commander implements DataHandledable {
    * if the connection fails, times out, or if Redis is already connecting/connected.
    */
   connect(callback?: Callback<void>): Promise<void> {
-    const promise = new Promise<void>((resolve, reject) => {
+    const promise = traceConnect(
+      () => this._connect(),
+      () => {
+        const { address, port } = this._getServerAddress();
+        return { serverAddress: address, serverPort: port, connectionEpoch: this.connectionEpoch };
+      }
+    );
+
+    return asCallback(promise, callback);
+  }
+
+  private _connect(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
       if (
         this.status === "connecting" ||
         this.status === "connect" ||
@@ -299,8 +312,6 @@ class Redis extends Commander implements DataHandledable {
         }
       );
     });
-
-    return asCallback(promise, callback);
   }
 
   /**
@@ -557,7 +568,18 @@ class Redis extends Commander implements DataHandledable {
       }
     }
 
-    return command.promise;
+    if (!writable) {
+      // Offline-queued: skip tracing here. The command will be re-sent via
+      // sendCommand when the connection is ready, and traced at that point.
+      return command.promise;
+    }
+
+    // Trace on the write path only, so offline-queued commands that get
+    // re-sent aren't traced twice.
+    return traceCommand(
+      () => command.promise as Promise<unknown>,
+      () => this._buildCommandContext(command)
+    );
   }
 
   private getBlockingTimeoutInMs(command: Command): number | undefined {
@@ -735,6 +757,38 @@ class Redis extends Commander implements DataHandledable {
       default:
         item.command.reject(err);
     }
+  }
+
+  /**
+   * @ignore
+   */
+  _getServerAddress(): { address: string; port: number | undefined } {
+    if ("path" in this.options && this.options.path) {
+      return { address: this.options.path, port: undefined };
+    }
+    return {
+      address: ("host" in this.options && this.options.host) || "localhost",
+      port: ("port" in this.options && this.options.port) || 6379,
+    };
+  }
+
+  private _buildCommandContext(command: Command): CommandTraceContext | BatchCommandTraceContext {
+    const { address, port } = this._getServerAddress();
+    const base: CommandTraceContext = {
+      command: command.name,
+      args: command.args,
+      database: this.condition?.select ?? this.options.db ?? 0,
+      serverAddress: address,
+      serverPort: port,
+    };
+    if (command.batchMode) {
+      return {
+        ...base,
+        batchMode: command.batchMode,
+        batchSize: command.batchSize!,
+      };
+    }
+    return base;
   }
 
   /**
