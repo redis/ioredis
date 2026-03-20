@@ -195,6 +195,55 @@ describeOrSkip("tracing", function () {
       }
     });
 
+    it("should not cause unhandled rejections for failed pipeline commands", async function () {
+      const errorEvents: any[] = [];
+      const subscriber = {
+        start() {},
+        end() {},
+        asyncStart() {},
+        asyncEnd() {},
+        error(message: any) { errorEvents.push(message); },
+      };
+
+      const channel = dc.tracingChannel("ioredis:command");
+      channel.subscribe(subscriber);
+
+      // Track unhandled rejections — the bug would cause one here
+      const unhandledRejections: any[] = [];
+      const onUnhandled = (reason: any) => unhandledRejections.push(reason);
+      process.on("unhandledRejection", onUnhandled);
+
+      try {
+        const redis = new Redis({ lazyConnect: true });
+        await redis.connect();
+
+        // Set key as string, then pipeline an HSET on it to trigger WRONGTYPE
+        await redis.set("pipe-reject-key", "string-value");
+        const results = await redis
+          .pipeline()
+          .hset("pipe-reject-key", "field", "value")
+          .get("pipe-reject-key")
+          .exec();
+        redis.disconnect();
+
+        // Pipeline reports per-command errors in the results, not via rejection
+        expect(results[0][0]).to.be.instanceOf(Error);
+        expect(results[0][0].message).to.include("WRONGTYPE");
+
+        // Give the event loop a tick for any stray rejections to surface
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        expect(unhandledRejections).to.have.lengthOf(0);
+
+        // The error trace event should still have fired
+        const hsetErrors = errorEvents.filter((e) => e.command === "hset");
+        expect(hsetErrors.length).to.be.greaterThan(0);
+      } finally {
+        process.removeListener("unhandledRejection", onUnhandled);
+        channel.unsubscribe(subscriber);
+      }
+    });
+
     it("should not allocate context when no subscribers", async function () {
       // Just ensure the command works correctly without any subscriber
       const redis = new Redis({ lazyConnect: true });
