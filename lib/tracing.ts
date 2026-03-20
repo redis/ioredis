@@ -62,12 +62,20 @@ function shouldTrace(
   return !!channel && channel.hasSubscribers !== false;
 }
 
+const noop = () => {};
+
 export function traceCommand<T>(
   fn: () => Promise<T>,
   contextFactory: () => CommandContext
 ): Promise<T> {
   if (shouldTrace(commandChannel)) {
-    return commandChannel.tracePromise(fn, contextFactory());
+    // tracePromise returns a wrapper promise that re-rejects on error.
+    // Silence the wrapper to prevent unhandled rejections when callers
+    // (e.g. Pipeline) discard the return value. Callers that await this
+    // promise still see the rejection through their own .then() chain.
+    const traced = commandChannel.tracePromise(fn, contextFactory());
+    traced.catch(noop);
+    return traced;
   }
   return fn();
 }
