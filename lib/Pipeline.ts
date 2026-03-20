@@ -394,10 +394,14 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
     };
 
     // Determine batch mode: if any command is inTransaction, this is a multi
-    const batchMode = _this._queue.some((cmd) => cmd.inTransaction)
-      ? "MULTI" as const
-      : "PIPELINE" as const;
-    const batchSize = _this._queue.length;
+    const isMulti = _this._queue.some((cmd) => cmd.inTransaction);
+    const batchMode = isMulti ? "MULTI" as const : "PIPELINE" as const;
+    // For MULTI, count only user commands: EXEC already has inTransaction=false
+    // (exec() decrements _transactions before sendCommand), and MULTI is excluded
+    // by name since multi() increments _transactions before sendCommand runs.
+    const batchSize = isMulti
+      ? _this._queue.filter((cmd) => cmd.inTransaction && cmd.name !== "multi").length
+      : _this._queue.length;
 
     for (let i = 0; i < _this._queue.length; ++i) {
       _this._queue[i].batchMode = batchMode;
