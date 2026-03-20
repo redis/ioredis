@@ -187,6 +187,8 @@ describeOrSkip("tracing", function () {
         expect(multiEvents.length).to.be.greaterThan(0);
         for (const evt of multiEvents) {
           expect(evt.batchMode).to.eql("MULTI");
+          // batchSize should count only user commands (SET + GET), not MULTI/EXEC
+          expect(evt.batchSize).to.eql(2);
         }
       } finally {
         channel.unsubscribe(subscriber);
