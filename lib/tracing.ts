@@ -17,6 +17,7 @@ export interface BatchCommandTraceContext extends CommandTraceContext {
 export interface ConnectTraceContext {
   serverAddress: string;
   serverPort: number | undefined;
+  connectionEpoch: number;
 }
 
 type CommandContext = CommandTraceContext | BatchCommandTraceContext;

@@ -264,6 +264,7 @@ describeOrSkip("tracing", function () {
         expect(startEvents.length).to.eql(1);
         expect(startEvents[0].context.serverAddress).to.eql("localhost");
         expect(startEvents[0].context.serverPort).to.eql(6379);
+        expect(startEvents[0].context.connectionEpoch).to.eql(0);
 
         const asyncEndEvents = events.filter((e) => e.name === "asyncEnd");
         expect(asyncEndEvents.length).to.eql(1);

@@ -179,7 +179,7 @@ class Redis extends Commander implements DataHandledable {
       () => this._connect(),
       () => {
         const { address, port } = this._getServerAddress();
-        return { serverAddress: address, serverPort: port };
+        return { serverAddress: address, serverPort: port, connectionEpoch: this.connectionEpoch };
       }
     );
 
