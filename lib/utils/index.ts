@@ -1,6 +1,5 @@
 import { promises as fsPromises } from "fs";
 import { resolve } from "path";
-import { parse as urllibParse } from "url";
 import { defaults, noop } from "./lodash";
 import { Callback } from "../types";
 import Debug from "./debug";
@@ -210,36 +209,52 @@ export function parseURL(url: string): Record<string, unknown> {
   if (isInt(url)) {
     return { port: url };
   }
-  let parsed = urllibParse(url, true, true);
 
-  if (!parsed.slashes && url[0] !== "/") {
-    url = "//" + url;
-    parsed = urllibParse(url, true, true);
+  const DUMMY_BASE = "http://_/";
+  let input: string = url;
+  let parsed: URL;
+  const hasProtocol = /^[a-z]+:\/\//i.test(input);
+  const isPath = !hasProtocol && input[0] === "/" && !input.startsWith("//");
+
+  if (hasProtocol) {
+    parsed = new URL(input);
+  } else {
+    if (!isPath && !input.startsWith("//")) {
+      input = "//" + input;
+    }
+    parsed = new URL(input, DUMMY_BASE);
   }
 
-  const options = parsed.query || {};
+  const options: Record<string, string> = {};
+  parsed.searchParams.forEach((value, key) => {
+    options[key] = value;
+  });
 
   const result: any = {};
-  if (parsed.auth) {
-    const index = parsed.auth.indexOf(":");
-    result.username = index === -1 ? parsed.auth : parsed.auth.slice(0, index);
-    result.password = index === -1 ? "" : parsed.auth.slice(index + 1);
+
+  if (parsed.username || parsed.password) {
+    result.username = decodeURIComponent(parsed.username);
+    result.password = decodeURIComponent(parsed.password);
   }
+
   if (parsed.pathname) {
     if (parsed.protocol === "redis:" || parsed.protocol === "rediss:") {
       if (parsed.pathname.length > 1) {
         result.db = parsed.pathname.slice(1);
       }
-    } else {
+    } else if (isPath) {
       result.path = parsed.pathname;
     }
   }
-  if (parsed.host) {
-    result.host = parsed.hostname;
+
+  if (!isPath && parsed.hostname) {
+    result.host = parsed.hostname.replace(/^\[|\]$/g, "");
   }
+
   if (parsed.port) {
     result.port = parsed.port;
   }
+
   if (typeof options.family === "string") {
     const intFamily = Number.parseInt(options.family, 10);
     if (!Number.isNaN(intFamily)) {
