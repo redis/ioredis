@@ -413,10 +413,10 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
 
     // MULTI is traced as a single batch operation on ioredis:batch.
     // Pipeline commands are traced per-command on ioredis:command (in sendCommand).
-    if (isMulti) {
+    if (isMulti && "_buildBatchContext" in _this.redis) {
       return traceBatch(
         () => _this.promise,
-        () => _this.redis._buildBatchContext(batchSize)
+        () => (_this.redis as Redis)._buildBatchContext(batchSize)
       );
     }
 
