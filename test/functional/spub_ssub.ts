@@ -23,7 +23,7 @@ describe("spub/ssub", function () {
     redis.ssubscribe("foo", function () {
       redis.set("foo", "bar", function (err) {
         expect(err instanceof Error);
-        expect(err.message).to.match(/subscriber mode/);
+        expect(err?.message).to.match(/subscriber mode/);
         redis.disconnect();
         done();
       });
@@ -157,7 +157,7 @@ describe("spub/ssub", function () {
 
     const stub = sinon.stub(Redis.prototype, "ssubscribe");
 
-    subscriber.disconnect({ reconnect: true });
+    subscriber.disconnect(true);
 
     await new Promise((resolve) => {
       subscriber.once("ready", resolve);
