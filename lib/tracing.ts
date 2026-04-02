@@ -49,8 +49,18 @@ export interface CommandTraceContext {
 }
 
 export interface BatchCommandTraceContext extends CommandTraceContext {
-  batchMode: "PIPELINE" | "MULTI";
+  batchMode: "PIPELINE";
   batchSize: number;
+}
+
+// Context for the batch operation itself (MULTI as a whole).
+// Distinct from BatchCommandTraceContext which is a single command within a pipeline.
+export interface BatchOperationContext {
+  batchMode: "MULTI";
+  batchSize: number;
+  database: number;
+  serverAddress: string;
+  serverPort: number | undefined;
 }
 
 export interface ConnectTraceContext {
@@ -90,6 +100,11 @@ const commandChannel: TracingChannel<CommandContext> | undefined =
     ? (dc.tracingChannel("ioredis:command") as TracingChannel<CommandContext>)
     : undefined;
 
+const batchChannel: TracingChannel<BatchOperationContext> | undefined =
+  hasTracingChannel
+    ? (dc.tracingChannel("ioredis:batch") as TracingChannel<BatchOperationContext>)
+    : undefined;
+
 const connectChannel: TracingChannel<ConnectTraceContext> | undefined =
   hasTracingChannel
     ? (dc.tracingChannel("ioredis:connect") as TracingChannel<ConnectTraceContext>)
@@ -113,6 +128,18 @@ export function traceCommand<T>(
     // (e.g. Pipeline) discard the return value. Callers that await this
     // promise still see the rejection through their own .then() chain.
     const traced = commandChannel.tracePromise(fn, contextFactory());
+    traced.catch(noop);
+    return traced;
+  }
+  return fn();
+}
+
+export function traceBatch<T>(
+  fn: () => Promise<T>,
+  contextFactory: () => BatchOperationContext
+): Promise<T> {
+  if (shouldTrace(batchChannel)) {
+    const traced = batchChannel.tracePromise(fn, contextFactory());
     traced.catch(noop);
     return traced;
   }

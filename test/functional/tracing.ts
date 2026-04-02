@@ -160,10 +160,10 @@ describeOrSkip("tracing", function () {
       }
     });
 
-    it("should trace MULTI/EXEC commands with batchMode 'MULTI'", async function () {
-      const events: any[] = [];
-      const subscriber = {
-        start(message: any) { events.push(message); },
+    it("should not emit per-command events for MULTI commands", async function () {
+      const commandEvents: any[] = [];
+      const commandSubscriber = {
+        start(message: any) { commandEvents.push(message); },
         end() {},
         asyncStart() {},
         asyncEnd() {},
@@ -171,7 +171,7 @@ describeOrSkip("tracing", function () {
       };
 
       const channel = dc.tracingChannel("ioredis:command");
-      channel.subscribe(subscriber);
+      channel.subscribe(commandSubscriber);
 
       try {
         const redis = new Redis({ lazyConnect: true });
@@ -183,15 +183,11 @@ describeOrSkip("tracing", function () {
           .exec();
         redis.disconnect();
 
-        const multiEvents = events.filter((e) => e.batchMode === "MULTI");
-        expect(multiEvents.length).to.be.greaterThan(0);
-        for (const evt of multiEvents) {
-          expect(evt.batchMode).to.eql("MULTI");
-          // batchSize should count only user commands (SET + GET), not MULTI/EXEC
-          expect(evt.batchSize).to.eql(2);
-        }
+        // MULTI commands should NOT appear on ioredis:command
+        const multiEvents = commandEvents.filter((e) => e.batchMode === "MULTI");
+        expect(multiEvents.length).to.eql(0);
       } finally {
-        channel.unsubscribe(subscriber);
+        channel.unsubscribe(commandSubscriber);
       }
     });
 
@@ -322,31 +318,104 @@ describeOrSkip("tracing", function () {
   });
 
   describe("sanitizeArgs", function () {
-    it("should redact values for SET (keep key only)", function () {
+    // args=0: command name only
+    it("should redact all args for ECHO", function () {
+      expect(sanitizeArgs("echo", ["hello world"])).to.eql(["?"]);
+      expect(sanitizeArgs("ECHO", ["hello world"])).to.eql(["?"]);
+    });
+
+    // args=1: key only
+    it("should keep key but redact value for SET", function () {
       expect(sanitizeArgs("set", ["mykey", "secret"])).to.eql(["mykey", "?"]);
       expect(sanitizeArgs("SET", ["mykey", "secret"])).to.eql(["mykey", "?"]);
-      expect(sanitizeArgs("setex", ["mykey", "60", "secret"])).to.eql(["mykey", "?", "?"]);
     });
 
-    it("should keep all args for read-only commands", function () {
-      expect(sanitizeArgs("get", ["mykey"])).to.eql(["mykey"]);
-      expect(sanitizeArgs("GET", ["mykey"])).to.eql(["mykey"]);
-      expect(sanitizeArgs("del", ["k1", "k2"])).to.eql(["k1", "k2"]);
-      expect(sanitizeArgs("exists", ["k1"])).to.eql(["k1"]);
+    it("should keep key but redact value for SET with flags", function () {
+      expect(sanitizeArgs("set", ["key", "secret", "EX", "300", "NX"])).to.eql(["key", "?", "?", "?", "?"]);
     });
 
-    it("should keep key + field for HSET (redact value)", function () {
+    it("should keep key but redact value for SETEX (prefix match on SET)", function () {
+      expect(sanitizeArgs("setex", ["key", "300", "secret"])).to.eql(["key", "?", "?"]);
+    });
+
+    it("should keep key but redact values for LPUSH with multiple elements", function () {
+      expect(sanitizeArgs("lpush", ["mylist", "a", "b", "c"])).to.eql(["mylist", "?", "?", "?"]);
+    });
+
+    it("should keep key but redact message for PUBLISH", function () {
+      expect(sanitizeArgs("publish", ["channel", "secret message"])).to.eql(["channel", "?"]);
+    });
+
+    it("should keep key but redact values for MSET", function () {
+      expect(sanitizeArgs("mset", ["k1", "v1", "k2", "v2"])).to.eql(["k1", "?", "?", "?"]);
+    });
+
+    it("should keep key but redact member and score for ZADD", function () {
+      expect(sanitizeArgs("zadd", ["myzset", "1", "member1"])).to.eql(["myzset", "?", "?"]);
+    });
+
+    it("should keep key but redact fields and values for XADD", function () {
+      expect(sanitizeArgs("xadd", ["stream", "*", "field", "value"])).to.eql(["stream", "?", "?", "?"]);
+    });
+
+    // args=2: key + field
+    it("should keep key and field but redact value for HSET", function () {
       expect(sanitizeArgs("hset", ["hash", "field", "secret"])).to.eql(["hash", "field", "?"]);
+    });
+
+    it("should keep key and field but redact remaining for HMSET", function () {
       expect(sanitizeArgs("hmset", ["hash", "f1", "v1", "f2", "v2"])).to.eql(["hash", "f1", "?", "?", "?"]);
     });
 
-    it("should redact all args for ECHO", function () {
-      expect(sanitizeArgs("echo", ["secret"])).to.eql(["?"]);
+    it("should keep key and index but redact value for LSET", function () {
+      expect(sanitizeArgs("lset", ["mylist", "0", "newvalue"])).to.eql(["mylist", "0", "?"]);
     });
 
-    it("should redact all args for unlisted commands (safe-by-default)", function () {
+    it("should keep key and pivot position for LINSERT", function () {
+      expect(sanitizeArgs("linsert", ["mylist", "BEFORE", "pivot", "newvalue"])).to.eql(["mylist", "BEFORE", "?", "?"]);
+    });
+
+    // args=-1: all args visible
+    it("should show all args for GET", function () {
+      expect(sanitizeArgs("get", ["mykey"])).to.eql(["mykey"]);
+      expect(sanitizeArgs("GET", ["mykey"])).to.eql(["mykey"]);
+    });
+
+    it("should show all args for DEL", function () {
+      expect(sanitizeArgs("del", ["k1", "k2", "k3"])).to.eql(["k1", "k2", "k3"]);
+    });
+
+    it("should show all args for SUBSCRIBE", function () {
+      expect(sanitizeArgs("subscribe", ["ch1", "ch2"])).to.eql(["ch1", "ch2"]);
+    });
+
+    it("should show all args for CONFIG GET", function () {
+      expect(sanitizeArgs("config", ["GET", "maxmemory"])).to.eql(["GET", "maxmemory"]);
+    });
+
+    it("should show all args for EVAL", function () {
+      expect(sanitizeArgs("eval", ["return 1", "0"])).to.eql(["return 1", "0"]);
+    });
+
+    it("should show all args for HMGET", function () {
+      expect(sanitizeArgs("hmget", ["hash", "f1", "f2"])).to.eql(["hash", "f1", "f2"]);
+    });
+
+    it("should show all args for EXISTS", function () {
+      expect(sanitizeArgs("exists", ["k1"])).to.eql(["k1"]);
+    });
+
+    // Default: unlisted commands fully redacted
+    it("should redact all args for AUTH (unlisted, falls to default)", function () {
       expect(sanitizeArgs("auth", ["password"])).to.eql(["?"]);
       expect(sanitizeArgs("AUTH", ["password"])).to.eql(["?"]);
+    });
+
+    it("should redact all args for AUTH with username", function () {
+      expect(sanitizeArgs("auth", ["user", "password123"])).to.eql(["?", "?"]);
+    });
+
+    it("should redact all args for HELLO with auth", function () {
       expect(sanitizeArgs("hello", ["3", "AUTH", "user", "pass"])).to.eql(["?", "?", "?", "?"]);
     });
 
@@ -354,13 +423,77 @@ describeOrSkip("tracing", function () {
       expect(sanitizeArgs("mycustomcmd", ["arg1", "arg2"])).to.eql(["?", "?"]);
     });
 
+    // Case insensitivity
+    it("should be case-insensitive for command matching", function () {
+      expect(sanitizeArgs("set", ["key", "value"])).to.eql(["key", "?"]);
+      expect(sanitizeArgs("get", ["key"])).to.eql(["key"]);
+      expect(sanitizeArgs("hSet", ["hash", "field", "value"])).to.eql(["hash", "field", "?"]);
+    });
+
+    // Edge cases
     it("should handle empty args", function () {
       expect(sanitizeArgs("ping", [])).to.eql([]);
     });
 
     it("should stringify non-string args", function () {
       expect(sanitizeArgs("get", [Buffer.from("key")])).to.eql(["key"]);
-      expect(sanitizeArgs("get", [123])).to.eql(["123"]);
+    });
+
+    it("should stringify numeric args", function () {
+      expect(sanitizeArgs("del", [42])).to.eql(["42"]);
+    });
+  });
+
+  describe("ioredis:batch", function () {
+    it("should trace MULTI as a single batch operation", async function () {
+      const batchEvents: any[] = [];
+      const commandEvents: any[] = [];
+
+      const batchSubscriber = {
+        start(message: any) { batchEvents.push(message); },
+        end() {},
+        asyncStart() {},
+        asyncEnd() {},
+        error() {},
+      };
+      const commandSubscriber = {
+        start(message: any) { commandEvents.push(message); },
+        end() {},
+        asyncStart() {},
+        asyncEnd() {},
+        error() {},
+      };
+
+      const batchChannel = dc.tracingChannel("ioredis:batch");
+      const commandChannel = dc.tracingChannel("ioredis:command");
+      batchChannel.subscribe(batchSubscriber);
+      commandChannel.subscribe(commandSubscriber);
+
+      try {
+        const redis = new Redis({ lazyConnect: true });
+        await redis.connect();
+        await redis
+          .multi()
+          .set("multi-key-1", "val1")
+          .set("multi-key-2", "val2")
+          .get("multi-key-1")
+          .exec();
+        redis.disconnect();
+
+        // MULTI is traced as a single batch, not per-command
+        expect(batchEvents.length).to.eql(1);
+        expect(batchEvents[0].batchMode).to.eql("MULTI");
+        expect(batchEvents[0].batchSize).to.eql(3);
+        expect(batchEvents[0].database).to.be.a("number");
+        expect(batchEvents[0].serverAddress).to.be.a("string");
+
+        // No per-command traces for MULTI on ioredis:command
+        const multiCommandEvents = commandEvents.filter((e: any) => e.batchMode === "MULTI");
+        expect(multiCommandEvents.length).to.eql(0);
+      } finally {
+        batchChannel.unsubscribe(batchSubscriber);
+        commandChannel.unsubscribe(commandSubscriber);
+      }
     });
   });
 

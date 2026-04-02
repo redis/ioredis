@@ -7,6 +7,7 @@ import Cluster from "./cluster";
 import Command from "./Command";
 import { Callback, PipelineWriteableStream } from "./types";
 import { noop } from "./utils";
+import { traceBatch } from "./tracing";
 import Commander from "./utils/Commander";
 
 /*
@@ -408,6 +409,16 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
       _this._queue[i].batchSize = batchSize;
       _this.redis.sendCommand(_this._queue[i], stream, node);
     }
+
+    // MULTI is traced as a single batch operation on ioredis:batch.
+    // Pipeline commands are traced per-command on ioredis:command (in sendCommand).
+    if (isMulti) {
+      return traceBatch(
+        () => _this.promise,
+        () => _this.redis._buildBatchContext(batchSize)
+      );
+    }
+
     return _this.promise;
   }
 };
