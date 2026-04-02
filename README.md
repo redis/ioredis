@@ -868,7 +868,7 @@ Besides the above connection events, there are several other custom events:
 
 ioredis publishes telemetry through Node.js [`diagnostics_channel`](https://nodejs.org/api/diagnostics_channel.html), allowing APM tools and custom instrumentation to observe commands, connections, and batch operations without modifying application code.
 
-These channels use `TracingChannel#tracePromise()` and emit `start`, `end`, `asyncStart`, `asyncEnd`, and `error` sub-events. Requires Node.js >= 20.13.0; on older versions the channels are silently unavailable (zero overhead). Subscribe via `tracing:<name>:<event>`:
+These channels use `TracingChannel#tracePromise()` and emit `start`, `end`, `asyncStart`, `asyncEnd`, and `error` sub-events. Requires Node.js >= 18.19.0; on older versions the channels are silently unavailable (zero overhead). Subscribe via `tracing:<name>:<event>`:
 
 ```typescript
 import dc from "node:diagnostics_channel";

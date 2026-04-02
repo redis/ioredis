@@ -2,10 +2,10 @@ import Redis from "../../lib/Redis";
 import { expect } from "chai";
 import { sanitizeArgs } from "../../lib/tracing";
 
-// TracingChannel requires Node >= 20.13. Skip tests on older versions.
+// TracingChannel requires Node >= 18.19. Skip tests on older versions.
 const nodeVersion = process.versions.node.split(".").map(Number);
 const hasTracingChannel =
-  nodeVersion[0] > 20 || (nodeVersion[0] === 20 && nodeVersion[1] >= 13);
+  nodeVersion[0] > 18 || (nodeVersion[0] === 18 && nodeVersion[1] >= 19);
 
 const describeOrSkip = hasTracingChannel ? describe : describe.skip;
 
