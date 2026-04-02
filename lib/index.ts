@@ -68,7 +68,12 @@ export type {
 } from "./utils/RedisCommander";
 
 // Tracing types for diagnostics_channel consumers
-export type { CommandTraceContext, BatchCommandTraceContext, ConnectTraceContext } from "./tracing";
+export type {
+  CommandTraceContext,
+  BatchCommandTraceContext,
+  BatchOperationContext,
+  ConnectTraceContext,
+} from "./tracing";
 
 // No TS typings
 export const ReplyError = require("redis-errors").ReplyError;
