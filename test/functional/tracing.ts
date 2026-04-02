@@ -1,5 +1,6 @@
 import Redis from "../../lib/Redis";
 import { expect } from "chai";
+import { sanitizeArgs } from "../../lib/tracing";
 
 // TracingChannel requires Node >= 20.13. Skip tests on older versions.
 const nodeVersion = process.versions.node.split(".").map(Number);
@@ -45,22 +46,21 @@ describeOrSkip("tracing", function () {
         expect(setEvents.length).to.be.greaterThan(0);
         expect(getEvents.length).to.be.greaterThan(0);
 
-        // Check SET context fields
+        // Check SET context fields — value is sanitized, key is visible
         const setStart = setEvents.find((e) => e.name === "start");
         expect(setStart).to.exist;
         expect(setStart.context.command).to.eql("set");
-        expect(setStart.context.args).to.include("tracing-test-key");
-        expect(setStart.context.args).to.include("tracing-test-value");
+        expect(setStart.context.args).to.eql(["tracing-test-key", "?"]);
         expect(setStart.context.database).to.eql(0);
         expect(setStart.context.serverAddress).to.be.a("string");
         expect(setStart.context.batchMode).to.be.undefined;
         expect(setStart.context.batchSize).to.be.undefined;
 
-        // Check GET context fields
+        // Check GET context fields — all args visible (read-only command)
         const getStart = getEvents.find((e) => e.name === "start");
         expect(getStart).to.exist;
         expect(getStart.context.command).to.eql("get");
-        expect(getStart.context.args).to.include("tracing-test-key");
+        expect(getStart.context.args).to.eql(["tracing-test-key"]);
 
         // asyncEnd should fire for completed commands
         const setAsyncEnd = setEvents.find((e) => e.name === "asyncEnd");
@@ -318,6 +318,49 @@ describeOrSkip("tracing", function () {
       } finally {
         channel.unsubscribe(subscriber);
       }
+    });
+  });
+
+  describe("sanitizeArgs", function () {
+    it("should redact values for SET (keep key only)", function () {
+      expect(sanitizeArgs("set", ["mykey", "secret"])).to.eql(["mykey", "?"]);
+      expect(sanitizeArgs("SET", ["mykey", "secret"])).to.eql(["mykey", "?"]);
+      expect(sanitizeArgs("setex", ["mykey", "60", "secret"])).to.eql(["mykey", "?", "?"]);
+    });
+
+    it("should keep all args for read-only commands", function () {
+      expect(sanitizeArgs("get", ["mykey"])).to.eql(["mykey"]);
+      expect(sanitizeArgs("GET", ["mykey"])).to.eql(["mykey"]);
+      expect(sanitizeArgs("del", ["k1", "k2"])).to.eql(["k1", "k2"]);
+      expect(sanitizeArgs("exists", ["k1"])).to.eql(["k1"]);
+    });
+
+    it("should keep key + field for HSET (redact value)", function () {
+      expect(sanitizeArgs("hset", ["hash", "field", "secret"])).to.eql(["hash", "field", "?"]);
+      expect(sanitizeArgs("hmset", ["hash", "f1", "v1", "f2", "v2"])).to.eql(["hash", "f1", "?", "?", "?"]);
+    });
+
+    it("should redact all args for ECHO", function () {
+      expect(sanitizeArgs("echo", ["secret"])).to.eql(["?"]);
+    });
+
+    it("should redact all args for unlisted commands (safe-by-default)", function () {
+      expect(sanitizeArgs("auth", ["password"])).to.eql(["?"]);
+      expect(sanitizeArgs("AUTH", ["password"])).to.eql(["?"]);
+      expect(sanitizeArgs("hello", ["3", "AUTH", "user", "pass"])).to.eql(["?", "?", "?", "?"]);
+    });
+
+    it("should redact all args for unknown custom commands", function () {
+      expect(sanitizeArgs("mycustomcmd", ["arg1", "arg2"])).to.eql(["?", "?"]);
+    });
+
+    it("should handle empty args", function () {
+      expect(sanitizeArgs("ping", [])).to.eql([]);
+    });
+
+    it("should stringify non-string args", function () {
+      expect(sanitizeArgs("get", [Buffer.from("key")])).to.eql(["key"]);
+      expect(sanitizeArgs("get", [123])).to.eql(["123"]);
     });
   });
 

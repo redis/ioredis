@@ -29,7 +29,7 @@ import {
   parseURL,
   resolveTLSProfile,
 } from "./utils";
-import { traceCommand, traceConnect, type CommandTraceContext, type BatchCommandTraceContext } from "./tracing";
+import { traceCommand, traceConnect, sanitizeArgs, type CommandTraceContext, type BatchCommandTraceContext } from "./tracing";
 import applyMixin from "./utils/applyMixin";
 import Commander from "./utils/Commander";
 import { defaults, noop } from "./utils/lodash";
@@ -776,7 +776,7 @@ class Redis extends Commander implements DataHandledable {
     const { address, port } = this._getServerAddress();
     const base: CommandTraceContext = {
       command: command.name,
-      args: command.args,
+      args: sanitizeArgs(command.name, command.args),
       database: this.condition?.select ?? this.options.db ?? 0,
       serverAddress: address,
       serverPort: port,

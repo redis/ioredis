@@ -1,9 +1,48 @@
 import type { CommandParameter } from "./types";
 
+// Argument sanitization rules adapted from @opentelemetry/redis-common (Apache 2.0).
+// https://github.com/open-telemetry/opentelemetry-js-contrib/blob/main/packages/redis-common/src/index.ts
+//
+// Each entry specifies how many positional args (after the command name) are safe
+// to emit. -1 means all args are safe (read-only/structural commands).
+// Unlisted commands default to 0 (all args redacted) for safe-by-default behavior,
+// which covers AUTH, HELLO, and unknown/custom commands.
+const SERIALIZATION_SUBSETS: Array<{ regex: RegExp; args: number }> = [
+  { regex: /^ECHO/i, args: 0 },
+  { regex: /^(LPUSH|MSET|PFA|PUBLISH|RPUSH|SADD|SET|SPUBLISH|XADD|ZADD)/i, args: 1 },
+  { regex: /^(HSET|HMSET|LSET|LINSERT)/i, args: 2 },
+  { regex: /^(ACL|BIT|B[LRZ]|CLIENT|CLUSTER|CONFIG|COMMAND|DECR|DEL|EVAL|EX|FUNCTION|GEO|GET|HINCR|HMGET|HSCAN|INCR|L[TRLM]|MEMORY|P[EFISTU]|RPOP|S[CDIMORSU]|XACK|X[CDGILPRT]|Z[CDILMPRS])/i, args: -1 },
+];
+
+export function sanitizeArgs(commandName: string, args: CommandParameter[]): string[] {
+  let allowedArgCount = 0;
+
+  for (const subset of SERIALIZATION_SUBSETS) {
+    if (subset.regex.test(commandName)) {
+      allowedArgCount = subset.args;
+      break;
+    }
+  }
+
+  if (allowedArgCount === -1) {
+    return args.map((a) => String(a));
+  }
+
+  const result: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    if (i < allowedArgCount) {
+      result.push(String(args[i]));
+    } else {
+      result.push("?");
+    }
+  }
+  return result;
+}
+
 // Context types for the two tracing channels
 export interface CommandTraceContext {
   command: string;
-  args: CommandParameter[];
+  args: string[];
   database: number;
   serverAddress: string;
   serverPort: number | undefined;
