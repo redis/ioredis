@@ -49,7 +49,7 @@ export function sanitizeArgs(
   return result;
 }
 
-// Context types for the two tracing channels
+// Context types for the tracing channels
 export interface CommandTraceContext {
   command: string;
   args: string[];
