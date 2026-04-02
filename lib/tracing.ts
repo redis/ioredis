@@ -122,36 +122,33 @@ export function traceCommand<T>(
   fn: () => Promise<T>,
   contextFactory: () => CommandContext
 ): Promise<T> {
-  if (shouldTrace(commandChannel)) {
-    // tracePromise returns a wrapper promise that re-rejects on error.
-    // Silence the wrapper to prevent unhandled rejections when callers
-    // (e.g. Pipeline) discard the return value. Callers that await this
-    // promise still see the rejection through their own .then() chain.
-    const traced = commandChannel.tracePromise(fn, contextFactory());
-    traced.catch(noop);
-    return traced;
-  }
-  return fn();
+  if (!shouldTrace(commandChannel)) return fn();
+
+  // tracePromise returns a wrapper promise that re-rejects on error.
+  // Silence the wrapper to prevent unhandled rejections when callers
+  // (e.g. Pipeline) discard the return value. Callers that await this
+  // promise still see the rejection through their own .then() chain.
+  const traced = commandChannel.tracePromise(fn, contextFactory());
+  traced.catch(noop);
+  return traced;
 }
 
 export function traceBatch<T>(
   fn: () => Promise<T>,
   contextFactory: () => BatchOperationContext
 ): Promise<T> {
-  if (shouldTrace(batchChannel)) {
-    const traced = batchChannel.tracePromise(fn, contextFactory());
-    traced.catch(noop);
-    return traced;
-  }
-  return fn();
+  if (!shouldTrace(batchChannel)) return fn();
+
+  const traced = batchChannel.tracePromise(fn, contextFactory());
+  traced.catch(noop);
+  return traced;
 }
 
 export function traceConnect<T>(
   fn: () => Promise<T>,
   contextFactory: () => ConnectTraceContext
 ): Promise<T> {
-  if (shouldTrace(connectChannel)) {
-    return connectChannel.tracePromise(fn, contextFactory());
-  }
-  return fn();
+  if (!shouldTrace(connectChannel)) return fn();
+
+  return connectChannel.tracePromise(fn, contextFactory());
 }
