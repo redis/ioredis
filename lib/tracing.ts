@@ -9,12 +9,22 @@ import type { CommandParameter } from "./types";
 // which covers AUTH, HELLO, and unknown/custom commands.
 const SERIALIZATION_SUBSETS: Array<{ regex: RegExp; args: number }> = [
   { regex: /^ECHO/i, args: 0 },
-  { regex: /^(LPUSH|MSET|PFA|PUBLISH|RPUSH|SADD|SET|SPUBLISH|XADD|ZADD)/i, args: 1 },
+  {
+    regex: /^(LPUSH|MSET|PFA|PUBLISH|RPUSH|SADD|SET|SPUBLISH|XADD|ZADD)/i,
+    args: 1,
+  },
   { regex: /^(HSET|HMSET|LSET|LINSERT)/i, args: 2 },
-  { regex: /^(ACL|BIT|B[LRZ]|CLIENT|CLUSTER|CONFIG|COMMAND|DECR|DEL|EVAL|EX|FUNCTION|GEO|GET|HINCR|HMGET|HSCAN|INCR|L[TRLM]|MEMORY|P[EFISTU]|RPOP|S[CDIMORSU]|XACK|X[CDGILPRT]|Z[CDILMPRS])/i, args: -1 },
+  {
+    regex:
+      /^(ACL|BIT|B[LRZ]|CLIENT|CLUSTER|CONFIG|COMMAND|DECR|DEL|EVAL|EX|FUNCTION|GEO|GET|HINCR|HMGET|HSCAN|INCR|L[TRLM]|MEMORY|P[EFISTU]|RPOP|S[CDIMORSU]|XACK|X[CDGILPRT]|Z[CDILMPRS])/i,
+    args: -1,
+  },
 ];
 
-export function sanitizeArgs(commandName: string, args: CommandParameter[]): string[] {
+export function sanitizeArgs(
+  commandName: string,
+  args: CommandParameter[]
+): string[] {
   let allowedArgCount = 0;
 
   for (const subset of SERIALIZATION_SUBSETS) {
@@ -76,16 +86,13 @@ type CommandContext = CommandTraceContext | BatchCommandTraceContext;
 // - tracePromise is typed as returning void but returns the promise at runtime
 interface TracingChannel<ContextType> {
   readonly hasSubscribers: boolean;
-  tracePromise<T>(
-    fn: () => Promise<T>,
-    context?: ContextType
-  ): Promise<T>;
+  tracePromise<T>(fn: () => Promise<T>, context?: ContextType): Promise<T>;
 }
 
 // Load diagnostics_channel with Node 18 compatibility
 const dc: any = (() => {
   try {
-    return ("getBuiltinModule" in process)
+    return "getBuiltinModule" in process
       ? (process as any).getBuiltinModule("node:diagnostics_channel")
       : require("node:diagnostics_channel");
   } catch {
@@ -102,12 +109,16 @@ const commandChannel: TracingChannel<CommandContext> | undefined =
 
 const batchChannel: TracingChannel<BatchOperationContext> | undefined =
   hasTracingChannel
-    ? (dc.tracingChannel("ioredis:batch") as TracingChannel<BatchOperationContext>)
+    ? (dc.tracingChannel(
+        "ioredis:batch"
+      ) as TracingChannel<BatchOperationContext>)
     : undefined;
 
 const connectChannel: TracingChannel<ConnectTraceContext> | undefined =
   hasTracingChannel
-    ? (dc.tracingChannel("ioredis:connect") as TracingChannel<ConnectTraceContext>)
+    ? (dc.tracingChannel(
+        "ioredis:connect"
+      ) as TracingChannel<ConnectTraceContext>)
     : undefined;
 
 function shouldTrace(

@@ -4,7 +4,8 @@ import { sanitizeArgs } from "../../lib/tracing";
 
 // TracingChannel requires Node >= 20.13. Skip tests on older versions.
 const nodeVersion = process.versions.node.split(".").map(Number);
-const hasTracingChannel = nodeVersion[0] > 20 || (nodeVersion[0] === 20 && nodeVersion[1] >= 13);
+const hasTracingChannel =
+  nodeVersion[0] > 20 || (nodeVersion[0] === 20 && nodeVersion[1] >= 13);
 
 const describeOrSkip = hasTracingChannel ? describe : describe.skip;
 
@@ -12,20 +13,31 @@ describeOrSkip("tracing", function () {
   let dc: typeof import("node:diagnostics_channel");
 
   before(function () {
-    dc = ("getBuiltinModule" in process)
-      ? (process as any).getBuiltinModule("node:diagnostics_channel")
-      : require("node:diagnostics_channel");
+    dc =
+      "getBuiltinModule" in process
+        ? (process as any).getBuiltinModule("node:diagnostics_channel")
+        : require("node:diagnostics_channel");
   });
 
   describe("ioredis:command", function () {
     it("should trace a simple command", async function () {
       const events: { name: string; context: any }[] = [];
       const subscriber = {
-        start(message: any) { events.push({ name: "start", context: message }); },
-        end(message: any) { events.push({ name: "end", context: message }); },
-        asyncStart(message: any) { events.push({ name: "asyncStart", context: message }); },
-        asyncEnd(message: any) { events.push({ name: "asyncEnd", context: message }); },
-        error(message: any) { events.push({ name: "error", context: message }); },
+        start(message: any) {
+          events.push({ name: "start", context: message });
+        },
+        end(message: any) {
+          events.push({ name: "end", context: message });
+        },
+        asyncStart(message: any) {
+          events.push({ name: "asyncStart", context: message });
+        },
+        asyncEnd(message: any) {
+          events.push({ name: "asyncEnd", context: message });
+        },
+        error(message: any) {
+          events.push({ name: "error", context: message });
+        },
       };
 
       const channel = dc.tracingChannel("ioredis:command");
@@ -73,7 +85,9 @@ describeOrSkip("tracing", function () {
     it("should include serverPort for TCP connections", async function () {
       const events: any[] = [];
       const subscriber = {
-        start(message: any) { events.push(message); },
+        start(message: any) {
+          events.push(message);
+        },
         end() {},
         asyncStart() {},
         asyncEnd() {},
@@ -101,7 +115,9 @@ describeOrSkip("tracing", function () {
     it("should include database number", async function () {
       const events: any[] = [];
       const subscriber = {
-        start(message: any) { events.push(message); },
+        start(message: any) {
+          events.push(message);
+        },
         end() {},
         asyncStart() {},
         asyncEnd() {},
@@ -128,7 +144,9 @@ describeOrSkip("tracing", function () {
     it("should trace pipeline commands with batchMode and batchSize", async function () {
       const events: any[] = [];
       const subscriber = {
-        start(message: any) { events.push(message); },
+        start(message: any) {
+          events.push(message);
+        },
         end() {},
         asyncStart() {},
         asyncEnd() {},
@@ -163,7 +181,9 @@ describeOrSkip("tracing", function () {
     it("should not emit per-command events for MULTI commands", async function () {
       const commandEvents: any[] = [];
       const commandSubscriber = {
-        start(message: any) { commandEvents.push(message); },
+        start(message: any) {
+          commandEvents.push(message);
+        },
         end() {},
         asyncStart() {},
         asyncEnd() {},
@@ -184,7 +204,9 @@ describeOrSkip("tracing", function () {
         redis.disconnect();
 
         // MULTI commands should NOT appear on ioredis:command
-        const multiEvents = commandEvents.filter((e) => e.batchMode === "MULTI");
+        const multiEvents = commandEvents.filter(
+          (e) => e.batchMode === "MULTI"
+        );
         expect(multiEvents.length).to.eql(0);
       } finally {
         channel.unsubscribe(commandSubscriber);
@@ -198,7 +220,9 @@ describeOrSkip("tracing", function () {
         end() {},
         asyncStart() {},
         asyncEnd() {},
-        error(message: any) { errorEvents.push(message); },
+        error(message: any) {
+          errorEvents.push(message);
+        },
       };
 
       const channel = dc.tracingChannel("ioredis:command");
@@ -253,7 +277,9 @@ describeOrSkip("tracing", function () {
     it("should not produce duplicate trace events for offline-queued commands", async function () {
       const events: any[] = [];
       const subscriber = {
-        start(message: any) { events.push(message); },
+        start(message: any) {
+          events.push(message);
+        },
         end() {},
         asyncStart() {},
         asyncEnd() {},
@@ -288,7 +314,9 @@ describeOrSkip("tracing", function () {
         end() {},
         asyncStart() {},
         asyncEnd() {},
-        error(message: any) { errorEvents.push(message); },
+        error(message: any) {
+          errorEvents.push(message);
+        },
       };
 
       const channel = dc.tracingChannel("ioredis:command");
@@ -331,48 +359,96 @@ describeOrSkip("tracing", function () {
     });
 
     it("should keep key but redact value for SET with flags", function () {
-      expect(sanitizeArgs("set", ["key", "secret", "EX", "300", "NX"])).to.eql(["key", "?", "?", "?", "?"]);
+      expect(sanitizeArgs("set", ["key", "secret", "EX", "300", "NX"])).to.eql([
+        "key",
+        "?",
+        "?",
+        "?",
+        "?",
+      ]);
     });
 
     it("should keep key but redact value for SETEX (prefix match on SET)", function () {
-      expect(sanitizeArgs("setex", ["key", "300", "secret"])).to.eql(["key", "?", "?"]);
+      expect(sanitizeArgs("setex", ["key", "300", "secret"])).to.eql([
+        "key",
+        "?",
+        "?",
+      ]);
     });
 
     it("should keep key but redact values for LPUSH with multiple elements", function () {
-      expect(sanitizeArgs("lpush", ["mylist", "a", "b", "c"])).to.eql(["mylist", "?", "?", "?"]);
+      expect(sanitizeArgs("lpush", ["mylist", "a", "b", "c"])).to.eql([
+        "mylist",
+        "?",
+        "?",
+        "?",
+      ]);
     });
 
     it("should keep key but redact message for PUBLISH", function () {
-      expect(sanitizeArgs("publish", ["channel", "secret message"])).to.eql(["channel", "?"]);
+      expect(sanitizeArgs("publish", ["channel", "secret message"])).to.eql([
+        "channel",
+        "?",
+      ]);
     });
 
     it("should keep key but redact values for MSET", function () {
-      expect(sanitizeArgs("mset", ["k1", "v1", "k2", "v2"])).to.eql(["k1", "?", "?", "?"]);
+      expect(sanitizeArgs("mset", ["k1", "v1", "k2", "v2"])).to.eql([
+        "k1",
+        "?",
+        "?",
+        "?",
+      ]);
     });
 
     it("should keep key but redact member and score for ZADD", function () {
-      expect(sanitizeArgs("zadd", ["myzset", "1", "member1"])).to.eql(["myzset", "?", "?"]);
+      expect(sanitizeArgs("zadd", ["myzset", "1", "member1"])).to.eql([
+        "myzset",
+        "?",
+        "?",
+      ]);
     });
 
     it("should keep key but redact fields and values for XADD", function () {
-      expect(sanitizeArgs("xadd", ["stream", "*", "field", "value"])).to.eql(["stream", "?", "?", "?"]);
+      expect(sanitizeArgs("xadd", ["stream", "*", "field", "value"])).to.eql([
+        "stream",
+        "?",
+        "?",
+        "?",
+      ]);
     });
 
     // args=2: key + field
     it("should keep key and field but redact value for HSET", function () {
-      expect(sanitizeArgs("hset", ["hash", "field", "secret"])).to.eql(["hash", "field", "?"]);
+      expect(sanitizeArgs("hset", ["hash", "field", "secret"])).to.eql([
+        "hash",
+        "field",
+        "?",
+      ]);
     });
 
     it("should keep key and field but redact remaining for HMSET", function () {
-      expect(sanitizeArgs("hmset", ["hash", "f1", "v1", "f2", "v2"])).to.eql(["hash", "f1", "?", "?", "?"]);
+      expect(sanitizeArgs("hmset", ["hash", "f1", "v1", "f2", "v2"])).to.eql([
+        "hash",
+        "f1",
+        "?",
+        "?",
+        "?",
+      ]);
     });
 
     it("should keep key and index but redact value for LSET", function () {
-      expect(sanitizeArgs("lset", ["mylist", "0", "newvalue"])).to.eql(["mylist", "0", "?"]);
+      expect(sanitizeArgs("lset", ["mylist", "0", "newvalue"])).to.eql([
+        "mylist",
+        "0",
+        "?",
+      ]);
     });
 
     it("should keep key and pivot position for LINSERT", function () {
-      expect(sanitizeArgs("linsert", ["mylist", "BEFORE", "pivot", "newvalue"])).to.eql(["mylist", "BEFORE", "?", "?"]);
+      expect(
+        sanitizeArgs("linsert", ["mylist", "BEFORE", "pivot", "newvalue"])
+      ).to.eql(["mylist", "BEFORE", "?", "?"]);
     });
 
     // args=-1: all args visible
@@ -382,7 +458,11 @@ describeOrSkip("tracing", function () {
     });
 
     it("should show all args for DEL", function () {
-      expect(sanitizeArgs("del", ["k1", "k2", "k3"])).to.eql(["k1", "k2", "k3"]);
+      expect(sanitizeArgs("del", ["k1", "k2", "k3"])).to.eql([
+        "k1",
+        "k2",
+        "k3",
+      ]);
     });
 
     it("should show all args for SUBSCRIBE", function () {
@@ -390,7 +470,10 @@ describeOrSkip("tracing", function () {
     });
 
     it("should show all args for CONFIG GET", function () {
-      expect(sanitizeArgs("config", ["GET", "maxmemory"])).to.eql(["GET", "maxmemory"]);
+      expect(sanitizeArgs("config", ["GET", "maxmemory"])).to.eql([
+        "GET",
+        "maxmemory",
+      ]);
     });
 
     it("should show all args for EVAL", function () {
@@ -398,7 +481,11 @@ describeOrSkip("tracing", function () {
     });
 
     it("should show all args for HMGET", function () {
-      expect(sanitizeArgs("hmget", ["hash", "f1", "f2"])).to.eql(["hash", "f1", "f2"]);
+      expect(sanitizeArgs("hmget", ["hash", "f1", "f2"])).to.eql([
+        "hash",
+        "f1",
+        "f2",
+      ]);
     });
 
     it("should show all args for EXISTS", function () {
@@ -416,7 +503,12 @@ describeOrSkip("tracing", function () {
     });
 
     it("should redact all args for HELLO with auth", function () {
-      expect(sanitizeArgs("hello", ["3", "AUTH", "user", "pass"])).to.eql(["?", "?", "?", "?"]);
+      expect(sanitizeArgs("hello", ["3", "AUTH", "user", "pass"])).to.eql([
+        "?",
+        "?",
+        "?",
+        "?",
+      ]);
     });
 
     it("should redact all args for unknown custom commands", function () {
@@ -427,7 +519,11 @@ describeOrSkip("tracing", function () {
     it("should be case-insensitive for command matching", function () {
       expect(sanitizeArgs("set", ["key", "value"])).to.eql(["key", "?"]);
       expect(sanitizeArgs("get", ["key"])).to.eql(["key"]);
-      expect(sanitizeArgs("hSet", ["hash", "field", "value"])).to.eql(["hash", "field", "?"]);
+      expect(sanitizeArgs("hSet", ["hash", "field", "value"])).to.eql([
+        "hash",
+        "field",
+        "?",
+      ]);
     });
 
     // Edge cases
@@ -450,14 +546,18 @@ describeOrSkip("tracing", function () {
       const commandEvents: any[] = [];
 
       const batchSubscriber = {
-        start(message: any) { batchEvents.push(message); },
+        start(message: any) {
+          batchEvents.push(message);
+        },
         end() {},
         asyncStart() {},
         asyncEnd() {},
         error() {},
       };
       const commandSubscriber = {
-        start(message: any) { commandEvents.push(message); },
+        start(message: any) {
+          commandEvents.push(message);
+        },
         end() {},
         asyncStart() {},
         asyncEnd() {},
@@ -488,7 +588,9 @@ describeOrSkip("tracing", function () {
         expect(batchEvents[0].serverAddress).to.be.a("string");
 
         // No per-command traces for MULTI on ioredis:command
-        const multiCommandEvents = commandEvents.filter((e: any) => e.batchMode === "MULTI");
+        const multiCommandEvents = commandEvents.filter(
+          (e: any) => e.batchMode === "MULTI"
+        );
         expect(multiCommandEvents.length).to.eql(0);
       } finally {
         batchChannel.unsubscribe(batchSubscriber);
@@ -501,11 +603,21 @@ describeOrSkip("tracing", function () {
     it("should trace the connection", async function () {
       const events: { name: string; context: any }[] = [];
       const subscriber = {
-        start(message: any) { events.push({ name: "start", context: message }); },
-        end(message: any) { events.push({ name: "end", context: message }); },
-        asyncStart(message: any) { events.push({ name: "asyncStart", context: message }); },
-        asyncEnd(message: any) { events.push({ name: "asyncEnd", context: message }); },
-        error(message: any) { events.push({ name: "error", context: message }); },
+        start(message: any) {
+          events.push({ name: "start", context: message });
+        },
+        end(message: any) {
+          events.push({ name: "end", context: message });
+        },
+        asyncStart(message: any) {
+          events.push({ name: "asyncStart", context: message });
+        },
+        asyncEnd(message: any) {
+          events.push({ name: "asyncEnd", context: message });
+        },
+        error(message: any) {
+          events.push({ name: "error", context: message });
+        },
       };
 
       const channel = dc.tracingChannel("ioredis:connect");
@@ -532,11 +644,21 @@ describeOrSkip("tracing", function () {
     it("should trace connection failure", async function () {
       const events: { name: string; context: any }[] = [];
       const subscriber = {
-        start(message: any) { events.push({ name: "start", context: message }); },
-        end(message: any) { events.push({ name: "end", context: message }); },
-        asyncStart(message: any) { events.push({ name: "asyncStart", context: message }); },
-        asyncEnd(message: any) { events.push({ name: "asyncEnd", context: message }); },
-        error(message: any) { events.push({ name: "error", context: message }); },
+        start(message: any) {
+          events.push({ name: "start", context: message });
+        },
+        end(message: any) {
+          events.push({ name: "end", context: message });
+        },
+        asyncStart(message: any) {
+          events.push({ name: "asyncStart", context: message });
+        },
+        asyncEnd(message: any) {
+          events.push({ name: "asyncEnd", context: message });
+        },
+        error(message: any) {
+          events.push({ name: "error", context: message });
+        },
       };
 
       const channel = dc.tracingChannel("ioredis:connect");

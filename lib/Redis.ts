@@ -29,7 +29,14 @@ import {
   parseURL,
   resolveTLSProfile,
 } from "./utils";
-import { traceCommand, traceConnect, sanitizeArgs, type CommandTraceContext, type BatchCommandTraceContext, type BatchOperationContext } from "./tracing";
+import {
+  traceCommand,
+  traceConnect,
+  sanitizeArgs,
+  type CommandTraceContext,
+  type BatchCommandTraceContext,
+  type BatchOperationContext,
+} from "./tracing";
 import applyMixin from "./utils/applyMixin";
 import Commander from "./utils/Commander";
 import { defaults, noop } from "./utils/lodash";
@@ -179,7 +186,11 @@ class Redis extends Commander implements DataHandledable {
       () => this._connect(),
       () => {
         const { address, port } = this._getServerAddress();
-        return { serverAddress: address, serverPort: port, connectionEpoch: this.connectionEpoch };
+        return {
+          serverAddress: address,
+          serverPort: port,
+          connectionEpoch: this.connectionEpoch,
+        };
       }
     );
 
@@ -554,7 +565,10 @@ class Redis extends Commander implements DataHandledable {
         this.manuallyClosing = true;
       }
 
-      if (this.options.socketTimeout !== undefined && this.socketTimeoutTimer === undefined) {
+      if (
+        this.options.socketTimeout !== undefined &&
+        this.socketTimeoutTimer === undefined
+      ) {
         this.setSocketTimeout();
       }
     }
@@ -603,7 +617,11 @@ class Redis extends Commander implements DataHandledable {
     if (typeof timeout === "number") {
       if (timeout > 0) {
         // Finite timeout from command args - add grace period
-        return timeout + (this.options.blockingTimeoutGrace ?? DEFAULT_REDIS_OPTIONS.blockingTimeoutGrace);
+        return (
+          timeout +
+          (this.options.blockingTimeoutGrace ??
+            DEFAULT_REDIS_OPTIONS.blockingTimeoutGrace)
+        );
       }
       // Command has timeout=0 (block forever), use blockingTimeout option as safety net
       return configuredTimeout;
@@ -630,7 +648,11 @@ class Redis extends Commander implements DataHandledable {
 
   private setSocketTimeout() {
     this.socketTimeoutTimer = setTimeout(() => {
-      this.stream.destroy(new Error(`Socket timeout. Expecting data, but didn't receive any in ${this.options.socketTimeout}ms.`));
+      this.stream.destroy(
+        new Error(
+          `Socket timeout. Expecting data, but didn't receive any in ${this.options.socketTimeout}ms.`
+        )
+      );
       this.socketTimeoutTimer = undefined;
     }, this.options.socketTimeout);
 
@@ -778,7 +800,9 @@ class Redis extends Commander implements DataHandledable {
     };
   }
 
-  private _buildCommandContext(command: Command): CommandTraceContext | BatchCommandTraceContext {
+  private _buildCommandContext(
+    command: Command
+  ): CommandTraceContext | BatchCommandTraceContext {
     const { address, port } = this._getServerAddress();
     const base: CommandTraceContext = {
       command: command.name,
