@@ -29,6 +29,13 @@ import {
   parseURL,
   resolveTLSProfile,
 } from "./utils";
+import {
+  traceCommand,
+  traceConnect,
+  sanitizeArgs,
+  type CommandTraceContext,
+  type BatchOperationContext,
+} from "./tracing";
 import applyMixin from "./utils/applyMixin";
 import Commander from "./utils/Commander";
 import { defaults, noop } from "./utils/lodash";
@@ -174,7 +181,23 @@ class Redis extends Commander implements DataHandledable {
    * if the connection fails, times out, or if Redis is already connecting/connected.
    */
   connect(callback?: Callback<void>): Promise<void> {
-    const promise = new Promise<void>((resolve, reject) => {
+    const promise = traceConnect(
+      () => this._connect(),
+      () => {
+        const { address, port } = this._getServerAddress();
+        return {
+          serverAddress: address,
+          serverPort: port,
+          connectionEpoch: this.connectionEpoch,
+        };
+      }
+    );
+
+    return asCallback(promise, callback);
+  }
+
+  private _connect(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
       if (
         this.status === "connecting" ||
         this.status === "connect" ||
@@ -299,8 +322,6 @@ class Redis extends Commander implements DataHandledable {
         }
       );
     });
-
-    return asCallback(promise, callback);
   }
 
   /**
@@ -543,7 +564,10 @@ class Redis extends Commander implements DataHandledable {
         this.manuallyClosing = true;
       }
 
-      if (this.options.socketTimeout !== undefined && this.socketTimeoutTimer === undefined) {
+      if (
+        this.options.socketTimeout !== undefined &&
+        this.socketTimeoutTimer === undefined
+      ) {
         this.setSocketTimeout();
       }
     }
@@ -557,7 +581,19 @@ class Redis extends Commander implements DataHandledable {
       }
     }
 
-    return command.promise;
+    if (!writable || command.isTraced) {
+      return command.promise;
+    }
+
+    // Trace on the write path only, and only once per command. Commands may
+    // pass through sendCommand multiple times (offline queue flush,
+    // prevCommandQueue resend after reconnect). The isTraced flag ensures
+    // we don't emit duplicate trace events.
+    command.isTraced = true;
+    return traceCommand(
+      () => command.promise as Promise<unknown>,
+      () => this._buildCommandContext(command)
+    );
   }
 
   private getBlockingTimeoutInMs(command: Command): number | undefined {
@@ -575,7 +611,11 @@ class Redis extends Commander implements DataHandledable {
     if (typeof timeout === "number") {
       if (timeout > 0) {
         // Finite timeout from command args - add grace period
-        return timeout + (this.options.blockingTimeoutGrace ?? DEFAULT_REDIS_OPTIONS.blockingTimeoutGrace);
+        return (
+          timeout +
+          (this.options.blockingTimeoutGrace ??
+            DEFAULT_REDIS_OPTIONS.blockingTimeoutGrace)
+        );
       }
       // Command has timeout=0 (block forever), use blockingTimeout option as safety net
       return configuredTimeout;
@@ -602,7 +642,11 @@ class Redis extends Commander implements DataHandledable {
 
   private setSocketTimeout() {
     this.socketTimeoutTimer = setTimeout(() => {
-      this.stream.destroy(new Error(`Socket timeout. Expecting data, but didn't receive any in ${this.options.socketTimeout}ms.`));
+      this.stream.destroy(
+        new Error(
+          `Socket timeout. Expecting data, but didn't receive any in ${this.options.socketTimeout}ms.`
+        )
+      );
       this.socketTimeoutTimer = undefined;
     }, this.options.socketTimeout);
 
@@ -735,6 +779,43 @@ class Redis extends Commander implements DataHandledable {
       default:
         item.command.reject(err);
     }
+  }
+
+  /**
+   * @ignore
+   */
+  _getServerAddress(): { address: string; port: number | undefined } {
+    if ("path" in this.options && this.options.path) {
+      return { address: this.options.path, port: undefined };
+    }
+    return {
+      address: ("host" in this.options && this.options.host) || "localhost",
+      port: ("port" in this.options && this.options.port) || 6379,
+    };
+  }
+
+  private _buildCommandContext(
+    command: Command
+  ): CommandTraceContext {
+    const { address, port } = this._getServerAddress();
+    return {
+      command: command.name,
+      args: sanitizeArgs(command.name, command.args),
+      database: this.condition?.select ?? this.options.db ?? 0,
+      serverAddress: address,
+      serverPort: port,
+    };
+  }
+
+  _buildBatchContext(batchSize: number): BatchOperationContext {
+    const { address, port } = this._getServerAddress();
+    return {
+      batchMode: "MULTI",
+      batchSize,
+      database: this.condition?.select ?? this.options.db ?? 0,
+      serverAddress: address,
+      serverPort: port,
+    };
   }
 
   /**
