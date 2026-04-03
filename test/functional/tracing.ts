@@ -275,6 +275,55 @@ describeOrSkip("tracing", function () {
       }
     });
 
+    it("should not produce duplicate trace events for resent unfulfilled commands", async function () {
+      const events: any[] = [];
+      const subscriber = {
+        start(message: any) {
+          events.push(message);
+        },
+        end() {},
+        asyncStart() {},
+        asyncEnd() {},
+        error() {},
+      };
+
+      const channel = dc.tracingChannel("ioredis:command");
+      channel.subscribe(subscriber);
+
+      try {
+        const redis = new Redis({
+          lazyConnect: true,
+          autoResendUnfulfilledCommands: true,
+          retryStrategy() {
+            return 1;
+          },
+        });
+        await redis.connect();
+
+        // Send a command and immediately destroy the stream before
+        // the reply arrives, so it lands in prevCommandQueue.
+        const setPromise = redis.set(
+          "resend-test-key",
+          "resend-test-value"
+        );
+        redis.stream.destroy();
+
+        // Wait for reconnection and command re-send, then the result
+        const result = await setPromise;
+        expect(result).to.eql("OK");
+
+        redis.disconnect();
+
+        const setEvents = events.filter(
+          (e) => e.command === "set" && e.args[0] === "resend-test-key"
+        );
+        // Should trace exactly once, not twice
+        expect(setEvents.length).to.eql(1);
+      } finally {
+        channel.unsubscribe(subscriber);
+      }
+    });
+
     it("should trace errors on failed commands", async function () {
       const errorEvents: any[] = [];
       const subscriber = {

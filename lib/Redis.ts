@@ -581,14 +581,15 @@ class Redis extends Commander implements DataHandledable {
       }
     }
 
-    if (!writable) {
-      // Offline-queued: skip tracing here. The command will be re-sent via
-      // sendCommand when the connection is ready, and traced at that point.
+    if (!writable || command.isTraced) {
       return command.promise;
     }
 
-    // Trace on the write path only, so offline-queued commands that get
-    // re-sent aren't traced twice.
+    // Trace on the write path only, and only once per command. Commands may
+    // pass through sendCommand multiple times (offline queue flush,
+    // prevCommandQueue resend after reconnect). The isTraced flag ensures
+    // we don't emit duplicate trace events.
+    command.isTraced = true;
     return traceCommand(
       () => command.promise as Promise<unknown>,
       () => this._buildCommandContext(command)
