@@ -34,7 +34,6 @@ import {
   traceConnect,
   sanitizeArgs,
   type CommandTraceContext,
-  type BatchCommandTraceContext,
   type BatchOperationContext,
 } from "./tracing";
 import applyMixin from "./utils/applyMixin";
@@ -588,12 +587,6 @@ class Redis extends Commander implements DataHandledable {
       return command.promise;
     }
 
-    // MULTI commands are traced as a single batch via ioredis:batch in Pipeline.
-    // Skip per-command tracing to avoid duplicate events.
-    if (command.batchMode === "MULTI") {
-      return command.promise;
-    }
-
     // Trace on the write path only, so offline-queued commands that get
     // re-sent aren't traced twice.
     return traceCommand(
@@ -802,23 +795,15 @@ class Redis extends Commander implements DataHandledable {
 
   private _buildCommandContext(
     command: Command
-  ): CommandTraceContext | BatchCommandTraceContext {
+  ): CommandTraceContext {
     const { address, port } = this._getServerAddress();
-    const base: CommandTraceContext = {
+    return {
       command: command.name,
       args: sanitizeArgs(command.name, command.args),
       database: this.condition?.select ?? this.options.db ?? 0,
       serverAddress: address,
       serverPort: port,
     };
-    if (command.batchMode === "PIPELINE") {
-      return {
-        ...base,
-        batchMode: "PIPELINE",
-        batchSize: command.batchSize!,
-      };
-    }
-    return base;
   }
 
   _buildBatchContext(batchSize: number): BatchOperationContext {

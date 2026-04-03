@@ -886,15 +886,15 @@ dc.subscribe("tracing:ioredis:command:error", ({ command, error }) => {
 });
 ```
 
-| Channel name      | Payload                                          | Description                                 |
-| :---------------- | :----------------------------------------------- | :------------------------------------------ |
-| `ioredis:command` | `CommandTraceContext / BatchCommandTraceContext` | Individual command (standalone or pipeline) |
-| `ioredis:batch`   | `BatchOperationContext`                          | MULTI batch as a whole                      |
-| `ioredis:connect` | `ConnectTraceContext`                            | Socket connection attempt                   |
+| Channel name      | Payload                 | Description                                              |
+| :---------------- | :---------------------- | :------------------------------------------------------- |
+| `ioredis:command` | `CommandTraceContext`   | Individual command (standalone, pipeline, or within MULTI) |
+| `ioredis:batch`   | `BatchOperationContext` | MULTI transaction as a whole                             |
+| `ioredis:connect` | `ConnectTraceContext`   | Socket connection attempt                                |
 
 Command arguments are sanitized before emission using rules adapted from `@opentelemetry/redis-common`. Sensitive values (e.g. values in `SET`, `AUTH` passwords) are replaced with `?`, while read-only commands like `GET` and `DEL` retain all arguments. This is safe by default: unlisted or custom commands have all arguments redacted.
 
-Context types (`CommandTraceContext`, `BatchCommandTraceContext`, `BatchOperationContext`, `ConnectTraceContext`) are exported from `ioredis`.
+Context types (`CommandTraceContext`, `BatchOperationContext`, `ConnectTraceContext`) are exported from `ioredis`.
 
 ## Offline Queue
 

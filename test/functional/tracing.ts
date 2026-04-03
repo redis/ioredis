@@ -65,8 +65,6 @@ describeOrSkip("tracing", function () {
         expect(setStart.context.args).to.eql(["tracing-test-key", "?"]);
         expect(setStart.context.database).to.eql(0);
         expect(setStart.context.serverAddress).to.be.a("string");
-        expect(setStart.context.batchMode).to.be.undefined;
-        expect(setStart.context.batchSize).to.be.undefined;
 
         // Check GET context fields — all args visible (read-only command)
         const getStart = getEvents.find((e) => e.name === "start");
@@ -141,7 +139,7 @@ describeOrSkip("tracing", function () {
       }
     });
 
-    it("should trace pipeline commands with batchMode and batchSize", async function () {
+    it("should trace pipeline commands as individual command events", async function () {
       const events: any[] = [];
       const subscriber = {
         start(message: any) {
@@ -167,49 +165,19 @@ describeOrSkip("tracing", function () {
           .exec();
         redis.disconnect();
 
-        const pipelineEvents = events.filter((e) => e.batchMode === "PIPELINE");
-        expect(pipelineEvents.length).to.eql(3);
-        for (const evt of pipelineEvents) {
-          expect(evt.batchSize).to.eql(3);
-          expect(evt.batchMode).to.eql("PIPELINE");
+        // Pipeline commands are traced individually without batch metadata
+        const pipelineCommands = events.filter(
+          (e) =>
+            e.command === "set" &&
+            (e.args[0] === "pipe-key-1" || e.args[0] === "pipe-key-2")
+        );
+        expect(pipelineCommands.length).to.eql(2);
+        for (const evt of pipelineCommands) {
+          expect(evt.batchMode).to.be.undefined;
+          expect(evt.batchSize).to.be.undefined;
         }
       } finally {
         channel.unsubscribe(subscriber);
-      }
-    });
-
-    it("should not emit per-command events for MULTI commands", async function () {
-      const commandEvents: any[] = [];
-      const commandSubscriber = {
-        start(message: any) {
-          commandEvents.push(message);
-        },
-        end() {},
-        asyncStart() {},
-        asyncEnd() {},
-        error() {},
-      };
-
-      const channel = dc.tracingChannel("ioredis:command");
-      channel.subscribe(commandSubscriber);
-
-      try {
-        const redis = new Redis({ lazyConnect: true });
-        await redis.connect();
-        await redis
-          .multi()
-          .set("multi-key-1", "val1")
-          .get("multi-key-1")
-          .exec();
-        redis.disconnect();
-
-        // MULTI commands should NOT appear on ioredis:command
-        const multiEvents = commandEvents.filter(
-          (e) => e.batchMode === "MULTI"
-        );
-        expect(multiEvents.length).to.eql(0);
-      } finally {
-        channel.unsubscribe(commandSubscriber);
       }
     });
 
@@ -580,18 +548,15 @@ describeOrSkip("tracing", function () {
           .exec();
         redis.disconnect();
 
-        // MULTI is traced as a single batch, not per-command
+        // MULTI is traced as a single batch on ioredis:batch
         expect(batchEvents.length).to.eql(1);
         expect(batchEvents[0].batchMode).to.eql("MULTI");
         expect(batchEvents[0].batchSize).to.eql(3);
         expect(batchEvents[0].database).to.be.a("number");
         expect(batchEvents[0].serverAddress).to.be.a("string");
 
-        // No per-command traces for MULTI on ioredis:command
-        const multiCommandEvents = commandEvents.filter(
-          (e: any) => e.batchMode === "MULTI"
-        );
-        expect(multiCommandEvents.length).to.eql(0);
+        // Individual commands within MULTI also appear on ioredis:command
+        expect(commandEvents.length).to.be.greaterThan(0);
       } finally {
         batchChannel.unsubscribe(batchSubscriber);
         commandChannel.unsubscribe(commandSubscriber);

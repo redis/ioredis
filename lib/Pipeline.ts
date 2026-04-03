@@ -7,7 +7,6 @@ import Cluster from "./cluster";
 import Command from "./Command";
 import { Callback, PipelineWriteableStream } from "./types";
 import { noop } from "./utils";
-import { traceBatch } from "./tracing";
 import Commander from "./utils/Commander";
 
 /*
@@ -166,9 +165,9 @@ class Pipeline extends Commander<{ type: "pipeline" }> {
           moved: function (_slot: string, key: string) {
             _this.preferKey = key;
             if (cluster.slots[errv[1]]) {
-              if (cluster.slots[errv[1]][0] !== key) {
-                cluster.slots[errv[1]] = [key];
-              }
+                if (cluster.slots[errv[1]][0] !== key) {
+                  cluster.slots[errv[1]] = [key];
+                }
             } else {
               cluster.slots[errv[1]] = [key];
             }
@@ -394,32 +393,9 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
       },
     };
 
-    // Determine batch mode: if any command is inTransaction, this is a multi
-    const isMulti = _this._queue.some((cmd) => cmd.inTransaction);
-    const batchMode = isMulti ? ("MULTI" as const) : ("PIPELINE" as const);
-    // For MULTI, count only user commands: EXEC already has inTransaction=false
-    // (exec() decrements _transactions before sendCommand), and MULTI is excluded
-    // by name since multi() increments _transactions before sendCommand runs.
-    const batchSize = isMulti
-      ? _this._queue.filter((cmd) => cmd.inTransaction && cmd.name !== "multi")
-          .length
-      : _this._queue.length;
-
     for (let i = 0; i < _this._queue.length; ++i) {
-      _this._queue[i].batchMode = batchMode;
-      _this._queue[i].batchSize = batchSize;
       _this.redis.sendCommand(_this._queue[i], stream, node);
     }
-
-    // MULTI is traced as a single batch operation on ioredis:batch.
-    // Pipeline commands are traced per-command on ioredis:command (in sendCommand).
-    if (isMulti && "_buildBatchContext" in _this.redis) {
-      return traceBatch(
-        () => _this.promise,
-        () => (_this.redis as Redis)._buildBatchContext(batchSize)
-      );
-    }
-
     return _this.promise;
   }
 };

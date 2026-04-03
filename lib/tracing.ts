@@ -58,13 +58,6 @@ export interface CommandTraceContext {
   serverPort: number | undefined;
 }
 
-export interface BatchCommandTraceContext extends CommandTraceContext {
-  batchMode: "PIPELINE";
-  batchSize: number;
-}
-
-// Context for the batch operation itself (MULTI as a whole).
-// Distinct from BatchCommandTraceContext which is a single command within a pipeline.
 export interface BatchOperationContext {
   batchMode: "MULTI";
   batchSize: number;
@@ -79,7 +72,7 @@ export interface ConnectTraceContext {
   connectionEpoch: number;
 }
 
-type CommandContext = CommandTraceContext | BatchCommandTraceContext;
+type CommandContext = CommandTraceContext;
 
 // Shim interface to fix @types/node gaps:
 // - hasSubscribers is missing on TracingChannel

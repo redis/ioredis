@@ -70,7 +70,6 @@ export type {
 // Tracing types for diagnostics_channel consumers
 export type {
   CommandTraceContext,
-  BatchCommandTraceContext,
   BatchOperationContext,
   ConnectTraceContext,
 } from "./tracing";
