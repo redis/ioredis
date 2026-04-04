@@ -151,9 +151,12 @@ describe("spub/ssub", function () {
 
     await subscriber.ping();
 
-    subscriber.ssubscribe("shard1");
-    subscriber.ssubscribe("shard2");
-    subscriber.ssubscribe("shard3");
+    // Await each subscription so all 3 channels are registered on the server
+    // before we stub and disconnect; without this, disconnect can fire before
+    // subscriptions complete, leaving the auto-resubscribe list incomplete.
+    await subscriber.ssubscribe("shard1");
+    await subscriber.ssubscribe("shard2");
+    await subscriber.ssubscribe("shard3");
 
     const stub = sinon.stub(Redis.prototype, "ssubscribe");
 
@@ -164,6 +167,17 @@ describe("spub/ssub", function () {
     });
 
     await subscriber.ping();
+
+    // ping() flushes the command queue but auto-resubscription is async and
+    // may not have fired all 3 ssubscribe calls yet. Poll until the stub
+    // records all 3 calls; Mocha's test timeout handles the failure case.
+    await new Promise<void>((resolve) => {
+      const check = () => {
+        if (stub.callCount >= 3) return resolve();
+        setTimeout(check, 50);
+      };
+      check();
+    });
 
     expect(stub.getCall(0).args).to.deep.equal(["shard1"]);
     expect(stub.getCall(1).args).to.deep.equal(["shard2"]);
