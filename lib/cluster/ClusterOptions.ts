@@ -40,6 +40,7 @@ export interface ClusterOptions extends CommanderOptions {
    */
   clusterRetryStrategy?:
     | ((times: number, reason?: Error) => number | void | null)
+    | null
     | undefined;
 
   /**
@@ -133,6 +134,26 @@ export interface ClusterOptions extends CommanderOptions {
    * @default false
    */
   shardedSubscribers?: boolean | undefined;
+
+  /**
+   * When a cluster node connection is closed, this function will be called
+   * to determine the retry delay (in ms). Returning `null` or a non-number
+   * disables reconnection for that node.
+   *
+   * By default this is `null`, meaning cluster nodes will NOT automatically
+   * reconnect — the cluster relies on `MOVED` errors to refresh topology.
+   * Set this to enable reconnection, e.g. for replica nodes that restart
+   * without any slot changes.
+   *
+   * @example
+   * clusterNodeRetryStrategy: (times) => Math.min(times * 100, 3000)
+   *
+   * @default null
+   */
+  clusterNodeRetryStrategy?:
+    | ((times: number) => number | void | null)
+    | null
+    | undefined;
 
   /**
    * Passed to the constructor of `Redis`

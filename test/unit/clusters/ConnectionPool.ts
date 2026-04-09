@@ -3,6 +3,27 @@ import { expect } from "chai";
 import ConnectionPool from "../../../lib/cluster/ConnectionPool";
 
 describe("ConnectionPool", () => {
+  describe("clusterNodeRetryStrategy", () => {
+    it("sets retryStrategy to null when clusterNodeRetryStrategy is not provided", () => {
+      const pool = new ConnectionPool({});
+      const redis = pool.findOrCreate({ host: "127.0.0.1", port: 30001 });
+      expect(redis.options.retryStrategy).to.be.null;
+    });
+
+    it("sets retryStrategy to null when clusterNodeRetryStrategy is null", () => {
+      const pool = new ConnectionPool({ clusterNodeRetryStrategy: null });
+      const redis = pool.findOrCreate({ host: "127.0.0.1", port: 30001 });
+      expect(redis.options.retryStrategy).to.be.null;
+    });
+
+    it("uses clusterNodeRetryStrategy as retryStrategy when it is a function", () => {
+      const strategy = (times: number) => times * 100;
+      const pool = new ConnectionPool({ clusterNodeRetryStrategy: strategy });
+      const redis = pool.findOrCreate({ host: "127.0.0.1", port: 30001 });
+      expect(redis.options.retryStrategy).to.equal(strategy);
+    });
+  });
+
   describe("#reset", () => {
     it("prefers to master if there are two same node for a slot", () => {
       const pool = new ConnectionPool({});
