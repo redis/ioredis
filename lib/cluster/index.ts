@@ -683,7 +683,7 @@ class Cluster extends Commander {
         ) {
           command.reject(
             new Error(
-              "Cluster node is not ready and enableOfflineQueue options is false"
+              "Cluster isn't ready and enableOfflineQueue options is false"
             )
           );
         } else {

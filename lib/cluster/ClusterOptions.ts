@@ -237,6 +237,7 @@ export interface ClusterOptions extends CommanderOptions {
 
 export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = {
   clusterRetryStrategy: (times) => Math.min(100 + times * 2, 2000),
+  clusterNodeRetryStrategy: null,
   enableOfflineQueue: true,
   enableReadyCheck: true,
   scaleReads: "master",
