@@ -3,7 +3,7 @@ import MockServer from "../../helpers/mock_server";
 import { Cluster } from "../../../lib";
 
 describe("cluster:node_reconnect", () => {
-  // "foo" hashes to slot 9201, which falls in [0, 16381] → node1 (30001)
+  // "foo" hashes to slot 12182, which falls in [0, 16381] → node1 (30001)
   const slotTable = [
     [0, 16381, ["127.0.0.1", 30001], ["127.0.0.1", 30003]],
     [16382, 16383, ["127.0.0.1", 30002]],
