@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import * as calculateSlot from "cluster-key-slot";
 import MockServer from "../../helpers/mock_server";
 import { Cluster } from "../../../lib";
 
@@ -84,6 +85,41 @@ describe("cluster:node_reconnect", () => {
           cluster.disconnect();
           done();
         });
+      });
+    });
+  });
+
+  it("MOVED redirect to an unknown node succeeds with enableOfflineQueue: false", (done) => {
+    new MockServer(30001, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return [[0, 16383, ["127.0.0.1", 30001]]];
+      }
+      if (argv[0] === "get" && argv[1] === "foo") {
+        return new Error("MOVED " + calculateSlot("foo") + " 127.0.0.1:30002");
+      }
+    });
+    new MockServer(30002, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return [[0, 16383, ["127.0.0.1", 30001]]];
+      }
+      if (argv[0] === "get" && argv[1] === "foo") {
+        return "bar";
+      }
+    });
+
+    const cluster = new Cluster([{ host: "127.0.0.1", port: 30001 }], {
+      clusterRetryStrategy: null,
+      enableOfflineQueue: false,
+    });
+
+    // Wait for the cluster to be ready before sending the command,
+    // since enableOfflineQueue: false rejects commands before "ready".
+    cluster.once("ready", () => {
+      cluster.get("foo", (err, result) => {
+        expect(err).to.be.null;
+        expect(result).to.eql("bar");
+        cluster.disconnect();
+        done();
       });
     });
   });
