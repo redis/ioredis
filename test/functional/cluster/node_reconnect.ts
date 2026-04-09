@@ -25,7 +25,7 @@ describe("cluster:node_reconnect", () => {
       clusterRetryStrategy: null,
     });
 
-    // cluster.get("foo") routes to node1 (slot 9201), ensuring it is connected
+    // cluster.get("foo") routes to node1 (slot 12182), ensuring it is connected
     cluster.get("foo", () => {
       cluster.once("-node", (removedNode) => {
         expect(removedNode.options.port).to.eql(30001);

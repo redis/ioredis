@@ -11,14 +11,14 @@ describe("ConnectionPool", () => {
     });
 
     it("sets retryStrategy to null when clusterNodeRetryStrategy is null", () => {
-      const pool = new ConnectionPool({ clusterNodeRetryStrategy: null });
+      const pool = new ConnectionPool({}, null);
       const redis = pool.findOrCreate({ host: "127.0.0.1", port: 30001 });
       expect(redis.options.retryStrategy).to.be.null;
     });
 
     it("uses clusterNodeRetryStrategy as retryStrategy when it is a function", () => {
       const strategy = (times: number) => times * 100;
-      const pool = new ConnectionPool({ clusterNodeRetryStrategy: strategy });
+      const pool = new ConnectionPool({}, strategy);
       const redis = pool.findOrCreate({ host: "127.0.0.1", port: 30001 });
       expect(redis.options.retryStrategy).to.equal(strategy);
     });

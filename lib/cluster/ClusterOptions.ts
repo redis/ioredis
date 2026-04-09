@@ -1,5 +1,5 @@
 import { SrvRecord, resolveSrv, lookup } from "dns";
-import { RedisOptions } from "../redis/RedisOptions";
+import { RedisOptions, RetryStrategy } from "../redis/RedisOptions";
 import { CommanderOptions } from "../utils/Commander";
 import { NodeRole } from "./util";
 
@@ -28,6 +28,8 @@ export type NatMap =
       [key: string]: { host: string; port: number };
     }
   | NatMapFunction;
+
+export type ClusterNodeRetryStrategy = RetryStrategy;
 
 /**
  * Options for Cluster constructor
@@ -150,10 +152,7 @@ export interface ClusterOptions extends CommanderOptions {
    *
    * @default null
    */
-  clusterNodeRetryStrategy?:
-    | ((times: number) => number | void | null)
-    | null
-    | undefined;
+  clusterNodeRetryStrategy?: ClusterNodeRetryStrategy;
 
   /**
    * Passed to the constructor of `Redis`

@@ -1,6 +1,7 @@
 import { EventEmitter } from "events";
 import { sample, Debug, noop, defaults } from "../utils";
 import { RedisOptions, getNodeKey, NodeKey, NodeRole } from "./util";
+import { ClusterOptions, ClusterNodeRetryStrategy } from "./ClusterOptions";
 import Redis from "../Redis";
 
 const debug = Debug("cluster:connectionPool");
@@ -17,7 +18,10 @@ export default class ConnectionPool extends EventEmitter {
 
   private specifiedOptions: { [key: string]: any } = {};
 
-  constructor(private redisOptions) {
+  constructor(
+    private redisOptions: NonNullable<ClusterOptions["redisOptions"]>,
+    private clusterNodeRetryStrategy: ClusterNodeRetryStrategy = null
+  ) {
     super();
   }
 
@@ -71,8 +75,8 @@ export default class ConnectionPool extends EventEmitter {
               // reconnection (e.g. for replica nodes that restart without
               // any slot changes).
               retryStrategy:
-                typeof this.redisOptions.clusterNodeRetryStrategy === "function"
-                  ? this.redisOptions.clusterNodeRetryStrategy
+                typeof this.clusterNodeRetryStrategy === "function"
+                  ? this.clusterNodeRetryStrategy
                   : null,
               // Offline queue should be enabled so that
               // we don't need to wait for the `ready` event

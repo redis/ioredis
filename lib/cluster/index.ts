@@ -150,10 +150,10 @@ class Cluster extends Commander {
       );
     }
 
-    this.connectionPool = new ConnectionPool({
-      ...(this.options.redisOptions ?? {}),
-      clusterNodeRetryStrategy: this.options.clusterNodeRetryStrategy,
-    });
+    this.connectionPool = new ConnectionPool(
+      this.options.redisOptions ?? {},
+      this.options.clusterNodeRetryStrategy
+    );
 
     this.connectionPool.on("-node", (redis, key) => {
       this.emit("-node", redis);
@@ -671,35 +671,25 @@ class Cluster extends Commander {
           node.redis = redis;
         }
       }
-      if (redis) {
-        // When enableOfflineQueue is false at the cluster level, reject
-        // commands going to a reconnecting node instead of queuing them
-        // on the node's internal offline queue.
-        if (
-          !_this.options.enableOfflineQueue &&
-          redis.status !== "ready"
-        ) {
-          command.reject(
-            new Error(
-              "Cluster isn't ready and enableOfflineQueue options is false"
-            )
-          );
-        } else {
-          redis.sendCommand(command, stream);
-        }
-      } else if (_this.options.enableOfflineQueue) {
+      if (!redis && _this.options.enableOfflineQueue) {
         _this.offlineQueue.push({
           command: command,
           stream: stream,
           node: node,
         });
-      } else {
+        return;
+      }
+
+      if (!redis || (!_this.options.enableOfflineQueue && redis.status !== "ready")) {
         command.reject(
           new Error(
             "Cluster isn't ready and enableOfflineQueue options is false"
           )
         );
+        return;
       }
+
+      redis.sendCommand(command, stream);
     }
     return command.promise;
   }
