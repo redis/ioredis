@@ -78,7 +78,9 @@ describe("cluster:node_reconnect", () => {
         // Node is now reconnecting; next command should be rejected immediately
         cluster.get("foo", (err) => {
           expect(err).to.exist;
-          expect(err.message).to.match(/enableOfflineQueue options is false/);
+          expect(err.message).to.eql(
+            "Cluster isn't ready and enableOfflineQueue options is false"
+          );
           cluster.disconnect();
           done();
         });
