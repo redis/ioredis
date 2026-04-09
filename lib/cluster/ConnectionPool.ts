@@ -65,10 +65,15 @@ export default class ConnectionPool extends EventEmitter {
     const redis = new Redis(
         defaults(
             {
-              // Never try to reconnect when a node is lose,
-              // instead, waiting for a `MOVED` error and
-              // fetch the slots again.
-              retryStrategy: null,
+              // By default, never try to reconnect when a node is lost,
+              // instead, waiting for a `MOVED` error and fetching slots again.
+              // When `clusterNodeRetryStrategy` is set, use it to allow
+              // reconnection (e.g. for replica nodes that restart without
+              // any slot changes).
+              retryStrategy:
+                typeof this.redisOptions.clusterNodeRetryStrategy === "function"
+                  ? this.redisOptions.clusterNodeRetryStrategy
+                  : null,
               // Offline queue should be enabled so that
               // we don't need to wait for the `ready` event
               // before sending commands to the node.
