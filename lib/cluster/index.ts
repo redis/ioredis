@@ -151,7 +151,7 @@ class Cluster extends Commander {
     }
 
     this.connectionPool = new ConnectionPool({
-      ...this.options.redisOptions,
+      ...(this.options.redisOptions ?? {}),
       clusterNodeRetryStrategy: this.options.clusterNodeRetryStrategy,
     });
 
@@ -677,9 +677,7 @@ class Cluster extends Commander {
         // on the node's internal offline queue.
         if (
           !_this.options.enableOfflineQueue &&
-          redis.status !== "ready" &&
-          redis.status !== "connect" &&
-          redis.status !== "wait"
+          redis.status !== "ready"
         ) {
           command.reject(
             new Error(
