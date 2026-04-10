@@ -666,6 +666,15 @@ class Cluster extends Commander {
                 : _this.connectionPool.getSampleInstance(to)) ||
               _this.connectionPool.getSampleInstance("all");
           }
+          if (
+            redis &&
+            !_this.options.enableOfflineQueue &&
+            redis.status !== "ready" &&
+            redis.status !== "wait"
+          ) {
+            command.reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
+            return;
+          }
         }
         if (node && !node.redis) {
           node.redis = redis;
@@ -686,11 +695,6 @@ class Cluster extends Commander {
             "Cluster isn't ready and enableOfflineQueue options is false"
           )
         );
-        return;
-      }
-
-      if (!_this.options.enableOfflineQueue && redis.status !== "ready" && redis.status !== "wait") {
-        command.reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
         return;
       }
 

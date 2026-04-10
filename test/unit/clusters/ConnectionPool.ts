@@ -24,6 +24,21 @@ describe("ConnectionPool", () => {
     });
   });
 
+  describe("nodeError event", () => {
+    it("emits nodeError on the pool when a node emits an error", (done) => {
+      const pool = new ConnectionPool({});
+      const redis = pool.findOrCreate({ host: "127.0.0.1", port: 30001 });
+
+      pool.on("nodeError", (error, key) => {
+        expect(error.message).to.eql("test error");
+        expect(key).to.eql("127.0.0.1:30001");
+        done();
+      });
+
+      redis.emit("error", new Error("test error"));
+    });
+  });
+
   describe("#reset", () => {
     it("prefers to master if there are two same node for a slot", () => {
       const pool = new ConnectionPool({});

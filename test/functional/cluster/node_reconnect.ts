@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import * as calculateSlot from "cluster-key-slot";
+import * as sinon from "sinon";
 import MockServer from "../../helpers/mock_server";
 import { Cluster } from "../../../lib";
 
@@ -130,6 +131,33 @@ describe("cluster:node_reconnect", () => {
         cluster.disconnect();
         done();
       });
+    });
+  });
+
+  it("does not reject subscriber commands when subscriber is not ready and enableOfflineQueue is false", (done: (err?: unknown) => void) => {
+    new MockServer(30001, argvHandler);
+    new MockServer(30002, argvHandler);
+    new MockServer(30003, argvHandler);
+
+    const cluster = new Cluster([{ host: "127.0.0.1", port: 30001 }], {
+      clusterRetryStrategy: null,
+      enableOfflineQueue: false,
+    });
+
+    cluster.once("ready", () => {
+      const sendCommand = sinon.spy((command) => {
+        command.resolve(Buffer.from("OK"));
+      });
+      sinon
+        .stub(cluster["subscriber"], "getInstance")
+        .returns({ status: "connecting", sendCommand } as never);
+
+      cluster.subscribe("channel").then(() => {
+        expect(sendCommand.called).to.be.true;
+        sinon.restore();
+        cluster.disconnect();
+        done();
+      }, done);
     });
   });
 
