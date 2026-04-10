@@ -680,12 +680,17 @@ class Cluster extends Commander {
         return;
       }
 
-      if (!redis || (!_this.options.enableOfflineQueue && redis.status !== "ready" && redis.status !== "wait")) {
+      if (!redis) {
         command.reject(
           new Error(
             "Cluster isn't ready and enableOfflineQueue options is false"
           )
         );
+        return;
+      }
+
+      if (!_this.options.enableOfflineQueue && redis.status !== "ready" && redis.status !== "wait") {
+        command.reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
         return;
       }
 

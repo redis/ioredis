@@ -63,27 +63,36 @@ describe("cluster:node_reconnect", () => {
     });
   });
 
-  it("rejects commands immediately when node is reconnecting and enableOfflineQueue is false", (done) => {
+  it("retries command on another node when target node is reconnecting and enableOfflineQueue is false", (done) => {
     const node1 = new MockServer(30001, argvHandler);
-    new MockServer(30002, argvHandler);
+    new MockServer(30002, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") return slotTable;
+      if (argv[0] === "get" && argv[1] === "foo") return "bar";
+    });
     new MockServer(30003, argvHandler);
 
     const cluster = new Cluster([{ host: "127.0.0.1", port: 30001 }], {
       clusterNodeRetryStrategy: () => 10,
-      clusterRetryStrategy: null,
       enableOfflineQueue: false,
     });
 
-    cluster.get("foo", () => {
-      node1.disconnect(() => {
-        // Node is now reconnecting; next command should be rejected immediately
-        cluster.get("foo", (err) => {
-          expect(err).to.exist;
-          expect(err.message).to.eql(
-            "Cluster isn't ready and enableOfflineQueue options is false"
-          );
-          cluster.disconnect();
-          done();
+    cluster.once("ready", () => {
+      const node1Redis = cluster
+        .nodes("master")
+        .find((n) => n.options.port === 30001);
+
+      cluster.get("foo", () => {
+        node1.disconnect();
+
+        // Wait for the node to enter "reconnecting" state, then verify
+        // the command is retried on another node (not permanently rejected)
+        node1Redis.once("reconnecting", () => {
+          cluster.get("foo", (err, result) => {
+            expect(err).to.be.null;
+            expect(result).to.eql("bar");
+            cluster.disconnect();
+            done();
+          });
         });
       });
     });
