@@ -84,6 +84,7 @@ describe("spub/ssub", function () {
       expect(channel).to.eql("foo");
       expect(message).to.eql("bar");
       if (!--pending) {
+        pub.disconnect();
         redis.disconnect();
         done();
       }
@@ -94,6 +95,7 @@ describe("spub/ssub", function () {
       expect(message).to.be.instanceof(Buffer);
       expect(message.toString()).to.eql("bar");
       if (!--pending) {
+        pub.disconnect();
         redis.disconnect();
         done();
       }
@@ -115,15 +117,10 @@ describe("spub/ssub", function () {
     });
   });
 
-  // TODO ready reconnect in redis stand
   it("should restore subscription after reconnecting(ssubscribe)", (done) => {
-    const redis = new Redis({ port: 6379, host: "127.0.0.1" });
-    const pub = new Redis({ port: 6379, host: "127.0.0.1" });
-    // redis.ping(function (err, result) {
-    //   // redis.on("message", function (channel, message) {
-    //   console.log(`${err}-${result}`);
-    //   // });
-    // });
+    // It defaults to port: 6379, host: 127.0.0.1
+    const redis = new Redis();
+    const pub = new Redis();
     redis.ssubscribe("foo", "bar", function () {
       redis.on("ready", function () {
         // Execute a random command to make sure that `subscribe`
@@ -158,30 +155,28 @@ describe("spub/ssub", function () {
     await subscriber.ssubscribe("shard2");
     await subscriber.ssubscribe("shard3");
 
-    const stub = sinon.stub(Redis.prototype, "ssubscribe");
+    type SsubscribeArgs = (string | Buffer)[];
+    const calls: SsubscribeArgs[] = [];
+    let resolveAllCalls: () => void;
+    const allCalls = new Promise<void>((resolve) => {
+      resolveAllCalls = resolve;
+    });
+
+    const stub = sinon
+      .stub(Redis.prototype, "ssubscribe")
+      .callsFake((...args: SsubscribeArgs) => {
+        calls.push(args);
+        if (calls.length === 3) resolveAllCalls();
+        return Promise.resolve(calls.length);
+      });
 
     subscriber.disconnect(true);
 
-    await new Promise((resolve) => {
-      subscriber.once("ready", resolve);
-    });
+    await allCalls;
 
-    await subscriber.ping();
-
-    // ping() flushes the command queue but auto-resubscription is async and
-    // may not have fired all 3 ssubscribe calls yet. Poll until the stub
-    // records all 3 calls; Mocha's test timeout handles the failure case.
-    await new Promise<void>((resolve) => {
-      const check = () => {
-        if (stub.callCount >= 3) return resolve();
-        setTimeout(check, 50);
-      };
-      check();
-    });
-
-    expect(stub.getCall(0).args).to.deep.equal(["shard1"]);
-    expect(stub.getCall(1).args).to.deep.equal(["shard2"]);
-    expect(stub.getCall(2).args).to.deep.equal(["shard3"]);
+    expect(calls[0]).to.deep.equal(["shard1"]);
+    expect(calls[1]).to.deep.equal(["shard2"]);
+    expect(calls[2]).to.deep.equal(["shard3"]);
 
     stub.restore();
     subscriber.disconnect();
