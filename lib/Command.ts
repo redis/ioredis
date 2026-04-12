@@ -205,6 +205,7 @@ export default class Command implements Respondable {
   args: CommandParameter[];
   inTransaction = false;
   pipelineIndex?: number;
+  isTraced = false;
 
   isResolved = false;
   reject: (err: Error) => void;
