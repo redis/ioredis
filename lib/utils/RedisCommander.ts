@@ -3282,7 +3282,7 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   gcra(
     key: RedisKey,
     maxBurst: number | string,
-    requestsPerPeriod: number | string,
+    tokensPerPeriod: number | string,
     period: number | string,
     callback?: Callback<
       [
@@ -3306,9 +3306,9 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   gcra(
     key: RedisKey,
     maxBurst: number | string,
-    requestsPerPeriod: number | string,
+    tokensPerPeriod: number | string,
     period: number | string,
-    countToken: "NUM_REQUESTS",
+    countToken: "TOKENS",
     count: number | string,
     callback?: Callback<
       [

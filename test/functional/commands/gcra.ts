@@ -40,13 +40,13 @@ describe("gcra", function () {
     expect(first.retryAfter >= 0 || second.retryAfter >= 0).to.equal(true);
   });
 
-  it("should support weighted requests using NUM_REQUESTS", async () => {
+  it("should support weighted requests using TOKENS", async () => {
     const key = `test_gcra_weighted_${Date.now()}`;
     const first = normalizeGcraReply(
-      await redis.gcra(key, 10, 10, 1, "NUM_REQUESTS", 10),
+      await redis.gcra(key, 10, 10, 1, "TOKENS", 10),
     );
     const second = normalizeGcraReply(
-      await redis.gcra(key, 10, 10, 1, "NUM_REQUESTS", 10),
+      await redis.gcra(key, 10, 10, 1, "TOKENS", 10),
     );
 
     expect(first.limited).to.not.equal(second.limited);
