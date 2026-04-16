@@ -1,9 +1,14 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
+import { isRedisVersionLowerThan } from "../../helpers/util";
 
-// TODO unskip once we have a mechanism to run only on specific versions
-// TODO as these tests can only work against 8.0 or higher
-describe.skip("hgetex", () => {
+describe("hgetex", function () {
+  before(async function () {
+    if (await isRedisVersionLowerThan("8.0")) {
+      this.skip();
+    }
+  });
+
   it("should return values and null for missing field", async () => {
     const redis = new Redis();
     const key = `test_hgetex_${Date.now()}`;
