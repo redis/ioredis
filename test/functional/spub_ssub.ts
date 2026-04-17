@@ -155,28 +155,21 @@ describe("spub/ssub", function () {
     await subscriber.ssubscribe("shard2");
     await subscriber.ssubscribe("shard3");
 
-    type SsubscribeArgs = (string | Buffer)[];
-    const calls: SsubscribeArgs[] = [];
-    let resolveAllCalls: () => void;
-    const allCalls = new Promise<void>((resolve) => {
-      resolveAllCalls = resolve;
-    });
-
-    const stub = sinon
-      .stub(Redis.prototype, "ssubscribe")
-      .callsFake((...args: SsubscribeArgs) => {
-        calls.push(args);
-        if (calls.length === 3) resolveAllCalls();
-        return Promise.resolve(calls.length);
-      });
+    const stub = sinon.stub(Redis.prototype, "ssubscribe");
 
     subscriber.disconnect(true);
 
-    await allCalls;
+    // Auto-resubscribe iterates channels synchronously before "ready" emits
+    // (see lib/redis/event_handler.ts), so by the time we observe "ready",
+    // all ssubscribe calls are already recorded on the stub. No wait needed.
+    await new Promise<void>((resolve) => {
+      subscriber.once("ready", resolve);
+    });
 
-    expect(calls[0]).to.deep.equal(["shard1"]);
-    expect(calls[1]).to.deep.equal(["shard2"]);
-    expect(calls[2]).to.deep.equal(["shard3"]);
+    expect(stub.callCount).to.equal(3);
+    expect(stub.getCall(0).args).to.deep.equal(["shard1"]);
+    expect(stub.getCall(1).args).to.deep.equal(["shard2"]);
+    expect(stub.getCall(2).args).to.deep.equal(["shard3"]);
 
     stub.restore();
     subscriber.disconnect();
