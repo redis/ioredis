@@ -1,5 +1,6 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
+import { isRedisVersionLowerThan } from "../../helpers/util";
 
 const STREAM_DELETION_REPLY_CODES = {
   NOT_FOUND: -1,
@@ -7,9 +8,13 @@ const STREAM_DELETION_REPLY_CODES = {
   DANGLING_REFS: 2,
 } as const;
 
-// TODO unskip once we have a mechanism to run only on specific versions
-// TODO as these tests can only work against 8.2 or higher
-describe.skip("xdelex", () => {
+describe("xdelex", function () {
+  before(async function () {
+    if (await isRedisVersionLowerThan("8.2")) {
+      this.skip();
+    }
+  });
+
   let redis: Redis;
 
   beforeEach(() => {
