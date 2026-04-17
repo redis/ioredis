@@ -1,9 +1,14 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
+import { isRedisVersionLowerThan } from "../../helpers/util";
 
-// TODO unskip once we have a mechanism to run only on specific versions
-// TODO as these tests can only work against 8.0 or higher
-describe.skip("hsetex", () => {
+describe("hsetex", function () {
+  before(async function () {
+    if (await isRedisVersionLowerThan("8.0")) {
+      this.skip();
+    }
+  });
+
   const hashKey = "test_hsetex_key";
 
   it("should return 1 when fields are set", async () => {

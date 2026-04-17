@@ -6,6 +6,7 @@ import Redis from "./Redis";
 import Cluster from "./cluster";
 import Command from "./Command";
 import { Callback, PipelineWriteableStream } from "./types";
+import { constants } from "buffer";
 import { noop } from "./utils";
 import Commander from "./utils/Commander";
 
@@ -372,6 +373,15 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
 
           buffers.push(writable);
         } else {
+          if (data.length + writable.length >= constants.MAX_STRING_LENGTH) {
+            if (!buffers) {
+              buffers = [];
+            }
+            if (data) {
+              buffers.push(Buffer.from(data, "utf8"));
+              data = "";
+            }
+          }
           data += writable;
         }
 
