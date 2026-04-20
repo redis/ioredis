@@ -10,6 +10,7 @@ import {
   noop,
   CONNECTION_CLOSED_ERROR_MSG,
   getPackageMeta,
+  getSafeCommandForError,
 } from "../utils";
 import DataHandler from "../DataHandler";
 
@@ -143,10 +144,7 @@ export function connectHandler(self) {
 
 function abortError(command: Respondable) {
   const err = new AbortError("Command aborted due to connection close");
-  (err as any).command = {
-    name: command.name,
-    args: command.args,
-  };
+  (err as any).command = getSafeCommandForError(command.name, command.args);
   return err;
 }
 
