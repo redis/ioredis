@@ -1,4 +1,4 @@
-import { createConnection, IpcNetConnectOpts, TcpNetConnectOpts } from "net";
+import { createConnection, IpcNetConnectOpts, TcpNetConnectOpts, isIP } from "net";
 import { connect as createTLSConnection, ConnectionOptions } from "tls";
 import { NetStream } from "../types";
 import { CONNECTION_CLOSED_ERROR_MSG } from "../utils";
@@ -42,7 +42,10 @@ export default class StandaloneConnector extends AbstractConnector {
     if (options.tls) {
       Object.assign(connectionOptions, options.tls);
       if ("host" in connectionOptions && !("servername" in connectionOptions)) {
-        (connectionOptions as any).servername = (connectionOptions as TcpOptions).host;
+        const host = (connectionOptions as TcpOptions).host;
+        if (host && !isIP(host)) {
+          (connectionOptions as any).servername = host;
+        }
       }
     }
 
