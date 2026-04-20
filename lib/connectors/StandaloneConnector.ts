@@ -41,6 +41,9 @@ export default class StandaloneConnector extends AbstractConnector {
 
     if (options.tls) {
       Object.assign(connectionOptions, options.tls);
+      if ("host" in connectionOptions && !("servername" in connectionOptions)) {
+        (connectionOptions as any).servername = (connectionOptions as TcpOptions).host;
+      }
     }
 
     // TODO:
