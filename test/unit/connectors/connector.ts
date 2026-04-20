@@ -44,5 +44,40 @@ describe("StandaloneConnector", () => {
       });
       connector.disconnect();
     });
+
+    it("uses host as tls servername when not explicitly provided", async () => {
+      const spy = sinon.spy(tls, "connect");
+      const connector = new StandaloneConnector({
+        host: "cache.internal",
+        port: 6379,
+        tls: { rejectUnauthorized: false },
+      });
+      await connector.connect(() => {});
+      expect(spy.calledOnce).to.eql(true);
+      expect(spy.firstCall.args[0]).to.eql({
+        host: "cache.internal",
+        port: 6379,
+        rejectUnauthorized: false,
+        servername: "cache.internal",
+      });
+      connector.disconnect();
+    });
+
+    it("does not set tls servername from host when host is an IP", async () => {
+      const spy = sinon.spy(tls, "connect");
+      const connector = new StandaloneConnector({
+        host: "127.0.0.1",
+        port: 6379,
+        tls: { rejectUnauthorized: false },
+      });
+      await connector.connect(() => {});
+      expect(spy.calledOnce).to.eql(true);
+      expect(spy.firstCall.args[0]).to.eql({
+        host: "127.0.0.1",
+        port: 6379,
+        rejectUnauthorized: false,
+      });
+      connector.disconnect();
+    });
   });
 });
