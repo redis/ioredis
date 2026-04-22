@@ -16,7 +16,7 @@
     "test:cluster": "TS_NODE_TRANSPILE_ONLY=true NODE_ENV=test mocha --no-experimental-strip-types \"test/cluster/**/*.ts\"",
     "test": "npm run test:js && npm run test:tsd",
     "lint": "eslint --ext .js,.ts ./lib",
-    "docs": "npx typedoc --logLevel Error --excludeExternals --excludeProtected --excludePrivate --readme none lib/index.ts",
+    "docs": "npx typedoc --tsconfig ./tsconfig.docs.json --skipErrorChecking --logLevel Error --excludeExternals --excludeProtected --excludePrivate --readme none lib/index.ts",
     "format": "prettier --write \"{,!(node_modules)/**/}*.{js,ts}\"",
     "format-check": "prettier --check \"{,!(node_modules)/**/}*.{js,ts}\"",
     "build": "rm -rf built && tsc",
@@ -81,7 +81,7 @@
     "sinon": "^13.0.1",
     "ts-node": "^10.4.0",
     "tsd": "^0.19.1",
-    "typedoc": "^0.22.18",
+    "typedoc": "^0.25.13",
     "typescript": "^4.6.3",
     "uuid": "^9.0.0"
   },
