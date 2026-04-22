@@ -1,7 +1,7 @@
 import { promises as fsPromises } from "fs";
 import { resolve } from "path";
 import { parse as urllibParse } from "url";
-import { defaults, noop } from "./lodash";
+import { defaults, isArguments, noop } from "./lodash";
 import { Callback } from "../types";
 import Debug from "./debug";
 
@@ -358,4 +358,4 @@ export async function getPackageMeta() {
   }
 }
 
-export { Debug, defaults, noop };
+export { Debug, defaults, isArguments, noop };

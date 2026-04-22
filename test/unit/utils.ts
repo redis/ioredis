@@ -118,6 +118,133 @@ describe("utils", () => {
     });
   });
 
+  describe(".defaults", () => {
+    it("should assign source properties if missing on `object`", () => {
+      const actual = utils.defaults({ a: 1 }, { a: 2, b: 2 });
+
+      expect(actual).to.eql({ a: 1, b: 2 });
+    });
+
+    it("should accept multiple sources", () => {
+      const expected = { a: 1, b: 2, c: 3 };
+      let actual = utils.defaults({ a: 1, b: 2 }, { b: 3 }, { c: 3 });
+
+      expect(actual).to.eql(expected);
+
+      actual = utils.defaults({ a: 1, b: 2 }, { b: 3, c: 3 }, { c: 2 });
+      expect(actual).to.eql(expected);
+    });
+
+    it("should not overwrite `null` values", () => {
+      const actual = utils.defaults({ a: null }, { a: 1 });
+
+      expect((actual as any).a).to.eql(null);
+    });
+
+    it("should overwrite `undefined` values", () => {
+      const actual = utils.defaults({ a: undefined }, { a: 1 });
+
+      expect((actual as any).a).to.eql(1);
+    });
+
+    it("should assign `undefined` values", () => {
+      const source = { a: undefined, b: 1 };
+      const actual = utils.defaults({}, source);
+
+      expect(actual).to.eql({ a: undefined, b: 1 });
+    });
+
+    it("should assign properties that shadow those on `Object.prototype`", () => {
+      const objectProto = Object.prototype;
+      const object = {
+        constructor: objectProto.constructor,
+        hasOwnProperty: objectProto.hasOwnProperty,
+        isPrototypeOf: objectProto.isPrototypeOf,
+        propertyIsEnumerable: objectProto.propertyIsEnumerable,
+        toLocaleString: objectProto.toLocaleString,
+        toString: objectProto.toString,
+        valueOf: objectProto.valueOf,
+      };
+
+      const source = {
+        constructor: 1,
+        hasOwnProperty: 2,
+        isPrototypeOf: 3,
+        propertyIsEnumerable: 4,
+        toLocaleString: 5,
+        toString: 6,
+        valueOf: 7,
+      };
+
+      expect(utils.defaults({}, source)).to.eql({ ...source });
+      expect(utils.defaults({}, object, source)).to.eql({ ...object });
+    });
+
+    it("should be used as a iteratee", () => {
+      const array = [{ b: 1 }, { c: 2 }, { d: 3 }];
+      const source = { a: 4 };
+
+      array.forEach((...args: any[]) => utils.defaults(source, ...args));
+
+      expect(source).to.eql({ a: 4, b: 1, c: 2, d: 3 });
+    });
+
+    it("should not throw an error when a source is `undefined`", () => {
+      const source = undefined;
+      const actual = utils.defaults({ a: 1 }, source);
+
+      expect(actual).to.eql({ a: 1 });
+    });
+
+    it("should not throw an error when a source is `null`", () => {
+      const source = null;
+      const actual = utils.defaults({ a: 1 }, source);
+
+      expect(actual).to.eql({ a: 1 });
+    });
+  });
+
+  describe(".isArguments", () => {
+    it("should return `true` for `arguments` objects", () => {
+      const args = (function () {
+        return arguments;
+      })();
+
+      const strictArgs = (function () {
+        "use strict";
+        return arguments;
+      })();
+
+      expect(utils.isArguments(args)).to.eql(true);
+      expect(utils.isArguments(strictArgs)).to.eql(true);
+    });
+
+    it("should return `false` for non `arguments` objects", () => {
+      const symbol = Symbol("test-symbol");
+      const slice = Array.prototype.slice;
+      const falsey = [undefined, null, false, 0, NaN, ""];
+      const stubFalse = () => false;
+      const expected = falsey.map(stubFalse);
+      const actual = falsey.map((value, index) =>
+        index ? utils.isArguments(value) : utils.isArguments()
+      );
+
+      expect(actual).to.eql(expected);
+
+      expect(utils.isArguments([1, 2, 3])).to.eql(false);
+      expect(utils.isArguments(true)).to.eql(false);
+      expect(utils.isArguments(new Date())).to.eql(false);
+      expect(utils.isArguments(new Error())).to.eql(false);
+      expect(utils.isArguments(slice)).to.eql(false);
+      expect(utils.isArguments({ 0: 1, callee: utils.noop, length: 1 })).to.eql(false);
+      expect(utils.isArguments(1)).to.eql(false);
+      expect(utils.isArguments(/x/)).to.eql(false);
+      expect(utils.isArguments("a")).to.eql(false);
+      expect(utils.isArguments(symbol)).to.eql(false);
+    });
+
+  });
+
   describe(".toArg", () => {
     it("should return correctly", () => {
       expect(utils.toArg(null)).to.eql("");
