@@ -214,8 +214,7 @@ export function parseURL(url: string): Record<string, unknown> {
   const rawUrl: string = url;
 
   // Determine if the URL has a known protocol (redis:// or rediss://)
-  const hasProtocol =
-    rawUrl.startsWith("redis://") || rawUrl.startsWith("rediss://");
+  const hasProtocol = /^rediss?:\/\//i.test(rawUrl);
 
   // Unix socket paths (starting with "/") are not valid URLs — handle separately.
   // Preserve query params (e.g., /tmp/redis.sock?db=2)
@@ -225,10 +224,12 @@ export function parseURL(url: string): Record<string, unknown> {
       path: qIdx === -1 ? rawUrl : rawUrl.slice(0, qIdx),
     };
     if (qIdx !== -1) {
+      const options: Record<string, string | number> = {};
       const params = new URLSearchParams(rawUrl.slice(qIdx + 1));
       params.forEach((value, key) => {
-        result[key] = value;
+        options[key] = parseURLQueryItem(key, value);
       });
+      defaults(result, options);
     }
     return result;
   }
@@ -242,9 +243,9 @@ export function parseURL(url: string): Record<string, unknown> {
   }
 
   // Convert searchParams to a plain object (equivalent to url.parse(url, true).query)
-  const options: Record<string, string> = {};
+  const options: Record<string, string | number> = {};
   parsed.searchParams.forEach((value, key) => {
-    options[key] = value;
+    options[key] = parseURLQueryItem(key, value);
   });
 
   const result: any = {};
@@ -276,15 +277,19 @@ export function parseURL(url: string): Record<string, unknown> {
     result.port = parsed.port;
   }
 
-  if (typeof options.family === "string") {
-    const intFamily = Number.parseInt(options.family, 10);
-    if (!Number.isNaN(intFamily)) {
-      result.family = intFamily;
-    }
-  }
   defaults(result, options);
 
   return result;
+}
+
+function parseURLQueryItem(key: string, value: string): string | number {
+  if (key === "family") {
+    const intFamily = Number.parseInt(value, 10);
+    if (!Number.isNaN(intFamily)) {
+      return intFamily;
+    }
+  }
+  return value;
 }
 
 interface TLSOptions {
