@@ -1,5 +1,5 @@
 import { SrvRecord, resolveSrv, lookup } from "dns";
-import { RedisOptions } from "../redis/RedisOptions";
+import { RedisOptions, RetryStrategy } from "../redis/RedisOptions";
 import { CommanderOptions } from "../utils/Commander";
 import { NodeRole } from "./util";
 
@@ -29,6 +29,8 @@ export type NatMap =
     }
   | NatMapFunction;
 
+export type ClusterNodeRetryStrategy = RetryStrategy;
+
 /**
  * Options for Cluster constructor
  */
@@ -40,6 +42,7 @@ export interface ClusterOptions extends CommanderOptions {
    */
   clusterRetryStrategy?:
     | ((times: number, reason?: Error) => number | void | null)
+    | null
     | undefined;
 
   /**
@@ -135,6 +138,23 @@ export interface ClusterOptions extends CommanderOptions {
   shardedSubscribers?: boolean | undefined;
 
   /**
+   * When a cluster node connection is closed, this function will be called
+   * to determine the retry delay (in ms). Returning `null` or a non-number
+   * disables reconnection for that node.
+   *
+   * By default this is `null`, meaning cluster nodes will NOT automatically
+   * reconnect — the cluster relies on `MOVED` errors to refresh topology.
+   * Set this to enable reconnection, e.g. for replica nodes that restart
+   * without any slot changes.
+   *
+   * @example
+   * clusterNodeRetryStrategy: (times) => Math.min(times * 100, 3000)
+   *
+   * @default null
+   */
+  clusterNodeRetryStrategy?: ClusterNodeRetryStrategy;
+
+  /**
    * Passed to the constructor of `Redis`
    *
    * @default null
@@ -216,6 +236,7 @@ export interface ClusterOptions extends CommanderOptions {
 
 export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = {
   clusterRetryStrategy: (times) => Math.min(100 + times * 2, 2000),
+  clusterNodeRetryStrategy: null,
   enableOfflineQueue: true,
   enableReadyCheck: true,
   scaleReads: "master",

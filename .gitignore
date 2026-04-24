@@ -11,3 +11,4 @@ coverage
 benchmarks/fixtures/*.txt
 
 *.rdb
+.history

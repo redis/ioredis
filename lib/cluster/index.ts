@@ -150,7 +150,10 @@ class Cluster extends Commander {
       );
     }
 
-    this.connectionPool = new ConnectionPool(this.options.redisOptions);
+    this.connectionPool = new ConnectionPool(
+      this.options.redisOptions ?? {},
+      this.options.clusterNodeRetryStrategy
+    );
 
     this.connectionPool.on("-node", (redis, key) => {
       this.emit("-node", redis);
@@ -668,21 +671,30 @@ class Cluster extends Commander {
           node.redis = redis;
         }
       }
-      if (redis) {
-        redis.sendCommand(command, stream);
-      } else if (_this.options.enableOfflineQueue) {
+      if (!redis && _this.options.enableOfflineQueue) {
         _this.offlineQueue.push({
           command: command,
           stream: stream,
           node: node,
         });
-      } else {
+        return;
+      }
+
+      if (!redis) {
         command.reject(
           new Error(
             "Cluster isn't ready and enableOfflineQueue options is false"
           )
         );
+        return;
       }
+
+      if (!_this.options.enableOfflineQueue && redis.status !== "ready" && redis.status !== "wait") {
+        command.reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
+        return;
+      }
+
+      redis.sendCommand(command, stream);
     }
     return command.promise;
   }

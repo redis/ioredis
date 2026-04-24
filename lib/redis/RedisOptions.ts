@@ -4,10 +4,14 @@ import { SentinelConnectionOptions } from "../connectors/SentinelConnector";
 import { StandaloneConnectionOptions } from "../connectors/StandaloneConnector";
 
 export type ReconnectOnError = (err: Error) => boolean | 1 | 2;
+export type RetryStrategy =
+  | ((times: number) => number | void | null)
+  | null
+  | undefined;
 
 export interface CommonRedisOptions extends CommanderOptions {
   Connector?: ConnectorConstructor | undefined;
-  retryStrategy?: ((times: number) => number | void | null) | undefined;
+  retryStrategy?: RetryStrategy;
 
   /**
    * If a command does not return a reply within a set number of milliseconds,
