@@ -389,19 +389,26 @@ class Cluster extends Commander {
   /**
    * Create a new instance with the same startup nodes and options as the current one.
    *
+   * When called on a subclass, this returns an instance of the subclass —
+   * making `duplicate()` safe to use with custom Cluster classes (#2053).
+   *
    * @example
    * ```js
    * var cluster = new Redis.Cluster([{ host: "127.0.0.1", port: "30001" }]);
    * var anotherCluster = cluster.duplicate();
    * ```
    */
-  duplicate(overrideStartupNodes = [], overrideOptions = {}) {
+  duplicate(overrideStartupNodes: ClusterNode[] = [], overrideOptions: ClusterOptions = {}): this {
     const startupNodes =
       overrideStartupNodes.length > 0
         ? overrideStartupNodes
-        : this.startupNodes.slice(0);
+        : (this.startupNodes.slice(0) as ClusterNode[]);
     const options = Object.assign({}, this.options, overrideOptions);
-    return new Cluster(startupNodes, options);
+    const Ctor = this.constructor as new (
+      nodes: ClusterNode[],
+      options: ClusterOptions
+    ) => this;
+    return new Ctor(startupNodes, options);
   }
 
   /**
