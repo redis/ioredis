@@ -3274,6 +3274,16 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   ): Result<unknown, Context>;
 
   /**
+   * Rate limit via GCRA (Generic Cell Rate Algorithm).
+   * - _group_: rate_limit
+   * - _complexity_: O(1)
+   * - _since_: 8.8.0
+   */
+  gcra(key: RedisKey, maxBurst: number | string, tokensPerPeriod: number | string, period: number | string, callback?: Callback<[limited: 0 | 1, totalLimit: number, remaining: number, retryAfter: number, resetAfter: number]>): Result<[limited: 0 | 1, totalLimit: number, remaining: number, retryAfter: number, resetAfter: number], Context>;
+  gcra(key: RedisKey, maxBurst: number | string, tokensPerPeriod: number | string, period: number | string, countToken: 'TOKENS', count: number | string, callback?: Callback<[limited: 0 | 1, totalLimit: number, remaining: number, retryAfter: number, resetAfter: number]>): Result<[limited: 0 | 1, totalLimit: number, remaining: number, retryAfter: number, resetAfter: number], Context>;
+
+
+  /**
    * Add one or more geospatial items in the geospatial index represented using a sorted set
    * - _group_: geo
    * - _complexity_: O(log(N)) for each item added, where N is the number of elements in the sorted set.

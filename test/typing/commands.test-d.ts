@@ -95,6 +95,17 @@ expectType<Promise<Buffer | null>>(redis.zscoreBuffer("key", "member"));
 // GETRANGE
 expectType<Promise<Buffer>>(redis.getrangeBuffer("foo", 0, 1));
 
+// GCRA
+type GcraReply = [
+  limited: 0 | 1,
+  totalLimit: number,
+  remaining: number,
+  retryAfter: number,
+  resetAfter: number
+];
+expectType<Promise<GcraReply>>(redis.gcra("key", 0, 1, 1));
+expectType<Promise<GcraReply>>(redis.gcra("key", 10, 10, 1, "TOKENS", 10));
+
 // Callbacks
 redis.getBuffer("foo", (err, res) => {
   expectType<Error | null | undefined>(err);
