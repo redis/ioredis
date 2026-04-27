@@ -131,3 +131,25 @@ redis.del(["key1", "key2"], (err, res) => {
   expectType<Error | null | undefined>(err);
   expectType<number | undefined>(res);
 });
+
+// XNACK
+expectType<Promise<number>>(
+  redis.xnack("stream", "group", "FAIL", "IDS", 1, "0-0")
+);
+expectType<Promise<number>>(
+  redis.xnack("stream", "group", "SILENT", "IDS", 1, "0-0")
+);
+expectType<Promise<number>>(
+  redis.xnack("stream", "group", "FATAL", "IDS", 1, "0-0")
+);
+expectType<Promise<number>>(
+  redis.xnack("stream", "group", "FAIL", "IDS", 1, "0-0", "RETRYCOUNT", 7)
+);
+expectType<Promise<number>>(
+  redis.xnack("stream", "group", "FAIL", "IDS", 1, "0-0", "FORCE")
+);
+
+redis.xnack("stream", "group", "FAIL", "IDS", 1, "0-0", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<number | undefined>(res);
+});

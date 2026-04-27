@@ -337,6 +337,7 @@ module.exports = {
   xread: "[key: string, items: [id: string, fields: string[]][]][] | null",
   xreadgroup: "unknown[]",
   xack: "number",
+  xnack: "number",
   xclaim: "unknown[]",
   xautoclaim: "unknown[]",
   xpending: "unknown[]",
