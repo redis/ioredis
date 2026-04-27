@@ -277,7 +277,9 @@ class Cluster extends Commander {
           this.once("refresh", refreshListener);
           this.once("close", closeListener);
           this.once("close", this.handleCloseEvent.bind(this));
-
+ 
+          this.on("forceRefresh", this.refreshSlotsCache.bind(this));
+          
           this.refreshSlotsCache((err) => {
             if (err && err.message === ClusterAllFailedError.defaultMessage) {
               Redis.prototype.silentEmit.call(this, "error", err);
