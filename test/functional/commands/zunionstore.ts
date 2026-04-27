@@ -4,7 +4,7 @@ import { isRedisVersionLowerThan } from "../../helpers/util";
 
 describe("zunionstore", function () {
   before(async function () {
-    if (await isRedisVersionLowerThan("8.8")) {
+    if (await isRedisVersionLowerThan("8.7")) {
       this.skip();
     }
   });
