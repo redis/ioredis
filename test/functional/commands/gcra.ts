@@ -15,7 +15,7 @@ function normalizeGcraReply(reply: Awaited<ReturnType<Redis["gcra"]>>) {
 
 describe("gcra", function () {
   before(async function () {
-    if (await isRedisVersionLowerThan("8.8")) {
+    if (await isRedisVersionLowerThan("8.7")) {
       this.skip();
     }
   });
