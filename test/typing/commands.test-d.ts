@@ -84,6 +84,26 @@ expectType<Promise<number[]>>(redis.smismember("key", "e1", "e2"));
 expectType<Promise<number>>(redis.zadd("key", 1, "member"));
 expectType<Promise<number>>(redis.zadd("key", "CH", 1, "member"));
 
+// ZINTER / ZUNION COUNT
+expectType<Promise<string[]>>(
+  redis.zinter(3, "s1", "s2", "s3", "AGGREGATE", "COUNT")
+);
+expectType<Promise<string[]>>(
+  redis.zinter(3, "s1", "s2", "s3", "AGGREGATE", "COUNT", "WITHSCORES")
+);
+expectType<Promise<number>>(
+  redis.zinterstore("out", 3, "s1", "s2", "s3", "AGGREGATE", "COUNT")
+);
+expectType<Promise<string[]>>(
+  redis.zunion(3, "s1", "s2", "s3", "AGGREGATE", "COUNT")
+);
+expectType<Promise<string[]>>(
+  redis.zunion(3, "s1", "s2", "s3", "AGGREGATE", "COUNT", "WITHSCORES")
+);
+expectType<Promise<number>>(
+  redis.zunionstore("out", 3, "s1", "s2", "s3", "AGGREGATE", "COUNT")
+);
+
 // ZRANDMEMBER
 expectType<Promise<string | null>>(redis.zrandmember("key"));
 expectType<Promise<string[]>>(redis.zrandmember("key", 20));
@@ -153,3 +173,22 @@ redis.xnack("stream", "group", "FAIL", "IDS", 1, "0-0", (err, res) => {
   expectType<Error | null | undefined>(err);
   expectType<number | undefined>(res);
 });
+
+redis.zunion(3, "s1", "s2", "s3", "AGGREGATE", "COUNT", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<string[] | undefined>(res);
+});
+
+redis.zunionstore(
+  "out",
+  3,
+  "s1",
+  "s2",
+  "s3",
+  "AGGREGATE",
+  "COUNT",
+  (err, res) => {
+    expectType<Error | null | undefined>(err);
+    expectType<number | undefined>(res);
+  }
+);
