@@ -9994,6 +9994,37 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   xlen(key: RedisKey, callback?: Callback<number>): Result<number, Context>;
 
   /**
+   * Releases claimed messages back to the group's PEL without acknowledging them, making them available for re-delivery.
+   * - _group_: stream
+   * - _complexity_: O(1) for each message ID processed.
+   * - _since_: 8.8.0
+   */
+  xnack(...args: [key: RedisKey, group: string | Buffer, silent: 'SILENT', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, silent: 'SILENT', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[]]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, silent: 'SILENT', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], force: 'FORCE', callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, silent: 'SILENT', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], force: 'FORCE']): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, silent: 'SILENT', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, silent: 'SILENT', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, silent: 'SILENT', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, force: 'FORCE', callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, silent: 'SILENT', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, force: 'FORCE']): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fail: 'FAIL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fail: 'FAIL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[]]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fail: 'FAIL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], force: 'FORCE', callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fail: 'FAIL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], force: 'FORCE']): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fail: 'FAIL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fail: 'FAIL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fail: 'FAIL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, force: 'FORCE', callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fail: 'FAIL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, force: 'FORCE']): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fatal: 'FATAL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fatal: 'FATAL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[]]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fatal: 'FATAL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], force: 'FORCE', callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fatal: 'FATAL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], force: 'FORCE']): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fatal: 'FATAL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fatal: 'FATAL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fatal: 'FATAL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, force: 'FORCE', callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fatal: 'FATAL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, force: 'FORCE']): Result<number, Context>;
+
+  /**
    * Return information and entries from a stream consumer group pending entries list, that are messages fetched but never acknowledged.
    * - _group_: stream
    * - _complexity_: O(N) with N being the number of elements returned, so asking for a small fixed number of entries per call is O(1). O(M), where M is the total number of entries scanned when used with the IDLE filter. When the command returns just the summary and the list of consumers is small, it runs in O(1) time; otherwise, an additional O(N) time for iterating every consumer.
