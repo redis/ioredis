@@ -1,6 +1,5 @@
 import { promises as fsPromises } from "fs";
 import { resolve } from "path";
-import { parse as urllibParse } from "url";
 import { defaults, noop } from "./lodash";
 import { Callback } from "../types";
 import Debug from "./debug";
@@ -210,23 +209,57 @@ export function parseURL(url: string): Record<string, unknown> {
   if (isInt(url)) {
     return { port: url };
   }
-  let parsed = urllibParse(url, true, true);
+  // Re-assert string type: isInt's type guard (value is string) incorrectly
+  // narrows url to 'never' in the false branch since url is already string.
+  const rawUrl: string = url;
 
-  if (!parsed.slashes && url[0] !== "/") {
-    url = "//" + url;
-    parsed = urllibParse(url, true, true);
+  // Determine if the URL has a known protocol (redis:// or rediss://)
+  const hasProtocol = /^rediss?:\/\//i.test(rawUrl);
+
+  // Unix socket paths (starting with "/") are not valid URLs — handle separately.
+  // Preserve query params (e.g., /tmp/redis.sock?db=2)
+  if (rawUrl[0] === "/") {
+    const qIdx = rawUrl.indexOf("?");
+    const result: Record<string, unknown> = {
+      path: qIdx === -1 ? rawUrl : rawUrl.slice(0, qIdx),
+    };
+    if (qIdx !== -1) {
+      const options: Record<string, string | number> = {};
+      const params = new URLSearchParams(rawUrl.slice(qIdx + 1));
+      params.forEach((value, key) => {
+        options[key] = parseURLQueryItem(key, value);
+      });
+      defaults(result, options);
+    }
+    return result;
   }
 
-  const options = parsed.query || {};
+  let parsed: URL;
+  if (hasProtocol) {
+    parsed = new URL(rawUrl);
+  } else {
+    // Prepend a dummy protocol so new URL() can parse "host:port?query" correctly
+    parsed = new URL("redis://" + rawUrl);
+  }
+
+  // Convert searchParams to a plain object (equivalent to url.parse(url, true).query)
+  const options: Record<string, string | number> = {};
+  parsed.searchParams.forEach((value, key) => {
+    options[key] = parseURLQueryItem(key, value);
+  });
 
   const result: any = {};
-  if (parsed.auth) {
-    const index = parsed.auth.indexOf(":");
-    result.username = index === -1 ? parsed.auth : parsed.auth.slice(0, index);
-    result.password = index === -1 ? "" : parsed.auth.slice(index + 1);
+
+  // Extract auth — WHATWG URL percent-encodes special chars, so decode them.
+  // Check both username AND password: redis://:password@host has empty username but valid password.
+  if (parsed.username || parsed.password) {
+    result.username = decodeURIComponent(parsed.username);
+    result.password = decodeURIComponent(parsed.password);
   }
-  if (parsed.pathname) {
-    if (parsed.protocol === "redis:" || parsed.protocol === "rediss:") {
+
+  if (parsed.pathname && parsed.pathname !== "/") {
+    if (hasProtocol) {
+      // For redis:// and rediss://, the path after / is the db number
       if (parsed.pathname.length > 1) {
         result.db = parsed.pathname.slice(1);
       }
@@ -234,21 +267,29 @@ export function parseURL(url: string): Record<string, unknown> {
       result.path = parsed.pathname;
     }
   }
-  if (parsed.host) {
-    result.host = parsed.hostname;
+
+  if (parsed.hostname) {
+    // WHATWG URL keeps brackets around IPv6 addresses (e.g., "[::1]").
+    // Strip them to match the old url.parse() behavior.
+    result.host = parsed.hostname.replace(/^\[|\]$/g, "");
   }
   if (parsed.port) {
     result.port = parsed.port;
   }
-  if (typeof options.family === "string") {
-    const intFamily = Number.parseInt(options.family, 10);
-    if (!Number.isNaN(intFamily)) {
-      result.family = intFamily;
-    }
-  }
+
   defaults(result, options);
 
   return result;
+}
+
+function parseURLQueryItem(key: string, value: string): string | number {
+  if (key === "family") {
+    const intFamily = Number.parseInt(value, 10);
+    if (!Number.isNaN(intFamily)) {
+      return intFamily;
+    }
+  }
+  return value;
 }
 
 interface TLSOptions {

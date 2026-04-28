@@ -84,6 +84,26 @@ expectType<Promise<number[]>>(redis.smismember("key", "e1", "e2"));
 expectType<Promise<number>>(redis.zadd("key", 1, "member"));
 expectType<Promise<number>>(redis.zadd("key", "CH", 1, "member"));
 
+// ZINTER / ZUNION COUNT
+expectType<Promise<string[]>>(
+  redis.zinter(3, "s1", "s2", "s3", "AGGREGATE", "COUNT")
+);
+expectType<Promise<string[]>>(
+  redis.zinter(3, "s1", "s2", "s3", "AGGREGATE", "COUNT", "WITHSCORES")
+);
+expectType<Promise<number>>(
+  redis.zinterstore("out", 3, "s1", "s2", "s3", "AGGREGATE", "COUNT")
+);
+expectType<Promise<string[]>>(
+  redis.zunion(3, "s1", "s2", "s3", "AGGREGATE", "COUNT")
+);
+expectType<Promise<string[]>>(
+  redis.zunion(3, "s1", "s2", "s3", "AGGREGATE", "COUNT", "WITHSCORES")
+);
+expectType<Promise<number>>(
+  redis.zunionstore("out", 3, "s1", "s2", "s3", "AGGREGATE", "COUNT")
+);
+
 // ZRANDMEMBER
 expectType<Promise<string | null>>(redis.zrandmember("key"));
 expectType<Promise<string[]>>(redis.zrandmember("key", 20));
@@ -94,6 +114,17 @@ expectType<Promise<Buffer | null>>(redis.zscoreBuffer("key", "member"));
 
 // GETRANGE
 expectType<Promise<Buffer>>(redis.getrangeBuffer("foo", 0, 1));
+
+// GCRA
+type GcraReply = [
+  limited: 0 | 1,
+  totalLimit: number,
+  remaining: number,
+  retryAfter: number,
+  resetAfter: number
+];
+expectType<Promise<GcraReply>>(redis.gcra("key", 0, 1, 1));
+expectType<Promise<GcraReply>>(redis.gcra("key", 10, 10, 1, "TOKENS", 10));
 
 // Callbacks
 redis.getBuffer("foo", (err, res) => {
@@ -120,3 +151,44 @@ redis.del(["key1", "key2"], (err, res) => {
   expectType<Error | null | undefined>(err);
   expectType<number | undefined>(res);
 });
+
+// XNACK
+expectType<Promise<number>>(
+  redis.xnack("stream", "group", "FAIL", "IDS", 1, "0-0")
+);
+expectType<Promise<number>>(
+  redis.xnack("stream", "group", "SILENT", "IDS", 1, "0-0")
+);
+expectType<Promise<number>>(
+  redis.xnack("stream", "group", "FATAL", "IDS", 1, "0-0")
+);
+expectType<Promise<number>>(
+  redis.xnack("stream", "group", "FAIL", "IDS", 1, "0-0", "RETRYCOUNT", 7)
+);
+expectType<Promise<number>>(
+  redis.xnack("stream", "group", "FAIL", "IDS", 1, "0-0", "FORCE")
+);
+
+redis.xnack("stream", "group", "FAIL", "IDS", 1, "0-0", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<number | undefined>(res);
+});
+
+redis.zunion(3, "s1", "s2", "s3", "AGGREGATE", "COUNT", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<string[] | undefined>(res);
+});
+
+redis.zunionstore(
+  "out",
+  3,
+  "s1",
+  "s2",
+  "s3",
+  "AGGREGATE",
+  "COUNT",
+  (err, res) => {
+    expectType<Error | null | undefined>(err);
+    expectType<number | undefined>(res);
+  }
+);

@@ -174,6 +174,13 @@ describe("utils", () => {
         password: "pass:word",
         key: "value",
       });
+      expect(utils.parseURL("redis://:authpassword@127.0.0.1:6380/4")).to.eql({
+        host: "127.0.0.1",
+        port: "6380",
+        db: "4",
+        username: "",
+        password: "authpassword",
+      });
       expect(utils.parseURL("redis://user@127.0.0.1:6380/4?key=value")).to.eql({
         host: "127.0.0.1",
         port: "6380",
@@ -202,6 +209,27 @@ describe("utils", () => {
       expect(utils.parseURL("redis://127.0.0.1/?family=IPv6")).to.eql({
         host: "127.0.0.1",
         family: "IPv6",
+      });
+      expect(utils.parseURL("REDIS://127.0.0.1:6379/0")).to.eql({
+        host: "127.0.0.1",
+        port: "6379",
+        db: "0",
+      });
+      expect(utils.parseURL("redis://[::1]:6379/0")).to.eql({
+        host: "::1",
+        port: "6379",
+        db: "0",
+      });
+      expect(utils.parseURL("[::1]:6379")).to.eql({
+        host: "::1",
+        port: "6379",
+      });
+      expect(utils.parseURL("/tmp/redis.sock?key=value")).to.eql({
+        path: "/tmp/redis.sock",
+        key: "value",
+      });
+      expect(utils.parseURL("/tmp/redis.sock?path=/other.sock")).to.eql({
+        path: "/tmp/redis.sock",
       });
     });
   });

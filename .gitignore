@@ -3,6 +3,7 @@ node_modules
 /test.*
 /.idea
 built
+.worktrees/
 
 .nyc_output
 coverage
