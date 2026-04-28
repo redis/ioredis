@@ -17,8 +17,14 @@ export default class ConnectionPool extends EventEmitter {
 
   private specifiedOptions: { [key: string]: any } = {};
 
-  constructor(private redisOptions) {
+  // Custom Redis class for creating connections. Allows users to pass
+  // a Redis subclass (e.g. for instrumentation) and have it used for every
+  // node connection in the pool.
+  private RedisClass: typeof Redis;
+
+  constructor(private redisOptions, redisClass?: typeof Redis) {
     super();
+    this.RedisClass = redisClass || Redis;
   }
 
   getNodes(role: NodeRole = "all"): Redis[] {
@@ -62,7 +68,7 @@ export default class ConnectionPool extends EventEmitter {
    * @param readOnly
    */
   createRedisFromOptions(node: RedisOptions, readOnly: boolean) {
-    const redis = new Redis(
+    const redis = new this.RedisClass(
         defaults(
             {
               // Never try to reconnect when a node is lose,
