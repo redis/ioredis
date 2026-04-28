@@ -1,6 +1,7 @@
 import { EventEmitter } from "events";
 import { sample, Debug, noop, defaults } from "../utils";
 import { RedisOptions, getNodeKey, NodeKey, NodeRole } from "./util";
+import { ClusterOptions, ClusterNodeRetryStrategy } from "./ClusterOptions";
 import Redis from "../Redis";
 
 const debug = Debug("cluster:connectionPool");
@@ -17,7 +18,10 @@ export default class ConnectionPool extends EventEmitter {
 
   private specifiedOptions: { [key: string]: any } = {};
 
-  constructor(private redisOptions) {
+  constructor(
+    private redisOptions: NonNullable<ClusterOptions["redisOptions"]>,
+    private clusterNodeRetryStrategy: ClusterNodeRetryStrategy = null
+  ) {
     super();
   }
 
@@ -65,10 +69,15 @@ export default class ConnectionPool extends EventEmitter {
     const redis = new Redis(
         defaults(
             {
-              // Never try to reconnect when a node is lose,
-              // instead, waiting for a `MOVED` error and
-              // fetch the slots again.
-              retryStrategy: null,
+              // By default, never try to reconnect when a node is lost,
+              // instead, waiting for a `MOVED` error and fetching slots again.
+              // When `clusterNodeRetryStrategy` is set, use it to allow
+              // reconnection (e.g. for replica nodes that restart without
+              // any slot changes).
+              retryStrategy:
+                typeof this.clusterNodeRetryStrategy === "function"
+                  ? this.clusterNodeRetryStrategy
+                  : null,
               // Offline queue should be enabled so that
               // we don't need to wait for the `ready` event
               // before sending commands to the node.
@@ -129,7 +138,7 @@ export default class ConnectionPool extends EventEmitter {
 
       this.emit("+node", redis, key);
 
-      redis.on("error", function (error) {
+      redis.on("error", (error) => {
         this.emit("nodeError", error, key);
       });
     }
