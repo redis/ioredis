@@ -3274,6 +3274,16 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   ): Result<unknown, Context>;
 
   /**
+   * Rate limit via GCRA (Generic Cell Rate Algorithm).
+   * - _group_: rate_limit
+   * - _complexity_: O(1)
+   * - _since_: 8.8.0
+   */
+  gcra(key: RedisKey, maxBurst: number | string, tokensPerPeriod: number | string, period: number | string, callback?: Callback<[limited: 0 | 1, totalLimit: number, remaining: number, retryAfter: number, resetAfter: number]>): Result<[limited: 0 | 1, totalLimit: number, remaining: number, retryAfter: number, resetAfter: number], Context>;
+  gcra(key: RedisKey, maxBurst: number | string, tokensPerPeriod: number | string, period: number | string, countToken: 'TOKENS', count: number | string, callback?: Callback<[limited: 0 | 1, totalLimit: number, remaining: number, retryAfter: number, resetAfter: number]>): Result<[limited: 0 | 1, totalLimit: number, remaining: number, retryAfter: number, resetAfter: number], Context>;
+
+
+  /**
    * Add one or more geospatial items in the geospatial index represented using a sorted set
    * - _group_: geo
    * - _complexity_: O(log(N)) for each item added, where N is the number of elements in the sorted set.
@@ -9984,6 +9994,37 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   xlen(key: RedisKey, callback?: Callback<number>): Result<number, Context>;
 
   /**
+   * Releases claimed messages back to the group's PEL without acknowledging them, making them available for re-delivery.
+   * - _group_: stream
+   * - _complexity_: O(1) for each message ID processed.
+   * - _since_: 8.8.0
+   */
+  xnack(...args: [key: RedisKey, group: string | Buffer, silent: 'SILENT', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, silent: 'SILENT', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[]]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, silent: 'SILENT', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], force: 'FORCE', callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, silent: 'SILENT', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], force: 'FORCE']): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, silent: 'SILENT', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, silent: 'SILENT', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, silent: 'SILENT', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, force: 'FORCE', callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, silent: 'SILENT', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, force: 'FORCE']): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fail: 'FAIL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fail: 'FAIL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[]]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fail: 'FAIL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], force: 'FORCE', callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fail: 'FAIL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], force: 'FORCE']): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fail: 'FAIL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fail: 'FAIL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fail: 'FAIL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, force: 'FORCE', callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fail: 'FAIL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, force: 'FORCE']): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fatal: 'FATAL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fatal: 'FATAL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[]]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fatal: 'FATAL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], force: 'FORCE', callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fatal: 'FATAL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], force: 'FORCE']): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fatal: 'FATAL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fatal: 'FATAL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fatal: 'FATAL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, force: 'FORCE', callback: Callback<number>]): Result<number, Context>;
+  xnack(...args: [key: RedisKey, group: string | Buffer, fatal: 'FATAL', idsToken: 'IDS', numids: number | string, ...ids: (string | Buffer | number)[], countToken: 'RETRYCOUNT', count: number | string, force: 'FORCE']): Result<number, Context>;
+
+  /**
    * Return information and entries from a stream consumer group pending entries list, that are messages fetched but never acknowledged.
    * - _group_: stream
    * - _complexity_: O(N) with N being the number of elements returned, so asking for a small fixed number of entries per call is O(1). O(M), where M is the total number of entries scanned when used with the IDLE filter. When the command returns just the summary and the list of consumers is small, it runs in O(1) time; otherwise, an additional O(N) time for iterating every consumer.
@@ -12646,6 +12687,150 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   zinter(
     ...args: [
       numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<string[]>
+    ]
+  ): Result<string[], Context>;
+  zinterBuffer(
+    ...args: [
+      numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<Buffer[]>
+    ]
+  ): Result<Buffer[], Context>;
+  zinter(
+    ...args: [
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<string[]>
+    ]
+  ): Result<string[], Context>;
+  zinterBuffer(
+    ...args: [
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<Buffer[]>
+    ]
+  ): Result<Buffer[], Context>;
+  zinter(
+    ...args: [
+      numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
+    ]
+  ): Result<string[], Context>;
+  zinterBuffer(
+    ...args: [
+      numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
+    ]
+  ): Result<Buffer[], Context>;
+  zinter(
+    ...args: [
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
+    ]
+  ): Result<string[], Context>;
+  zinterBuffer(
+    ...args: [
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
+    ]
+  ): Result<Buffer[], Context>;
+  zinter(
+    ...args: [
+      numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES",
+      callback: Callback<string[]>
+    ]
+  ): Result<string[], Context>;
+  zinterBuffer(
+    ...args: [
+      numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES",
+      callback: Callback<Buffer[]>
+    ]
+  ): Result<Buffer[], Context>;
+  zinter(
+    ...args: [
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES",
+      callback: Callback<string[]>
+    ]
+  ): Result<string[], Context>;
+  zinterBuffer(
+    ...args: [
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES",
+      callback: Callback<Buffer[]>
+    ]
+  ): Result<Buffer[], Context>;
+  zinter(
+    ...args: [
+      numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES"
+    ]
+  ): Result<string[], Context>;
+  zinterBuffer(
+    ...args: [
+      numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES"
+    ]
+  ): Result<Buffer[], Context>;
+  zinter(
+    ...args: [
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES"
+    ]
+  ): Result<string[], Context>;
+  zinterBuffer(
+    ...args: [
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES"
+    ]
+  ): Result<Buffer[], Context>;
+  zinter(
+    ...args: [
+      numkeys: number | string,
       ...args: RedisValue[],
       callback: Callback<string[]>
     ]
@@ -12906,6 +13091,78 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       ...args: RedisValue[],
       aggregate: "AGGREGATE",
       max: "MAX",
+      withscores: "WITHSCORES"
+    ]
+  ): Result<Buffer[], Context>;
+  zinter(
+    ...args: [
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<string[]>
+    ]
+  ): Result<string[], Context>;
+  zinterBuffer(
+    ...args: [
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<Buffer[]>
+    ]
+  ): Result<Buffer[], Context>;
+  zinter(
+    ...args: [
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
+    ]
+  ): Result<string[], Context>;
+  zinterBuffer(
+    ...args: [
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
+    ]
+  ): Result<Buffer[], Context>;
+  zinter(
+    ...args: [
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES",
+      callback: Callback<string[]>
+    ]
+  ): Result<string[], Context>;
+  zinterBuffer(
+    ...args: [
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES",
+      callback: Callback<Buffer[]>
+    ]
+  ): Result<Buffer[], Context>;
+  zinter(
+    ...args: [
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES"
+    ]
+  ): Result<string[], Context>;
+  zinterBuffer(
+    ...args: [
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
       withscores: "WITHSCORES"
     ]
   ): Result<Buffer[], Context>;
@@ -13121,6 +13378,44 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
     ...args: [
       destination: RedisKey,
       numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<number>
+    ]
+  ): Result<number, Context>;
+  zinterstore(
+    ...args: [
+      destination: RedisKey,
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<number>
+    ]
+  ): Result<number, Context>;
+  zinterstore(
+    ...args: [
+      destination: RedisKey,
+      numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
+    ]
+  ): Result<number, Context>;
+  zinterstore(
+    ...args: [
+      destination: RedisKey,
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
+    ]
+  ): Result<number, Context>;
+  zinterstore(
+    ...args: [
+      destination: RedisKey,
+      numkeys: number | string,
       ...args: RedisValue[],
       callback: Callback<number>
     ]
@@ -13187,6 +13482,25 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       ...args: RedisValue[],
       aggregate: "AGGREGATE",
       max: "MAX"
+    ]
+  ): Result<number, Context>;
+  zinterstore(
+    ...args: [
+      destination: RedisKey,
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<number>
+    ]
+  ): Result<number, Context>;
+  zinterstore(
+    ...args: [
+      destination: RedisKey,
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
     ]
   ): Result<number, Context>;
 
@@ -14994,6 +15308,150 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   zunion(
     ...args: [
       numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<string[]>
+    ]
+  ): Result<string[], Context>;
+  zunionBuffer(
+    ...args: [
+      numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<Buffer[]>
+    ]
+  ): Result<Buffer[], Context>;
+  zunion(
+    ...args: [
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<string[]>
+    ]
+  ): Result<string[], Context>;
+  zunionBuffer(
+    ...args: [
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<Buffer[]>
+    ]
+  ): Result<Buffer[], Context>;
+  zunion(
+    ...args: [
+      numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
+    ]
+  ): Result<string[], Context>;
+  zunionBuffer(
+    ...args: [
+      numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
+    ]
+  ): Result<Buffer[], Context>;
+  zunion(
+    ...args: [
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
+    ]
+  ): Result<string[], Context>;
+  zunionBuffer(
+    ...args: [
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
+    ]
+  ): Result<Buffer[], Context>;
+  zunion(
+    ...args: [
+      numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES",
+      callback: Callback<string[]>
+    ]
+  ): Result<string[], Context>;
+  zunionBuffer(
+    ...args: [
+      numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES",
+      callback: Callback<Buffer[]>
+    ]
+  ): Result<Buffer[], Context>;
+  zunion(
+    ...args: [
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES",
+      callback: Callback<string[]>
+    ]
+  ): Result<string[], Context>;
+  zunionBuffer(
+    ...args: [
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES",
+      callback: Callback<Buffer[]>
+    ]
+  ): Result<Buffer[], Context>;
+  zunion(
+    ...args: [
+      numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES"
+    ]
+  ): Result<string[], Context>;
+  zunionBuffer(
+    ...args: [
+      numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES"
+    ]
+  ): Result<Buffer[], Context>;
+  zunion(
+    ...args: [
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES"
+    ]
+  ): Result<string[], Context>;
+  zunionBuffer(
+    ...args: [
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES"
+    ]
+  ): Result<Buffer[], Context>;
+  zunion(
+    ...args: [
+      numkeys: number | string,
       ...args: RedisValue[],
       callback: Callback<string[]>
     ]
@@ -15254,6 +15712,78 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       ...args: RedisValue[],
       aggregate: "AGGREGATE",
       max: "MAX",
+      withscores: "WITHSCORES"
+    ]
+  ): Result<Buffer[], Context>;
+  zunion(
+    ...args: [
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<string[]>
+    ]
+  ): Result<string[], Context>;
+  zunionBuffer(
+    ...args: [
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<Buffer[]>
+    ]
+  ): Result<Buffer[], Context>;
+  zunion(
+    ...args: [
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
+    ]
+  ): Result<string[], Context>;
+  zunionBuffer(
+    ...args: [
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
+    ]
+  ): Result<Buffer[], Context>;
+  zunion(
+    ...args: [
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES",
+      callback: Callback<string[]>
+    ]
+  ): Result<string[], Context>;
+  zunionBuffer(
+    ...args: [
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES",
+      callback: Callback<Buffer[]>
+    ]
+  ): Result<Buffer[], Context>;
+  zunion(
+    ...args: [
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      withscores: "WITHSCORES"
+    ]
+  ): Result<string[], Context>;
+  zunionBuffer(
+    ...args: [
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
       withscores: "WITHSCORES"
     ]
   ): Result<Buffer[], Context>;
@@ -15408,6 +15938,44 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
     ...args: [
       destination: RedisKey,
       numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<number>
+    ]
+  ): Result<number, Context>;
+  zunionstore(
+    ...args: [
+      destination: RedisKey,
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<number>
+    ]
+  ): Result<number, Context>;
+  zunionstore(
+    ...args: [
+      destination: RedisKey,
+      numkeys: number | string,
+      ...keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
+    ]
+  ): Result<number, Context>;
+  zunionstore(
+    ...args: [
+      destination: RedisKey,
+      numkeys: number | string,
+      keys: RedisKey[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
+    ]
+  ): Result<number, Context>;
+  zunionstore(
+    ...args: [
+      destination: RedisKey,
+      numkeys: number | string,
       ...args: RedisValue[],
       callback: Callback<number>
     ]
@@ -15474,6 +16042,25 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
       ...args: RedisValue[],
       aggregate: "AGGREGATE",
       max: "MAX"
+    ]
+  ): Result<number, Context>;
+  zunionstore(
+    ...args: [
+      destination: RedisKey,
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT",
+      callback: Callback<number>
+    ]
+  ): Result<number, Context>;
+  zunionstore(
+    ...args: [
+      destination: RedisKey,
+      numkeys: number | string,
+      ...args: RedisValue[],
+      aggregate: "AGGREGATE",
+      count: "COUNT"
     ]
   ): Result<number, Context>;
 }
