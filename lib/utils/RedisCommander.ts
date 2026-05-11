@@ -5512,6 +5512,49 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   ): Result<"OK", Context>;
 
   /**
+   * Atomically sets multiple string keys with a shared expiration in a single operation. Supports flexible argument parsing where condition and expiration flags can appear in any order.
+   * - _group_: string
+   * - _complexity_: O(N) where N is the number of keys to set.
+   * - _since_: 8.4.0
+   */
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[]]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], secondsToken: 'EX', seconds: number | string, callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], secondsToken: 'EX', seconds: number | string]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], millisecondsToken: 'PX', milliseconds: number | string, callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], millisecondsToken: 'PX', milliseconds: number | string]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], keepttl: 'KEEPTTL', callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], keepttl: 'KEEPTTL']): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], nx: 'NX', callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], nx: 'NX']): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], nx: 'NX', secondsToken: 'EX', seconds: number | string, callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], nx: 'NX', secondsToken: 'EX', seconds: number | string]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], nx: 'NX', millisecondsToken: 'PX', milliseconds: number | string, callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], nx: 'NX', millisecondsToken: 'PX', milliseconds: number | string]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], nx: 'NX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], nx: 'NX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], nx: 'NX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], nx: 'NX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], nx: 'NX', keepttl: 'KEEPTTL', callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], nx: 'NX', keepttl: 'KEEPTTL']): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], xx: 'XX', callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], xx: 'XX']): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], xx: 'XX', secondsToken: 'EX', seconds: number | string, callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], xx: 'XX', secondsToken: 'EX', seconds: number | string]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], xx: 'XX', millisecondsToken: 'PX', milliseconds: number | string, callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], xx: 'XX', millisecondsToken: 'PX', milliseconds: number | string]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], xx: 'XX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], xx: 'XX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], xx: 'XX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], xx: 'XX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], xx: 'XX', keepttl: 'KEEPTTL', callback: Callback<number>]): Result<number, Context>;
+  msetex(...args: [numkeys: number | string, ...data: (RedisKey | string | Buffer | number)[], xx: 'XX', keepttl: 'KEEPTTL']): Result<number, Context>;
+
+  /**
    * Set multiple keys to multiple values, only if none of the keys exist
    * - _group_: string
    * - _complexity_: O(N) where N is the number of keys to set.

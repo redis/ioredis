@@ -216,6 +216,7 @@ module.exports = {
   migrate: "'OK'",
   move: "number",
   mset: "'OK'",
+  msetex: "number",
   msetnx: "number",
   persist: "number",
   pexpire: "number",
