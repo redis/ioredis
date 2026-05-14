@@ -125,10 +125,10 @@ expectType<Promise<(string | null)[]>>(redis.argetrange("key", 0, 2));
 expectType<Promise<(Buffer | null)[]>>(redis.argetrangeBuffer("key", 0, 2));
 expectError(redis.argrep("key", 0, 4));
 expectType<Promise<number[]>>(redis.argrep("key", 0, 4, "MATCH", "alpha"));
-expectType<Promise<(number | string)[]>>(
+expectType<Promise<Array<[index: number, value: string]>>>(
   redis.argrep("key", 0, 4, "MATCH", "alpha", "WITHVALUES", "NOCASE")
 );
-expectType<Promise<(number | Buffer)[]>>(
+expectType<Promise<Array<[index: number, value: Buffer]>>>(
   redis.argrepBuffer("key", 0, 4, "MATCH", "alpha", "WITHVALUES")
 );
 expectType<Promise<(string | number)[]>>(redis.arinfo("key"));
@@ -147,8 +147,12 @@ expectType<Promise<number | null>>(redis.arop("key", 0, 2, "AND"));
 expectType<Promise<number>>(redis.arop("key", 0, 2, "USED"));
 expectType<Promise<number>>(redis.arop("key", 0, 2, "MATCH", "a"));
 expectType<Promise<number>>(redis.arring("key", 3, "a", "b"));
-expectType<Promise<(number | string)[]>>(redis.arscan("key", 0, 2));
-expectType<Promise<(number | Buffer)[]>>(redis.arscanBuffer("key", 0, 2));
+expectType<Promise<Array<[index: number, value: string]>>>(
+  redis.arscan("key", 0, 2)
+);
+expectType<Promise<Array<[index: number, value: Buffer]>>>(
+  redis.arscanBuffer("key", 0, 2)
+);
 expectType<Promise<number>>(redis.arseek("key", 0));
 expectType<Promise<number>>(redis.arset("key", 0, "a", "b"));
 

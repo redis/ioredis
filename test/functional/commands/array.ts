@@ -211,7 +211,10 @@ describe("array commands", () => {
           "WITHVALUES",
           "NOCASE"
         )
-      ).to.eql([0, "Alpha", 2, "alphabet"]);
+      ).to.eql([
+        [0, "Alpha"],
+        [2, "alphabet"],
+      ]);
       expect(
         await redis.argrep(
           arrayKey,
@@ -262,7 +265,7 @@ describe("array commands", () => {
       ]);
       expect(
         await redis.argrepBuffer(arrayKey, 0, 1, "EXACT", "beta", "WITHVALUES")
-      ).to.eql([1, Buffer.from("beta")]);
+      ).to.eql([[1, Buffer.from("beta")]]);
     });
   });
 
@@ -548,10 +551,8 @@ describe("array commands", () => {
       await redis.arset(arrayKey, 3, "three");
 
       expect(await redis.arscan(arrayKey, 0, 5)).to.eql([
-        0,
-        "zero",
-        3,
-        "three",
+        [0, "zero"],
+        [3, "three"],
       ]);
       expect(await redis.arscan(key("arscan_missing"), 0, 5)).to.eql([]);
     });
@@ -563,14 +564,11 @@ describe("array commands", () => {
       await redis.arset(arrayKey, 3, "three");
 
       expect(await redis.arscan(arrayKey, 5, 0)).to.eql([
-        3,
-        "three",
-        0,
-        "zero",
+        [3, "three"],
+        [0, "zero"],
       ]);
       expect(await redis.arscan(arrayKey, 0, 5, "LIMIT", 1)).to.eql([
-        0,
-        "zero",
+        [0, "zero"],
       ]);
     });
 
@@ -581,14 +579,11 @@ describe("array commands", () => {
       await redis.arset(arrayKey, 3, Buffer.from("three"));
 
       expect(await redis.arscanBuffer(arrayKey, 0, 5)).to.eql([
-        0,
-        Buffer.from("zero"),
-        3,
-        Buffer.from("three"),
+        [0, Buffer.from("zero")],
+        [3, Buffer.from("three")],
       ]);
       expect(await redis.arscanBuffer(arrayKey, 0, 5, "LIMIT", 1)).to.eql([
-        0,
-        Buffer.from("zero"),
+        [0, Buffer.from("zero")],
       ]);
     });
   });

@@ -100,7 +100,9 @@ module.exports = {
   arget: "string | null",
   argetrange: "(string | null)[]",
   argrep: (types) => {
-    return hasToken(types, "WITHVALUES") ? "(number | string)[]" : "number[]";
+    return hasToken(types, "WITHVALUES")
+      ? "Array<[index: number, value: string]>"
+      : "number[]";
   },
   arinfo: "(string | number)[]",
   arinsert: "number",
@@ -115,7 +117,7 @@ module.exports = {
     if (hasToken(types, ["MATCH", "USED"])) return "number";
   },
   arring: "number",
-  arscan: "(number | string)[]",
+  arscan: "Array<[index: number, value: string]>",
   arseek: "number",
   arset: "number",
   asking: "'OK'",

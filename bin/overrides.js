@@ -34,11 +34,11 @@ module.exports = {
     overwrite: true,
     defs: [
       "$1(key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, callback: Callback<number[]>): Result<number[], Context>;",
-      "$1(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: RedisValue[], callback: Callback<number[] | (number | string)[]>]): Result<number[] | (number | string)[], Context>;",
-      "$1<T extends RedisValue[]>(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: T]): Result<'WITHVALUES' extends T[number] ? (number | string)[] : number[], Context>;",
+      "$1(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: RedisValue[], callback: Callback<number[] | Array<[index: number, value: string]>>]): Result<number[] | Array<[index: number, value: string]>, Context>;",
+      "$1<T extends RedisValue[]>(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: T]): Result<'WITHVALUES' extends T[number] ? Array<[index: number, value: string]> : number[], Context>;",
       "$1Buffer(key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, callback: Callback<number[]>): Result<number[], Context>;",
-      "$1Buffer(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: RedisValue[], callback: Callback<number[] | (number | Buffer)[]>]): Result<number[] | (number | Buffer)[], Context>;",
-      "$1Buffer<T extends RedisValue[]>(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: T]): Result<'WITHVALUES' extends T[number] ? (number | Buffer)[] : number[], Context>;",
+      "$1Buffer(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: RedisValue[], callback: Callback<number[] | Array<[index: number, value: Buffer]>>]): Result<number[] | Array<[index: number, value: Buffer]>, Context>;",
+      "$1Buffer<T extends RedisValue[]>(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: T]): Result<'WITHVALUES' extends T[number] ? Array<[index: number, value: Buffer]> : number[], Context>;",
     ],
   },
   exec: {

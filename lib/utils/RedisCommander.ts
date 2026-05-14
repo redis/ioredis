@@ -385,11 +385,11 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _since_: 8.8.0
    */
   argrep(key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, callback: Callback<number[]>): Result<number[], Context>;
-  argrep(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: RedisValue[], callback: Callback<number[] | (number | string)[]>]): Result<number[] | (number | string)[], Context>;
-  argrep<T extends RedisValue[]>(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: T]): Result<'WITHVALUES' extends T[number] ? (number | string)[] : number[], Context>;
+  argrep(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: RedisValue[], callback: Callback<number[] | Array<[index: number, value: string]>>]): Result<number[] | Array<[index: number, value: string]>, Context>;
+  argrep<T extends RedisValue[]>(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: T]): Result<'WITHVALUES' extends T[number] ? Array<[index: number, value: string]> : number[], Context>;
   argrepBuffer(key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, callback: Callback<number[]>): Result<number[], Context>;
-  argrepBuffer(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: RedisValue[], callback: Callback<number[] | (number | Buffer)[]>]): Result<number[] | (number | Buffer)[], Context>;
-  argrepBuffer<T extends RedisValue[]>(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: T]): Result<'WITHVALUES' extends T[number] ? (number | Buffer)[] : number[], Context>;
+  argrepBuffer(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: RedisValue[], callback: Callback<number[] | Array<[index: number, value: Buffer]>>]): Result<number[] | Array<[index: number, value: Buffer]>, Context>;
+  argrepBuffer<T extends RedisValue[]>(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: T]): Result<'WITHVALUES' extends T[number] ? Array<[index: number, value: Buffer]> : number[], Context>;
 
   /**
    * Returns metadata about an array.
@@ -491,10 +491,10 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(P) where P is visited positions in touched slices (dense scanned slots + sparse entries), with worst-case O(|end-start|+1) and typical case close to O(N), where N is the number of existing elements in range.
    * - _since_: 8.8.0
    */
-  arscan(key: RedisKey, start: number | string, end: number | string, callback?: Callback<(number | string)[]>): Result<(number | string)[], Context>;
-  arscanBuffer(key: RedisKey, start: number | string, end: number | string, callback?: Callback<(number | Buffer)[]>): Result<(number | Buffer)[], Context>;
-  arscan(key: RedisKey, start: number | string, end: number | string, limitToken: 'LIMIT', limit: number | string, callback?: Callback<(number | string)[]>): Result<(number | string)[], Context>;
-  arscanBuffer(key: RedisKey, start: number | string, end: number | string, limitToken: 'LIMIT', limit: number | string, callback?: Callback<(number | Buffer)[]>): Result<(number | Buffer)[], Context>;
+  arscan(key: RedisKey, start: number | string, end: number | string, callback?: Callback<Array<[index: number, value: string]>>): Result<Array<[index: number, value: string]>, Context>;
+  arscanBuffer(key: RedisKey, start: number | string, end: number | string, callback?: Callback<Array<[index: number, value: Buffer]>>): Result<Array<[index: number, value: Buffer]>, Context>;
+  arscan(key: RedisKey, start: number | string, end: number | string, limitToken: 'LIMIT', limit: number | string, callback?: Callback<Array<[index: number, value: string]>>): Result<Array<[index: number, value: string]>, Context>;
+  arscanBuffer(key: RedisKey, start: number | string, end: number | string, limitToken: 'LIMIT', limit: number | string, callback?: Callback<Array<[index: number, value: Buffer]>>): Result<Array<[index: number, value: Buffer]>, Context>;
 
   /**
    * Sets the ARINSERT / ARRING cursor to a specific index.
