@@ -190,6 +190,8 @@ module.exports = {
   incr: "number",
   incrby: "number",
   incrbyfloat: "string",
+  increx:
+    "[value: number, increment: number] | [value: string, increment: string]",
   info: "string",
   lolwut: "string",
   keys: "string[]",
