@@ -127,7 +127,6 @@ module.exports = {
   failover: "'OK'",
   flushall: "'OK'",
   flushdb: "'OK'",
-  gcra: "[limited: 0 | 1, totalLimit: number, remaining: number, retryAfter: number, resetAfter: number]",
   geoadd: "number",
   geohash: "string[]",
   geopos: "([longitude: string, latitude: string] | null)[]",
