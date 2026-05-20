@@ -332,14 +332,189 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(1). The amortized time complexity is O(1) assuming the appended value is small and the already present value is of any size, since the dynamic string library used by Redis will double the free space available on every reallocation.
    * - _since_: 2.0.0
    */
-  append(
-    key: RedisKey,
-    value: string | Buffer | number,
-    callback?: Callback<number>
-  ): Result<number, Context>;
+  append(key: RedisKey, value: string | Buffer | number, callback?: Callback<number>): Result<number, Context>;
 
   /**
-   * Sent by cluster clients after an -ASK redirect
+   * Returns the number of non-empty elements in an array.
+   * - _group_: array
+   * - _complexity_: O(1)
+   * - _since_: 8.8.0
+   */
+  arcount(key: RedisKey, callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Deletes elements at the specified indices in an array.
+   * - _group_: array
+   * - _complexity_: O(N) where N is the number of indices to delete
+   * - _since_: 8.8.0
+   */
+  ardel(...args: [key: RedisKey, ...indices: (number | string)[], callback: Callback<number>]): Result<number, Context>;
+  ardel(...args: [key: RedisKey, ...indices: (number | string)[]]): Result<number, Context>;
+
+  /**
+   * Deletes elements in one or more ranges.
+   * - _group_: array
+   * - _complexity_: Proportional to the number of existing elements / slices touched, not to the numeric span of the requested ranges
+   * - _since_: 8.8.0
+   */
+  ardelrange(...args: [key: RedisKey, ...ranges: (string | number)[], callback: Callback<number>]): Result<number, Context>;
+  ardelrange(...args: [key: RedisKey, ...ranges: (string | number)[]]): Result<number, Context>;
+
+  /**
+   * Gets the value at an index in an array.
+   * - _group_: array
+   * - _complexity_: O(1)
+   * - _since_: 8.8.0
+   */
+  arget(key: RedisKey, index: number | string, callback?: Callback<string | null>): Result<string | null, Context>;
+  argetBuffer(key: RedisKey, index: number | string, callback?: Callback<Buffer | null>): Result<Buffer | null, Context>;
+
+  /**
+   * Gets values in a range of indices.
+   * - _group_: array
+   * - _complexity_: O(N) where N is the range length
+   * - _since_: 8.8.0
+   */
+  argetrange(key: RedisKey, start: number | string, end: number | string, callback?: Callback<(string | null)[]>): Result<(string | null)[], Context>;
+  argetrangeBuffer(key: RedisKey, start: number | string, end: number | string, callback?: Callback<(Buffer | null)[]>): Result<(Buffer | null)[], Context>;
+
+  /**
+   * Searches array elements in a range using textual predicates.
+   * - _group_: array
+   * - _complexity_: O(P * C) where P is the number of visited positions in touched slices and C is the cost of evaluating the predicates on one existing element.
+   * - _since_: 8.8.0
+   */
+  argrep(key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, callback: Callback<number[]>): Result<number[], Context>;
+  argrep(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: RedisValue[], callback: Callback<number[] | (number | string)[]>]): Result<number[] | (number | string)[], Context>;
+  argrep<T extends RedisValue[]>(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: T]): Result<'WITHVALUES' extends T[number] ? (number | string)[] : number[], Context>;
+  argrepBuffer(key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, callback: Callback<number[]>): Result<number[], Context>;
+  argrepBuffer(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: RedisValue[], callback: Callback<number[] | (number | Buffer)[]>]): Result<number[] | (number | Buffer)[], Context>;
+  argrepBuffer<T extends RedisValue[]>(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: T]): Result<'WITHVALUES' extends T[number] ? (number | Buffer)[] : number[], Context>;
+
+  /**
+   * Returns metadata about an array.
+   * - _group_: array
+   * - _complexity_: O(1), or O(N) with FULL option where N is the number of slices.
+   * - _since_: 8.8.0
+   */
+  arinfo(key: RedisKey, callback?: Callback<(string | number)[]>): Result<(string | number)[], Context>;
+  arinfoBuffer(key: RedisKey, callback?: Callback<(Buffer | number)[]>): Result<(Buffer | number)[], Context>;
+  arinfo(key: RedisKey, full: 'FULL', callback?: Callback<(string | number)[]>): Result<(string | number)[], Context>;
+  arinfoBuffer(key: RedisKey, full: 'FULL', callback?: Callback<(Buffer | number)[]>): Result<(Buffer | number)[], Context>;
+
+  /**
+   * Inserts one or more values at consecutive indices.
+   * - _group_: array
+   * - _complexity_: O(N) where N is the number of values
+   * - _since_: 8.8.0
+   */
+  arinsert(...args: [key: RedisKey, ...values: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  arinsert(...args: [key: RedisKey, ...values: (string | Buffer | number)[]]): Result<number, Context>;
+
+  /**
+   * Returns the most recently inserted elements.
+   * - _group_: array
+   * - _complexity_: O(N) where N is the count
+   * - _since_: 8.8.0
+   */
+  arlastitems(key: RedisKey, count: number | string, callback?: Callback<(string | null)[]>): Result<(string | null)[], Context>;
+  arlastitemsBuffer(key: RedisKey, count: number | string, callback?: Callback<(Buffer | null)[]>): Result<(Buffer | null)[], Context>;
+  arlastitems(key: RedisKey, count: number | string, rev: 'REV', callback?: Callback<(string | null)[]>): Result<(string | null)[], Context>;
+  arlastitemsBuffer(key: RedisKey, count: number | string, rev: 'REV', callback?: Callback<(Buffer | null)[]>): Result<(Buffer | null)[], Context>;
+
+  /**
+   * Returns the length of an array (max index + 1).
+   * - _group_: array
+   * - _complexity_: O(1)
+   * - _since_: 8.8.0
+   */
+  arlen(key: RedisKey, callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Gets values at multiple indices in an array.
+   * - _group_: array
+   * - _complexity_: O(N) where N is the number of indices
+   * - _since_: 8.8.0
+   */
+  armget(...args: [key: RedisKey, ...indices: (number | string)[], callback: Callback<(string | null)[]>]): Result<(string | null)[], Context>;
+  armgetBuffer(...args: [key: RedisKey, ...indices: (number | string)[], callback: Callback<(Buffer | null)[]>]): Result<(Buffer | null)[], Context>;
+  armget(...args: [key: RedisKey, ...indices: (number | string)[]]): Result<(string | null)[], Context>;
+  armgetBuffer(...args: [key: RedisKey, ...indices: (number | string)[]]): Result<(Buffer | null)[], Context>;
+
+  /**
+   * Sets multiple index-value pairs in an array.
+   * - _group_: array
+   * - _complexity_: O(N) where N is the number of pairs
+   * - _since_: 8.8.0
+   */
+  armset(...args: [key: RedisKey, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  armset(...args: [key: RedisKey, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+
+  /**
+   * Returns the next index ARINSERT would use.
+   * - _group_: array
+   * - _complexity_: O(1)
+   * - _since_: 8.8.0
+   */
+  arnext(key: RedisKey, callback?: Callback<number | null>): Result<number | null, Context>;
+
+  /**
+   * Performs aggregate operations on array elements in a range.
+   * - _group_: array
+   * - _complexity_: O(P) where P is visited positions in touched slices (dense scanned slots + sparse entries), with worst-case O(|end-start|+1) and typical case close to O(N), where N is the number of existing elements in range.
+   * - _since_: 8.8.0
+   */
+  arop(key: RedisKey, start: number | string, end: number | string, sum: 'SUM', callback?: Callback<string | null>): Result<string | null, Context>;
+  aropBuffer(key: RedisKey, start: number | string, end: number | string, sum: 'SUM', callback?: Callback<Buffer | null>): Result<Buffer | null, Context>;
+  arop(key: RedisKey, start: number | string, end: number | string, min: 'MIN', callback?: Callback<string | null>): Result<string | null, Context>;
+  aropBuffer(key: RedisKey, start: number | string, end: number | string, min: 'MIN', callback?: Callback<Buffer | null>): Result<Buffer | null, Context>;
+  arop(key: RedisKey, start: number | string, end: number | string, max: 'MAX', callback?: Callback<string | null>): Result<string | null, Context>;
+  aropBuffer(key: RedisKey, start: number | string, end: number | string, max: 'MAX', callback?: Callback<Buffer | null>): Result<Buffer | null, Context>;
+  arop(key: RedisKey, start: number | string, end: number | string, and: 'AND', callback?: Callback<number | null>): Result<number | null, Context>;
+  arop(key: RedisKey, start: number | string, end: number | string, or: 'OR', callback?: Callback<number | null>): Result<number | null, Context>;
+  arop(key: RedisKey, start: number | string, end: number | string, xor: 'XOR', callback?: Callback<number | null>): Result<number | null, Context>;
+  arop(key: RedisKey, start: number | string, end: number | string, match: 'MATCH', value: string | Buffer | number, callback?: Callback<number>): Result<number, Context>;
+  arop(key: RedisKey, start: number | string, end: number | string, used: 'USED', callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Inserts values into a ring buffer of specified size, wrapping and truncating as needed.
+   * - _group_: array
+   * - _complexity_: O(M) normally, O(N+M) on ring resize, where N is the maximum of the old and new ring size and M is the number of inserted values
+   * - _since_: 8.8.0
+   */
+  arring(...args: [key: RedisKey, size: number | string, ...values: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  arring(...args: [key: RedisKey, size: number | string, ...values: (string | Buffer | number)[]]): Result<number, Context>;
+
+  /**
+   * Iterates existing elements in a range, returning index-value pairs.
+   * - _group_: array
+   * - _complexity_: O(P) where P is visited positions in touched slices (dense scanned slots + sparse entries), with worst-case O(|end-start|+1) and typical case close to O(N), where N is the number of existing elements in range.
+   * - _since_: 8.8.0
+   */
+  arscan(key: RedisKey, start: number | string, end: number | string, callback?: Callback<(number | string)[]>): Result<(number | string)[], Context>;
+  arscanBuffer(key: RedisKey, start: number | string, end: number | string, callback?: Callback<(number | Buffer)[]>): Result<(number | Buffer)[], Context>;
+  arscan(key: RedisKey, start: number | string, end: number | string, limitToken: 'LIMIT', limit: number | string, callback?: Callback<(number | string)[]>): Result<(number | string)[], Context>;
+  arscanBuffer(key: RedisKey, start: number | string, end: number | string, limitToken: 'LIMIT', limit: number | string, callback?: Callback<(number | Buffer)[]>): Result<(number | Buffer)[], Context>;
+
+  /**
+   * Sets the ARINSERT / ARRING cursor to a specific index.
+   * - _group_: array
+   * - _complexity_: O(1)
+   * - _since_: 8.8.0
+   */
+  arseek(key: RedisKey, index: number | string, callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Sets one or more contiguous values starting at an index in an array.
+   * - _group_: array
+   * - _complexity_: O(N) where N is the number of values
+   * - _since_: 8.8.0
+   */
+  arset(...args: [key: RedisKey, index: number | string, ...values: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  arset(...args: [key: RedisKey, index: number | string, ...values: (string | Buffer | number)[]]): Result<number, Context>;
+
+  /**
+   * Signals that a cluster client is following an -ASK redirect.
    * - _group_: cluster
    * - _complexity_: O(1)
    * - _since_: 3.0.0
