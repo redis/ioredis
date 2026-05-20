@@ -6,7 +6,7 @@ describe("array commands", () => {
   let redis: Redis;
 
   before(async function () {
-    if (await isRedisVersionLowerThan("8.8")) {
+    if (await isRedisVersionLowerThan("8.7")) {
       this.skip();
     }
   });
