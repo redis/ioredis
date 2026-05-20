@@ -32,6 +32,10 @@ describe("autoPipelining for cluster", () => {
         return "bar2";
       }
 
+      if (argv[0] === "msetex" && argv[1] === "1" && argv[2] === "foo2") {
+        return 1;
+      }
+
       if (argv[0] === "get" && argv[1] === "foo6") {
         return "bar6";
       }
@@ -66,6 +70,10 @@ describe("autoPipelining for cluster", () => {
 
       if (argv[0] === "get" && argv[1] === "foo1") {
         return "bar1";
+      }
+
+      if (argv[0] === "msetex" && argv[1] === "1" && argv[2] === "foo1") {
+        return 1;
       }
 
       if (argv[0] === "get" && argv[1] === "foo5") {
@@ -197,6 +205,20 @@ describe("autoPipelining for cluster", () => {
         cluster.get("foo1"),
       ])
     ).to.eql(["bar1", "bar5", "bar1", "bar5", "bar1"]);
+
+    cluster.disconnect();
+  });
+
+  it("should bucket MSETEX by its first key", async () => {
+    const cluster = new Cluster(hosts, { enableAutoPipelining: true });
+    await new Promise((resolve) => cluster.once("connect", resolve));
+
+    const result = await Promise.all([
+      cluster.msetex(1, "foo1", "bar1"),
+      cluster.msetex(1, "foo2", "bar2"),
+    ]);
+
+    expect(result).to.eql([1, 1]);
 
     cluster.disconnect();
   });
