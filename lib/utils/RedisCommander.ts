@@ -8876,6 +8876,128 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   unwatch(callback?: Callback<"OK">): Result<"OK", Context>;
 
   /**
+   * Add one or more elements to a vector set, or update its vector if it already exists
+   * - _group_: module
+   * - _complexity_: undefined
+   * - _since_: 8.0.0
+   */
+  vadd(...args: [key: RedisKey, ...args: (RedisValue)[], callback: Callback<number>]): Result<number, Context>;
+  vadd(...args: [key: RedisKey, ...args: (RedisValue)[]]): Result<number, Context>;
+
+  /**
+   * Return the number of elements in a vector set
+   * - _group_: module
+   * - _complexity_: undefined
+   * - _since_: 8.0.0
+   */
+  vcard(key: RedisKey, callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Return the dimension of vectors in the vector set
+   * - _group_: module
+   * - _complexity_: undefined
+   * - _since_: 8.0.0
+   */
+  vdim(key: RedisKey, callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Return the vector associated with an element
+   * - _group_: module
+   * - _complexity_: undefined
+   * - _since_: 8.0.0
+   */
+  vemb(key: RedisKey, element: string | Buffer | number, callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  vembBuffer(key: RedisKey, element: string | Buffer | number, callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  vemb(key: RedisKey, element: string | Buffer | number, raw: 'RAW', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  vembBuffer(key: RedisKey, element: string | Buffer | number, raw: 'RAW', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+
+  /**
+   * Retrieve the JSON attributes of elements
+   * - _group_: module
+   * - _complexity_: undefined
+   * - _since_: 8.0.0
+   */
+  vgetattr(key: RedisKey, element: string | Buffer | number, callback?: Callback<string | null>): Result<string | null, Context>;
+  vgetattrBuffer(key: RedisKey, element: string | Buffer | number, callback?: Callback<Buffer | null>): Result<Buffer | null, Context>;
+
+  /**
+   * Return information about a vector set
+   * - _group_: module
+   * - _complexity_: undefined
+   * - _since_: 8.0.0
+   */
+  vinfo(key: RedisKey, callback?: Callback<(string | number)[] | null>): Result<(string | number)[] | null, Context>;
+  vinfoBuffer(key: RedisKey, callback?: Callback<(Buffer | number)[] | null>): Result<(Buffer | number)[] | null, Context>;
+
+  /**
+   * Check if an element exists in a vector set
+   * - _group_: module
+   * - _complexity_: undefined
+   * - _since_: 8.0.0
+   */
+  vismember(key: RedisKey, element: string | Buffer | number, callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Return the neighbors of an element at each layer in the HNSW graph
+   * - _group_: module
+   * - _complexity_: undefined
+   * - _since_: 8.0.0
+   */
+  vlinks(key: RedisKey, element: string | Buffer | number, callback?: Callback<string[][] | null>): Result<string[][] | null, Context>;
+  vlinksBuffer(key: RedisKey, element: string | Buffer | number, callback?: Callback<Buffer[][] | null>): Result<Buffer[][] | null, Context>;
+  vlinks(key: RedisKey, element: string | Buffer | number, withscores: 'WITHSCORES', callback?: Callback<string[][] | null>): Result<string[][] | null, Context>;
+  vlinksBuffer(key: RedisKey, element: string | Buffer | number, withscores: 'WITHSCORES', callback?: Callback<Buffer[][] | null>): Result<Buffer[][] | null, Context>;
+
+  /**
+   * Return one or multiple random members from a vector set
+   * - _group_: module
+   * - _complexity_: undefined
+   * - _since_: 8.0.0
+   */
+  vrandmember(key: RedisKey, callback?: Callback<string | null>): Result<string | null, Context>;
+  vrandmemberBuffer(key: RedisKey, callback?: Callback<Buffer | null>): Result<Buffer | null, Context>;
+  vrandmember(key: RedisKey, count: number | string, callback?: Callback<string[]>): Result<string[], Context>;
+  vrandmemberBuffer(key: RedisKey, count: number | string, callback?: Callback<Buffer[]>): Result<Buffer[], Context>;
+
+  /**
+   * Return vector set elements in a lex range
+   * - _group_: module
+   * - _complexity_: undefined
+   * - _since_: 8.4.0
+   */
+  vrange(key: RedisKey, start: string | Buffer | number, end: string | Buffer | number, callback?: Callback<string[]>): Result<string[], Context>;
+  vrangeBuffer(key: RedisKey, start: string | Buffer | number, end: string | Buffer | number, callback?: Callback<Buffer[]>): Result<Buffer[], Context>;
+  vrange(key: RedisKey, start: string | Buffer | number, end: string | Buffer | number, count: number | string, callback?: Callback<string[]>): Result<string[], Context>;
+  vrangeBuffer(key: RedisKey, start: string | Buffer | number, end: string | Buffer | number, count: number | string, callback?: Callback<Buffer[]>): Result<Buffer[], Context>;
+
+  /**
+   * Remove an element from a vector set
+   * - _group_: module
+   * - _complexity_: undefined
+   * - _since_: 8.0.0
+   */
+  vrem(key: RedisKey, element: string | Buffer | number, callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Associate or remove the JSON attributes of elements
+   * - _group_: module
+   * - _complexity_: undefined
+   * - _since_: 8.0.0
+   */
+  vsetattr(key: RedisKey, element: string | Buffer | number, json: string | Buffer, callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Return elements by vector similarity
+   * - _group_: module
+   * - _complexity_: undefined
+   * - _since_: 8.0.0
+   */
+  vsim(...args: [key: RedisKey, ...args: (RedisValue)[], callback: Callback<(string | null)[]>]): Result<(string | null)[], Context>;
+  vsimBuffer(...args: [key: RedisKey, ...args: (RedisValue)[], callback: Callback<(Buffer | null)[]>]): Result<(Buffer | null)[], Context>;
+  vsim(...args: [key: RedisKey, ...args: (RedisValue)[]]): Result<(string | null)[], Context>;
+  vsimBuffer(...args: [key: RedisKey, ...args: (RedisValue)[]]): Result<(Buffer | null)[], Context>;
+
+  /**
    * Wait for the synchronous replication of all the write commands sent in the context of the current connection
    * - _group_: generic
    * - _complexity_: O(1)

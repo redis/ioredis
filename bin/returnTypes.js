@@ -306,6 +306,23 @@ module.exports = {
   type: "string",
   unlink: "number",
   unwatch: "'OK'",
+  vadd: "number",
+  vcard: "number",
+  vdim: "number",
+  vemb: "string[] | null",
+  vgetattr: "string | null",
+  vinfo: "(string | number)[] | null",
+  vismember: "number",
+  vlinks: "string[][] | null",
+  vrandmember: (types) => {
+    return types.some((type) => type.includes("number"))
+      ? "string[]"
+      : "string | null";
+  },
+  vrange: "string[]",
+  vrem: "number",
+  vsetattr: "number",
+  vsim: "(string | null)[]",
   wait: "number",
   watch: "'OK'",
   zadd: (types) => {
