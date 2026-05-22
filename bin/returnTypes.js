@@ -94,6 +94,32 @@ module.exports = {
     }
   },
   append: "number",
+  arcount: "number",
+  ardel: "number",
+  ardelrange: "number",
+  arget: "string | null",
+  argetrange: "(string | null)[]",
+  argrep: (types) => {
+    return hasToken(types, "WITHVALUES")
+      ? "Array<[index: number, value: string]>"
+      : "number[]";
+  },
+  arinfo: "(string | number)[]",
+  arinsert: "number",
+  arlastitems: "(string | null)[]",
+  arlen: "number",
+  armget: "(string | null)[]",
+  armset: "number",
+  arnext: "number | null",
+  arop: (types) => {
+    if (hasToken(types, ["SUM", "MIN", "MAX"])) return "string | null";
+    if (hasToken(types, ["AND", "OR", "XOR"])) return "number | null";
+    if (hasToken(types, ["MATCH", "USED"])) return "number";
+  },
+  arring: "number",
+  arscan: "Array<[index: number, value: string]>",
+  arseek: "number",
+  arset: "number",
   asking: "'OK'",
   auth: "'OK'",
   bgrewriteaof: "string",
@@ -127,7 +153,6 @@ module.exports = {
   failover: "'OK'",
   flushall: "'OK'",
   flushdb: "'OK'",
-  gcra: "[limited: 0 | 1, totalLimit: number, remaining: number, retryAfter: number, resetAfter: number]",
   geoadd: "number",
   geohash: "string[]",
   geopos: "([longitude: string, latitude: string] | null)[]",
@@ -216,6 +241,7 @@ module.exports = {
   migrate: "'OK'",
   move: "number",
   mset: "'OK'",
+  msetex: "number",
   msetnx: "number",
   persist: "number",
   pexpire: "number",
