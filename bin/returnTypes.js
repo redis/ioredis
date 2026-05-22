@@ -94,6 +94,32 @@ module.exports = {
     }
   },
   append: "number",
+  arcount: "number",
+  ardel: "number",
+  ardelrange: "number",
+  arget: "string | null",
+  argetrange: "(string | null)[]",
+  argrep: (types) => {
+    return hasToken(types, "WITHVALUES")
+      ? "Array<[index: number, value: string]>"
+      : "number[]";
+  },
+  arinfo: "(string | number)[]",
+  arinsert: "number",
+  arlastitems: "(string | null)[]",
+  arlen: "number",
+  armget: "(string | null)[]",
+  armset: "number",
+  arnext: "number | null",
+  arop: (types) => {
+    if (hasToken(types, ["SUM", "MIN", "MAX"])) return "string | null";
+    if (hasToken(types, ["AND", "OR", "XOR"])) return "number | null";
+    if (hasToken(types, ["MATCH", "USED"])) return "number";
+  },
+  arring: "number",
+  arscan: "Array<[index: number, value: string]>",
+  arseek: "number",
+  arset: "number",
   asking: "'OK'",
   auth: "'OK'",
   bgrewriteaof: "string",
