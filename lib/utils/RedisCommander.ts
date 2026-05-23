@@ -4584,6 +4584,17 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   ): Result<string, Context>;
 
   /**
+   * Increments the numeric value of a key by a number and sets its expiration time. Uses 0 as initial value if the key doesn't exist.
+   * - _group_: string
+   * - _complexity_: O(1)
+   * - _since_: 8.8.0
+   */
+  increx(...args: [key: RedisKey, ...args: (RedisValue)[], callback: Callback<[value: number, increment: number] | [value: string, increment: string]>]): Result<[value: number, increment: number] | [value: string, increment: string], Context>;
+  increxBuffer(...args: [key: RedisKey, ...args: (RedisValue)[], callback: Callback<[value: number, increment: number] | [value: Buffer, increment: Buffer]>]): Result<[value: number, increment: number] | [value: Buffer, increment: Buffer], Context>;
+  increx(...args: [key: RedisKey, ...args: (RedisValue)[]]): Result<[value: number, increment: number] | [value: string, increment: string], Context>;
+  increxBuffer(...args: [key: RedisKey, ...args: (RedisValue)[]]): Result<[value: number, increment: number] | [value: Buffer, increment: Buffer], Context>;
+
+  /**
    * Get information and statistics about the server
    * - _group_: server
    * - _complexity_: O(1)
