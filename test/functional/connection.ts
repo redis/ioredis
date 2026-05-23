@@ -479,6 +479,57 @@ describe("connection", function () {
       });
     });
   });
+
+  describe("enableReadyCheck: false", function () {
+    it("keeps reconnecting after the connection is closed during client setup (#2099)", function (done) {
+      let clientSetupCommands = 0;
+      let connectionsAccepted = 0;
+
+      const server = new MockServer(30010, function (argv, socket, flags) {
+        if (String(argv[0]).toLowerCase() !== "client") {
+          return;
+        }
+        clientSetupCommands += 1;
+        if (clientSetupCommands === 1) {
+          // Drop the first connection while the CLIENT SETNAME handshake
+          // command is still in flight, before replying to it.
+          flags.hang = true;
+          socket.destroy();
+        }
+        // Later connections: reply "+OK" so the client can become ready.
+      });
+      server.on("connect", function () {
+        connectionsAccepted += 1;
+      });
+
+      const redis = new Redis(30010, {
+        enableReadyCheck: false,
+        disableClientInfo: true,
+        connectionName: "test-2099",
+        // Forces closeHandler() to flush the in-flight setup command on
+        // every close, which is what makes the connect-time readiness
+        // callback run after the connection has already gone away.
+        maxRetriesPerRequest: 0,
+        retryStrategy: () => 50,
+      });
+      redis.on("error", function () {});
+
+      redis.on("ready", function () {
+        // A genuine "ready" only happens if the client actually reconnected,
+        // i.e. the mock server accepted a second connection. With the bug the
+        // client wedges in the "ready" state on the dead first connection and
+        // never reconnects, so only one connection is ever accepted.
+        const err =
+          connectionsAccepted < 2
+            ? new Error(
+                "redis did not reconnect after the connection was closed during client setup"
+              )
+            : undefined;
+        redis.disconnect();
+        done(err);
+      });
+    });
+  });
 });
 
 describe("disconnection", function () {

@@ -112,6 +112,21 @@ export function connectHandler(self) {
     Promise.all(clientCommandPromises)
       .catch(noop)
       .finally(() => {
+        // The connection may have been closed (and possibly already
+        // reconnected) while the client setup commands above were still
+        // in flight. In that case this callback is stale and the
+        // connection is no longer the one we are setting up, so calling
+        // readyHandler() would mark a dead connection as "ready" and
+        // permanently stop reconnection. The enableReadyCheck branch
+        // below is already guarded by the same connectionEpoch check.
+        // See https://github.com/redis/ioredis/issues/2099
+        if (
+          connectionEpoch !== self.connectionEpoch ||
+          self.status !== "connect"
+        ) {
+          return;
+        }
+
         if (!self.options.enableReadyCheck) {
           exports.readyHandler(self)();
         }
