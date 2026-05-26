@@ -138,10 +138,8 @@ export function defaults<T extends object, S extends object>(
     }
 
     const source = sources[i] as Record<string, unknown>;
-    const keys = Object.keys(source);
 
-    for (let j = 0; j < keys.length; j++) {
-      const key = keys[j];
+    for (const key in source) {
       const value = (object as any)[key];
 
       if (

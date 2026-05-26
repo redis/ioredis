@@ -154,6 +154,15 @@ describe("utils", () => {
       expect(actual).to.eql({ a: undefined, b: 1 });
     });
 
+    it("should assign inherited enumerable source properties", () => {
+      const source = Object.create({ a: 1 });
+      source.b = 2;
+
+      const actual = utils.defaults({}, source);
+
+      expect(actual).to.eql({ a: 1, b: 2 });
+    });
+
     it("should assign properties that shadow those on `Object.prototype`", () => {
       const objectProto = Object.prototype;
       const object = {
