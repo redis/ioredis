@@ -112,6 +112,19 @@ expectType<Promise<string[]>>(redis.zrandmember("key", 20));
 expectType<Promise<string | null>>(redis.zscore("key", "member"));
 expectType<Promise<Buffer | null>>(redis.zscoreBuffer("key", "member"));
 
+// Vector set commands
+expectType<Promise<number>>(redis.vcard("key"));
+expectType<Promise<string | null>>(redis.vgetattr("key", "element"));
+expectType<Promise<Buffer | null>>(redis.vgetattrBuffer("key", "element"));
+expectType<Promise<string | null>>(redis.vrandmember("key"));
+expectType<Promise<Buffer | null>>(redis.vrandmemberBuffer("key"));
+expectType<Promise<string[]>>(redis.vrandmember("key", 10));
+expectType<Promise<Buffer[]>>(redis.vrandmemberBuffer("key", 10));
+expectType<Promise<string[]>>(redis.vrange("key", "-", "+"));
+expectType<Promise<Buffer[]>>(redis.vrangeBuffer("key", "-", "+"));
+expectType<Promise<string[]>>(redis.vrange("key", "-", "+", 10));
+expectType<Promise<Buffer[]>>(redis.vrangeBuffer("key", "-", "+", 10));
+
 // GETRANGE
 expectType<Promise<Buffer>>(redis.getrangeBuffer("foo", 0, 1));
 

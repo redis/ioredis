@@ -43,11 +43,11 @@
     "url": "https://opencollective.com/ioredis"
   },
   "dependencies": {
-    "@ioredis/commands": "1.9.0",
+    "@ioredis/commands": "1.10.0",
     "cluster-key-slot": "1.1.1",
     "debug": "4.4.3",
     "denque": "2.1.0",
-    "lodash.defaults": "4.2.0",
+    "lodash.defaults": "4.2.0", 
     "lodash.isarguments": "3.1.0",
     "redis-errors": "1.2.0",
     "redis-parser": "3.0.0",
