@@ -1,3 +1,23 @@
+# [5.11.0](https://github.com/luin/ioredis/compare/v5.10.1...v5.11.0) (2026-05-26)
+
+
+### Bug Fixes
+
+* prevent RangeError from string accumulation in pipeline ([#2088](https://github.com/luin/ioredis/issues/2088)) ([defc077](https://github.com/luin/ioredis/commit/defc07716a9ef10c2077ec4e23ea48cb9ea731fc))
+* replace deprecated url.parse() with WHATWG URL API ([#2081](https://github.com/luin/ioredis/issues/2081)) ([0021a45](https://github.com/luin/ioredis/commit/0021a4590e286aabbf27f4e2fc18f9d2de829ef0)), closes [redis/ioredis#1747](https://github.com/redis/ioredis/issues/1747)
+
+
+### Features
+
+* add array commands, typings and tests ([#2114](https://github.com/luin/ioredis/issues/2114)) ([baf68d6](https://github.com/luin/ioredis/commit/baf68d6d89553672cfac3e08543467b910b561c5))
+* add increx command ([#2115](https://github.com/luin/ioredis/issues/2115)) ([37d0695](https://github.com/luin/ioredis/commit/37d0695b212d865ef24132acff85420ae51dde50))
+* add Redis MSETEX support ([#2111](https://github.com/luin/ioredis/issues/2111)) ([04a4615](https://github.com/luin/ioredis/commit/04a4615e8e96b9c58d017e360b5eaafede8973d0))
+* add typed GCRA command support and functional tests ([#2094](https://github.com/luin/ioredis/issues/2094)) ([468a802](https://github.com/luin/ioredis/commit/468a8023cd2c8f342ec7c55a01bf0c8d17e4b877))
+* add vector set command support ([#2116](https://github.com/luin/ioredis/issues/2116)) ([b7b3def](https://github.com/luin/ioredis/commit/b7b3defbd119d07fb86d071d5eefc255db4920c2))
+* Add xnack command ([#2103](https://github.com/luin/ioredis/issues/2103)) ([187d29b](https://github.com/luin/ioredis/commit/187d29b45000ee46a4baa8ce91eacfa04675aee8))
+* Add zinter zunion count ([#2104](https://github.com/luin/ioredis/issues/2104)) ([0d510bb](https://github.com/luin/ioredis/commit/0d510bbc1cfc8b01d862b76c408f6687f6e77809))
+* Implement `TracingChannel` support ([#2089](https://github.com/luin/ioredis/issues/2089)) ([4760e0a](https://github.com/luin/ioredis/commit/4760e0a19c194f29f4feb703003dcf046e4509cd))
+
 ## [5.10.1](https://github.com/luin/ioredis/compare/v5.10.0...v5.10.1) (2026-03-19)
 
 
