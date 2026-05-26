@@ -7,8 +7,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20.x, 22.x, 24.x]
-        redis: ["rs-7.4.0-v1", "8.2", "8.4.0", "custom-26235535976-debian"]
+        node: [20.x, 22.x, 24.x, 26.x]
+        redis: ["rs-7.4.0-v1", "8.2", "8.4.0", "8.8.0"]
     steps:
       - name: Git checkout
         uses: actions/checkout@v2
