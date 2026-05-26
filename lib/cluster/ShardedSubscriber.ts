@@ -49,8 +49,11 @@ export default class ShardedSubscriber {
     private readonly emitter: EventEmitter,
     options: RedisOptions,
     redisOptions?: ClusterOptions["redisOptions"],
+    // Custom Redis class for sharded subscriber connections.
+    redisClass?: typeof Redis,
   ) {
-    this.instance = new Redis(
+    const RedisClass = redisClass || Redis;
+    this.instance = new RedisClass(
       defaults(
         {
           enableReadyCheck: false,

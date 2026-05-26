@@ -16,11 +16,17 @@ export default class ClusterSubscriber {
   //The slot range for which this subscriber is responsible
   private slotRange: number[] = []
 
+  // Custom Redis class for subscriber connections. Ensures subscriber
+  // connections also use the user-provided Redis subclass.
+  private RedisClass: typeof Redis;
+
   constructor(
     private connectionPool: ConnectionPool,
     private emitter: EventEmitter,
-    private isSharded : boolean = false
+    private isSharded : boolean = false,
+    redisClass?: typeof Redis,
   ) {
+    this.RedisClass = redisClass || Redis;
     // If the current node we're using as the subscriber disappears
     // from the node pool for some reason, we will select a new one
     // to connect to.
@@ -142,7 +148,7 @@ export default class ClusterSubscriber {
     if (this.isSharded)
       connectionPrefix = "ssubscriber";
 
-    this.subscriber = new Redis({
+    this.subscriber = new this.RedisClass({
       port: options.port,
       host: options.host,
       username: options.username,

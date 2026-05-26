@@ -249,10 +249,13 @@ export default class ClusterSubscriberGroup {
           continue;
         }
 
+        // Pass through custom redisClass so sharded subscribers
+        // also use the user-provided subclass.
         const sub = new ShardedSubscriber(
           this.subscriberGroupEmitter,
           redis.options,
           this.options.redisOptions,
+          this.options.redisClass,
         );
 
         this.shardedSubscribers.set(nodeKey, sub);

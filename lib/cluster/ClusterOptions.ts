@@ -2,6 +2,7 @@ import { SrvRecord, resolveSrv, lookup } from "dns";
 import { RedisOptions } from "../redis/RedisOptions";
 import { CommanderOptions } from "../utils/Commander";
 import { NodeRole } from "./util";
+import type Redis from "../Redis";
 
 export type DNSResolveSrvFunction = (
   hostname: string,
@@ -212,6 +213,16 @@ export interface ClusterOptions extends CommanderOptions {
   scripts?:
     | Record<string, { lua: string; numberOfKeys?: number; readOnly?: boolean }>
     | undefined;
+
+  /**
+   * Custom Redis class to use for all internal connections (node pool,
+   * cluster subscriber, sharded subscribers). Must be Redis or a subclass
+   * of Redis. Useful for adding instrumentation, logging, or custom
+   * error handling.
+   *
+   * @default Redis
+   */
+  redisClass?: typeof Redis | undefined;
 }
 
 export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = {

@@ -150,7 +150,10 @@ class Cluster extends Commander {
       );
     }
 
-    this.connectionPool = new ConnectionPool(this.options.redisOptions);
+    // Thread the custom redisClass through to all internal components that
+    // create Redis connections, so users can subclass Redis for instrumentation,
+    // logging, or custom error handling.
+    this.connectionPool = new ConnectionPool(this.options.redisOptions, this.options.redisClass);
 
     this.connectionPool.on("-node", (redis, key) => {
       this.emit("-node", redis);
@@ -165,7 +168,7 @@ class Cluster extends Commander {
       this.emit("node error", error, key);
     });
 
-    this.subscriber = new ClusterSubscriber(this.connectionPool, this);
+    this.subscriber = new ClusterSubscriber(this.connectionPool, this, false, this.options.redisClass);
 
     if (this.options.scripts) {
       Object.entries(this.options.scripts).forEach(([name, definition]) => {
@@ -894,10 +897,12 @@ class Cluster extends Commander {
       return callback(new Error("Node is disconnected"));
     }
 
-    // Use a duplication of the connection to avoid
-    // timeouts when the connection is in the blocking
-    // mode (e.g. waiting for BLPOP).
-    const duplicatedConnection = redis.duplicate({
+    // Use a fresh connection (instead of the potentially-blocking pool node)
+    // to run CLUSTER SLOTS. Uses the custom redisClass if provided
+    // so that instrumented subclasses are used for slot refresh connections too.
+    const RedisClass = this.options.redisClass || Redis;
+    const duplicatedConnection = new RedisClass({
+      ...redis.options,
       enableOfflineQueue: true,
       enableReadyCheck: false,
       retryStrategy: null,
