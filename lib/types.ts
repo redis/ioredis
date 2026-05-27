@@ -4,7 +4,7 @@ import { TLSSocket } from "tls";
 export type Callback<T = any> = (err?: Error | null, result?: T) => void;
 export type NetStream = Socket | TLSSocket;
 
-export type CommandParameter = string | Buffer | number | any[];
+export type CommandParameter = string | Buffer | Uint8Array | number | any[];
 export interface Respondable {
   name: string;
   args: CommandParameter[];

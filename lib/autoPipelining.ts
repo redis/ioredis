@@ -94,7 +94,7 @@ export function shouldUseAutoPipelining(
 
 export function getFirstValueInFlattenedArray(
   args: ArgumentType[]
-): string | Buffer | number | null | undefined {
+): string | Buffer | Uint8Array | number | null | undefined {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (typeof arg === "string") {
@@ -116,10 +116,10 @@ export function getFirstValueInFlattenedArray(
 function getFirstKeyForCommand(
   commandName: string,
   args: ArgumentType[]
-): string | Buffer | number | null | undefined {
+): string | Buffer | Uint8Array | number | null | undefined {
   if (exists(commandName, { caseInsensitive: true })) {
-    const flattenedArgs = args.flat() as (string | Buffer | number)[];
-    const keyIndexes = getKeyIndexes(commandName, flattenedArgs, {
+    const flattenedArgs = args.flat() as (string | Buffer | Uint8Array | number)[];
+    const keyIndexes = getKeyIndexes(commandName, flattenedArgs as any, {
       nameCaseInsensitive: true,
     });
 

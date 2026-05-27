@@ -8,6 +8,34 @@ describe("Command", () => {
       const command = new Command("get", ["foo", ["bar", ["zoo", "zoo"]]]);
       expect(command.args).to.eql(["foo", "bar", "zoo,zoo"]);
     });
+
+    it("should convert Uint8Array arguments to Buffer", () => {
+      const u8 = new Uint8Array([102, 111, 111]); // 'foo'
+      const command = new Command("set", ["key", u8]);
+      expect(command.args[1]).to.be.instanceof(Buffer);
+      expect((command.args[1] as Buffer).toString()).to.eql("foo");
+    });
+
+    it("should convert Uint8Array inside object arguments to Buffer", () => {
+      const u8 = new Uint8Array([98, 97, 114]); // 'bar'
+      const command = new Command("mset", [{ key1: u8 }]);
+      expect(command.args[1]).to.be.instanceof(Buffer);
+      expect((command.args[1] as Buffer).toString()).to.eql("bar");
+    });
+
+    it("should convert Uint8Array inside Map arguments to Buffer", () => {
+      const u8 = new Uint8Array([98, 97, 114]); // 'bar'
+      const command = new Command("mset", [new Map([["key1", u8]])]);
+      expect(command.args[1]).to.be.instanceof(Buffer);
+      expect((command.args[1] as Buffer).toString()).to.eql("bar");
+    });
+
+    it("should convert keyPrefix if it is a Uint8Array", () => {
+      const prefix = new Uint8Array([112, 114, 101, 102, 105, 120, 58]); // 'prefix:'
+      const command = new Command("get", ["key"], { keyPrefix: prefix as any });
+      expect(command.args[0]).to.be.instanceof(Buffer);
+      expect((command.args[0] as Buffer).toString()).to.eql("prefix:key");
+    });
   });
 
   describe("#toWritable()", () => {
@@ -20,6 +48,16 @@ describe("Command", () => {
 
     it("should return buffer when there's at least one arg is a buffer", () => {
       const command = new Command("get", ["foo", Buffer.from("bar"), "zooo"]);
+      const result = command.toWritable();
+      expect(result).to.be.instanceof(Buffer);
+      expect(result.toString()).to.eql(
+        "*4\r\n$3\r\nget\r\n$3\r\nfoo\r\n$3\r\nbar\r\n$4\r\nzooo\r\n"
+      );
+    });
+
+    it("should return buffer when there's at least one arg is a Uint8Array", () => {
+      const u8 = new Uint8Array([98, 97, 114]); // 'bar'
+      const command = new Command("get", ["foo", u8, "zooo"]);
       const result = command.toWritable();
       expect(result).to.be.instanceof(Buffer);
       expect(result.toString()).to.eql(

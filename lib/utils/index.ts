@@ -400,3 +400,4 @@ export async function getPackageMeta() {
 }
 
 export { Debug, defaults, isArguments, noop };
+export * from "./buffer";
