@@ -10,6 +10,7 @@ import {
   checkAndConvertUint8Array,
   isUint8Array,
   toBuffer,
+  toBufferIfUint8Array,
 } from "./utils";
 import { Callback, Respondable, CommandParameter } from "./types";
 import {
@@ -251,10 +252,7 @@ export default class Command implements Respondable {
     this.initPromise();
 
     if (options.keyPrefix) {
-      if (isUint8Array(options.keyPrefix)) {
-        // @ts-expect-error
-        options.keyPrefix = toBuffer(options.keyPrefix);
-      }
+      options.keyPrefix = toBufferIfUint8Array(options.keyPrefix);
       // @ts-expect-error
       const isBufferKeyPrefix = options.keyPrefix instanceof Buffer;
       // @ts-expect-error

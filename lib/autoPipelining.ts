@@ -3,7 +3,7 @@ import * as calculateSlot from "cluster-key-slot";
 import asCallback from "standard-as-callback";
 import { exists, getKeyIndexes, hasFlag } from "@ioredis/commands";
 import { ArgumentType } from "./Command";
-import { isUint8Array, toBuffer } from "./utils";
+import { toBufferIfUint8Array } from "./utils";
 
 export const kExec = Symbol("exec");
 export const kCallbacks = Symbol("callbacks");
@@ -104,19 +104,11 @@ export function getFirstValueInFlattenedArray(
       if (arg.length === 0) {
         continue;
       }
-      const val = arg[0];
-      if (isUint8Array(val)) {
-        return toBuffer(val);
-      }
-      return val;
+      return toBufferIfUint8Array(arg[0]);
     }
     const flattened = [arg].flat();
     if (flattened.length > 0) {
-      const val = flattened[0];
-      if (isUint8Array(val)) {
-        return toBuffer(val);
-      }
-      return val;
+      return toBufferIfUint8Array(flattened[0]);
     }
   }
   return undefined;
@@ -133,11 +125,7 @@ export function getFirstKeyForCommand(
     });
 
     if (keyIndexes.length) {
-      const key = flattenedArgs[keyIndexes[0]];
-      if (isUint8Array(key)) {
-        return toBuffer(key);
-      }
-      return key;
+      return toBufferIfUint8Array(flattenedArgs[keyIndexes[0]]);
     }
   }
 

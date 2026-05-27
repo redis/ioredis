@@ -15,6 +15,13 @@ export function toBuffer(val: Uint8Array): Buffer {
 }
 
 /**
+ * Convert a value to Buffer if it is a Uint8Array, otherwise return it as-is.
+ */
+export function toBufferIfUint8Array(val: any): any {
+  return isUint8Array(val) ? toBuffer(val) : val;
+}
+
+/**
  * Recursively convert any Uint8Array instances in the argument to Buffer.
  * Supports arrays, Map instances, and plain object literals.
  */
