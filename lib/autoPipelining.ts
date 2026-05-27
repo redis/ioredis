@@ -3,6 +3,7 @@ import * as calculateSlot from "cluster-key-slot";
 import asCallback from "standard-as-callback";
 import { exists, getKeyIndexes, hasFlag } from "@ioredis/commands";
 import { ArgumentType } from "./Command";
+import { isUint8Array, toBuffer } from "./utils";
 
 export const kExec = Symbol("exec");
 export const kCallbacks = Symbol("callbacks");
@@ -94,7 +95,7 @@ export function shouldUseAutoPipelining(
 
 export function getFirstValueInFlattenedArray(
   args: ArgumentType[]
-): string | Buffer | Uint8Array | number | null | undefined {
+): string | Buffer | number | null | undefined {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (typeof arg === "string") {
@@ -103,20 +104,28 @@ export function getFirstValueInFlattenedArray(
       if (arg.length === 0) {
         continue;
       }
-      return arg[0];
+      const val = arg[0];
+      if (isUint8Array(val)) {
+        return toBuffer(val);
+      }
+      return val;
     }
     const flattened = [arg].flat();
     if (flattened.length > 0) {
-      return flattened[0];
+      const val = flattened[0];
+      if (isUint8Array(val)) {
+        return toBuffer(val);
+      }
+      return val;
     }
   }
   return undefined;
 }
 
-function getFirstKeyForCommand(
+export function getFirstKeyForCommand(
   commandName: string,
   args: ArgumentType[]
-): string | Buffer | Uint8Array | number | null | undefined {
+): string | Buffer | number | null | undefined {
   if (exists(commandName, { caseInsensitive: true })) {
     const flattenedArgs = args.flat() as (string | Buffer | Uint8Array | number)[];
     const keyIndexes = getKeyIndexes(commandName, flattenedArgs as any, {
@@ -124,7 +133,11 @@ function getFirstKeyForCommand(
     });
 
     if (keyIndexes.length) {
-      return flattenedArgs[keyIndexes[0]];
+      const key = flattenedArgs[keyIndexes[0]];
+      if (isUint8Array(key)) {
+        return toBuffer(key);
+      }
+      return key;
     }
   }
 
