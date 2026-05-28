@@ -1096,6 +1096,14 @@ cluster.get("foo", (err, res) => {
       }
       ```
 
+    - `clusterNodeRetryStrategy`: Per-node retry strategy. By default, ioredis won't try to reconnect to a lost node and just waits for a `MOVED` error to refresh slots. If you pass a function here, it's used as the `retryStrategy` for each node — return a number to reconnect after that many ms, or anything else to drop the node from the pool. Handy for replica nodes that restart without slot changes (e.g. maintenance). Example:
+
+      ```javascript
+      function (times) {
+        return Math.min(100 * times, 2000);
+      }
+      ```
+
     - `dnsLookup`: Alternative DNS lookup function (`dns.lookup()` is used by default). It may be useful to override this in special cases, such as when AWS ElastiCache used with TLS enabled.
     - `enableOfflineQueue`: Similar to the `enableOfflineQueue` option of `Redis` class.
     - `enableReadyCheck`: When enabled, "ready" event will only be emitted when `CLUSTER INFO` command

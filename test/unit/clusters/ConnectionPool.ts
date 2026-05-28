@@ -3,6 +3,42 @@ import { expect } from "chai";
 import ConnectionPool from "../../../lib/cluster/ConnectionPool";
 
 describe("ConnectionPool", () => {
+  describe("clusterNodeRetryStrategy", () => {
+    it("sets retryStrategy to null when clusterNodeRetryStrategy is not provided", () => {
+      const pool = new ConnectionPool({});
+      const redis = pool.findOrCreate({ host: "127.0.0.1", port: 30001 });
+      expect(redis.options.retryStrategy).to.be.null;
+    });
+
+    it("sets retryStrategy to null when clusterNodeRetryStrategy is null", () => {
+      const pool = new ConnectionPool({}, null);
+      const redis = pool.findOrCreate({ host: "127.0.0.1", port: 30001 });
+      expect(redis.options.retryStrategy).to.be.null;
+    });
+
+    it("uses clusterNodeRetryStrategy as retryStrategy when it is a function", () => {
+      const strategy = (times: number) => times * 100;
+      const pool = new ConnectionPool({}, strategy);
+      const redis = pool.findOrCreate({ host: "127.0.0.1", port: 30001 });
+      expect(redis.options.retryStrategy).to.equal(strategy);
+    });
+  });
+
+  describe("nodeError event", () => {
+    it("emits nodeError on the pool when a node emits an error", (done) => {
+      const pool = new ConnectionPool({});
+      const redis = pool.findOrCreate({ host: "127.0.0.1", port: 30001 });
+
+      pool.on("nodeError", (error, key) => {
+        expect(error.message).to.eql("test error");
+        expect(key).to.eql("127.0.0.1:30001");
+        done();
+      });
+
+      redis.emit("error", new Error("test error"));
+    });
+  });
+
   describe("#reset", () => {
     it("prefers to master if there are two same node for a slot", () => {
       const pool = new ConnectionPool({});
