@@ -3,12 +3,13 @@ import Deque = require("denque");
 import { EventEmitter } from "events";
 import Command from "./Command";
 import { Debug } from "./utils";
-import * as RedisParser from "redis-parser";
 import SubscriptionSet from "./SubscriptionSet";
+import { Decoder, RESP_TYPES } from "./resp/decoder";
+import { TypeMapping } from "./resp/types";
 
 const debug = Debug("dataHandler");
 
-type ReplyData = string | Buffer | number | Array<string | Buffer | number>;
+type ReplyData = null | boolean | string | Buffer | number | Array<ReplyData>;
 
 export interface Condition {
   select: number;
@@ -42,23 +43,26 @@ interface ParserOptions {
 
 export default class DataHandler {
   constructor(private redis: DataHandledable, parserOptions: ParserOptions) {
-    const parser = new RedisParser({
-      stringNumbers: parserOptions.stringNumbers,
-      returnBuffers: true,
-      returnError: (err: Error) => {
+    const decoder = new Decoder({
+      getTypeMapping: () => getParserTypeMapping(parserOptions),
+      onReply: (reply: any) => {
+        this.returnReply(reply);
+      },
+      onErrorReply: (err: Error) => {
         this.returnError(err);
       },
-      returnFatalError: (err: Error) => {
-        this.returnFatalError(err);
-      },
-      returnReply: (reply: any) => {
-        this.returnReply(reply);
+      onPush: (reply: any) => {
+        this.returnPush(reply);
       },
     });
 
     // prependListener ensures the parser receives and processes data before socket timeout checks are performed
     redis.stream.prependListener("data", (data) => {
-      parser.execute(data);
+      try {
+        decoder.write(data);
+      } catch (err) {
+        this.returnFatalError(err as Error);
+      }
     });
     // prependListener() doesn't enable flowing mode automatically - we need to resume the stream manually
     redis.stream.resume();
@@ -116,6 +120,67 @@ export default class DataHandler {
       }
     } else {
       item.command.resolve(reply);
+    }
+  }
+
+  private returnPush(reply: ReplyData) {
+    if (!Array.isArray(reply) || reply.length === 0) {
+      return;
+    }
+
+    const replyType = reply[0].toString();
+    debug('receive push "%s"', replyType);
+
+    switch (replyType) {
+      case "message":
+      case "pmessage":
+      case "smessage":
+        this.handleSubscriberReply(reply);
+        break;
+      case "ssubscribe":
+      case "subscribe":
+      case "psubscribe": {
+        if (!this.redis.condition.subscriber) {
+          this.redis.condition.subscriber = new SubscriptionSet();
+        }
+
+        const channel = reply[1].toString();
+        this.redis.condition.subscriber.add(replyType, channel);
+        const item = this.shiftCommand(reply);
+        if (!item) {
+          return;
+        }
+        if (
+          !fillSubCommand(item.command, reply[2] as string | Buffer | number)
+        ) {
+          this.redis.commandQueue.unshift(item);
+        }
+        break;
+      }
+      case "sunsubscribe":
+      case "unsubscribe":
+      case "punsubscribe": {
+        if (this.redis.condition.subscriber) {
+          const channel = reply[1] ? reply[1].toString() : null;
+          if (channel) {
+            this.redis.condition.subscriber.del(replyType, channel);
+          }
+        }
+
+        const count = reply[2] as string | Buffer | number;
+        if (Number(count) === 0) {
+          this.redis.condition.subscriber = false;
+        }
+
+        const item = this.shiftCommand(reply);
+        if (!item) {
+          return;
+        }
+        if (!fillUnsubCommand(item.command, count)) {
+          this.redis.commandQueue.unshift(item);
+        }
+        break;
+      }
     }
   }
 
@@ -254,9 +319,30 @@ export default class DataHandler {
   }
 }
 
+const baseTypeMapping: TypeMapping = {
+  [RESP_TYPES.SIMPLE_STRING]: Buffer,
+  [RESP_TYPES.BLOB_STRING]: Buffer,
+  [RESP_TYPES.VERBATIM_STRING]: Buffer,
+  [RESP_TYPES.BIG_NUMBER]: String,
+  [RESP_TYPES.DOUBLE]: String,
+  [RESP_TYPES.MAP]: Array,
+  [RESP_TYPES.SET]: Array,
+};
+
+const stringNumbersTypeMapping: TypeMapping = {
+  ...baseTypeMapping,
+  [RESP_TYPES.NUMBER]: String,
+};
+
+function getParserTypeMapping(parserOptions: ParserOptions): TypeMapping {
+  return parserOptions.stringNumbers
+    ? stringNumbersTypeMapping
+    : baseTypeMapping;
+}
+
 const remainingRepliesMap = new WeakMap<Respondable, number>();
 
-function fillSubCommand(command: Respondable, count: number) {
+function fillSubCommand(command: Respondable, count: string | Buffer | number) {
   let remainingReplies = remainingRepliesMap.has(command)
     ? remainingRepliesMap.get(command)
     : command.args.length;
@@ -272,7 +358,10 @@ function fillSubCommand(command: Respondable, count: number) {
   return false;
 }
 
-function fillUnsubCommand(command: Respondable, count: number) {
+function fillUnsubCommand(
+  command: Respondable,
+  count: string | Buffer | number
+) {
   let remainingReplies = remainingRepliesMap.has(command)
     ? remainingRepliesMap.get(command)
     : command.args.length;

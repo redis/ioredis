@@ -24,7 +24,17 @@ export function connectHandler(self) {
     // AUTH command should be processed before any other commands
     let flushed = false;
     const { connectionEpoch } = self;
-    if (self.condition.auth) {
+    if (self.options.protocol === 3) {
+      self.hello(getHelloCommandArgs(self), function (err) {
+        if (connectionEpoch !== self.connectionEpoch) {
+          return;
+        }
+        if (err) {
+          flushed = true;
+          self.recoverFromFatalError(err, err);
+        }
+      });
+    } else if (self.condition.auth) {
       self.auth(self.condition.auth, function (err) {
         if (connectionEpoch !== self.connectionEpoch) {
           return;
@@ -154,6 +164,22 @@ export function connectHandler(self) {
         }
       });
   };
+}
+
+function getHelloCommandArgs(self) {
+  const args: Array<string | number> = [3];
+
+  if (self.condition.auth) {
+    args.push("AUTH");
+
+    if (Array.isArray(self.condition.auth)) {
+      args.push(self.condition.auth[0], self.condition.auth[1]);
+    } else {
+      args.push("default", self.condition.auth);
+    }
+  }
+
+  return args;
 }
 
 function abortError(command: Respondable) {

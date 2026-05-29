@@ -99,8 +99,8 @@ class Cluster extends Commander {
   private offlineQueue = new Deque<OfflineQueueItem>();
   private subscriber: ClusterSubscriber;
   private shardedSubscribers: ClusterSubscriberGroup;
-  private slotsTimer: NodeJS.Timer;
-  private reconnectTimeout: NodeJS.Timer;
+  private slotsTimer: ReturnType<typeof setTimeout> | null;
+  private reconnectTimeout: ReturnType<typeof setTimeout> | null;
   private isRefreshing = false;
   private _refreshSlotsCacheCallbacks = [];
   private _autoPipelines: Map<string, typeof Pipeline> = new Map();

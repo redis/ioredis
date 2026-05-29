@@ -44,6 +44,8 @@ export interface SentinelConnectionOptions {
   sentinelUsername?: string | undefined;
   sentinelPassword?: string | undefined;
   sentinels?: Array<Partial<SentinelAddress>> | undefined;
+  path?: string | undefined;
+  family?: number | undefined;
   sentinelRetryStrategy?:
     | ((retryAttempts: number) => number | void | null)
     | undefined;
@@ -312,11 +314,9 @@ export default class SentinelConnector extends AbstractConnector {
       password: this.options.sentinelPassword || null,
       family:
         endpoint.family ||
-        // @ts-expect-error
         ("path" in this.options && this.options.path
           ? undefined
-          : // @ts-expect-error
-            this.options.family),
+          : this.options.family),
       tls: this.options.sentinelTLS,
       retryStrategy: null,
       enableReadyCheck: false,

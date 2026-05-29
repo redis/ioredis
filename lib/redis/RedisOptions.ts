@@ -142,6 +142,12 @@ export interface CommonRedisOptions extends CommanderOptions {
   stringNumbers?: boolean | undefined;
 
   /**
+   * The RESP protocol version to use.
+   * @default 2
+   */
+  protocol?: 2 | 3 | undefined;
+
+  /**
    * How long the client will wait before killing a socket due to inactivity during initial connection.
    * @default 10000
    */
@@ -275,6 +281,7 @@ export const DEFAULT_REDIS_OPTIONS: RedisOptions = {
   reconnectOnError: null,
   readOnly: false,
   stringNumbers: false,
+  protocol: 2,
   maxRetriesPerRequest: 20,
   maxLoadingRetryTime: 10000,
   enableAutoPipelining: false,

@@ -2,7 +2,8 @@ import { createServer, Server, Socket } from "net";
 import { EventEmitter } from "events";
 import { convertBufferToString } from "../../lib/utils";
 import enableDestroy = require("server-destroy");
-import Parser = require("redis-parser");
+import { Decoder, RESP_TYPES } from "../../lib/resp/decoder";
+import { TypeMapping } from "../../lib/resp/types";
 
 let createdMockServers: MockServer[] = [];
 const RAW_DATA_KEY = "___IOREDIS_MOCK_ROW_DATA___";
@@ -27,6 +28,14 @@ afterEach((done) => {
 });
 
 const connectionNameMap: WeakMap<Socket, string> = new WeakMap();
+const typeMapping: TypeMapping = {
+  [RESP_TYPES.SIMPLE_STRING]: Buffer,
+  [RESP_TYPES.BLOB_STRING]: Buffer,
+  [RESP_TYPES.BIG_NUMBER]: String,
+  [RESP_TYPES.DOUBLE]: String,
+  [RESP_TYPES.MAP]: Array,
+  [RESP_TYPES.SET]: Array,
+};
 
 export function getConnectionName(socket: Socket): string | undefined {
   return connectionNameMap.get(socket);
@@ -71,10 +80,9 @@ export default class MockServer extends EventEmitter {
         this.emit("connect", c);
       });
 
-      const parser = new Parser({
-        returnBuffers: true,
-        stringNumbers: false,
-        returnReply: (reply: any) => {
+      const decoder = new Decoder({
+        getTypeMapping: () => typeMapping,
+        onReply: (reply: any) => {
           reply = convertBufferToString(reply, "utf8");
           if (
             reply.length === 3 &&
@@ -101,7 +109,8 @@ export default class MockServer extends EventEmitter {
             this.disconnect();
           }
         },
-        returnError: () => {},
+        onErrorReply: () => {},
+        onPush: () => {},
       });
 
       c.on("end", () => {
@@ -110,7 +119,7 @@ export default class MockServer extends EventEmitter {
       });
 
       c.on("data", (data) => {
-        parser.execute(data);
+        decoder.write(data);
       });
     });
 
