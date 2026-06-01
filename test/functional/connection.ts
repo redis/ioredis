@@ -481,11 +481,11 @@ describe("connection", function () {
   });
 
   describe("enableReadyCheck: false", function () {
-    it("keeps reconnecting after the connection is closed during client setup (#2099)", function (done) {
+    it("keeps reconnecting after the connection is closed during client setup (#2099)", (done) => {
       let clientSetupCommands = 0;
       let connectionsAccepted = 0;
 
-      const server = new MockServer(30010, function (argv, socket, flags) {
+      const node = new MockServer(30010, function (argv, socket, flags) {
         if (String(argv[0]).toLowerCase() !== "client") {
           return;
         }
@@ -498,7 +498,7 @@ describe("connection", function () {
         }
         // Later connections: reply "+OK" so the client can become ready.
       });
-      server.on("connect", function () {
+      node.on("connect", function () {
         connectionsAccepted += 1;
       });
 
