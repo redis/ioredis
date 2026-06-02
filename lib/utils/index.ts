@@ -215,10 +215,14 @@ export function parseURL(url: string): Record<string, unknown> {
 
   // Determine if the URL has a known protocol (redis:// or rediss://)
   const hasProtocol = /^rediss?:\/\//i.test(rawUrl);
+  const isProtocolRelative = rawUrl.startsWith("//");
+  // TODO(next major): Consider rejecting protocol-relative Redis URLs early and
+  // requiring explicit redis:// or rediss:// schemes instead. Keep them working
+  // in 5.x for backward compatibility.
 
   // Unix socket paths (starting with "/") are not valid URLs — handle separately.
   // Preserve query params (e.g., /tmp/redis.sock?db=2)
-  if (rawUrl[0] === "/") {
+  if (rawUrl[0] === "/" && !isProtocolRelative) {
     const qIdx = rawUrl.indexOf("?");
     const result: Record<string, unknown> = {
       path: qIdx === -1 ? rawUrl : rawUrl.slice(0, qIdx),
@@ -237,6 +241,8 @@ export function parseURL(url: string): Record<string, unknown> {
   let parsed: URL;
   if (hasProtocol) {
     parsed = new URL(rawUrl);
+  } else if (isProtocolRelative) {
+    parsed = new URL("redis:" + rawUrl);
   } else {
     // Prepend a dummy protocol so new URL() can parse "host:port?query" correctly
     parsed = new URL("redis://" + rawUrl);
@@ -258,8 +264,9 @@ export function parseURL(url: string): Record<string, unknown> {
   }
 
   if (parsed.pathname && parsed.pathname !== "/") {
-    if (hasProtocol) {
-      // For redis:// and rediss://, the path after / is the db number
+    if (hasProtocol || isProtocolRelative) {
+      // For redis://, rediss://, and protocol-relative URLs, the path after /
+      // is the db number
       if (parsed.pathname.length > 1) {
         result.db = parsed.pathname.slice(1);
       }

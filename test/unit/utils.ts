@@ -284,6 +284,24 @@ describe("utils", () => {
         host: "127.0.0.1",
         port: "6379",
       });
+      // TODO(next major): Consider rejecting protocol-relative Redis URLs early
+      // and requiring redis:// or rediss:// instead. Keep this behavior in 5.x
+      // for backward compatibility.
+      expect(utils.parseURL("//service-redis:6379")).to.eql({
+        host: "service-redis",
+        port: "6379",
+      });
+      expect(utils.parseURL("//pi.local:6379?family=4")).to.eql({
+        host: "pi.local",
+        port: "6379",
+        family: 4,
+      });
+      expect(utils.parseURL("//127.0.0.1:6379/4?key=value")).to.eql({
+        host: "127.0.0.1",
+        port: "6379",
+        db: "4",
+        key: "value",
+      });
       expect(utils.parseURL("127.0.0.1:6379?db=2&key=value")).to.eql({
         host: "127.0.0.1",
         port: "6379",
