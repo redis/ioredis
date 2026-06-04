@@ -1,3 +1,11 @@
+## [5.11.1](https://github.com/luin/ioredis/compare/v5.11.0...v5.11.1) (2026-06-04)
+
+
+### Bug Fixes
+
+* **cluster:** reconnect to nodes that restart without slot changes ([#2096](https://github.com/luin/ioredis/issues/2096)) ([c84b2ee](https://github.com/luin/ioredis/commit/c84b2ee97fd7b25d8f6ef8b509c228a602f47cca))
+* parse protocol-relative Redis URLs as TCP connections ([#2125](https://github.com/luin/ioredis/issues/2125)) ([131ee24](https://github.com/luin/ioredis/commit/131ee24173380b986e62ecc428ddde82be12bc40))
+
 # [5.11.0](https://github.com/luin/ioredis/compare/v5.10.1...v5.11.0) (2026-05-26)
 
 
