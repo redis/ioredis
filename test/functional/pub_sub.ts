@@ -213,4 +213,22 @@ describe("pub/sub", function () {
     expect(await redis.set("foo", "bar")).to.eql("OK");
     redis.disconnect();
   });
+
+  it("should subscribe on connect without errors", (done) => {
+    const redis = new Redis();
+    
+    redis.on("error", () => {
+      throw new Error("should not error");
+    });
+
+    redis.on("connect", async () => {
+      await redis.subscribe("foo");
+      redis.disconnect();
+
+      redis.on("end", () => {
+        // Make sure there's enough time for the error to be emitted
+        setTimeout(done, 500);
+      });
+    });
+  });
 });
