@@ -11,10 +11,10 @@ jobs:
         redis: ["rs-7.4.0-v1", "8.2", "8.4.0", "8.8.0"]
     steps:
       - name: Git checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
 
       - name: Use Node.js ${{ matrix.node }}
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
 
@@ -31,7 +31,7 @@ jobs:
       - name: Coveralls
         if: matrix.node == '24.x'
         continue-on-error: true
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: node-${{matrix.node}}
@@ -43,7 +43,7 @@ jobs:
     steps:
       - name: Coveralls
         continue-on-error: true
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel-finished: true
