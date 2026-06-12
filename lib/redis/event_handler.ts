@@ -5,7 +5,12 @@ import { AbortError } from "redis-errors";
 import Command from "../Command";
 import { MaxRetriesPerRequestError } from "../errors";
 import { CommandItem, Respondable } from "../types";
-import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
+import {
+  Debug,
+  noop,
+  CONNECTION_CLOSED_ERROR_MSG,
+  isResp2SubscriberMode,
+} from "../utils";
 import DataHandler from "../DataHandler";
 
 const debug = Debug("connection");
@@ -19,8 +24,20 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
   const commands: HandshakeCommand[] = [];
 
   if (self.options.protocol === 3) {
+    const helloCommandArgs: Array<string | number> = [self.options.protocol];
+
+    if (self.condition.auth) {
+      helloCommandArgs.push("AUTH");
+
+      if (Array.isArray(self.condition.auth)) {
+        helloCommandArgs.push(self.condition.auth[0], self.condition.auth[1]);
+      } else {
+        helloCommandArgs.push("default", self.condition.auth);
+      }
+    }
+
     commands.push({
-      send: () => self.hello(getHelloCommandArgs(self)),
+      send: () => self.hello(helloCommandArgs),
       errorHandler: handleAuthError,
     });
   } else if (self.condition.auth) {
@@ -55,17 +72,19 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
 
   if (!self.options.disableClientInfo) {
     debug("set the client info");
- 
+
     let version = "unknown";
-  
+
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { version: clientVersion } = require("../../package.json") as { version: string };
-      version = clientVersion
+      const { version: clientVersion } = require("../../package.json") as {
+        version: string;
+      };
+      version = clientVersion;
     } catch {
       // noop
     }
-  
+
     commands.push({
       send: () => self.client("SETINFO", "LIB-VER", version),
       errorHandler: noop,
@@ -98,6 +117,8 @@ export function connectHandler(self) {
     */
     new DataHandler(self, {
       stringNumbers: self.options.stringNumbers,
+      replyMapping: self.options.replyMapping,
+      protocol: self.options.protocol,
     });
 
     const { connectionEpoch } = self;
@@ -129,7 +150,10 @@ export function connectHandler(self) {
         // the connection is already in subscriber mode. Issuing INFO would
         // be rejected and trigger a spurious reconnect — skip the ready
         // check and let readyHandler finish setting up.
-        if (!self.options.enableReadyCheck || self.condition?.subscriber) {
+        if (
+          !self.options.enableReadyCheck ||
+          isResp2SubscriberMode(self.options, self.condition)
+        ) {
           exports.readyHandler(self)();
           return;
         }
@@ -138,7 +162,7 @@ export function connectHandler(self) {
           if (connectionEpoch !== self.connectionEpoch) return;
           // Late-race variant: SUBSCRIBE response landed during the INFO
           // round-trip, so INFO came back rejected. Same disposition.
-          if (err && self.condition?.subscriber) {
+          if (err && isResp2SubscriberMode(self.options, self.condition)) {
             exports.readyHandler(self)();
             return;
           }
@@ -182,22 +206,6 @@ function handleAuthError(err: Error): void {
     return;
   }
   throw err;
-}
-
-function getHelloCommandArgs(self): Array<string | number> {
-  const args: Array<string | number> = [3];
-
-  if (self.condition.auth) {
-    args.push("AUTH");
-
-    if (Array.isArray(self.condition.auth)) {
-      args.push(self.condition.auth[0], self.condition.auth[1]);
-    } else {
-      args.push("default", self.condition.auth);
-    }
-  }
-
-  return args;
 }
 
 function abortError(command: Respondable) {

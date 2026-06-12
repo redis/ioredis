@@ -1084,7 +1084,19 @@ export class Decoder {
         );
       }
 
-      object[key] = value;
+      // Guard "__proto__"/"constructor" via defineProperty, where a bare
+      // assignment would tamper with the object. Issue #1267. Normal keys take
+      // the fast plain-assignment path.
+      if (key === "__proto__" || key === "constructor") {
+        Object.defineProperty(object, key, {
+          value,
+          configurable: true,
+          enumerable: true,
+          writable: true,
+        });
+      } else {
+        object[key] = value;
+      }
       --remaining;
     }
 
@@ -1126,7 +1138,19 @@ export class Decoder {
       );
     }
 
-    object[key] = value;
+    // Guard "__proto__"/"constructor" via defineProperty, where a bare
+    // assignment would tamper with the object. Issue #1267. Normal keys take
+    // the fast plain-assignment path.
+    if (key === "__proto__" || key === "constructor") {
+      Object.defineProperty(object, key, {
+        value,
+        configurable: true,
+        enumerable: true,
+        writable: true,
+      });
+    } else {
+      object[key] = value;
+    }
 
     return this.#decodeMapAsObject(object, remaining - 1, typeMapping, chunk);
   }
@@ -1151,7 +1175,19 @@ export class Decoder {
       );
     }
 
-    object[key] = value;
+    // Guard "__proto__"/"constructor" via defineProperty, where a bare
+    // assignment would tamper with the object. Issue #1267. Normal keys take
+    // the fast plain-assignment path.
+    if (key === "__proto__" || key === "constructor") {
+      Object.defineProperty(object, key, {
+        value,
+        configurable: true,
+        enumerable: true,
+        writable: true,
+      });
+    } else {
+      object[key] = value;
+    }
 
     return this.#decodeMapAsObject(object, remaining - 1, typeMapping, chunk);
   }

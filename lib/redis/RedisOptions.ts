@@ -148,6 +148,20 @@ export interface CommonRedisOptions extends CommanderOptions {
   protocol?: 2 | 3 | undefined;
 
   /**
+   * How RESP3-only reply types are represented in JavaScript.
+   * Only supported when `protocol` is 3.
+   *
+   * - `"legacy"` (default): RESP2-compatible shapes. Map replies arrive as
+   *   flat `[key, value, ...]` arrays and doubles as strings, so replies are
+   *   identical across both protocols.
+   * - `"resp3"`: map replies arrive as plain objects (with string keys) and
+   *   doubles as numbers.
+   *
+   * @default "legacy"
+   */
+  replyMapping?: "legacy" | "resp3" | undefined;
+
+  /**
    * How long the client will wait before killing a socket due to inactivity during initial connection.
    * @default 10000
    */
@@ -282,6 +296,7 @@ export const DEFAULT_REDIS_OPTIONS: RedisOptions = {
   readOnly: false,
   stringNumbers: false,
   protocol: 2,
+  replyMapping: "legacy",
   maxRetriesPerRequest: 20,
   maxLoadingRetryTime: 10000,
   enableAutoPipelining: false,

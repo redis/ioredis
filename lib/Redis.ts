@@ -26,6 +26,7 @@ import {
   CONNECTION_CLOSED_ERROR_MSG,
   Debug,
   isInt,
+  isResp2SubscriberMode,
   parseURL,
   resolveTLSProfile,
 } from "./utils";
@@ -377,7 +378,7 @@ class Redis extends Commander implements DataHandledable {
   get mode(): "normal" | "subscriber" | "monitor" {
     return this.options.monitor
       ? "monitor"
-      : this.condition?.subscriber
+      : isResp2SubscriberMode(this.options, this.condition)
       ? "subscriber"
       : "normal";
   }
@@ -451,7 +452,7 @@ class Redis extends Commander implements DataHandledable {
       return command.promise;
     }
     if (
-      this.condition?.subscriber &&
+      isResp2SubscriberMode(this.options, this.condition) &&
       !Command.checkFlag("VALID_IN_SUBSCRIBER_MODE", command.name)
     ) {
       command.reject(
@@ -882,6 +883,12 @@ class Redis extends Commander implements DataHandledable {
     }
     if (typeof options.db === "string") {
       options.db = parseInt(options.db, 10);
+    }
+
+    if (options.replyMapping === "resp3" && options.protocol !== 3) {
+      throw new Error(
+        'The "resp3" replyMapping is only supported with protocol 3'
+      );
     }
 
     // @ts-expect-error

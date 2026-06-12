@@ -39,12 +39,20 @@ export interface DataHandledable extends EventEmitter {
 
 interface ParserOptions {
   stringNumbers: boolean;
+  replyMapping: "legacy" | "resp3";
+  protocol: 2 | 3;
 }
 
 export default class DataHandler {
+  private readonly protocol: 2 | 3;
+
   constructor(private redis: DataHandledable, parserOptions: ParserOptions) {
+    this.protocol = parserOptions.protocol;
+    // Parser options can't change over the lifetime of a connection, so the
+    // mapping is resolved once instead of per reply.
+    const typeMapping = getParserTypeMapping(parserOptions);
     const decoder = new Decoder({
-      getTypeMapping: () => getParserTypeMapping(parserOptions),
+      getTypeMapping: () => typeMapping,
       onReply: (reply: any) => {
         this.returnReply(reply);
       },
@@ -96,7 +104,12 @@ export default class DataHandler {
     if (this.handleMonitorReply(reply)) {
       return;
     }
-    if (this.handleSubscriberReply(reply)) {
+    // Under RESP3, pub/sub traffic arrives exclusively as push frames
+    // (returnPush), so a normal reply on a subscribed connection is always a
+    // command response. Routing it by content would misinterpret replies that
+    // merely look like pub/sub messages (e.g. an LRANGE result starting with
+    // "message") and desync the command queue.
+    if (this.protocol !== 3 && this.handleSubscriberReply(reply)) {
       return;
     }
 
@@ -319,7 +332,17 @@ export default class DataHandler {
   }
 }
 
-const baseTypeMapping: TypeMapping = {
+// All string RESP types (simple, blob, verbatim) decode to Buffer rather than
+// utf8 strings. This keeps the parser encoding-agnostic: ioredis decides
+// utf8-vs-Buffer per command afterwards via `replyEncoding`. Decoding to utf8
+// here would be irreversible and corrupt binary-safe values (e.g. DUMP output,
+// serialized blobs), whereas bytes -> string stays lossless and deferred. This
+// mirrors the old `redis-parser` running with `returnBuffers: true`.
+
+// RESP2-compatible shapes: RESP3-only container and numeric types are
+// flattened so replies are identical across both protocols. Strings stay
+// buffers; utf8 conversion is decided per command by `replyEncoding`.
+const legacyTypeMapping: TypeMapping = {
   [RESP_TYPES.SIMPLE_STRING]: Buffer,
   [RESP_TYPES.BLOB_STRING]: Buffer,
   [RESP_TYPES.VERBATIM_STRING]: Buffer,
@@ -329,15 +352,27 @@ const baseTypeMapping: TypeMapping = {
   [RESP_TYPES.SET]: Array,
 };
 
-const stringNumbersTypeMapping: TypeMapping = {
-  ...baseTypeMapping,
-  [RESP_TYPES.NUMBER]: String,
+// Leaving MAP and DOUBLE unmapped makes the decoder produce plain objects
+// (with string keys) and numbers respectively.
+const resp3TypeMapping: TypeMapping = {
+  [RESP_TYPES.SIMPLE_STRING]: Buffer,
+  [RESP_TYPES.BLOB_STRING]: Buffer,
+  [RESP_TYPES.VERBATIM_STRING]: Buffer,
+  [RESP_TYPES.BIG_NUMBER]: String,
+  [RESP_TYPES.SET]: Array,
 };
 
 function getParserTypeMapping(parserOptions: ParserOptions): TypeMapping {
+  const base =
+    parserOptions.replyMapping === "resp3"
+      ? resp3TypeMapping
+      : legacyTypeMapping;
+
+  // `stringNumbers` means "all numerics as strings", so it wins over the
+  // preset for DOUBLE as well.
   return parserOptions.stringNumbers
-    ? stringNumbersTypeMapping
-    : baseTypeMapping;
+    ? { ...base, [RESP_TYPES.NUMBER]: String, [RESP_TYPES.DOUBLE]: String }
+    : base;
 }
 
 const remainingRepliesMap = new WeakMap<Respondable, number>();
