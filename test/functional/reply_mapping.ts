@@ -11,15 +11,16 @@ describe("replyMapping", function () {
 
   it("rejects the resp3 mapping with protocol 2", () => {
     expect(() => new Redis({ replyMapping: "resp3" })).to.throw(
-      /only supported with protocol 3/
+      /only supported with protocol 3/,
     );
   });
 
   describe("resp3", function () {
     let redis: Redis;
 
-    beforeEach(() => {
+    beforeEach(async () => {
       redis = new Redis({ protocol: 3, replyMapping: "resp3" });
+      await redis.flushall();
     });
 
     afterEach(() => {
@@ -45,6 +46,18 @@ describe("replyMapping", function () {
       } finally {
         legacy.disconnect();
       }
+    });
+
+    it("keeps __proto__ hash fields as own properties", async () => {
+      await redis.hset("reply_mapping_hash", "__proto__", "x", "f1", "v1");
+
+      const reply = await redis.hgetall("reply_mapping_hash");
+
+      expect(Object.getPrototypeOf(reply)).to.equal(Object.prototype);
+      expect(
+        Object.getOwnPropertyDescriptor(reply, "__proto__")?.value,
+      ).to.equal("x");
+      expect(reply.f1).to.equal("v1");
     });
 
     it("keeps Buffer values in object replies for Buffer variants", async () => {
@@ -75,11 +88,9 @@ describe("replyMapping", function () {
         await stringNumbers.zadd("reply_mapping_zset", 1.5, "member");
 
         expect(
-          await stringNumbers.zscore("reply_mapping_zset", "member")
+          await stringNumbers.zscore("reply_mapping_zset", "member"),
         ).to.equal("1.5");
-        expect(await stringNumbers.incr("reply_mapping_counter")).to.equal(
-          "1"
-        );
+        expect(await stringNumbers.incr("reply_mapping_counter")).to.equal("1");
       } finally {
         stringNumbers.disconnect();
       }
@@ -90,7 +101,7 @@ describe("replyMapping", function () {
     let redis: Redis;
 
     beforeEach(() => {
-      redis = new Redis({ protocol: 3 });
+      redis = new Redis({ protocol: 2 });
     });
 
     afterEach(() => {
@@ -102,13 +113,21 @@ describe("replyMapping", function () {
 
       expect(reply).to.be.an("array");
       expect(reply[0]).to.equal("maxmemory");
+
+      await redis.hset("reply_mapping_hash", "f1", "v1");
+
+      const reply2 = (await redis.hgetallBuffer("reply_mapping_hash")) as {
+        f1: Buffer;
+      };
+      expect(Buffer.isBuffer(reply2.f1)).to.equal(true);
+      expect(reply2.f1.toString()).to.equal("v1");
     });
 
     it("keeps the RESP2 shape for double replies", async () => {
       await redis.zadd("reply_mapping_zset", 1.5, "member");
 
       expect(await redis.zscore("reply_mapping_zset", "member")).to.equal(
-        "1.5"
+        "1.5",
       );
     });
   });

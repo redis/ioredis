@@ -28,6 +28,18 @@ function test(name: string, config: Test) {
       }
       assertSpiesCalls(config, setup);
     });
+
+    // Two-chunk split at every byte boundary must decode identically to the
+    // single-chunk write. Guards the single-chunk fast path / resumable
+    // fallback equivalence in #decodeArrayItems and #decodeStringWithLength.
+    it("split at every byte boundary", () => {
+      for (let split = 1; split < config.toWrite.length; split++) {
+        const setup = setupTest(config);
+        setup.decoder.write(config.toWrite.subarray(0, split));
+        setup.decoder.write(config.toWrite.subarray(split));
+        assertSpiesCalls(config, setup);
+      }
+    });
   });
 }
 
@@ -358,6 +370,29 @@ describe("RESP Decoder", () => {
       toWrite: Buffer.from("*-1\r\n"),
       replies: [null],
     });
+
+    test("of blob strings (LRANGE)", {
+      toWrite: Buffer.from("*3\r\n$3\r\nfoo\r\n$6\r\nbarbaz\r\n$0\r\n\r\n"),
+      replies: [["foo", "barbaz", ""]],
+    });
+
+    test("of blob strings as Buffer", {
+      typeMapping: {
+        [RESP_TYPES.BLOB_STRING]: Buffer,
+      },
+      toWrite: Buffer.from("*2\r\n$3\r\nfoo\r\n$6\r\nbarbaz\r\n"),
+      replies: [[Buffer.from("foo"), Buffer.from("barbaz")]],
+    });
+
+    test("of blob strings with null bulk (fast-path fallback)", {
+      toWrite: Buffer.from("*3\r\n$3\r\nfoo\r\n$-1\r\n$3\r\nbar\r\n"),
+      replies: [["foo", null, "bar"]],
+    });
+
+    test("of blob strings with multibyte utf8", {
+      toWrite: Buffer.from("*2\r\n$2\r\né\r\n$3\r\nbar\r\n"),
+      replies: [["é", "bar"]],
+    });
   });
 
   describe("Set", () => {
@@ -464,6 +499,19 @@ describe("RESP Decoder", () => {
           "9",
         ],
       ],
+    });
+
+    test("of blob strings (HGETALL)", {
+      toWrite: Buffer.from("%2\r\n$1\r\na\r\n$3\r\nfoo\r\n$1\r\nb\r\n$6\r\nbarbaz\r\n"),
+      replies: [{ a: "foo", b: "barbaz" }],
+    });
+
+    test("of blob strings (HGETALL) as Array", {
+      typeMapping: {
+        [RESP_TYPES.MAP]: Array,
+      },
+      toWrite: Buffer.from("%2\r\n$1\r\na\r\n$3\r\nfoo\r\n$1\r\nb\r\n$6\r\nbarbaz\r\n"),
+      replies: [["a", "foo", "b", "barbaz"]],
     });
   });
 

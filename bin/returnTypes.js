@@ -134,8 +134,14 @@ module.exports = {
   blmove: "string | null",
   lmpop: "[key: string, members: string[]] | null",
   blmpop: "[key: string, members: string[]] | null",
-  bzpopmin: "[key: string, member: string, score: RespShape<Resp2<string>, Resp3<Resp3Double<string>>, Context>] | null",
-  bzpopmax: "[key: string, member: string, score: RespShape<Resp2<string>, Resp3<Resp3Double<string>>, Context>] | null",
+  bzpopmin: {
+    resp2: "[key: string, member: string, score: string] | null",
+    resp3: "[key: string, member: string, score: Resp3Double<string>] | null",
+  },
+  bzpopmax: {
+    resp2: "[key: string, member: string, score: string] | null",
+    resp3: "[key: string, member: string, score: Resp3Double<string>] | null",
+  },
   command: "unknown[]",
   config: (types) => {
     // CONFIG GET is a MAP reply: flat [k, v, ...] under RESP2, object under RESP3.
@@ -389,7 +395,10 @@ module.exports = {
   },
   zrank: (types) => {
     if (hasToken(types, "WITHSCORE")) {
-      return "[rank: number, score: RespShape<Resp2<string>, Resp3<Resp3Double<string>>, Context>] | null";
+      return {
+        resp2: "[rank: number, score: string] | null",
+        resp3: "[rank: number, score: Resp3Double<string>] | null",
+      };
     }
     return "number | null";
   },
@@ -411,7 +420,10 @@ module.exports = {
   },
   zrevrank: (types) => {
     if (hasToken(types, "WITHSCORE")) {
-      return "[rank: number, score: RespShape<Resp2<string>, Resp3<Resp3Double<string>>, Context>] | null";
+      return {
+        resp2: "[rank: number, score: string] | null",
+        resp3: "[rank: number, score: Resp3Double<string>] | null",
+      };
     }
     return "number | null";
   },

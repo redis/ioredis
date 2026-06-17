@@ -1,10 +1,28 @@
 import Redis from "../../lib/Redis";
 
+/**
+ * Converts a flat [field, value, field, value, ...] reply into an object
+ * keyed by field name, so tests can assert fields by name instead of index.
+ */
+export function toRecord(entry: unknown): Record<string, unknown> {
+  const items = entry as unknown[];
+  const record: Record<string, unknown> = {};
+  for (let index = 0; index < items.length; index += 2) {
+    record[String(items[index])] = items[index + 1];
+  }
+
+  return record;
+}
+
+export function sleep(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
 export function waitForMonitorReady() {
   // It takes a while for the monitor to be ready.
   // This is a hack to wait for it because the monitor command
   // does not have a response
-  return new Promise((resolve) => setTimeout(resolve, 150));
+  return sleep(150);
 }
 
 function parseRedisVersion(version: string): number[] {
@@ -27,7 +45,7 @@ function compareRedisVersions(left: string, right: string): number {
 }
 
 export async function isRedisVersionLowerThan(
-  minimumVersion: string
+  minimumVersion: string,
 ): Promise<boolean> {
   const redis = new Redis();
 
@@ -37,7 +55,7 @@ export async function isRedisVersionLowerThan(
 
     if (!version) {
       throw new Error(
-        "Could not determine redis_version from INFO server response"
+        "Could not determine redis_version from INFO server response",
       );
     }
 
@@ -50,7 +68,7 @@ export async function isRedisVersionLowerThan(
 export async function getCommandsFromMonitor(
   redis: any,
   count: number,
-  exec: Function
+  exec: Function,
 ): Promise<[any]> {
   const arr: string[] = [];
   const monitor = await redis.monitor();
