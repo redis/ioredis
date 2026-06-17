@@ -1,0 +1,25 @@
+import Redis from "../../../lib/Redis";
+import { expect } from "chai";
+import { RESP_CONFIGS } from "../../helpers/respConfigs";
+
+for (const { name, opts } of RESP_CONFIGS) {
+  describe(`zpopmax (${name})`, () => {
+    let redis: Redis;
+
+    beforeEach(async () => {
+      redis = new Redis(opts);
+      await redis.flushdb();
+    });
+
+    afterEach(() => {
+      redis.disconnect();
+    });
+
+    it("pops the member with the highest score", async () => {
+      const key = `zpopmax:${Date.now()}`;
+      await redis.zadd(key, 1, "a", 2, "b");
+
+      expect(await redis.zpopmax(key)).to.eql(["b", "2"]);
+    });
+  });
+}
