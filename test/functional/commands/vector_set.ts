@@ -1,6 +1,6 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
-import { RESP_CONFIGS } from "../../helpers/respConfigs";
+import { RESP_CONFIGS, ReplyMapping } from "../../helpers/respConfigs";
 import { isRedisVersionLowerThan } from "../../helpers/util";
 
 for (const { name, opts } of RESP_CONFIGS) {
@@ -27,11 +27,20 @@ for (const { name, opts } of RESP_CONFIGS) {
         .toString(36)
         .slice(2)}`;
 
-    const toInfoRecord = (reply: (string | number | Buffer)[] | null) => {
+    const toInfoRecord = (
+      reply:
+        | (string | number | Buffer)[]
+        | Record<string, string | number | Buffer>
+        | null
+    ) => {
       const record: Record<string, string | number | Buffer | undefined> = {};
 
       if (!reply) {
         return record;
+      }
+
+      if (!Array.isArray(reply)) {
+        return reply;
       }
 
       for (let index = 0; index < reply.length; index += 2) {
@@ -73,9 +82,24 @@ for (const { name, opts } of RESP_CONFIGS) {
       it("adds new elements and updates existing elements", async () => {
         const vectorKey = key("vadd");
 
-        expect(await addVector(vectorKey, "one")).to.eql(1);
-        expect(await addVector(vectorKey, "one", [1, 2, 4])).to.eql(0);
-        expect(await addVector(vectorKey, "two", [4, 5, 6])).to.eql(1);
+        const expectedAdded: Record<ReplyMapping, number | boolean> = {
+          legacy: 1,
+          resp3: true,
+        };
+        const expectedUpdated: Record<ReplyMapping, number | boolean> = {
+          legacy: 0,
+          resp3: false,
+        };
+
+        expect(await addVector(vectorKey, "one")).to.eql(
+          expectedAdded[opts.replyMapping]
+        );
+        expect(await addVector(vectorKey, "one", [1, 2, 4])).to.eql(
+          expectedUpdated[opts.replyMapping]
+        );
+        expect(await addVector(vectorKey, "two", [4, 5, 6])).to.eql(
+          expectedAdded[opts.replyMapping]
+        );
       });
     });
 
@@ -140,8 +164,15 @@ for (const { name, opts } of RESP_CONFIGS) {
         await addVector(vectorKey, "one");
 
         const vector = await redis.vembBuffer(vectorKey, "one");
+        const expectedBufferElement: Record<ReplyMapping, boolean> = {
+          legacy: true,
+          resp3: false,
+        };
+
         expect(vector).to.have.lengthOf(3);
-        expect(Buffer.isBuffer(vector?.[0])).to.eql(true);
+        expect(Buffer.isBuffer(vector?.[0])).to.eql(
+          expectedBufferElement[opts.replyMapping]
+        );
         expect(Number(vector?.[0]?.toString())).to.be.closeTo(1, 0.2);
       });
     });
@@ -153,9 +184,18 @@ for (const { name, opts } of RESP_CONFIGS) {
         await addVector(vectorKey, "one");
         expect(await redis.vgetattr(vectorKey, "one")).to.eql(null);
 
+        const expectedSet: Record<ReplyMapping, number | boolean> = {
+          legacy: 1,
+          resp3: true,
+        };
+        const expectedMissing: Record<ReplyMapping, number | boolean> = {
+          legacy: 0,
+          resp3: false,
+        };
+
         expect(
           await redis.vsetattr(vectorKey, "one", JSON.stringify({ tag: "blue" }))
-        ).to.eql(1);
+        ).to.eql(expectedSet[opts.replyMapping]);
         expect(await redis.vgetattr(vectorKey, "one")).to.eql('{"tag":"blue"}');
 
         expect(
@@ -164,7 +204,7 @@ for (const { name, opts } of RESP_CONFIGS) {
             "missing",
             JSON.stringify({ tag: "x" })
           )
-        ).to.eql(0);
+        ).to.eql(expectedMissing[opts.replyMapping]);
       });
 
       it("supports Buffer replies", async () => {
@@ -301,6 +341,11 @@ for (const { name, opts } of RESP_CONFIGS) {
         await addVector(vectorKey, "one", [1, 2, 3], { tag: "blue" });
         await addVector(vectorKey, "two", [1, 2.1, 3]);
 
+        const expected: Record<ReplyMapping, unknown> = {
+          legacy: ["one", "1", '{"tag":"blue"}'],
+          resp3: { one: [1, '{"tag":"blue"}'] },
+        };
+
         expect(
           await redis.vsim(
             vectorKey,
@@ -311,7 +356,7 @@ for (const { name, opts } of RESP_CONFIGS) {
             "COUNT",
             1
           )
-        ).to.eql(["one", "1", '{"tag":"blue"}']);
+        ).to.eql(expected[opts.replyMapping]);
 
         const result = await redis.vsimBuffer(
           vectorKey,
@@ -330,8 +375,21 @@ for (const { name, opts } of RESP_CONFIGS) {
 
         await addVector(vectorKey, "one");
 
-        expect(await redis.vrem(vectorKey, "one")).to.eql(1);
-        expect(await redis.vrem(vectorKey, "one")).to.eql(0);
+        const expectedRemoved: Record<ReplyMapping, number | boolean> = {
+          legacy: 1,
+          resp3: true,
+        };
+        const expectedMissing: Record<ReplyMapping, number | boolean> = {
+          legacy: 0,
+          resp3: false,
+        };
+
+        expect(await redis.vrem(vectorKey, "one")).to.eql(
+          expectedRemoved[opts.replyMapping]
+        );
+        expect(await redis.vrem(vectorKey, "one")).to.eql(
+          expectedMissing[opts.replyMapping]
+        );
         expect(await redis.vcard(vectorKey)).to.eql(0);
       });
     });
@@ -348,9 +406,24 @@ for (const { name, opts } of RESP_CONFIGS) {
 
         await addVector(vectorKey, "one");
 
-        expect(await redis.vismember(vectorKey, "one")).to.eql(1);
-        expect(await redis.vismember(vectorKey, "missing")).to.eql(0);
-        expect(await redis.vismember(key("vismember_missing"), "one")).to.eql(0);
+        const expectedExists: Record<ReplyMapping, number | boolean> = {
+          legacy: 1,
+          resp3: true,
+        };
+        const expectedMissing: Record<ReplyMapping, number | boolean> = {
+          legacy: 0,
+          resp3: false,
+        };
+
+        expect(await redis.vismember(vectorKey, "one")).to.eql(
+          expectedExists[opts.replyMapping]
+        );
+        expect(await redis.vismember(vectorKey, "missing")).to.eql(
+          expectedMissing[opts.replyMapping]
+        );
+        expect(await redis.vismember(key("vismember_missing"), "one")).to.eql(
+          expectedMissing[opts.replyMapping]
+        );
       });
     });
 

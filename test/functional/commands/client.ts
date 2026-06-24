@@ -1,7 +1,7 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
-import { RESP_CONFIGS } from "../../helpers/respConfigs";
-import { isRedisVersionLowerThan, sleep, toRecord } from "../../helpers/util";
+import { RESP_CONFIGS, ReplyMapping } from "../../helpers/respConfigs";
+import { isRedisVersionLowerThan, sleep } from "../../helpers/util";
 
 for (const { name, opts } of RESP_CONFIGS) {
   describe(`client (${name})`, function () {
@@ -156,16 +156,25 @@ for (const { name, opts } of RESP_CONFIGS) {
       });
 
       it("returns tracking information", async () => {
-        // TRACKINGINFO is a MAP reply: a flat array under the legacy mapping,
-        // a plain object under the native resp3 shape. Normalize both.
         const reply = (await redis.client("TRACKINGINFO")) as unknown;
-        const record = Array.isArray(reply)
-          ? toRecord(reply)
-          : (reply as Record<string, unknown>);
 
-        expect(record.flags).to.eql(["off"]);
-        expect(record.redirect).to.equal(-1);
-        expect(record.prefixes).to.eql([]);
+        const expected: Record<ReplyMapping, unknown> = {
+          legacy: [
+            "flags",
+            ["off"],
+            "redirect",
+            -1,
+            "prefixes",
+            [],
+          ],
+          resp3: {
+            flags: ["off"],
+            redirect: -1,
+            prefixes: [],
+          },
+        };
+
+        expect(reply).to.eql(expected[opts.replyMapping]);
       });
     });
 

@@ -41,6 +41,16 @@ module.exports = {
       "$1Buffer<T extends RedisValue[]>(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: T]): Result<'WITHVALUES' extends T[number] ? Array<[index: number, value: Buffer]> : number[], Context>;",
     ],
   },
+  vsim: {
+    overwrite: true,
+    // Return shape lives in `VsimReply` (bin/template.ts) so it stays readable.
+    defs: [
+      "$1<T extends RedisValue[]>(...args: [key: RedisKey, ...args: T, callback: Callback<VsimReply<T, string, Context>>]): Result<VsimReply<T, string, Context>, Context>;",
+      "$1Buffer<T extends RedisValue[]>(...args: [key: RedisKey, ...args: T, callback: Callback<VsimReply<T, Buffer, Context>>]): Result<VsimReply<T, Buffer, Context>, Context>;",
+      "$1<T extends RedisValue[]>(...args: [key: RedisKey, ...args: T]): Result<VsimReply<T, string, Context>, Context>;",
+      "$1Buffer<T extends RedisValue[]>(...args: [key: RedisKey, ...args: T]): Result<VsimReply<T, Buffer, Context>, Context>;",
+    ],
+  },
   exec: {
     overwrite: true,
     defs: [

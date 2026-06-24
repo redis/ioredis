@@ -606,6 +606,39 @@ Command.setReplyTransformer("hgetall", function (result) {
   return result;
 });
 
+// VSIM with WITHSCORES + WITHATTRIBS answers a RESP3 map whose values are
+// `[score, attribs]` pairs. The legacy mapping flattens that map to an array,
+// leaving the pairs nested (`[elem, [score, attribs], ...]`), whereas RESP2
+// returned a single flat list. Splice the nested pairs back out so both
+// protocols match. The native RESP3 shape is a plain object and is left
+// untouched, mirroring the `hgetall` transformer above.
+Command.setReplyTransformer("vsim", function (result) {
+  if (!Array.isArray(result)) {
+    return result;
+  }
+
+  let hasNested = false;
+  for (const item of result) {
+    if (Array.isArray(item)) {
+      hasNested = true;
+      break;
+    }
+  }
+  if (!hasNested) {
+    return result;
+  }
+
+  const flat = [];
+  for (const item of result) {
+    if (Array.isArray(item)) {
+      flat.push(...item);
+    } else {
+      flat.push(item);
+    }
+  }
+  return flat;
+});
+
 class MixedBuffers {
   length = 0;
   items = [];

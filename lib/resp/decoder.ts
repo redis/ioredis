@@ -109,7 +109,7 @@ export class Decoder {
       case RESP_TYPES.BOOLEAN:
         return this.#handleDecodedValue(
           this.onReply,
-          this.#decodeBoolean(chunk)
+          this.#decodeBoolean(this.getTypeMapping()[RESP_TYPES.BOOLEAN], chunk)
         );
 
       case RESP_TYPES.NUMBER:
@@ -223,10 +223,13 @@ export class Decoder {
     return null;
   }
 
-  #decodeBoolean(chunk) {
+  #decodeBoolean(type, chunk) {
     const boolean = chunk[this.#cursor] === ASCII.t;
     this.#cursor += 3; // skip {t | f}\r\n
-    return boolean;
+    // RESP2 had no boolean type: commands now answering `#t`/`#f` returned
+    // integer `1`/`0`. The legacy mapping requests Number here to stay
+    // wire-compatible; resp3 mapping leaves the value as a JS boolean.
+    return type === Number ? (boolean ? 1 : 0) : boolean;
   }
 
   #decodeNumber(type, chunk) {
@@ -334,8 +337,11 @@ export class Decoder {
   }
 
   #decodeDouble(type, chunk) {
-    if (type === String) {
-      return this.#decodeSimpleString(String, chunk);
+    // RESP2 sent doubles as bulk strings, so the legacy mapping decodes the
+    // raw textual form (Buffer or String) and lets `replyEncoding` decide the
+    // final shape per command. resp3 mapping leaves `type` unset -> JS number.
+    if (type === String || type === Buffer) {
+      return this.#decodeSimpleString(type, chunk);
     }
 
     switch (chunk[this.#cursor]) {
@@ -698,7 +704,7 @@ export class Decoder {
         return this.#decodeNull();
 
       case RESP_TYPES.BOOLEAN:
-        return this.#decodeBoolean(chunk);
+        return this.#decodeBoolean(typeMapping[RESP_TYPES.BOOLEAN], chunk);
 
       case RESP_TYPES.NUMBER:
         return this.#decodeNumber(typeMapping[RESP_TYPES.NUMBER], chunk);

@@ -178,7 +178,7 @@ module.exports = {
   getrange: "string",
   getset: "string | null",
   hdel: "number",
-  hello: "unknown[]",
+  hello: { resp2: "unknown[]", resp3: "Resp3Map<unknown>" },
   hexists: "number",
   hexpire: "number[]",
   hpexpire: "number[]",
@@ -218,7 +218,8 @@ module.exports = {
     if (matchSubcommand(types, "MALLOC-STATS")) return "string";
     if (matchSubcommand(types, "PURGE")) return '"OK"';
     if (matchSubcommand(types, "HELP")) return "unknown[]";
-    if (matchSubcommand(types, "STATS")) return "unknown[]";
+    if (matchSubcommand(types, "STATS"))
+      return { resp2: "unknown[]", resp3: "Resp3Map<unknown>" };
     if (matchSubcommand(types, "USAGE")) return "number | null";
     if (matchSubcommand(types, "DOCTOR")) return "string";
   },
@@ -228,8 +229,11 @@ module.exports = {
   incr: "number",
   incrby: "number",
   incrbyfloat: "string",
-  increx:
-    "[value: number, increment: number] | [value: string, increment: string]",
+  increx: {
+    resp2:
+      "[value: number, increment: number] | [value: string, increment: string]",
+    resp3: "[value: number, increment: number]",
+  },
   info: "string",
   lolwut: "string",
   keys: "string[]",
@@ -320,13 +324,16 @@ module.exports = {
   type: "string",
   unlink: "number",
   unwatch: "'OK'",
-  vadd: "number",
+  vadd: { resp2: "number", resp3: "boolean" },
   vcard: "number",
   vdim: "number",
-  vemb: "string[] | null",
+  vemb: { resp2: "string[] | null", resp3: "number[] | null" },
   vgetattr: "string | null",
-  vinfo: "(string | number)[] | null",
-  vismember: "number",
+  vinfo: {
+    resp2: "(string | number)[] | null",
+    resp3: "Resp3Map<string | number> | null",
+  },
+  vismember: { resp2: "number", resp3: "boolean" },
   vlinks: "string[][] | null",
   vrandmember: (types) => {
     return types.some((type) => type.includes("number"))
@@ -334,9 +341,8 @@ module.exports = {
       : "string | null";
   },
   vrange: "string[]",
-  vrem: "number",
-  vsetattr: "number",
-  vsim: "(string | null)[]",
+  vrem: { resp2: "number", resp3: "boolean" },
+  vsetattr: { resp2: "number", resp3: "boolean" },
   wait: "number",
   watch: "'OK'",
   zadd: (types) => {
@@ -368,8 +374,14 @@ module.exports = {
   zintercard: "number",
   zinterstore: "number",
   zlexcount: "number",
-  zpopmax: { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" },
-  zpopmin: { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" },
+  zpopmax: (types) =>
+    types.length > 1
+      ? { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" }
+      : { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>]" },
+  zpopmin: (types) =>
+    types.length > 1
+      ? { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" }
+      : { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>]" },
   zrandmember: (types) => {
     if (hasToken(types, "WITHSCORES")) {
       return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };

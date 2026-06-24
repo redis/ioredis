@@ -46,6 +46,28 @@ export type RespShape<
   ? Resp3Result["__resp3"]
   : Resp2Result["__resp2"];
 
+// VSIM reply shape, keyed off the option tokens present in the call args `T`:
+//   neither      -> bare member list
+//   WITHSCORES   -> member -> score map
+//   WITHATTRIBS  -> member -> attributes map
+//   both         -> member -> [score, attributes] map
+// `V` is the element type (string, or Buffer for the *Buffer variant).
+export type VsimReply<
+  T extends RedisValue[],
+  V extends string | Buffer,
+  Context extends ClientContext,
+> = Extract<T[number], "WITHATTRIBS"> extends never
+  ? Extract<T[number], "WITHSCORES"> extends never
+    ? V[]
+    : RespShape<Resp2<V[]>, Resp3<Resp3Map<Resp3Double<V>>>, Context>
+  : Extract<T[number], "WITHSCORES"> extends never
+    ? RespShape<Resp2<V[]>, Resp3<Resp3Map<V | null>>, Context>
+    : RespShape<
+        Resp2<V[]>,
+        Resp3<Resp3Map<[score: Resp3Double<V>, attributes: V | null]>>,
+        Context
+      >;
+
 interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   /**
    * Call arbitrary commands.

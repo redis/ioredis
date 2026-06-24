@@ -1,6 +1,6 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
-import { RESP_CONFIGS } from "../../helpers/respConfigs";
+import { RESP_CONFIGS, ReplyMapping } from "../../helpers/respConfigs";
 
 for (const { name, opts } of RESP_CONFIGS) {
   describe(`memory (${name})`, () => {
@@ -35,8 +35,15 @@ for (const { name, opts } of RESP_CONFIGS) {
       expect(await redis.memory("DOCTOR")).to.be.a("string");
     });
 
-    it("STATS returns an array of statistics", async () => {
-      expect(await redis.memory("STATS")).to.be.an("array");
+    it("STATS returns memory statistics", async () => {
+      const expectedType: Record<ReplyMapping, string> = {
+        legacy: "array",
+        resp3: "object",
+      };
+
+      expect(await redis.memory("STATS")).to.be.an(
+        expectedType[opts.replyMapping]
+      );
     });
   });
 }

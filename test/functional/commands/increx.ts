@@ -1,6 +1,6 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
-import { RESP_CONFIGS } from "../../helpers/respConfigs";
+import { RESP_CONFIGS, ReplyMapping } from "../../helpers/respConfigs";
 import { isRedisVersionLowerThan } from "../../helpers/util";
 
 for (const { name, opts } of RESP_CONFIGS) {
@@ -122,7 +122,12 @@ for (const { name, opts } of RESP_CONFIGS) {
 
       const result = await redis.increx(key, "BYFLOAT", "0.5", "EX", 60, "ENX");
 
-      expect(result).to.deep.equal(["0.5", "0.5"]);
+      const expected: Record<ReplyMapping, unknown> = {
+        legacy: ["0.5", "0.5"],
+        resp3: [0.5, 0.5],
+      };
+
+      expect(result).to.deep.equal(expected[opts.replyMapping]);
     });
 
     it("supports BYFLOAT with bounds, SATURATE, and expiration options", async () => {
@@ -143,7 +148,12 @@ for (const { name, opts } of RESP_CONFIGS) {
         "ENX"
       );
 
-      expect(result).to.deep.equal(["10", "0.25"]);
+      const expected: Record<ReplyMapping, unknown> = {
+        legacy: ["10", "0.25"],
+        resp3: [10, 0.25],
+      };
+
+      expect(result).to.deep.equal(expected[opts.replyMapping]);
       expect(await redis.pttl(key)).to.be.greaterThan(0);
     });
 
@@ -159,8 +169,17 @@ for (const { name, opts } of RESP_CONFIGS) {
         "10"
       );
 
-      expect(result).to.deep.equal(["9.75", "0"]);
-      expect(result[1]).to.equal("0");
+      const expected: Record<ReplyMapping, unknown> = {
+        legacy: ["9.75", "0"],
+        resp3: [9.75, 0],
+      };
+      const expectedIncrement: Record<ReplyMapping, unknown> = {
+        legacy: "0",
+        resp3: 0,
+      };
+
+      expect(result).to.deep.equal(expected[opts.replyMapping]);
+      expect(result[1]).to.equal(expectedIncrement[opts.replyMapping]);
     });
 
     it("supports PERSIST after BYFLOAT", async () => {
@@ -169,7 +188,12 @@ for (const { name, opts } of RESP_CONFIGS) {
       await redis.set(key, "1.25", "EX", 60);
       const result = await redis.increx(key, "BYFLOAT", "0.25", "PERSIST");
 
-      expect(result).to.deep.equal(["1.5", "0.25"]);
+      const expected: Record<ReplyMapping, unknown> = {
+        legacy: ["1.5", "0.25"],
+        resp3: [1.5, 0.25],
+      };
+
+      expect(result).to.deep.equal(expected[opts.replyMapping]);
       expect(await redis.ttl(key)).to.equal(-1);
     });
 
@@ -178,13 +202,12 @@ for (const { name, opts } of RESP_CONFIGS) {
 
       const result = await redis.increxBuffer(key, "BYFLOAT", "0.5");
 
-      expect(result).to.have.lengthOf(2);
-      expect(result[0]).to.be.instanceOf(Buffer);
-      expect(result[1]).to.be.instanceOf(Buffer);
-      expect(result.map((item) => item.toString())).to.deep.equal([
-        "0.5",
-        "0.5",
-      ]);
+      const expected: Record<ReplyMapping, unknown> = {
+        legacy: [Buffer.from("0.5"), Buffer.from("0.5")],
+        resp3: [0.5, 0.5],
+      };
+
+      expect(result).to.deep.equal(expected[opts.replyMapping]);
     });
 
     it("keeps integer replies as numbers for buffer variant", async () => {

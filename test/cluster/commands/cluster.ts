@@ -1,7 +1,7 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
+import { RESP_CONFIGS, ReplyMapping } from "../../helpers/respConfigs";
 import { toRecord } from "../../helpers/util";
-import { RESP_CONFIGS } from "../../helpers/respConfigs";
 
 // Master node of the docker cluster from test/cluster (ports 3000-3005).
 const clusterNode = { host: "127.0.0.1", port: 3000 };
@@ -78,15 +78,26 @@ for (const { name, opts } of RESP_CONFIGS) {
 
       expect(links).to.not.be.empty;
 
-      const record = toRecord(links[0]);
-      expect(record.node).to.match(nodeIdPattern);
-      expect(["to", "from"]).to.include(record.direction);
+      const record = Array.isArray(links[0])
+        ? toRecord(links[0] as unknown[])
+        : (links[0] as Record<string, unknown>);
+      const actual = {
+        isArray: Array.isArray(links[0]),
+        node: record.node,
+        direction: record.direction,
+      };
+      const expected: Record<ReplyMapping, boolean> = {
+        legacy: true,
+        resp3: false,
+      };
+
+      expect(actual.isArray).to.equal(expected[opts.replyMapping]);
+      expect(actual.node).to.match(nodeIdPattern);
+      expect(["to", "from"]).to.include(actual.direction);
     });
 
     it("BUMPEPOCH returns the epoch status", async () => {
-      expect(await redis.cluster("BUMPEPOCH")).to.match(
-        /^(BUMPED|STILL) \d+$/
-      );
+      expect(await redis.cluster("BUMPEPOCH")).to.match(/^(BUMPED|STILL) \d+$/);
     });
 
     it("COUNT-FAILURE-REPORTS returns the report count", async () => {

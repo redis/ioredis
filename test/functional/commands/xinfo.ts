@@ -1,20 +1,7 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
-import { RESP_CONFIGS } from "../../helpers/respConfigs";
+import { RESP_CONFIGS, ReplyMapping } from "../../helpers/respConfigs";
 import { toRecord } from "../../helpers/util";
-
-// XINFO STREAM / XINFO GROUPS are RESP3 map replies: a flat [k, v, ...] array
-// under legacy mapping (configs A/B) and a plain object under resp3 (config C).
-// `toRecord` normalizes the flat-array form; objects are read as-is. This lets
-// the happy-path assertions index documented fields by name across all configs
-// without an `if`/ternary on the reply mapping (XINFO is not a declared
-// divergent command in returnTypes.js).
-function asRecord(reply: unknown): Record<string, unknown> {
-  if (Array.isArray(reply)) {
-    return toRecord(reply);
-  }
-  return reply as Record<string, unknown>;
-}
 
 for (const { name, opts } of RESP_CONFIGS) {
   describe(`xinfo (${name})`, () => {
@@ -33,9 +20,21 @@ for (const { name, opts } of RESP_CONFIGS) {
       const key = `xinfo:${Date.now()}`;
       await redis.xadd(key, "1-1", "field", "value");
 
-      const info = asRecord(await redis.xinfo("STREAM", key));
-      expect(Number(info.length)).to.equal(1);
-      expect(info["last-generated-id"]).to.equal("1-1");
+      const info = await redis.xinfo("STREAM", key);
+      const record = Array.isArray(info)
+        ? toRecord(info as unknown[])
+        : (info as Record<string, unknown>);
+      const actual = {
+        isArray: Array.isArray(info),
+        length: record.length,
+        lastGeneratedId: record["last-generated-id"],
+      };
+      const expected: Record<ReplyMapping, unknown> = {
+        legacy: { isArray: true, length: 1, lastGeneratedId: "1-1" },
+        resp3: { isArray: false, length: 1, lastGeneratedId: "1-1" },
+      };
+
+      expect(actual).to.deep.equal(expected[opts.replyMapping]);
     });
 
     it("GROUPS reports the consumer groups", async () => {
@@ -46,11 +45,21 @@ for (const { name, opts } of RESP_CONFIGS) {
 
       const groups = (await redis.xinfo("GROUPS", key)) as unknown[];
       expect(groups).to.have.lengthOf(1);
+      const record = Array.isArray(groups[0])
+        ? toRecord(groups[0] as unknown[])
+        : (groups[0] as Record<string, unknown>);
+      const actual = {
+        isArray: Array.isArray(groups[0]),
+        name: record.name,
+        consumers: record.consumers,
+        pending: record.pending,
+      };
+      const expected: Record<ReplyMapping, unknown> = {
+        legacy: { isArray: true, name: group, consumers: 0, pending: 0 },
+        resp3: { isArray: false, name: group, consumers: 0, pending: 0 },
+      };
 
-      const groupInfo = asRecord(groups[0]);
-      expect(groupInfo.name).to.equal(group);
-      expect(Number(groupInfo.consumers)).to.equal(0);
-      expect(Number(groupInfo.pending)).to.equal(0);
+      expect(actual).to.deep.equal(expected[opts.replyMapping]);
     });
 
     it("CONSUMERS reports the consumers in a group", async () => {
@@ -70,12 +79,26 @@ for (const { name, opts } of RESP_CONFIGS) {
         ">"
       );
 
-      const consumers = (await redis.xinfo("CONSUMERS", key, group)) as unknown[];
+      const consumers = (await redis.xinfo(
+        "CONSUMERS",
+        key,
+        group
+      )) as unknown[];
       expect(consumers).to.have.lengthOf(1);
+      const record = Array.isArray(consumers[0])
+        ? toRecord(consumers[0] as unknown[])
+        : (consumers[0] as Record<string, unknown>);
+      const actual = {
+        isArray: Array.isArray(consumers[0]),
+        name: record.name,
+        pending: record.pending,
+      };
+      const expected: Record<ReplyMapping, unknown> = {
+        legacy: { isArray: true, name: consumer, pending: 1 },
+        resp3: { isArray: false, name: consumer, pending: 1 },
+      };
 
-      const consumerInfo = asRecord(consumers[0]);
-      expect(consumerInfo.name).to.equal(consumer);
-      expect(Number(consumerInfo.pending)).to.equal(1);
+      expect(actual).to.deep.equal(expected[opts.replyMapping]);
     });
   });
 }

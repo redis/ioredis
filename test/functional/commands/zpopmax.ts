@@ -1,6 +1,6 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
-import { RESP_CONFIGS } from "../../helpers/respConfigs";
+import { RESP_CONFIGS, ReplyMapping } from "../../helpers/respConfigs";
 
 for (const { name, opts } of RESP_CONFIGS) {
   describe(`zpopmax (${name})`, () => {
@@ -19,7 +19,12 @@ for (const { name, opts } of RESP_CONFIGS) {
       const key = `zpopmax:${Date.now()}`;
       await redis.zadd(key, 1, "a", 2, "b");
 
-      expect(await redis.zpopmax(key)).to.eql(["b", "2"]);
+      const expected: Record<ReplyMapping, unknown> = {
+        legacy: ["b", "2"],
+        resp3: ["b", 2],
+      };
+
+      expect(await redis.zpopmax(key)).to.eql(expected[opts.replyMapping]);
     });
   });
 }

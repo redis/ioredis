@@ -52,6 +52,28 @@ export type RespShape<
   ? Resp3Result["__resp3"]
   : Resp2Result["__resp2"];
 
+// VSIM reply shape, keyed off the option tokens present in the call args `T`:
+//   neither      -> bare member list
+//   WITHSCORES   -> member -> score map
+//   WITHATTRIBS  -> member -> attributes map
+//   both         -> member -> [score, attributes] map
+// `V` is the element type (string, or Buffer for the *Buffer variant).
+export type VsimReply<
+  T extends RedisValue[],
+  V extends string | Buffer,
+  Context extends ClientContext,
+> = Extract<T[number], "WITHATTRIBS"> extends never
+  ? Extract<T[number], "WITHSCORES"> extends never
+    ? V[]
+    : RespShape<Resp2<V[]>, Resp3<Resp3Map<Resp3Double<V>>>, Context>
+  : Extract<T[number], "WITHSCORES"> extends never
+    ? RespShape<Resp2<V[]>, Resp3<Resp3Map<V | null>>, Context>
+    : RespShape<
+        Resp2<V[]>,
+        Resp3<Resp3Map<[score: Resp3Double<V>, attributes: V | null]>>,
+        Context
+      >;
+
 interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   /**
    * Call arbitrary commands.
@@ -1830,11 +1852,11 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(1)
    * - _since_: 6.0.0
    */
-  hello(callback?: Callback<unknown[]>): Result<unknown[], Context>;
-  hello(protover: number | string, callback?: Callback<unknown[]>): Result<unknown[], Context>;
-  hello(protover: number | string, clientnameToken: 'SETNAME', clientname: string | Buffer, callback?: Callback<unknown[]>): Result<unknown[], Context>;
-  hello(protover: number | string, authToken: 'AUTH', username: string | Buffer, password: string | Buffer, callback?: Callback<unknown[]>): Result<unknown[], Context>;
-  hello(protover: number | string, authToken: 'AUTH', username: string | Buffer, password: string | Buffer, clientnameToken: 'SETNAME', clientname: string | Buffer, callback?: Callback<unknown[]>): Result<unknown[], Context>;
+  hello(callback?: Callback<RespShape<Resp2<unknown[]>, Resp3<Resp3Map<unknown>>, Context>>): Result<RespShape<Resp2<unknown[]>, Resp3<Resp3Map<unknown>>, Context>, Context>;
+  hello(protover: number | string, callback?: Callback<RespShape<Resp2<unknown[]>, Resp3<Resp3Map<unknown>>, Context>>): Result<RespShape<Resp2<unknown[]>, Resp3<Resp3Map<unknown>>, Context>, Context>;
+  hello(protover: number | string, clientnameToken: 'SETNAME', clientname: string | Buffer, callback?: Callback<RespShape<Resp2<unknown[]>, Resp3<Resp3Map<unknown>>, Context>>): Result<RespShape<Resp2<unknown[]>, Resp3<Resp3Map<unknown>>, Context>, Context>;
+  hello(protover: number | string, authToken: 'AUTH', username: string | Buffer, password: string | Buffer, callback?: Callback<RespShape<Resp2<unknown[]>, Resp3<Resp3Map<unknown>>, Context>>): Result<RespShape<Resp2<unknown[]>, Resp3<Resp3Map<unknown>>, Context>, Context>;
+  hello(protover: number | string, authToken: 'AUTH', username: string | Buffer, password: string | Buffer, clientnameToken: 'SETNAME', clientname: string | Buffer, callback?: Callback<RespShape<Resp2<unknown[]>, Resp3<Resp3Map<unknown>>, Context>>): Result<RespShape<Resp2<unknown[]>, Resp3<Resp3Map<unknown>>, Context>, Context>;
 
   /**
    * Determines whether a field exists in a hash.
@@ -2204,10 +2226,10 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(1)
    * - _since_: 8.8.0
    */
-  increx(...args: [key: RedisKey, ...args: (RedisValue)[], callback: Callback<[value: number, increment: number] | [value: string, increment: string]>]): Result<[value: number, increment: number] | [value: string, increment: string], Context>;
-  increxBuffer(...args: [key: RedisKey, ...args: (RedisValue)[], callback: Callback<[value: number, increment: number] | [value: Buffer, increment: Buffer]>]): Result<[value: number, increment: number] | [value: Buffer, increment: Buffer], Context>;
-  increx(...args: [key: RedisKey, ...args: (RedisValue)[]]): Result<[value: number, increment: number] | [value: string, increment: string], Context>;
-  increxBuffer(...args: [key: RedisKey, ...args: (RedisValue)[]]): Result<[value: number, increment: number] | [value: Buffer, increment: Buffer], Context>;
+  increx(...args: [key: RedisKey, ...args: (RedisValue)[], callback: Callback<RespShape<Resp2<[value: number, increment: number] | [value: string, increment: string]>, Resp3<[value: number, increment: number]>, Context>>]): Result<RespShape<Resp2<[value: number, increment: number] | [value: string, increment: string]>, Resp3<[value: number, increment: number]>, Context>, Context>;
+  increxBuffer(...args: [key: RedisKey, ...args: (RedisValue)[], callback: Callback<RespShape<Resp2<[value: number, increment: number] | [value: Buffer, increment: Buffer]>, Resp3<[value: number, increment: number]>, Context>>]): Result<RespShape<Resp2<[value: number, increment: number] | [value: Buffer, increment: Buffer]>, Resp3<[value: number, increment: number]>, Context>, Context>;
+  increx(...args: [key: RedisKey, ...args: (RedisValue)[]]): Result<RespShape<Resp2<[value: number, increment: number] | [value: string, increment: string]>, Resp3<[value: number, increment: number]>, Context>, Context>;
+  increxBuffer(...args: [key: RedisKey, ...args: (RedisValue)[]]): Result<RespShape<Resp2<[value: number, increment: number] | [value: Buffer, increment: Buffer]>, Resp3<[value: number, increment: number]>, Context>, Context>;
 
   /**
    * Returns information and statistics about the server.
@@ -2523,7 +2545,7 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(1)
    * - _since_: 4.0.0
    */
-  memory(subcommand: 'STATS', callback?: Callback<unknown[]>): Result<unknown[], Context>;
+  memory(subcommand: 'STATS', callback?: Callback<RespShape<Resp2<unknown[]>, Resp3<Resp3Map<unknown>>, Context>>): Result<RespShape<Resp2<unknown[]>, Resp3<Resp3Map<unknown>>, Context>, Context>;
 
   /**
    * Estimates the memory usage of a key.
@@ -4101,8 +4123,8 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: undefined
    * - _since_: 8.0.0
    */
-  vadd(...args: [key: RedisKey, ...args: (RedisValue)[], callback: Callback<number>]): Result<number, Context>;
-  vadd(...args: [key: RedisKey, ...args: (RedisValue)[]]): Result<number, Context>;
+  vadd(...args: [key: RedisKey, ...args: (RedisValue)[], callback: Callback<RespShape<Resp2<number>, Resp3<boolean>, Context>>]): Result<RespShape<Resp2<number>, Resp3<boolean>, Context>, Context>;
+  vadd(...args: [key: RedisKey, ...args: (RedisValue)[]]): Result<RespShape<Resp2<number>, Resp3<boolean>, Context>, Context>;
 
   /**
    * Return the number of elements in a vector set
@@ -4126,10 +4148,10 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: undefined
    * - _since_: 8.0.0
    */
-  vemb(key: RedisKey, element: string | Buffer | number, callback?: Callback<string[] | null>): Result<string[] | null, Context>;
-  vembBuffer(key: RedisKey, element: string | Buffer | number, callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
-  vemb(key: RedisKey, element: string | Buffer | number, raw: 'RAW', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
-  vembBuffer(key: RedisKey, element: string | Buffer | number, raw: 'RAW', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  vemb(key: RedisKey, element: string | Buffer | number, callback?: Callback<RespShape<Resp2<string[] | null>, Resp3<number[] | null>, Context>>): Result<RespShape<Resp2<string[] | null>, Resp3<number[] | null>, Context>, Context>;
+  vembBuffer(key: RedisKey, element: string | Buffer | number, callback?: Callback<RespShape<Resp2<Buffer[] | null>, Resp3<number[] | null>, Context>>): Result<RespShape<Resp2<Buffer[] | null>, Resp3<number[] | null>, Context>, Context>;
+  vemb(key: RedisKey, element: string | Buffer | number, raw: 'RAW', callback?: Callback<RespShape<Resp2<string[] | null>, Resp3<number[] | null>, Context>>): Result<RespShape<Resp2<string[] | null>, Resp3<number[] | null>, Context>, Context>;
+  vembBuffer(key: RedisKey, element: string | Buffer | number, raw: 'RAW', callback?: Callback<RespShape<Resp2<Buffer[] | null>, Resp3<number[] | null>, Context>>): Result<RespShape<Resp2<Buffer[] | null>, Resp3<number[] | null>, Context>, Context>;
 
   /**
    * Retrieve the JSON attributes of elements
@@ -4146,8 +4168,8 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: undefined
    * - _since_: 8.0.0
    */
-  vinfo(key: RedisKey, callback?: Callback<(string | number)[] | null>): Result<(string | number)[] | null, Context>;
-  vinfoBuffer(key: RedisKey, callback?: Callback<(Buffer | number)[] | null>): Result<(Buffer | number)[] | null, Context>;
+  vinfo(key: RedisKey, callback?: Callback<RespShape<Resp2<(string | number)[] | null>, Resp3<Resp3Map<string | number> | null>, Context>>): Result<RespShape<Resp2<(string | number)[] | null>, Resp3<Resp3Map<string | number> | null>, Context>, Context>;
+  vinfoBuffer(key: RedisKey, callback?: Callback<RespShape<Resp2<(Buffer | number)[] | null>, Resp3<Resp3Map<Buffer | number> | null>, Context>>): Result<RespShape<Resp2<(Buffer | number)[] | null>, Resp3<Resp3Map<Buffer | number> | null>, Context>, Context>;
 
   /**
    * Check if an element exists in a vector set
@@ -4155,7 +4177,7 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: undefined
    * - _since_: 8.2.0
    */
-  vismember(key: RedisKey, element: string | Buffer | number, callback?: Callback<number>): Result<number, Context>;
+  vismember(key: RedisKey, element: string | Buffer | number, callback?: Callback<RespShape<Resp2<number>, Resp3<boolean>, Context>>): Result<RespShape<Resp2<number>, Resp3<boolean>, Context>, Context>;
 
   /**
    * Return the neighbors of an element at each layer in the HNSW graph
@@ -4196,7 +4218,7 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: undefined
    * - _since_: 8.0.0
    */
-  vrem(key: RedisKey, element: string | Buffer | number, callback?: Callback<number>): Result<number, Context>;
+  vrem(key: RedisKey, element: string | Buffer | number, callback?: Callback<RespShape<Resp2<number>, Resp3<boolean>, Context>>): Result<RespShape<Resp2<number>, Resp3<boolean>, Context>, Context>;
 
   /**
    * Associate or remove the JSON attributes of elements
@@ -4204,7 +4226,7 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: undefined
    * - _since_: 8.0.0
    */
-  vsetattr(key: RedisKey, element: string | Buffer | number, json: string | Buffer, callback?: Callback<number>): Result<number, Context>;
+  vsetattr(key: RedisKey, element: string | Buffer | number, json: string | Buffer, callback?: Callback<RespShape<Resp2<number>, Resp3<boolean>, Context>>): Result<RespShape<Resp2<number>, Resp3<boolean>, Context>, Context>;
 
   /**
    * Return elements by vector similarity
@@ -4212,10 +4234,10 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: undefined
    * - _since_: 8.0.0
    */
-  vsim(...args: [key: RedisKey, ...args: (RedisValue)[], callback: Callback<(string | null)[]>]): Result<(string | null)[], Context>;
-  vsimBuffer(...args: [key: RedisKey, ...args: (RedisValue)[], callback: Callback<(Buffer | null)[]>]): Result<(Buffer | null)[], Context>;
-  vsim(...args: [key: RedisKey, ...args: (RedisValue)[]]): Result<(string | null)[], Context>;
-  vsimBuffer(...args: [key: RedisKey, ...args: (RedisValue)[]]): Result<(Buffer | null)[], Context>;
+  vsim<T extends RedisValue[]>(...args: [key: RedisKey, ...args: T, callback: Callback<VsimReply<T, string, Context>>]): Result<VsimReply<T, string, Context>, Context>;
+  vsimBuffer<T extends RedisValue[]>(...args: [key: RedisKey, ...args: T, callback: Callback<VsimReply<T, Buffer, Context>>]): Result<VsimReply<T, Buffer, Context>, Context>;
+  vsim<T extends RedisValue[]>(...args: [key: RedisKey, ...args: T]): Result<VsimReply<T, string, Context>, Context>;
+  vsimBuffer<T extends RedisValue[]>(...args: [key: RedisKey, ...args: T]): Result<VsimReply<T, Buffer, Context>, Context>;
 
   /**
    * Blocks until the asynchronous replication of all preceding write commands sent by the connection is completed.
@@ -5124,8 +5146,8 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(log(N)*M) with N being the number of elements in the sorted set, and M being the number of elements popped.
    * - _since_: 5.0.0
    */
-  zpopmax(key: RedisKey, callback?: Callback<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>][]>, Context>>): Result<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>][]>, Context>, Context>;
-  zpopmaxBuffer(key: RedisKey, callback?: Callback<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>][]>, Context>>): Result<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>][]>, Context>, Context>;
+  zpopmax(key: RedisKey, callback?: Callback<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>]>, Context>>): Result<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>]>, Context>, Context>;
+  zpopmaxBuffer(key: RedisKey, callback?: Callback<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>]>, Context>>): Result<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>]>, Context>, Context>;
   zpopmax(key: RedisKey, count: number | string, callback?: Callback<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>][]>, Context>>): Result<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>][]>, Context>, Context>;
   zpopmaxBuffer(key: RedisKey, count: number | string, callback?: Callback<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>][]>, Context>>): Result<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>][]>, Context>, Context>;
 
@@ -5135,8 +5157,8 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(log(N)*M) with N being the number of elements in the sorted set, and M being the number of elements popped.
    * - _since_: 5.0.0
    */
-  zpopmin(key: RedisKey, callback?: Callback<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>][]>, Context>>): Result<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>][]>, Context>, Context>;
-  zpopminBuffer(key: RedisKey, callback?: Callback<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>][]>, Context>>): Result<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>][]>, Context>, Context>;
+  zpopmin(key: RedisKey, callback?: Callback<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>]>, Context>>): Result<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>]>, Context>, Context>;
+  zpopminBuffer(key: RedisKey, callback?: Callback<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>]>, Context>>): Result<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>]>, Context>, Context>;
   zpopmin(key: RedisKey, count: number | string, callback?: Callback<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>][]>, Context>>): Result<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>][]>, Context>, Context>;
   zpopminBuffer(key: RedisKey, count: number | string, callback?: Callback<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>][]>, Context>>): Result<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>][]>, Context>, Context>;
 

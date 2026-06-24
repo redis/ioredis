@@ -1,14 +1,9 @@
 import Redis from "../../lib/Redis";
 
-/**
- * Converts a flat [field, value, field, value, ...] reply into an object
- * keyed by field name, so tests can assert fields by name instead of index.
- */
-export function toRecord(entry: unknown): Record<string, unknown> {
-  const items = entry as unknown[];
+export function toRecord(entry: unknown[]): Record<string, unknown> {
   const record: Record<string, unknown> = {};
-  for (let index = 0; index < items.length; index += 2) {
-    record[String(items[index])] = items[index + 1];
+  for (let index = 0; index < entry.length; index += 2) {
+    record[String(entry[index])] = entry[index + 1];
   }
 
   return record;
@@ -45,7 +40,7 @@ function compareRedisVersions(left: string, right: string): number {
 }
 
 export async function isRedisVersionLowerThan(
-  minimumVersion: string,
+  minimumVersion: string
 ): Promise<boolean> {
   const redis = new Redis();
 
@@ -55,7 +50,7 @@ export async function isRedisVersionLowerThan(
 
     if (!version) {
       throw new Error(
-        "Could not determine redis_version from INFO server response",
+        "Could not determine redis_version from INFO server response"
       );
     }
 
@@ -68,7 +63,7 @@ export async function isRedisVersionLowerThan(
 export async function getCommandsFromMonitor(
   redis: any,
   count: number,
-  exec: Function,
+  exec: Function
 ): Promise<[any]> {
   const arr: string[] = [];
   const monitor = await redis.monitor();
@@ -76,7 +71,9 @@ export async function getCommandsFromMonitor(
   const promise = new Promise((resolve, reject) => {
     setTimeout(reject, 1000, new Error("Monitor timed out"));
     monitor.on("monitor", (_, command) => {
-      if (arr.length !== count) arr.push(command);
+      if (arr.length !== count) {
+        arr.push(command);
+      }
       if (arr.length === count) {
         resolve(arr);
         monitor.disconnect();

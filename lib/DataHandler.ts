@@ -351,7 +351,12 @@ const legacyTypeMapping: TypeMapping = {
   [RESP_TYPES.BLOB_STRING]: Buffer,
   [RESP_TYPES.VERBATIM_STRING]: Buffer,
   [RESP_TYPES.BIG_NUMBER]: String,
-  [RESP_TYPES.DOUBLE]: String,
+  // RESP2 represented doubles as bulk strings and booleans as `1`/`0`
+  // integers. Decode doubles to Buffer (like blob strings, so `replyEncoding`
+  // still chooses string-vs-buffer per command) and booleans to numbers, so
+  // RESP3 replies match the classic RESP2 shape.
+  [RESP_TYPES.DOUBLE]: Buffer,
+  [RESP_TYPES.BOOLEAN]: Number,
   [RESP_TYPES.MAP]: Array,
   [RESP_TYPES.SET]: Array,
 };
