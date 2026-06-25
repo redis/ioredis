@@ -1,4 +1,5 @@
 import Redis from "../../lib/Redis";
+import { RedisOptions } from "../../lib/redis/RedisOptions";
 
 export function toRecord(entry: unknown[]): Record<string, unknown> {
   const record: Record<string, unknown> = {};
@@ -40,9 +41,10 @@ function compareRedisVersions(left: string, right: string): number {
 }
 
 export async function isRedisVersionLowerThan(
-  minimumVersion: string
+  minimumVersion: string,
+  options?: RedisOptions
 ): Promise<boolean> {
-  const redis = new Redis();
+  const redis = new Redis(options);
 
   try {
     const info = await redis.info("server");
