@@ -19,6 +19,8 @@ import {
   Callback,
   CommandItem,
   NetStream,
+  ReplyMappingFromOptions,
+  ReplyMappingMode,
   ScanStreamOptions,
   WriteableStream,
 } from "./types";
@@ -69,7 +71,13 @@ type RedisStatus =
  * }
  * ```
  */
-class Redis extends Commander implements DataHandledable {
+class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
+  extends Commander<{
+    type: "default";
+    mapping: ReplyMapping extends "resp3" ? "resp3" : "resp2";
+  }>
+  implements DataHandledable
+{
   static Cluster = Cluster;
   static Command = Command;
   /**
@@ -120,11 +128,20 @@ class Redis extends Commander implements DataHandledable {
   private _autoPipelines = new Map();
   private _runningAutoPipelines = new Set();
 
-  constructor(port: number, host: string, options: RedisOptions);
-  constructor(path: string, options: RedisOptions);
-  constructor(port: number, options: RedisOptions);
+  // The `replyMapping` intersection on the options-bearing overloads lets the
+  // `ReplyMapping` class type parameter be inferred from the literal passed at
+  // construction time (e.g. `new Redis({ protocol: 3, replyMapping: "resp3" })`),
+  // which in turn selects the RESP3 return shapes via `Resp3<...>`. Omitting it
+  // (or passing "legacy") keeps the default RESP2 shapes.
+  constructor(
+    port: number,
+    host: string,
+    options: RedisOptions & { replyMapping?: ReplyMapping }
+  );
+  constructor(path: string, options: RedisOptions & { replyMapping?: ReplyMapping });
+  constructor(port: number, options: RedisOptions & { replyMapping?: ReplyMapping });
   constructor(port: number, host: string);
-  constructor(options: RedisOptions);
+  constructor(options: RedisOptions & { replyMapping?: ReplyMapping });
   constructor(port: number);
   constructor(path: string);
   constructor();
@@ -365,8 +382,13 @@ class Redis extends Commander implements DataHandledable {
    * var anotherRedis = redis.duplicate();
    * ```
    */
-  duplicate(override?: Partial<RedisOptions>) {
-    return new Redis({ ...this.options, ...override });
+  duplicate<Override extends Partial<RedisOptions> | undefined = undefined>(
+    override?: Override
+  ): Redis<ReplyMappingFromOptions<ReplyMapping, Override>> {
+    return new Redis({
+      ...this.options,
+      ...(override ?? {}),
+    }) as Redis<ReplyMappingFromOptions<ReplyMapping, Override>>;
   }
 
   /**
@@ -1008,7 +1030,9 @@ class Redis extends Commander implements DataHandledable {
   }
 }
 
-interface Redis extends EventEmitter {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface Redis<ReplyMapping extends "legacy" | "resp3" = "legacy">
+  extends EventEmitter {
   on(event: "message", cb: (channel: string, message: string) => void): this;
   once(event: "message", cb: (channel: string, message: string) => void): this;
 
@@ -1053,6 +1077,8 @@ interface Redis extends EventEmitter {
 applyMixin(Redis, EventEmitter);
 
 addTransactionSupport(Redis.prototype);
-interface Redis extends Transaction {}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface Redis<ReplyMapping extends "legacy" | "resp3" = "legacy">
+  extends Transaction {}
 
 export default Redis;

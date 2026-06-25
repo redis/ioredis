@@ -134,9 +134,15 @@ module.exports = {
   blmove: "string | null",
   lmpop: "[key: string, members: string[]] | null",
   blmpop: "[key: string, members: string[]] | null",
-  bzpopmin: "[key: string, member: string, score: string] | null",
-  bzpopmax: "[key: string, member: string, score: string] | null",
+  bzpopmin: "[key: string, member: string, score: RespShape<Resp2<string>, Resp3<Resp3Double<string>>, Context>] | null",
+  bzpopmax: "[key: string, member: string, score: RespShape<Resp2<string>, Resp3<Resp3Double<string>>, Context>] | null",
   command: "unknown[]",
+  config: (types) => {
+    // CONFIG GET is a MAP reply: flat [k, v, ...] under RESP2, object under RESP3.
+    // Other subcommands (SET/REWRITE/RESETSTAT/HELP) fall through to the default.
+    if (matchSubcommand(types, "GET"))
+      return { resp2: "string[]", resp3: "Resp3Map<string>" };
+  },
   copy: "number",
   dbsize: "number",
   decr: "number",
@@ -293,7 +299,7 @@ module.exports = {
   replicaof: "'OK'",
   smembers: "string[]",
   smove: "number",
-  sort: "number" | "unknown[]",
+  sort: "number | unknown[]",
   sortRo: "unknown[]",
   spop: (types) => (types.length > 1 ? "string[]" : "string | null"),
   srandmember: (types) => (types.length > 1 ? "string[]" : "string | null"),
@@ -329,45 +335,94 @@ module.exports = {
   watch: "'OK'",
   zadd: (types) => {
     if (types.find((type) => type.includes("INCR"))) {
+      // INCR returns the new score (a DOUBLE), or null when NX/XX skips the add.
       if (types.find((type) => type.includes("XX") || type.includes("NX"))) {
-        return "string | null";
+        return { resp2: "string | null", resp3: "Resp3Double<string> | null" };
       }
-      return "string";
+      return { resp2: "string", resp3: "Resp3Double<string>" };
     }
     return "number";
   },
   zcard: "number",
   zcount: "number",
-  zdiff: "string[]",
+  zdiff: (types) => {
+    if (hasToken(types, "WITHSCORES")) {
+      return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };
+    }
+    return "string[]";
+  },
   zdiffstore: "number",
-  zincrby: "string",
-  zinter: "string[]",
+  zincrby: { resp2: "string", resp3: "Resp3Double<string>" },
+  zinter: (types) => {
+    if (hasToken(types, "WITHSCORES")) {
+      return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };
+    }
+    return "string[]";
+  },
   zintercard: "number",
   zinterstore: "number",
   zlexcount: "number",
-  zpopmax: "string[]",
-  zpopmin: "string[]",
+  zpopmax: { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" },
+  zpopmin: { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" },
   zrandmember: (types) => {
+    if (hasToken(types, "WITHSCORES")) {
+      return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };
+    }
     return types.some((type) => type.includes("number"))
       ? "string[]"
       : "string | null";
   },
   zrangestore: "number",
-  zrange: "string[]",
+  zrange: (types) => {
+    if (hasToken(types, "WITHSCORES")) {
+      return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };
+    }
+    return "string[]";
+  },
   zrangebylex: "string[]",
   zrevrangebylex: "string[]",
-  zrangebyscore: "string[]",
-  zrank: "number | null",
+  zrangebyscore: (types) => {
+    if (hasToken(types, "WITHSCORES")) {
+      return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };
+    }
+    return "string[]";
+  },
+  zrank: (types) => {
+    if (hasToken(types, "WITHSCORE")) {
+      return "[rank: number, score: RespShape<Resp2<string>, Resp3<Resp3Double<string>>, Context>] | null";
+    }
+    return "number | null";
+  },
   zrem: "number",
   zremrangebylex: "number",
   zremrangebyrank: "number",
   zremrangebyscore: "number",
-  zrevrange: "string[]",
-  zrevrangebyscore: "string[]",
-  zrevrank: "number | null",
-  zscore: "string | null",
-  zunion: "string[]",
-  zmscore: "(string | null)[]",
+  zrevrange: (types) => {
+    if (hasToken(types, "WITHSCORES")) {
+      return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };
+    }
+    return "string[]";
+  },
+  zrevrangebyscore: (types) => {
+    if (hasToken(types, "WITHSCORES")) {
+      return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };
+    }
+    return "string[]";
+  },
+  zrevrank: (types) => {
+    if (hasToken(types, "WITHSCORE")) {
+      return "[rank: number, score: RespShape<Resp2<string>, Resp3<Resp3Double<string>>, Context>] | null";
+    }
+    return "number | null";
+  },
+  zscore: { resp2: "string | null", resp3: "Resp3Double<string> | null" },
+  zunion: (types) => {
+    if (hasToken(types, "WITHSCORES")) {
+      return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };
+    }
+    return "string[]";
+  },
+  zmscore: { resp2: "(string | null)[]", resp3: "(Resp3Double<string> | null)[]" },
   zunionstore: "number",
   scan: "[cursor: string, elements: string[]]",
   sscan: "[cursor: string, elements: string[]]",
