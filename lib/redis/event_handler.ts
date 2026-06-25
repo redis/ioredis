@@ -5,76 +5,91 @@ import { AbortError } from "redis-errors";
 import Command from "../Command";
 import { MaxRetriesPerRequestError } from "../errors";
 import { CommandItem, Respondable } from "../types";
-import {
-  Debug,
-  noop,
-  CONNECTION_CLOSED_ERROR_MSG,
-  getPackageMeta,
-} from "../utils";
+import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import DataHandler from "../DataHandler";
 
 const debug = Debug("connection");
 
+interface HandshakeCommand {
+  send: () => Promise<unknown>;
+  errorHandler?: (err: Error) => void;
+}
+
+function getHandshakeCommands(self: any): HandshakeCommand[] {
+  const commands: HandshakeCommand[] = [];
+
+  if (self.options.protocol === 3) {
+    commands.push({
+      send: () => self.hello(getHelloCommandArgs(self)),
+      errorHandler: handleAuthError,
+    });
+  } else if (self.condition.auth) {
+    commands.push({
+      send: () => self.auth(self.condition.auth),
+      errorHandler: handleAuthError,
+    });
+  }
+
+  if (self.condition.select) {
+    commands.push({
+      send: () => self.select(self.condition.select),
+      errorHandler: (err) => self.silentEmit("error", err),
+    });
+  }
+
+  if (self.options.connectionName) {
+    debug("set the connection name [%s]", self.options.connectionName);
+    commands.push({
+      send: () => self.client("setname", self.options.connectionName),
+      errorHandler: noop,
+    });
+  }
+
+  if (self.options.readOnly) {
+    debug("set the connection to readonly mode");
+    commands.push({
+      send: () => self.readonly(),
+      errorHandler: noop,
+    });
+  }
+
+  if (!self.options.disableClientInfo) {
+    debug("set the client info");
+ 
+    let version = "unknown";
+  
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { version: clientVersion } = require("../../package.json") as { version: string };
+      version = clientVersion
+    } catch {
+      // noop
+    }
+  
+    commands.push({
+      send: () => self.client("SETINFO", "LIB-VER", version),
+      errorHandler: noop,
+    });
+    commands.push({
+      send: () =>
+        self.client(
+          "SETINFO",
+          "LIB-NAME",
+          self.options?.clientInfoTag
+            ? `ioredis(${self.options.clientInfoTag})`
+            : "ioredis",
+        ),
+      errorHandler: noop,
+    });
+  }
+
+  return commands;
+}
+
 export function connectHandler(self) {
   return function () {
     self.setStatus("connect");
-
     self.resetCommandQueue();
-
-    // AUTH command should be processed before any other commands
-    let flushed = false;
-    const { connectionEpoch } = self;
-    if (self.options.protocol === 3) {
-      self.hello(getHelloCommandArgs(self), function (err) {
-        if (connectionEpoch !== self.connectionEpoch) {
-          return;
-        }
-        if (err) {
-          flushed = true;
-          self.recoverFromFatalError(err, err);
-        }
-      });
-    } else if (self.condition.auth) {
-      self.auth(self.condition.auth, function (err) {
-        if (connectionEpoch !== self.connectionEpoch) {
-          return;
-        }
-        if (err) {
-          if (err.message.indexOf("no password is set") !== -1) {
-            console.warn(
-              "[WARN] Redis server does not require a password, but a password was supplied."
-            );
-          } else if (
-            err.message.indexOf(
-              "without any password configured for the default user"
-            ) !== -1
-          ) {
-            console.warn(
-              "[WARN] This Redis server's `default` user does not require a password, but a password was supplied"
-            );
-          } else if (
-            err.message.indexOf(
-              "wrong number of arguments for 'auth' command"
-            ) !== -1
-          ) {
-            console.warn(
-              `[ERROR] The server returned "wrong number of arguments for 'auth' command". You are probably passing both username and password to Redis version 5 or below. You should only pass the 'password' option for Redis version 5 and under.`
-            );
-          } else {
-            flushed = true;
-            self.recoverFromFatalError(err, err);
-          }
-        }
-      });
-    }
-
-    if (self.condition.select) {
-      self.select(self.condition.select).catch((err) => {
-        // If the node is in cluster mode, select is disallowed.
-        // In this case, reconnect won't help.
-        self.silentEmit("error", err);
-      });
-    }
 
     /*
       No need to keep the reference of DataHandler here
@@ -85,43 +100,16 @@ export function connectHandler(self) {
       stringNumbers: self.options.stringNumbers,
     });
 
-    const clientCommandPromises = [];
+    const { connectionEpoch } = self;
 
-    if (self.options.connectionName) {
-      debug("set the connection name [%s]", self.options.connectionName);
-      clientCommandPromises.push(
-        self.client("setname", self.options.connectionName).catch(noop)
-      );
+    const promises: Array<Promise<unknown>> = [];
+    for (const { send, errorHandler } of getHandshakeCommands(self)) {
+      const p = send();
+      promises.push(errorHandler ? p.catch(errorHandler) : p);
     }
 
-    if (!self.options.disableClientInfo) {
-      debug("set the client info");
-      clientCommandPromises.push(
-        getPackageMeta()
-          .then((packageMeta) => {
-            return self
-              .client("SETINFO", "LIB-VER", packageMeta.version)
-              .catch(noop);
-          })
-          .catch(noop)
-      );
-
-      clientCommandPromises.push(
-        self
-          .client(
-            "SETINFO",
-            "LIB-NAME",
-            self.options?.clientInfoTag
-              ? `ioredis(${self.options.clientInfoTag})`
-              : "ioredis"
-          )
-          .catch(noop)
-      );
-    }
-
-    Promise.all(clientCommandPromises)
-      .catch(noop)
-      .finally(() => {
+    Promise.all(promises).then(
+      () => {
         // The connection may have been closed (and possibly already
         // reconnected) while the client setup commands above were still
         // in flight. In that case this callback is stale and the
@@ -137,36 +125,66 @@ export function connectHandler(self) {
           return;
         }
 
-        if (!self.options.enableReadyCheck) {
+        // If user code raced a SUBSCRIBE in during the handshake window,
+        // the connection is already in subscriber mode. Issuing INFO would
+        // be rejected and trigger a spurious reconnect — skip the ready
+        // check and let readyHandler finish setting up.
+        if (!self.options.enableReadyCheck || self.condition?.subscriber) {
           exports.readyHandler(self)();
+          return;
         }
 
-        if (self.options.enableReadyCheck) {
-          self._readyCheck(function (err, info) {
-            if (connectionEpoch !== self.connectionEpoch) {
-              return;
-            }
-            if (err) {
-              if (!flushed) {
-                self.recoverFromFatalError(
-                  new Error("Ready check failed: " + err.message),
-                  err
-                );
-              }
-            } else {
-              if (self.connector.check(info)) {
-                exports.readyHandler(self)();
-              } else {
-                self.disconnect(true);
-              }
-            }
-          });
-        }
-      });
+        self._readyCheck(function (err: Error | null, info: unknown) {
+          if (connectionEpoch !== self.connectionEpoch) return;
+          // Late-race variant: SUBSCRIBE response landed during the INFO
+          // round-trip, so INFO came back rejected. Same disposition.
+          if (err && self.condition?.subscriber) {
+            exports.readyHandler(self)();
+            return;
+          }
+          if (err) {
+            self.recoverFromFatalError(err, err);
+          } else if (self.connector.check(info)) {
+            exports.readyHandler(self)();
+          } else {
+            self.disconnect(true);
+          }
+        });
+      },
+      (err: Error) => {
+        if (connectionEpoch !== self.connectionEpoch) return;
+        self.recoverFromFatalError(err, err);
+      },
+    );
   };
 }
 
-function getHelloCommandArgs(self) {
+function handleAuthError(err: Error): void {
+  const msg = err.message || "";
+  if (msg.indexOf("no password is set") !== -1) {
+    console.warn(
+      "[WARN] Redis server does not require a password, but a password was supplied.",
+    );
+    return;
+  }
+  if (
+    msg.indexOf("without any password configured for the default user") !== -1
+  ) {
+    console.warn(
+      "[WARN] This Redis server's `default` user does not require a password, but a password was supplied",
+    );
+    return;
+  }
+  if (msg.indexOf("wrong number of arguments for 'auth' command") !== -1) {
+    console.warn(
+      `[ERROR] The server returned "wrong number of arguments for 'auth' command". You are probably passing both username and password to Redis version 5 or below. You should only pass the 'password' option for Redis version 5 and under.`,
+    );
+    return;
+  }
+  throw err;
+}
+
+function getHelloCommandArgs(self): Array<string | number> {
   const args: Array<string | number> = [3];
 
   if (self.condition.auth) {
@@ -272,7 +290,7 @@ export function closeHandler(self) {
 
     if (typeof retryDelay !== "number") {
       debug(
-        "skip reconnecting because `retryStrategy` doesn't return a number"
+        "skip reconnecting because `retryStrategy` doesn't return a number",
       );
       return close();
     }
@@ -293,7 +311,7 @@ export function closeHandler(self) {
         const remainder = self.retryAttempts % (maxRetriesPerRequest + 1);
         if (remainder === 0) {
           debug(
-            "reach maxRetriesPerRequest limitation, flushing command queue..."
+            "reach maxRetriesPerRequest limitation, flushing command queue...",
           );
           self.flushQueue(new MaxRetriesPerRequestError(maxRetriesPerRequest));
         }
@@ -322,7 +340,7 @@ export function readyHandler(self) {
     if (self.options.monitor) {
       self.call("monitor").then(
         () => self.setStatus("monitoring"),
-        (error: Error) => self.emit("error", error)
+        (error: Error) => self.emit("error", error),
       );
       const { sendCommand } = self;
       self.sendCommand = function (command) {
@@ -330,7 +348,9 @@ export function readyHandler(self) {
           return sendCommand.call(self, command);
         }
         command.reject(
-          new Error("Connection is in monitoring mode, can't process commands.")
+          new Error(
+            "Connection is in monitoring mode, can't process commands.",
+          ),
         );
         return command.promise;
       };
