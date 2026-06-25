@@ -412,10 +412,9 @@ export const CONNECTION_CLOSED_ERROR_MSG = "Connection is closed.";
  * regular commands remain allowed while subscribed.
  */
 export function isResp2SubscriberMode(
-  options: { protocol?: 2 | 3 },
-  condition: { subscriber: false | object } | null | undefined
+  condition: { subscriber: false | object; protocol: 2 | 3 } | null | undefined
 ): boolean {
-  return Boolean(condition?.subscriber) && options.protocol !== 3;
+  return Boolean(condition?.subscriber) && condition?.protocol !== 3;
 }
 
 export function zipMap<K, V>(keys: K[], values: V[]): Map<K, V> {

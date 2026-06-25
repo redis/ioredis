@@ -15,6 +15,14 @@ export interface Condition {
   select: number;
   auth?: string | [string, string];
   subscriber: false | SubscriptionSet;
+  // The protocol actually in effect for this connection. Seeded from
+  // `options.protocol` at connect time, but flipped to 2 in place if the
+  // server rejects `HELLO 3` (RESP3 unsupported). Single source of truth
+  // shared by the handshake and the parser.
+  protocol: 2 | 3;
+  // Internal connection gate. While true, only handshake commands are writable;
+  // user commands are queued so they cannot race ahead of the ready check.
+  handshake: boolean;
 }
 
 export type FlushQueueOptions = {
@@ -40,14 +48,10 @@ export interface DataHandledable extends EventEmitter {
 interface ParserOptions {
   stringNumbers: boolean;
   replyMapping: "legacy" | "resp3";
-  protocol: 2 | 3;
 }
 
 export default class DataHandler {
-  private readonly protocol: 2 | 3;
-
   constructor(private redis: DataHandledable, parserOptions: ParserOptions) {
-    this.protocol = parserOptions.protocol;
     // Parser options can't change over the lifetime of a connection, so the
     // mapping is resolved once instead of per reply.
     const typeMapping = getParserTypeMapping(parserOptions);
@@ -109,7 +113,7 @@ export default class DataHandler {
     // command response. Routing it by content would misinterpret replies that
     // merely look like pub/sub messages (e.g. an LRANGE result starting with
     // "message") and desync the command queue.
-    if (this.protocol !== 3 && this.handleSubscriberReply(reply)) {
+    if (this.redis.condition.protocol !== 3 && this.handleSubscriberReply(reply)) {
       return;
     }
 

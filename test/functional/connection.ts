@@ -10,6 +10,7 @@ describe("connection", function () {
   it('should emit "connect" when connected', (done) => {
     const redis = new Redis();
     redis.on("connect", function () {
+      expect(redis.status).to.eql("connect");
       redis.disconnect();
       done();
     });

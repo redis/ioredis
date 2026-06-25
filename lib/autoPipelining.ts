@@ -20,6 +20,7 @@ export const notAllowedAutoPipelineCommands = [
   "unpsubscribe",
   "select",
   "client",
+  "hello"
 ];
 
 function executeAutoPipeline(client, slotKey: string) {

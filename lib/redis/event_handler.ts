@@ -5,12 +5,7 @@ import { AbortError } from "redis-errors";
 import Command from "../Command";
 import { MaxRetriesPerRequestError } from "../errors";
 import { CommandItem, Respondable } from "../types";
-import {
-  Debug,
-  noop,
-  CONNECTION_CLOSED_ERROR_MSG,
-  isResp2SubscriberMode,
-} from "../utils";
+import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import DataHandler from "../DataHandler";
 
 const debug = Debug("connection");
@@ -23,8 +18,8 @@ interface HandshakeCommand {
 function getHandshakeCommands(self: any): HandshakeCommand[] {
   const commands: HandshakeCommand[] = [];
 
-  if (self.options.protocol === 3) {
-    const helloCommandArgs: Array<string | number> = [self.options.protocol];
+  if (self.condition.protocol === 3) {
+    const helloCommandArgs: Array<string | number> = [self.condition.protocol];
 
     if (self.condition.auth) {
       helloCommandArgs.push("AUTH");
@@ -106,31 +101,43 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
 }
 
 export function connectHandler(self) {
-  return function () {
-    self.setStatus("connect");
-    self.resetCommandQueue();
+  return async function () {
+    try {
+      self.resetCommandQueue();
+      self.condition.handshake = true;
+      self.setStatus("connect");
 
-    /*
-      No need to keep the reference of DataHandler here
-      because we don't need to do the cleanup.
-      `Stream#end()` will remove all listeners for us.
-    */
-    new DataHandler(self, {
-      stringNumbers: self.options.stringNumbers,
-      replyMapping: self.options.replyMapping,
-      protocol: self.options.protocol,
-    });
+      /*
+        No need to keep the reference of DataHandler here
+        because we don't need to do the cleanup.
+        `Stream#end()` will remove all listeners for us.
+      */
+      new DataHandler(self, {
+        stringNumbers: self.options.stringNumbers,
+        replyMapping: self.options.replyMapping,
+      });
 
-    const { connectionEpoch } = self;
+      const { connectionEpoch } = self;
+      const isStale = () => connectionEpoch !== self.connectionEpoch;
+      const finishHandshake = () => {
+        if (isStale()) {
+          return false;
+        }
+        self.condition.handshake = false;
+        return true;
+      };
 
-    const promises: Array<Promise<unknown>> = [];
-    for (const { send, errorHandler } of getHandshakeCommands(self)) {
-      const p = send();
-      promises.push(errorHandler ? p.catch(errorHandler) : p);
-    }
+      // Each command handles its own errors, so only HELLO/AUTH can reject here.
+      const sendHandshake = () =>
+        Promise.all(
+          getHandshakeCommands(self).map(({ send, errorHandler }) =>
+            errorHandler ? send().catch(errorHandler) : send(),
+          ),
+        );
 
-    Promise.all(promises).then(
-      () => {
+      try {
+        await sendHandshake();
+      } catch (err) {
         // The connection may have been closed (and possibly already
         // reconnected) while the client setup commands above were still
         // in flight. In that case this callback is stale and the
@@ -139,47 +146,77 @@ export function connectHandler(self) {
         // permanently stop reconnection. The enableReadyCheck branch
         // below is already guarded by the same connectionEpoch check.
         // See https://github.com/redis/ioredis/issues/2099
-        if (
-          connectionEpoch !== self.connectionEpoch ||
-          self.status !== "connect"
-        ) {
+        if (isStale() || self.status !== "connect") {
           return;
         }
 
-        // If user code raced a SUBSCRIBE in during the handshake window,
-        // the connection is already in subscriber mode. Issuing INFO would
-        // be rejected and trigger a spurious reconnect — skip the ready
-        // check and let readyHandler finish setting up.
-        if (
-          !self.options.enableReadyCheck ||
-          isResp2SubscriberMode(self.options, self.condition)
-        ) {
-          exports.readyHandler(self)();
-          return;
+        // Only an unsupported-RESP3 error is recoverable; everything else is fatal.
+        if (!isProtocolNegotiationError(err as Error)) {
+          return self.recoverFromFatalError(err, err);
         }
 
-        self._readyCheck(function (err: Error | null, info: unknown) {
-          if (connectionEpoch !== self.connectionEpoch) return;
-          // Late-race variant: SUBSCRIBE response landed during the INFO
-          // round-trip, so INFO came back rejected. Same disposition.
-          if (err && isResp2SubscriberMode(self.options, self.condition)) {
-            exports.readyHandler(self)();
+        // resp3 shapes are unavailable on RESP2, but the data is unaffected
+        // (RESP2 never sends the remapped frames), so just warn — don't touch
+        // the option.
+        if (self.options.replyMapping === "resp3") {
+          console.warn(
+            '[WARN] replyMapping "resp3" was requested, but the server does not support RESP3. ' +
+              "Replies will use RESP2-compatible shapes until connected to a server that supports RESP3.",
+          );
+        }
+
+        debug("server rejected RESP3, downgrading connection to RESP2");
+        self.condition.protocol = 2;
+
+        // Only re-run the handshake when auth was bundled into the failed HELLO:
+        // its SELECT/SETNAME/SETINFO then failed with NOAUTH and must be resent
+        // (idempotent) after a plain AUTH. Without auth they already succeeded.
+        if (self.condition.auth) {
+          try {
+            await sendHandshake();
+          } catch (downgradeErr) {
+            if (isStale()) {
+              return;
+            }
+            return self.recoverFromFatalError(downgradeErr, downgradeErr);
+          }
+        }
+      }
+
+      if (isStale()) {
+        return;
+      }
+
+      // Keep the public "connect" state/event while the internal handshake gate
+      // stays closed. INFO is a handshake command so it's still writable here,
+      // while a user SUBSCRIBE is not — it stays queued and can't race the
+      // connection into subscriber mode before we're ready (which would get
+      // INFO rejected).
+      if (!self.options.enableReadyCheck) {
+        if (!finishHandshake()) {
+          return;
+        }
+        return exports.readyHandler(self)();
+      }
+
+      self._readyCheck(function (err: Error | null, info: unknown) {
+        if (isStale()) {
+          return;
+        }
+        if (err) {
+          self.recoverFromFatalError(err, err);
+        } else if (self.connector.check(info)) {
+          if (!finishHandshake()) {
             return;
           }
-          if (err) {
-            self.recoverFromFatalError(err, err);
-          } else if (self.connector.check(info)) {
-            exports.readyHandler(self)();
-          } else {
-            self.disconnect(true);
-          }
-        });
-      },
-      (err: Error) => {
-        if (connectionEpoch !== self.connectionEpoch) return;
-        self.recoverFromFatalError(err, err);
-      },
-    );
+          exports.readyHandler(self)();
+        } else {
+          self.disconnect(true);
+        }
+      });
+    } catch (err) {
+      self.recoverFromFatalError(err as Error, err as Error);
+    }
   };
 }
 
@@ -206,6 +243,16 @@ function handleAuthError(err: Error): void {
     return;
   }
   throw err;
+}
+
+// True when HELLO 3 failed because the server can't do RESP3: no HELLO at all
+// (Redis < 6) or HELLO present but the version refused (NOPROTO).
+function isProtocolNegotiationError(err: Error): boolean {
+  const msg = (err.message || "").toUpperCase();
+  return (
+    msg.includes("NOPROTO") ||
+    (msg.includes("UNKNOWN COMMAND") && msg.includes("HELLO"))
+  );
 }
 
 function abortError(command: Respondable) {

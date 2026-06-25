@@ -236,6 +236,8 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
           ? [options.username, options.password]
           : options.password,
         subscriber: false,
+        protocol: options.protocol as 2 | 3,
+        handshake: false,
       };
 
       const _this = this;
@@ -400,7 +402,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
   get mode(): "normal" | "subscriber" | "monitor" {
     return this.options.monitor
       ? "monitor"
-      : isResp2SubscriberMode(this.options, this.condition)
+      : isResp2SubscriberMode(this.condition)
       ? "subscriber"
       : "normal";
   }
@@ -474,7 +476,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       return command.promise;
     }
     if (
-      isResp2SubscriberMode(this.options, this.condition) &&
+      isResp2SubscriberMode(this.condition) &&
       !Command.checkFlag("VALID_IN_SUBSCRIBER_MODE", command.name)
     ) {
       command.reject(
@@ -493,11 +495,17 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
 
     let writable =
       this.status === "ready" ||
+      // During handshake, only internal handshake commands may bypass the queue.
       (!stream &&
         this.status === "connect" &&
+        this.condition?.handshake &&
+        Command.checkFlag("HANDSHAKE_COMMANDS", command.name)) ||
+      // Before ready, loading-safe commands remain writable after handshake.
+      (!stream &&
+        this.status === "connect" &&
+        !this.condition?.handshake &&
         exists(command.name, { caseInsensitive: true }) &&
-        (hasFlag(command.name, "loading", { nameCaseInsensitive: true }) ||
-          Command.checkFlag("HANDSHAKE_COMMANDS", command.name)));
+        hasFlag(command.name, "loading", { nameCaseInsensitive: true }));
     if (!this.stream) {
       writable = false;
     } else if (!this.stream.writable) {
