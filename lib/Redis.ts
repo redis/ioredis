@@ -19,6 +19,7 @@ import {
   Callback,
   CommandItem,
   NetStream,
+  ProtocolVersion,
   ReplyMappingFromOptions,
   ReplyMappingMode,
   ScanStreamOptions,
@@ -236,7 +237,11 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
           ? [options.username, options.password]
           : options.password,
         subscriber: false,
-        protocol: options.protocol as 2 | 3,
+        protocol: options.protocol as ProtocolVersion,
+        replyMapping:
+          options.protocol === 3 && options.replyMapping === "resp3"
+            ? "resp3"
+            : "legacy",
         handshake: false,
       };
 
@@ -468,6 +473,8 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
    * @ignore
    */
   sendCommand(command: Command, stream?: WriteableStream): unknown {
+    command.setReplyContext(this.condition ?? this.options);
+
     if (this.status === "wait") {
       this.connect().catch(noop);
     }

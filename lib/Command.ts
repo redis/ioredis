@@ -8,11 +8,24 @@ import {
   convertMapToArray,
   convertObjectToArray,
 } from "./utils";
-import { Callback, Respondable, CommandParameter } from "./types";
+import {
+  Callback,
+  Respondable,
+  CommandParameter,
+  ProtocolVersion,
+  ReplyMappingMode,
+} from "./types";
 import {
   parseBlockOption,
   parseSecondsArgument,
 } from "./utils/argumentParsers";
+import {
+  ReplyContext,
+  ReplyTransformer,
+  sortedSetWithScorePairCommands,
+  transformScorePairReply,
+  transformVsimReply,
+} from "./replyTransformers";
 
 export type ArgumentType =
   | string
@@ -34,7 +47,6 @@ interface CommandOptions {
 }
 
 type ArgumentTransformer = (args: any[]) => any[];
-type ReplyTransformer = (reply: any) => any;
 interface FlagMap {
   [flag: string]: { [command: string]: true };
 }
@@ -227,6 +239,8 @@ export default class Command implements Respondable {
   promise: Promise<any>;
 
   private replyEncoding: BufferEncoding | null;
+  private protocol: ProtocolVersion;
+  private replyMapping: ReplyMappingMode;
   private errorStack: Error;
   private bufferMode: boolean;
   private callback: Callback;
@@ -253,6 +267,8 @@ export default class Command implements Respondable {
     callback?: Callback
   ) {
     this.replyEncoding = options.replyEncoding;
+    this.protocol = 2;
+    this.replyMapping = "legacy";
     this.errorStack = options.errorStack;
 
     this.args = args.flat();
@@ -296,6 +312,11 @@ export default class Command implements Respondable {
 
   getKeys(): Array<string | Buffer> {
     return this._iterateKeys();
+  }
+
+  setReplyContext(context: ReplyContext | null | undefined): void {
+    this.protocol = context?.protocol ?? 2;
+    this.replyMapping = context?.replyMapping ?? "legacy";
   }
 
   /**
@@ -376,7 +397,11 @@ export default class Command implements Respondable {
     }
     const transformer = Command._transformer.reply[this.name];
     if (transformer) {
-      result = transformer(result);
+      result = transformer(result, {
+        commandName: this.name,
+        protocol: this.protocol,
+        replyMapping: this.replyMapping,
+      });
     }
 
     return result;
@@ -606,38 +631,11 @@ Command.setReplyTransformer("hgetall", function (result) {
   return result;
 });
 
-// VSIM with WITHSCORES + WITHATTRIBS answers a RESP3 map whose values are
-// `[score, attribs]` pairs. The legacy mapping flattens that map to an array,
-// leaving the pairs nested (`[elem, [score, attribs], ...]`), whereas RESP2
-// returned a single flat list. Splice the nested pairs back out so both
-// protocols match. The native RESP3 shape is a plain object and is left
-// untouched, mirroring the `hgetall` transformer above.
-Command.setReplyTransformer("vsim", function (result) {
-  if (!Array.isArray(result)) {
-    return result;
-  }
+Command.setReplyTransformer("vsim", transformVsimReply);
 
-  let hasNested = false;
-  for (const item of result) {
-    if (Array.isArray(item)) {
-      hasNested = true;
-      break;
-    }
-  }
-  if (!hasNested) {
-    return result;
-  }
-
-  const flat = [];
-  for (const item of result) {
-    if (Array.isArray(item)) {
-      flat.push(...item);
-    } else {
-      flat.push(item);
-    }
-  }
-  return flat;
-});
+for (const command of sortedSetWithScorePairCommands) {
+  Command.setReplyTransformer(command, transformScorePairReply);
+}
 
 class MixedBuffers {
   length = 0;

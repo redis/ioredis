@@ -114,7 +114,7 @@ export function connectHandler(self) {
       */
       new DataHandler(self, {
         stringNumbers: self.options.stringNumbers,
-        replyMapping: self.options.replyMapping,
+        replyMapping: self.condition.replyMapping,
       });
 
       const { connectionEpoch } = self;
@@ -167,6 +167,7 @@ export function connectHandler(self) {
 
         debug("server rejected RESP3, downgrading connection to RESP2");
         self.condition.protocol = 2;
+        self.condition.replyMapping = "legacy";
 
         // Only re-run the handshake when auth was bundled into the failed HELLO:
         // its SELECT/SETNAME/SETINFO then failed with NOAUTH and must be resent

@@ -3,6 +3,7 @@ import { TLSSocket } from "tls";
 
 export type Callback<T = any> = (err?: Error | null, result?: T) => void;
 export type NetStream = Socket | TLSSocket;
+export type ProtocolVersion = 2 | 3;
 export type ReplyMappingMode = "legacy" | "resp3";
 
 export type ReplyMappingFromOptions<

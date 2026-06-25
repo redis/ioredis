@@ -2,6 +2,7 @@ import { CommanderOptions } from "../utils/Commander";
 import ConnectorConstructor from "../connectors/ConnectorConstructor";
 import { SentinelConnectionOptions } from "../connectors/SentinelConnector";
 import { StandaloneConnectionOptions } from "../connectors/StandaloneConnector";
+import { ProtocolVersion, ReplyMappingMode } from "../types";
 
 export type ReconnectOnError = (err: Error) => boolean | 1 | 2;
 export type RetryStrategy =
@@ -145,7 +146,7 @@ export interface CommonRedisOptions extends CommanderOptions {
    * The RESP protocol version to use.
    * @default 2
    */
-  protocol?: 2 | 3 | undefined;
+  protocol?: ProtocolVersion | undefined;
 
   /**
    * How RESP3-only reply types are represented in JavaScript.
@@ -159,7 +160,7 @@ export interface CommonRedisOptions extends CommanderOptions {
    *
    * @default "legacy"
    */
-  replyMapping?: "legacy" | "resp3" | undefined;
+  replyMapping?: ReplyMappingMode | undefined;
 
   /**
    * How long the client will wait before killing a socket due to inactivity during initial connection.

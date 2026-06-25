@@ -1,4 +1,10 @@
-import { NetStream, CommandItem, Respondable } from "./types";
+import {
+  NetStream,
+  CommandItem,
+  Respondable,
+  ProtocolVersion,
+  ReplyMappingMode,
+} from "./types";
 import Deque = require("denque");
 import { EventEmitter } from "events";
 import Command from "./Command";
@@ -19,7 +25,10 @@ export interface Condition {
   // `options.protocol` at connect time, but flipped to 2 in place if the
   // server rejects `HELLO 3` (RESP3 unsupported). Single source of truth
   // shared by the handshake and the parser.
-  protocol: 2 | 3;
+  protocol: ProtocolVersion;
+  // The reply shape actually in effect for this connection. This can differ
+  // from the requested option when RESP3 negotiation falls back to RESP2.
+  replyMapping: ReplyMappingMode;
   // Internal connection gate. While true, only handshake commands are writable;
   // user commands are queued so they cannot race ahead of the ready check.
   handshake: boolean;
@@ -47,7 +56,7 @@ export interface DataHandledable extends EventEmitter {
 
 interface ParserOptions {
   stringNumbers: boolean;
-  replyMapping: "legacy" | "resp3";
+  replyMapping: ReplyMappingMode;
 }
 
 export default class DataHandler {

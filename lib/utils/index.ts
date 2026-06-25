@@ -1,7 +1,7 @@
 import { promises as fsPromises } from "fs";
 import { resolve } from "path";
 import { defaults, isArguments, noop } from "./lodash";
-import { Callback } from "../types";
+import { Callback, ProtocolVersion } from "../types";
 import Debug from "./debug";
 
 import TLSProfiles from "../constants/TLSProfiles";
@@ -412,7 +412,10 @@ export const CONNECTION_CLOSED_ERROR_MSG = "Connection is closed.";
  * regular commands remain allowed while subscribed.
  */
 export function isResp2SubscriberMode(
-  condition: { subscriber: false | object; protocol: 2 | 3 } | null | undefined
+  condition:
+    | { subscriber: false | object; protocol: ProtocolVersion }
+    | null
+    | undefined
 ): boolean {
   return Boolean(condition?.subscriber) && condition?.protocol !== 3;
 }

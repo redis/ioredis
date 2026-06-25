@@ -538,6 +538,8 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
    * @ignore
    */
   sendCommand(command: Command, stream?: WriteableStream, node?: any): unknown {
+    command.setReplyContext(this.options.redisOptions);
+
     if (this.status === "wait") {
       this.connect().catch(noop);
     }

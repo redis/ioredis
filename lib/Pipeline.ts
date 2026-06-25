@@ -208,6 +208,12 @@ class Pipeline extends Commander<{ type: "pipeline" }> {
   }
 
   sendCommand(command: Command): unknown {
+    if ("condition" in this.redis) {
+      command.setReplyContext(this.redis.condition);
+    } else {
+      command.setReplyContext(this.redis.options.redisOptions);
+    }
+
     if (this._transactions > 0) {
       command.inTransaction = true;
     }
