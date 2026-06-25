@@ -144,7 +144,7 @@ export interface CommonRedisOptions extends CommanderOptions {
 
   /**
    * The RESP protocol version to use.
-   * @default 2
+   * @default 3
    */
   protocol?: ProtocolVersion | undefined;
 
@@ -296,7 +296,7 @@ export const DEFAULT_REDIS_OPTIONS: RedisOptions = {
   reconnectOnError: null,
   readOnly: false,
   stringNumbers: false,
-  protocol: 2,
+  protocol: 3,
   replyMapping: "legacy",
   maxRetriesPerRequest: 20,
   maxLoadingRetryTime: 10000,

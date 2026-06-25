@@ -10,7 +10,7 @@ describe("replyMapping", function () {
   });
 
   it("rejects the resp3 mapping with protocol 2", () => {
-    expect(() => new Redis({ replyMapping: "resp3" })).to.throw(
+    expect(() => new Redis({ protocol: 2, replyMapping: "resp3" })).to.throw(
       /only supported with protocol 3/,
     );
   });

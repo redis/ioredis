@@ -55,12 +55,17 @@ export class Decoder {
   getTypeMapping;
   #cursor = 0;
   #next;
+  #pushTypeMapping;
 
   constructor(config: DecoderOptions) {
     this.onReply = config.onReply;
     this.onErrorReply = config.onErrorReply;
     this.onPush = config.onPush;
     this.getTypeMapping = config.getTypeMapping;
+    this.#pushTypeMapping = {
+      ...config.getTypeMapping(),
+      ...PUSH_TYPE_MAPPING,
+    };
   }
 
   reset() {
@@ -193,7 +198,7 @@ export class Decoder {
       case RESP_TYPES.PUSH:
         return this.#handleDecodedValue(
           this.onPush,
-          this.#decodeArray(PUSH_TYPE_MAPPING, chunk)
+          this.#decodeArray(this.#pushTypeMapping, chunk)
         );
 
       default:

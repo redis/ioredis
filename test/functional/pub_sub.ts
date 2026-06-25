@@ -17,24 +17,26 @@ describe("pub/sub", function () {
     });
   });
 
-  it("should reject when issue a command in the subscriber mode", (done) => {
-    const redis = new Redis();
-    redis.subscribe("foo", function () {
-      redis.set("foo", "bar", function (err) {
-        expect(err instanceof Error);
-        expect(err.message).to.match(/subscriber mode/);
+  describe("RESP2 subscriber mode", () => {
+    it("should reject when issue a command in the subscriber mode", (done) => {
+      const redis = new Redis({ protocol: 2 });
+      redis.subscribe("foo", function () {
+        redis.set("foo", "bar", function (err) {
+          expect(err).to.be.instanceOf(Error);
+          expect(err.message).to.match(/subscriber mode/);
+          redis.disconnect();
+          done();
+        });
+      });
+    });
+
+    it("should report being in 'subscriber' mode when subscribed", (done) => {
+      const redis = new Redis({ protocol: 2 });
+      redis.subscribe("foo", function () {
+        expect(redis.mode).to.equal("subscriber");
         redis.disconnect();
         done();
       });
-    });
-  });
-
-  it("should report being in 'subscriber' mode when subscribed", (done) => {
-    const redis = new Redis();
-    redis.subscribe("foo", function () {
-      expect(redis.mode).to.equal("subscriber");
-      redis.disconnect();
-      done();
     });
   });
 

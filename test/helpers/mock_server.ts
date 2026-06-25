@@ -41,6 +41,14 @@ export function getConnectionName(socket: Socket): string | undefined {
   return connectionNameMap.get(socket);
 }
 
+export type MockServerProtocol = 2 | 3;
+export type PubSubReplyType =
+  | "subscribe"
+  | "psubscribe"
+  | "ssubscribe"
+  | "message"
+  | "smessage";
+
 interface Flags {
   disconnect?: boolean;
   hang?: boolean;
@@ -189,4 +197,28 @@ export default class MockServer extends EventEmitter {
   getAllClients(): Socket[] {
     return this.clients.filter(Boolean);
   }
+}
+
+export function pushFrame(...items: Array<string | number>) {
+  let data = `>${items.length}\r\n`;
+  for (const item of items) {
+    if (typeof item === "number") {
+      data += `:${item}\r\n`;
+    } else {
+      data += `$${Buffer.byteLength(item)}\r\n${item}\r\n`;
+    }
+  }
+  return MockServer.raw(data);
+}
+
+export function pubSubReply(
+  protocol: MockServerProtocol,
+  type: PubSubReplyType,
+  channel: string,
+  value: string | number = 1
+) {
+  if (protocol === 3) {
+    return pushFrame(type, channel, value);
+  }
+  return [type, channel, value];
 }

@@ -24,14 +24,14 @@ describe("connection", function () {
     });
   });
 
-  it("should send AUTH command before any other commands", (done) => {
+  it("should send HELLO command before any other commands", (done) => {
     const redis = new Redis({ password: "123" });
     redis.get("foo");
     let times = 0;
     sinon.stub(redis, "sendCommand").callsFake((command) => {
       times += 1;
       if (times === 1) {
-        expect(command.name).to.eql("auth");
+        expect(command.name).to.eql("hello");
       } else if (times === 2 || times === 3) {
         expect(command.name).to.eql("client");
       } else if (times === 4) {

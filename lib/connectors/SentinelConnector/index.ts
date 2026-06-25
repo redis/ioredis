@@ -11,7 +11,7 @@ import { connect as createTLSConnection, ConnectionOptions } from "tls";
 import SentinelIterator from "./SentinelIterator";
 import { RedisClient, SentinelAddress, Sentinel } from "./types";
 import AbstractConnector, { ErrorEmitter } from "../AbstractConnector";
-import { NetStream } from "../../types";
+import { NetStream, ProtocolVersion, ReplyMappingMode } from "../../types";
 import Redis from "../../Redis";
 import { RedisOptions } from "../../redis/RedisOptions";
 import { FailoverDetector } from "./FailoverDetector";
@@ -65,6 +65,8 @@ export interface SentinelConnectionOptions {
    */
   sentinelMaxConnections?: number | undefined;
   failoverDetector?: boolean | undefined;
+  protocol?: ProtocolVersion | undefined;
+  replyMapping?: ReplyMappingMode | undefined;
 }
 
 export default class SentinelConnector extends AbstractConnector {
@@ -320,6 +322,8 @@ export default class SentinelConnector extends AbstractConnector {
       tls: this.options.sentinelTLS,
       retryStrategy: null,
       enableReadyCheck: false,
+      protocol: this.options.protocol,
+      replyMapping: "legacy",
       connectTimeout: this.options.connectTimeout,
       commandTimeout: this.options.sentinelCommandTimeout,
       ...options,
@@ -367,6 +371,8 @@ export default class SentinelConnector extends AbstractConnector {
       const client = this.connectToSentinel(value, {
         lazyConnect: true,
         retryStrategy: this.options.sentinelReconnectStrategy,
+        protocol: this.options.protocol,
+        replyMapping: "legacy",
       });
 
       client.on("reconnecting", () => {
