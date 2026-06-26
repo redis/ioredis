@@ -1,6 +1,6 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
-import { RESP_CONFIGS } from "../../helpers/respConfigs";
+import { RESP_CONFIGS, ReplyMapping } from "../../helpers/respConfigs";
 
 for (const { name, opts } of RESP_CONFIGS) {
   describe(`xread (${name})`, () => {
@@ -22,20 +22,20 @@ for (const { name, opts } of RESP_CONFIGS) {
       expect(await redis.xread("STREAMS", key, "$")).to.equal(null);
     });
 
-    // Known discrepancy (documented in test/functional/resp3.ts): under RESP3
-    // XREAD is a map {stream: entries}; legacy map-flattening turns it into
-    // [stream, entries] (config B), whereas RESP2 (config A) returns an
-    // array-of-pairs [[stream, entries]]. Generic map flattening cannot
-    // reconcile the two shapes, so the data-bearing reply differs between
-    // A and B. The assertion below is the correct RESP2 shape; skip until a
-    // command-specific reply transform exists.
-    it.skip("returns the stream entries as [[key, entries]]", async () => {
+    it("returns the stream entries keyed by stream name", async () => {
       const key = `xread:${Date.now()}`;
       await redis.xadd(key, "1-1", "field", "value");
 
-      expect(await redis.xread("STREAMS", key, "0-0")).to.eql([
-        [key, [["1-1", ["field", "value"]]]],
-      ]);
+      const expected: Record<ReplyMapping, unknown> = {
+        // RESP2 and RESP3/legacy both surface the classic array-of-pairs shape.
+        legacy: [[key, [["1-1", ["field", "value"]]]]],
+        // Native RESP3 keeps the stream map as a plain object.
+        resp3: { [key]: [["1-1", ["field", "value"]]] },
+      };
+
+      expect(await redis.xread("STREAMS", key, "0-0")).to.eql(
+        expected[opts.replyMapping]
+      );
     });
   });
 }

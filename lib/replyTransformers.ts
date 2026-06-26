@@ -68,6 +68,32 @@ const vsimTransformers: Record<
   },
 };
 
+export const wrapStreamMapPairs: ReplyTransformer = function (result) {
+  if (!Array.isArray(result)) {
+    return result;
+  }
+
+  const wrapped: any[] = [];
+  for (let i = 0; i < result.length; i += 2) {
+    wrapped.push([result[i], result[i + 1]]);
+  }
+  return wrapped;
+};
+
+const streamReadTransformers: Record<
+  ProtocolVersion,
+  Record<ReplyMappingMode, ReplyTransformer>
+> = {
+  2: {
+    legacy: passthroughReplyTransformer,
+    resp3: passthroughReplyTransformer,
+  },
+  3: {
+    legacy: wrapStreamMapPairs,
+    resp3: passthroughReplyTransformer,
+  },
+};
+
 export const transformVsimReply: ReplyTransformer = function (
   result,
   context
@@ -83,6 +109,16 @@ export const transformScorePairReply: ReplyTransformer = function (
   context
 ) {
   return flattenScorePairTransformers[context.protocol][context.replyMapping](
+    result,
+    context
+  );
+};
+
+export const transformStreamReadReply: ReplyTransformer = function (
+  result,
+  context
+) {
+  return streamReadTransformers[context.protocol][context.replyMapping](
     result,
     context
   );

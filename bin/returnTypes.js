@@ -458,8 +458,16 @@ module.exports = {
   xrange: "[id: string, fields: string[]][]",
   xrevrange: "[id: string, fields: string[]][]",
   xlen: "number",
-  xread: "[key: string, items: [id: string, fields: string[]][]][] | null",
-  xreadgroup: "unknown[]",
+  xread: {
+    resp2: "[key: string, items: [id: string, fields: string[]][]][] | null",
+    resp3: "Resp3Map<[id: string, fields: string[]][]> | null",
+  },
+  xreadgroup: {
+    // Reading the PEL by explicit ID can surface entries whose stream payload
+    // was XDEL'd; Redis returns those with a null fields array.
+    resp2: "[key: string, items: [id: string, fields: string[] | null][]][] | null",
+    resp3: "Resp3Map<[id: string, fields: string[] | null][]> | null",
+  },
   xack: "number",
   xnack: "number",
   xclaim: "unknown[]",
