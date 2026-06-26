@@ -118,9 +118,10 @@ export function connectHandler(self) {
       });
 
       const { connectionEpoch } = self;
-      const isStale = () => connectionEpoch !== self.connectionEpoch;
+      const isActiveConnect = () =>
+        connectionEpoch === self.connectionEpoch && self.status === "connect";
       const finishHandshake = () => {
-        if (isStale()) {
+        if (!isActiveConnect()) {
           return false;
         }
         self.condition.handshake = false;
@@ -146,7 +147,7 @@ export function connectHandler(self) {
         // permanently stop reconnection. The enableReadyCheck branch
         // below is already guarded by the same connectionEpoch check.
         // See https://github.com/redis/ioredis/issues/2099
-        if (isStale() || self.status !== "connect") {
+        if (!isActiveConnect()) {
           return;
         }
 
@@ -176,7 +177,7 @@ export function connectHandler(self) {
           try {
             await sendHandshake();
           } catch (downgradeErr) {
-            if (isStale()) {
+            if (!isActiveConnect()) {
               return;
             }
             return self.recoverFromFatalError(downgradeErr, downgradeErr);
@@ -184,7 +185,7 @@ export function connectHandler(self) {
         }
       }
 
-      if (isStale()) {
+      if (!isActiveConnect()) {
         return;
       }
 
@@ -201,7 +202,7 @@ export function connectHandler(self) {
       }
 
       self._readyCheck(function (err: Error | null, info: unknown) {
-        if (isStale()) {
+        if (!isActiveConnect()) {
           return;
         }
         if (err) {
