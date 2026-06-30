@@ -487,7 +487,11 @@ export default class Command implements Respondable {
 
       this.resolve = this._convertValue(resolve);
       this.reject = (err: Error) => {
+        if (this.isResolved) {
+          return;
+        }
         this._clearTimers();
+        this.isResolved = true;
         if (this.errorStack) {
           reject(optimizeErrorStack(err, this.errorStack.stack, __dirname));
         } else {
