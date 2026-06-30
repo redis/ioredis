@@ -443,7 +443,7 @@ class Redis extends Commander implements DataHandledable {
    * @ignore
    */
   sendCommand(command: Command, stream?: WriteableStream): unknown {
-    if (command.isResolved) {
+    if (command.isSettled) {
       return command.promise;
     }
     if (this.status === "wait") {
