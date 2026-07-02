@@ -393,6 +393,25 @@ describeOrSkip("tracing", function () {
       ]);
     });
 
+    it("should keep key but redact value for GETSET", function () {
+      expect(sanitizeArgs("getset", ["mykey", "secret"])).to.eql([
+        "mykey",
+        "?",
+      ]);
+      expect(sanitizeArgs("GETSET", ["mykey", "secret"])).to.eql([
+        "mykey",
+        "?",
+      ]);
+    });
+
+    it("should keep key but redact value for PSETEX", function () {
+      expect(sanitizeArgs("psetex", ["mykey", "300000", "secret"])).to.eql([
+        "mykey",
+        "?",
+        "?",
+      ]);
+    });
+
     it("should keep key but redact values for LPUSH with multiple elements", function () {
       expect(sanitizeArgs("lpush", ["mylist", "a", "b", "c"])).to.eql([
         "mylist",

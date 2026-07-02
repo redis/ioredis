@@ -10,7 +10,8 @@ import type { CommandParameter } from "./types";
 const SERIALIZATION_SUBSETS: Array<{ regex: RegExp; args: number }> = [
   { regex: /^ECHO/i, args: 0 },
   {
-    regex: /^(LPUSH|MSET|PFA|PUBLISH|RPUSH|SADD|SET|SPUBLISH|XADD|ZADD)/i,
+    regex:
+      /^(GETSET|LPUSH|MSET|PFA|PSETEX|PUBLISH|RPUSH|SADD|SET|SPUBLISH|XADD|ZADD)/i,
     args: 1,
   },
   { regex: /^(HSET|HMSET|LSET|LINSERT)/i, args: 2 },
