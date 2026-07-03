@@ -27,6 +27,7 @@ import ConnectionPool from "./ConnectionPool";
 import DelayQueue from "./DelayQueue";
 import {
   getConnectionName,
+  getNodeKey,
   getUniqueHostnamesFromOptions,
   groupSrvRecords,
   NodeKey,
@@ -529,6 +530,9 @@ class Cluster extends Commander {
     let targetSlot = node ? node.slot : command.getSlot();
     const ttl = {};
     const _this = this;
+    // The connection the command was last sent on, used to detect
+    // MOVED redirects that point back at the same node.
+    let lastRedis: Redis | null = null;
     if (!node && !REJECT_OVERWRITTEN_COMMANDS.has(command)) {
       REJECT_OVERWRITTEN_COMMANDS.add(command);
 
@@ -546,7 +550,26 @@ class Cluster extends Commander {
             }
             _this._groupsBySlot[slot] =
               _this._groupsIds[_this.slots[slot].join(";")];
-            _this.connectionPool.findOrCreate(_this.natMapper(key));
+            const mapped = _this.natMapper(key);
+            const mappedKey = getNodeKey(mapped);
+            if (
+              lastRedis &&
+              getNodeKey(lastRedis.options as RedisOptions) === mappedKey &&
+              _this.connectionPool.getInstanceByKey(mappedKey) === lastRedis
+            ) {
+              // The redirect points back at the connection that returned
+              // the error, so it is stale (e.g. the endpoint is a proxy
+              // whose backing server changed) and retrying on it would
+              // loop forever. Replace it with a fresh one, unless another
+              // command already did — then reuse the replacement.
+              debug(
+                "MOVED redirect points back at %s; recreating its connection",
+                mappedKey
+              );
+              _this.connectionPool.recreate(mapped);
+            } else {
+              _this.connectionPool.findOrCreate(mapped);
+            }
             tryConnection();
             debug("refreshing slot caches... (triggered by MOVED error)");
             _this.refreshSlotsCache();
@@ -698,6 +721,7 @@ class Cluster extends Commander {
         return;
       }
 
+      lastRedis = redis;
       redis.sendCommand(command, stream);
     }
     return command.promise;

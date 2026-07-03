@@ -129,6 +129,10 @@ export default class ConnectionPool extends EventEmitter {
       this.nodes[readOnly ? "slave" : "master"][key] = redis;
 
       redis.once("end", () => {
+        if (this.nodes.all[key] && this.nodes.all[key] !== redis) {
+          // The node was recreated (see `recreate`); leave the new one alone.
+          return;
+        }
         this.removeNode(key);
         this.emit("-node", redis, key);
         if (!Object.keys(this.nodes.all).length) {
@@ -143,6 +147,30 @@ export default class ConnectionPool extends EventEmitter {
       });
     }
 
+    return redis;
+  }
+
+  /**
+   * Replace the connection to the node with a fresh one. Used when the
+   * existing connection is known to be stale, e.g. after a MOVED redirect
+   * that points back at the node it came from.
+   */
+  recreate(node: RedisOptions, readOnly = false): Redis {
+    const key = getNodeKey(node);
+    const existing = this.nodes.all[key];
+    if (existing) {
+      debug("Recreating connection to %s", key);
+      // Remove before disconnecting so the "end" event of the stale
+      // instance doesn't tear down the replacement.
+      this.removeNode(key);
+      existing.disconnect();
+    }
+    const redis = this.findOrCreate(node, readOnly);
+    if (existing) {
+      // Emit after the replacement is in place so listeners (e.g.
+      // ClusterSubscriber) never observe the pool without the node.
+      this.emit("-node", existing, key);
+    }
     return redis;
   }
 
