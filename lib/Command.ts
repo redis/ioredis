@@ -7,6 +7,10 @@ import {
   toArg,
   convertMapToArray,
   convertObjectToArray,
+  checkAndConvertUint8Array,
+  isUint8Array,
+  toBuffer,
+  toBufferIfUint8Array,
 } from "./utils";
 import { Callback, Respondable, CommandParameter } from "./types";
 import {
@@ -17,8 +21,9 @@ import {
 export type ArgumentType =
   | string
   | Buffer
+  | Uint8Array
   | number
-  | (string | Buffer | number | any[])[];
+  | (string | Buffer | Uint8Array | number | any[])[];
 
 interface CommandOptions {
   /**
@@ -241,12 +246,13 @@ export default class Command implements Respondable {
     this.replyEncoding = options.replyEncoding;
     this.errorStack = options.errorStack;
 
-    this.args = args.flat();
+    this.args = args.flat().map(checkAndConvertUint8Array);
     this.callback = callback;
 
     this.initPromise();
 
     if (options.keyPrefix) {
+      options.keyPrefix = toBufferIfUint8Array(options.keyPrefix);
       // @ts-expect-error
       const isBufferKeyPrefix = options.keyPrefix instanceof Buffer;
       // @ts-expect-error
@@ -343,6 +349,9 @@ export default class Command implements Respondable {
       if (typeof arg === "string") {
         // buffers and strings don't need any transformation
       } else if (arg instanceof Buffer) {
+        this.bufferMode = true;
+      } else if (isUint8Array(arg)) {
+        this.args[i] = toBuffer(arg);
         this.bufferMode = true;
       } else {
         this.args[i] = toArg(arg);
