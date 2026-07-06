@@ -150,7 +150,8 @@ new Redis({
 });
 ```
 
-You can also specify connection options as a [`redis://` URL](http://www.iana.org/assignments/uri-schemes/prov/redis) or [`rediss://` URL](https://www.iana.org/assignments/uri-schemes/prov/rediss) when using [TLS encryption](#tls-options):
+You can also pass a connection string as the first constructor argument.
+Use a [`redis://` URL](http://www.iana.org/assignments/uri-schemes/prov/redis) or [`rediss://` URL](https://www.iana.org/assignments/uri-schemes/prov/rediss) when using [TLS encryption](#tls-options):
 
 ```javascript
 // Connect to 127.0.0.1:6380, db 4, using password "authpassword":
@@ -922,7 +923,8 @@ const redis = new Redis({
 });
 ```
 
-Alternatively, specify the connection through a [`rediss://` URL](https://www.iana.org/assignments/uri-schemes/prov/rediss).
+Alternatively, pass a [`rediss://` URL](https://www.iana.org/assignments/uri-schemes/prov/rediss) directly to the constructor.
+The `host` field in `RedisOptions` should contain only the hostname; a `rediss://` URL in `host` is not parsed as a TLS URL.
 
 ```javascript
 const redis = new Redis("rediss://redis.my-service.com");
