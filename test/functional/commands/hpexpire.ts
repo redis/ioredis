@@ -47,5 +47,37 @@ for (const { name, opts } of RESP_CONFIGS) {
         )
       ).to.deep.equal([1, 1, -2]);
     });
+
+    it("returns -2 for a non-existing field", async () => {
+      expect(
+        await redis.hpexpire(
+          "non_existing_hash_key",
+          60000,
+          "NX",
+          "FIELDS",
+          1,
+          "non_existing_field"
+        )
+      ).to.deep.equal([-2]);
+    });
+
+    it("returns 0 when the NX condition is not met", async () => {
+      const key = `hpexpire:${Date.now()}`;
+      await redis.hset(key, "field", "value");
+      await redis.hpexpire(key, 60000, "FIELDS", 1, "field");
+
+      expect(
+        await redis.hpexpire(key, 120000, "NX", "FIELDS", 1, "field")
+      ).to.deep.equal([0]);
+    });
+
+    it("returns 2 when expiring a field with 0 milliseconds", async () => {
+      const key = `hpexpire:${Date.now()}`;
+      await redis.hset(key, "field", "value");
+
+      expect(await redis.hpexpire(key, 0, "FIELDS", 1, "field")).to.deep.equal([
+        2,
+      ]);
+    });
   });
 }
