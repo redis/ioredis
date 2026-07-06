@@ -30,10 +30,11 @@ for (const { name, opts } of RESP_CONFIGS) {
 
     it("returns the absolute expiration time in seconds", async () => {
       const key = `expiretime:${Date.now()}`;
+      const expireAt = Math.floor(Date.now() / 1000) + 60;
       await redis.set(key, "value");
-      await redis.expireat(key, 1893456000);
+      await redis.expireat(key, expireAt);
 
-      expect(await redis.expiretime(key)).to.equal(1893456000);
+      expect(await redis.expiretime(key)).to.equal(expireAt);
     });
   });
 }

@@ -23,9 +23,10 @@ for (const { name, opts } of RESP_CONFIGS) {
 
     it("returns 1 when the timeout is set", async () => {
       const key = `pexpireat:${Date.now()}`;
+      const expireAt = Date.now() + 60_000;
       await redis.set(key, "value");
 
-      expect(await redis.pexpireat(key, 1893456000000)).to.equal(1);
+      expect(await redis.pexpireat(key, expireAt)).to.equal(1);
       expect(await redis.pttl(key)).to.be.greaterThan(0);
     });
   });

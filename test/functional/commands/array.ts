@@ -8,7 +8,7 @@ for (const { name, opts } of RESP_CONFIGS) {
     let redis: Redis;
 
     before(async function () {
-      if (await isRedisVersionLowerThan("8.7")) {
+      if (await isRedisVersionLowerThan("8.8")) {
         this.skip();
       }
     });
