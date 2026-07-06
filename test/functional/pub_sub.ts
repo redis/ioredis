@@ -40,6 +40,44 @@ describe("pub/sub", function () {
     });
   });
 
+  describe("RESP3 subscriber mode", function () {
+    it("allows commands while subscribed", async () => {
+      const redis = new Redis({ protocol: 3 });
+      const key = `resp3:subscribed:${Date.now()}`;
+      const channel = `resp3:channel:${Date.now()}`;
+
+      try {
+        expect(await redis.subscribe(channel)).to.equal(1);
+        expect(redis.mode).to.equal("normal");
+        expect(await redis.set(key, "value")).to.equal("OK");
+        expect(await redis.get(key)).to.equal("value");
+        expect(await redis.del(key)).to.equal(1);
+      } finally {
+        redis.disconnect();
+      }
+    });
+
+    it("routes replies that look like pub/sub messages to commands while subscribed", async () => {
+      const redis = new Redis({ protocol: 3 });
+      const key = `resp3:subscribed:routing:${Date.now()}`;
+      const channel = `resp3:channel:${Date.now()}`;
+
+      let messageEvents = 0;
+      redis.on("message", () => {
+        messageEvents += 1;
+      });
+
+      try {
+        expect(await redis.subscribe(channel)).to.equal(1);
+        await redis.rpush(key, "message", "a", "b");
+        expect(await redis.lrange(key, 0, -1)).to.eql(["message", "a", "b"]);
+        expect(messageEvents).to.equal(0);
+      } finally {
+        redis.disconnect();
+      }
+    });
+  });
+
   it("should exit subscriber mode using unsubscribe", (done) => {
     const redis = new Redis();
     redis.subscribe("foo", "bar", function () {
