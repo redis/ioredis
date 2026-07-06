@@ -33,6 +33,13 @@ expectType<Promise<string | null>>(
 expectType<Promise<string>>(r2.zincrby("key", 1, "member"));
 expectType<Promise<number>>(r3.zincrby("key", 1, "member"));
 
+expectType<Promise<([longitude: string, latitude: string] | null)[]>>(
+  r2.geopos("key", "member"),
+);
+expectType<Promise<([longitude: number, latitude: number] | null)[]>>(
+  r3.geopos("key", "member"),
+);
+
 expectType<Promise<string>>(r2.hincrbyfloat("key", "field", 1.5));
 expectType<Promise<string>>(r3.hincrbyfloat("key", "field", 1.5));
 

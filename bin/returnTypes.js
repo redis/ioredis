@@ -167,7 +167,11 @@ module.exports = {
   flushdb: "'OK'",
   geoadd: "number",
   geohash: "string[]",
-  geopos: "([longitude: string, latitude: string] | null)[]",
+  geopos: {
+    resp2: "([longitude: string, latitude: string] | null)[]",
+    resp3:
+      "([longitude: Resp3Double<string>, latitude: Resp3Double<string>] | null)[]",
+  },
   geodist: "string | null",
   georadius: "unknown[]",
   geosearch: "unknown[]",

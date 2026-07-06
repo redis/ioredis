@@ -1714,11 +1714,11 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(1) for each member requested.
    * - _since_: 3.2.0
    */
-  geopos(key: RedisKey, callback?: Callback<([longitude: string, latitude: string] | null)[]>): Result<([longitude: string, latitude: string] | null)[], Context>;
-  geopos(...args: [key: RedisKey, ...members: (string | Buffer | number)[], callback: Callback<([longitude: string, latitude: string] | null)[]>]): Result<([longitude: string, latitude: string] | null)[], Context>;
-  geopos(...args: [key: RedisKey, members: (string | Buffer | number)[], callback: Callback<([longitude: string, latitude: string] | null)[]>]): Result<([longitude: string, latitude: string] | null)[], Context>;
-  geopos(...args: [key: RedisKey, ...members: (string | Buffer | number)[]]): Result<([longitude: string, latitude: string] | null)[], Context>;
-  geopos(...args: [key: RedisKey, members: (string | Buffer | number)[]]): Result<([longitude: string, latitude: string] | null)[], Context>;
+  geopos(key: RedisKey, callback?: Callback<RespShape<Resp2<([longitude: string, latitude: string] | null)[]>, Resp3<([longitude: Resp3Double<string>, latitude: Resp3Double<string>] | null)[]>, Context>>): Result<RespShape<Resp2<([longitude: string, latitude: string] | null)[]>, Resp3<([longitude: Resp3Double<string>, latitude: Resp3Double<string>] | null)[]>, Context>, Context>;
+  geopos(...args: [key: RedisKey, ...members: (string | Buffer | number)[], callback: Callback<RespShape<Resp2<([longitude: string, latitude: string] | null)[]>, Resp3<([longitude: Resp3Double<string>, latitude: Resp3Double<string>] | null)[]>, Context>>]): Result<RespShape<Resp2<([longitude: string, latitude: string] | null)[]>, Resp3<([longitude: Resp3Double<string>, latitude: Resp3Double<string>] | null)[]>, Context>, Context>;
+  geopos(...args: [key: RedisKey, members: (string | Buffer | number)[], callback: Callback<RespShape<Resp2<([longitude: string, latitude: string] | null)[]>, Resp3<([longitude: Resp3Double<string>, latitude: Resp3Double<string>] | null)[]>, Context>>]): Result<RespShape<Resp2<([longitude: string, latitude: string] | null)[]>, Resp3<([longitude: Resp3Double<string>, latitude: Resp3Double<string>] | null)[]>, Context>, Context>;
+  geopos(...args: [key: RedisKey, ...members: (string | Buffer | number)[]]): Result<RespShape<Resp2<([longitude: string, latitude: string] | null)[]>, Resp3<([longitude: Resp3Double<string>, latitude: Resp3Double<string>] | null)[]>, Context>, Context>;
+  geopos(...args: [key: RedisKey, members: (string | Buffer | number)[]]): Result<RespShape<Resp2<([longitude: string, latitude: string] | null)[]>, Resp3<([longitude: Resp3Double<string>, latitude: Resp3Double<string>] | null)[]>, Context>, Context>;
 
   /**
    * Queries a geospatial index for members within a distance from a coordinate, optionally stores the result.
