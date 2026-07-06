@@ -75,6 +75,59 @@ describe("protocol downgrade", () => {
     });
   });
 
+  it("suppresses optimistic SELECT errors when downgrading with auth", (done) => {
+    let authed = false;
+    let selected = false;
+    let selectedBeforeAuth = false;
+    const errors: Error[] = [];
+
+    new MockServer(PORT, (argv) => {
+      if (argv[0] === "hello") {
+        return new Error("ERR unknown command 'HELLO'");
+      }
+      if (argv[0] === "auth") {
+        authed = true;
+        return MockServer.REDIS_OK;
+      }
+      if (argv[0] === "select") {
+        if (!authed) {
+          selectedBeforeAuth = true;
+          return new Error("NOAUTH Authentication required.");
+        }
+        selected = true;
+        return MockServer.REDIS_OK;
+      }
+      if (argv[0] === "get") {
+        expect(selected).to.eql(true);
+        return "bar";
+      }
+    });
+
+    const redis = new Redis({
+      port: PORT,
+      protocol: 3,
+      password: "pass",
+      db: 2,
+    });
+    redis.on("error", (err) => {
+      errors.push(err);
+    });
+    redis.on("ready", async () => {
+      try {
+        expect(selectedBeforeAuth).to.eql(true);
+        expect(errors.map((err) => err.message)).to.not.include(
+          "NOAUTH Authentication required.",
+        );
+        expect(await redis.get("foo")).to.eql("bar");
+        redis.disconnect();
+        done();
+      } catch (err) {
+        redis.disconnect();
+        done(err);
+      }
+    });
+  });
+
   it("routes pub/sub as RESP2 after downgrading", (done) => {
     let server: MockServer;
     server = new MockServer(PORT, (argv, socket) => {

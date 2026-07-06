@@ -11,6 +11,7 @@ import DataHandler from "../DataHandler";
 const debug = Debug("connection");
 
 interface HandshakeCommand {
+  kind: "hello" | "auth" | "select" | "client" | "readonly";
   send: () => Promise<unknown>;
   errorHandler?: (err: Error) => void;
 }
@@ -32,11 +33,13 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
     }
 
     commands.push({
+      kind: "hello",
       send: () => self.hello(helloCommandArgs),
       errorHandler: handleAuthError,
     });
   } else if (self.condition.auth) {
     commands.push({
+      kind: "auth",
       send: () => self.auth(self.condition.auth),
       errorHandler: handleAuthError,
     });
@@ -44,6 +47,7 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
 
   if (self.condition.select) {
     commands.push({
+      kind: "select",
       send: () => self.select(self.condition.select),
       errorHandler: (err) => self.silentEmit("error", err),
     });
@@ -52,6 +56,7 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
   if (self.options.connectionName) {
     debug("set the connection name [%s]", self.options.connectionName);
     commands.push({
+      kind: "client",
       send: () => self.client("setname", self.options.connectionName),
       errorHandler: noop,
     });
@@ -60,6 +65,7 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
   if (self.options.readOnly) {
     debug("set the connection to readonly mode");
     commands.push({
+      kind: "readonly",
       send: () => self.readonly(),
       errorHandler: noop,
     });
@@ -81,10 +87,12 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
     }
 
     commands.push({
+      kind: "client",
       send: () => self.client("SETINFO", "LIB-VER", version),
       errorHandler: noop,
     });
     commands.push({
+      kind: "client",
       send: () =>
         self.client(
           "SETINFO",
@@ -98,6 +106,45 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
   }
 
   return commands;
+}
+
+async function sendHandshake(
+  commands: HandshakeCommand[],
+  protocol: number,
+): Promise<void> {
+  if (protocol !== 3) {
+    await Promise.all(
+      commands.map(({ send, errorHandler }) =>
+        errorHandler ? send().catch(errorHandler) : send(),
+      ),
+    );
+    return;
+  }
+
+  // HELLO may carry AUTH. Send everything optimistically, then inspect
+  // HELLO before surfacing setup errors.
+  const results = await Promise.allSettled(commands.map(({ send }) => send()));
+  const helloIndex = commands.findIndex(({ kind }) => kind === "hello");
+  const helloResult = helloIndex === -1 ? undefined : results[helloIndex];
+
+  if (
+    helloResult?.status === "rejected" &&
+    isProtocolNegotiationError(helloResult.reason as Error)
+  ) {
+    throw helloResult.reason;
+  }
+
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
+    if (result.status === "rejected") {
+      const { errorHandler } = commands[i];
+      if (errorHandler) {
+        errorHandler(result.reason as Error);
+        continue;
+      }
+      throw result.reason;
+    }
+  }
 }
 
 export function connectHandler(self) {
@@ -128,16 +175,8 @@ export function connectHandler(self) {
         return true;
       };
 
-      // Each command handles its own errors, so only HELLO/AUTH can reject here.
-      const sendHandshake = () =>
-        Promise.all(
-          getHandshakeCommands(self).map(({ send, errorHandler }) =>
-            errorHandler ? send().catch(errorHandler) : send(),
-          ),
-        );
-
       try {
-        await sendHandshake();
+        await sendHandshake(getHandshakeCommands(self), self.condition.protocol);
       } catch (err) {
         // The connection may have been closed (and possibly already
         // reconnected) while the client setup commands above were still
@@ -170,18 +209,16 @@ export function connectHandler(self) {
         self.condition.protocol = 2;
         self.condition.replyMapping = "legacy";
 
-        // Only re-run the handshake when auth was bundled into the failed HELLO:
-        // its SELECT/SETNAME/SETINFO then failed with NOAUTH and must be resent
-        // (idempotent) after a plain AUTH. Without auth they already succeeded.
-        if (self.condition.auth) {
-          try {
-            await sendHandshake();
-          } catch (downgradeErr) {
-            if (!isActiveConnect()) {
-              return;
-            }
-            return self.recoverFromFatalError(downgradeErr, downgradeErr);
+        try {
+          await sendHandshake(
+            getHandshakeCommands(self),
+            self.condition.protocol,
+          );
+        } catch (downgradeErr) {
+          if (!isActiveConnect()) {
+            return;
           }
+          return self.recoverFromFatalError(downgradeErr, downgradeErr);
         }
       }
 
