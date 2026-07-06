@@ -1,6 +1,6 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
-import { RESP_CONFIGS } from "../../helpers/respConfigs";
+import { RESP_CONFIGS, ReplyMapping } from "../../helpers/respConfigs";
 import { isRedisVersionLowerThan } from "../../helpers/util";
 
 for (const { name, opts } of RESP_CONFIGS) {
@@ -33,6 +33,20 @@ for (const { name, opts } of RESP_CONFIGS) {
       await redis.hset(key, "field", "value");
 
       expect(await redis.hrandfield(key)).to.equal("field");
+    });
+
+    it("returns field-value pairs with WITHVALUES", async () => {
+      const key = `hrandfield:${Date.now()}`;
+      await redis.hset(key, "field", "value");
+
+      const expected: Record<ReplyMapping, unknown> = {
+        legacy: ["field", "value"],
+        resp3: [["field", "value"]],
+      };
+
+      expect(await redis.hrandfield(key, 1, "WITHVALUES")).to.eql(
+        expected[opts.replyMapping]
+      );
     });
   });
 }

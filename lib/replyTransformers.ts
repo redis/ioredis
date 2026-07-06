@@ -40,7 +40,7 @@ export const flattenNestedArrayItems: ReplyTransformer = function (result) {
   return flat ?? result;
 };
 
-const flattenScorePairTransformers: Record<
+const flattenPairTransformers: Record<
   ProtocolVersion,
   Record<ReplyMappingMode, ReplyTransformer>
 > = {
@@ -104,11 +104,11 @@ export const transformVsimReply: ReplyTransformer = function (
   );
 };
 
-export const transformScorePairReply: ReplyTransformer = function (
+export const transformPairReply: ReplyTransformer = function (
   result,
   context
 ) {
-  return flattenScorePairTransformers[context.protocol][context.replyMapping](
+  return flattenPairTransformers[context.protocol][context.replyMapping](
     result,
     context
   );
@@ -127,6 +127,8 @@ export const transformStreamReadReply: ReplyTransformer = function (
 export const sortedSetWithScorePairCommands = [
   "zdiff",
   "zinter",
+  "zpopmax",
+  "zpopmin",
   "zunion",
   "zrandmember",
   "zrange",

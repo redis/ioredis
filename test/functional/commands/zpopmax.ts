@@ -26,5 +26,20 @@ for (const { name, opts } of RESP_CONFIGS) {
 
       expect(await redis.zpopmax(key)).to.eql(expected[opts.replyMapping]);
     });
+
+    it("pops multiple members with a count", async () => {
+      const key = `zpopmax:${Date.now()}`;
+      await redis.zadd(key, 1, "a", 2, "b");
+
+      const expected: Record<ReplyMapping, unknown> = {
+        legacy: ["b", "2", "a", "1"],
+        resp3: [
+          ["b", 2],
+          ["a", 1],
+        ],
+      };
+
+      expect(await redis.zpopmax(key, 2)).to.eql(expected[opts.replyMapping]);
+    });
   });
 }

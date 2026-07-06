@@ -23,7 +23,7 @@ import {
   ReplyContext,
   ReplyTransformer,
   sortedSetWithScorePairCommands,
-  transformScorePairReply,
+  transformPairReply,
   transformStreamReadReply,
   transformVsimReply,
 } from "./replyTransformers";
@@ -633,11 +633,12 @@ Command.setReplyTransformer("hgetall", function (result) {
 });
 
 Command.setReplyTransformer("vsim", transformVsimReply);
+Command.setReplyTransformer("hrandfield", transformPairReply);
 Command.setReplyTransformer("xread", transformStreamReadReply);
 Command.setReplyTransformer("xreadgroup", transformStreamReadReply);
 
 for (const command of sortedSetWithScorePairCommands) {
-  Command.setReplyTransformer(command, transformScorePairReply);
+  Command.setReplyTransformer(command, transformPairReply);
 }
 
 class MixedBuffers {
