@@ -457,11 +457,6 @@ export function readyHandler(self) {
       ? self.prevCondition.select
       : self.condition.select;
 
-    if (self.options.readOnly) {
-      debug("set the connection to readonly mode");
-      self.readonly().catch(noop);
-    }
-
     if (self.prevCondition) {
       const condition = self.prevCondition;
       self.prevCondition = null;

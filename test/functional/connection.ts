@@ -355,8 +355,8 @@ describe("connection", function () {
   });
 
   describe("readOnly", function () {
-    it("should send readonly command before other commands", (done) => {
-      let called = false;
+    it("should send readonly command exactly once before other commands", (done) => {
+      let readonlyCount = 0;
       const redis = new Redis({
         port: 30001,
         readOnly: true,
@@ -364,9 +364,9 @@ describe("connection", function () {
       });
       var node = new MockServer(30001, function (argv) {
         if (argv[0] === "readonly") {
-          called = true;
+          readonlyCount += 1;
         } else if (argv[0] === "get" && argv[1] === "foo") {
-          expect(called).to.eql(true);
+          expect(readonlyCount).to.eql(1);
           redis.disconnect();
           node.disconnect(function () {
             done();
