@@ -52,8 +52,14 @@ expectType<Promise<string | null>>(r3.geodist("key", "member1", "member2"));
 expectType<Promise<(string | null)[]>>(r2.zmscore("key", "member1", "member2"));
 expectType<Promise<(number | null)[]>>(r3.zmscore("key", "member1", "member2"));
 
-expectType<Promise<number>>(r2.zadd("key", "INCR", 1, "member"));
+expectType<Promise<number>>(r2.zadd("key", 1, "member"));
+expectType<Promise<number>>(r3.zadd("key", 1, "member"));
+expectType<Promise<string>>(r2.zadd("key", "INCR", 1, "member"));
 expectType<Promise<number>>(r3.zadd("key", "INCR", 1, "member"));
+expectType<Promise<string | null>>(r2.zadd("key", "NX", "INCR", 1, "member"));
+expectType<Promise<number | null>>(r3.zadd("key", "NX", "INCR", 1, "member"));
+expectType<Promise<string | null>>(r2.zadd("key", "XX", "INCR", 1, "member"));
+expectType<Promise<number | null>>(r3.zadd("key", "XX", "INCR", 1, "member"));
 
 expectType<Promise<[key: string, member: string, score: string] | null>>(
   r2.bzpopmin("key", 1),
