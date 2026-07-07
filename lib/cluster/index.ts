@@ -1290,8 +1290,7 @@ interface Cluster<ReplyMapping extends "legacy" | "resp3" = "legacy">
 applyMixin(Cluster, EventEmitter);
 
 addTransactionSupport(Cluster.prototype);
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface Cluster<ReplyMapping extends "legacy" | "resp3" = "legacy">
-  extends Transaction {}
+  extends Transaction<ReplyMapping extends "resp3" ? "resp3" : "resp2"> {}
 
 export default Cluster;

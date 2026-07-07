@@ -385,3 +385,32 @@ expectType<Promise<string>>(c2.zincrby("key", 1, "member"));
 expectType<Promise<number>>(c3.zincrby("key", 1, "member"));
 expectType<Promise<string[]>>(c2.config("GET", "maxmemory"));
 expectType<Promise<Record<string, string>>>(c3.config("GET", "maxmemory"));
+
+// Pipeline and multi callbacks follow the client's reply mapping.
+r2.pipeline().zscore("key", "member", (err, result) => {
+  expectType<string | null | undefined>(result);
+});
+r3.pipeline().zscore("key", "member", (err, result) => {
+  expectType<number | null | undefined>(result);
+});
+r3.multi().zscore("key", "member", (err, result) => {
+  expectType<number | null | undefined>(result);
+});
+
+// Chained pipeline calls keep the mapping.
+r3.pipeline()
+  .set("foo", "bar")
+  .zscore("key", "member", (err, result) => {
+    expectType<number | null | undefined>(result);
+  });
+
+// Cluster pipelines and transactions mirror single-node inference.
+c2.pipeline().zscore("key", "member", (err, result) => {
+  expectType<string | null | undefined>(result);
+});
+c3.pipeline().zscore("key", "member", (err, result) => {
+  expectType<number | null | undefined>(result);
+});
+c3.multi().zscore("key", "member", (err, result) => {
+  expectType<number | null | undefined>(result);
+});

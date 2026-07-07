@@ -8,11 +8,14 @@ export type RedisValue = string | Buffer | number;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export interface ResultTypes<Result, Context> {
   default: Promise<Result>;
-  pipeline: ChainableCommander;
+  pipeline: ChainableCommander<
+    Context extends { mapping: "resp3" } ? "resp3" : "resp2"
+  >;
 }
 
-export interface ChainableCommander
-  extends RedisCommander<{ type: "pipeline" }> {
+export interface ChainableCommander<
+  Mapping extends "resp2" | "resp3" = "resp2",
+> extends RedisCommander<{ type: "pipeline"; mapping: Mapping }> {
   length: number;
 }
 

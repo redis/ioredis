@@ -1092,8 +1092,7 @@ interface Redis<ReplyMapping extends "legacy" | "resp3" = "legacy">
 applyMixin(Redis, EventEmitter);
 
 addTransactionSupport(Redis.prototype);
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface Redis<ReplyMapping extends "legacy" | "resp3" = "legacy">
-  extends Transaction {}
+  extends Transaction<ReplyMapping extends "resp3" ? "resp3" : "resp2"> {}
 
 export default Redis;
