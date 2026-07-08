@@ -431,6 +431,13 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
         ? overrideStartupNodes
         : this.startupNodes.slice(0);
     const options = Object.assign({}, this.options, overrideOptions);
+    if (this.options.redisOptions && overrideOptions?.redisOptions) {
+      options.redisOptions = Object.assign(
+        {},
+        this.options.redisOptions,
+        overrideOptions.redisOptions
+      );
+    }
     return new Cluster(startupNodes, options) as Cluster<
       ReplyMappingFromClusterOptions<ReplyMapping, OverrideOptions>
     >;

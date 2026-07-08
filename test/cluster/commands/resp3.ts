@@ -172,4 +172,49 @@ describe("cluster:resp3 reply mapping", function () {
       ]);
     });
   });
+
+  describe("duplicate", () => {
+    let cluster: Cluster;
+    let duplicated: Cluster | undefined;
+    let key: string;
+
+    beforeEach(async () => {
+      cluster = new Cluster(startupNodes, {
+        redisOptions: { protocol: 3, replyMapping: "resp3" },
+      });
+      key = `cluster:resp3:duplicate:{${Date.now()}:${Math.random()}}`;
+      await cluster.zadd(key, 1, "a");
+    });
+
+    afterEach(async () => {
+      await cluster.del(key).catch(() => undefined);
+      cluster.disconnect();
+      if (duplicated) {
+        duplicated.disconnect();
+        duplicated = undefined;
+      }
+    });
+
+    it("keeps protocol and reply mapping when overriding other redisOptions", async () => {
+      duplicated = cluster.duplicate([], {
+        redisOptions: { connectionName: "duplicated" },
+      });
+
+      expect(duplicated.options.redisOptions?.protocol).to.equal(3);
+      expect(duplicated.options.redisOptions?.replyMapping).to.equal("resp3");
+      expect(duplicated.options.redisOptions?.connectionName).to.equal(
+        "duplicated"
+      );
+      expect(await duplicated.zscore(key, "a")).to.equal(1);
+    });
+
+    it("allows overriding reply mapping", async () => {
+      duplicated = cluster.duplicate([], {
+        redisOptions: { replyMapping: "legacy" },
+      });
+
+      expect(duplicated.options.redisOptions?.protocol).to.equal(3);
+      expect(await duplicated.zscore(key, "a")).to.equal("1");
+    });
+  });
 });
