@@ -375,6 +375,39 @@ describe("connection", function () {
       });
       redis.get("foo").catch(function () {});
     });
+
+    it("should become ready with auto-pipelining enabled", (done) => {
+      let settled = false;
+      const node = new MockServer(30001);
+      const redis = new Redis({
+        port: 30001,
+        readOnly: true,
+        enableAutoPipelining: true,
+        showFriendlyErrorStack: true,
+      });
+      const timeout = setTimeout(function () {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        redis.disconnect();
+        node.disconnect(function () {
+          done(new Error("ready was not emitted"));
+        });
+      }, 1000);
+
+      redis.once("ready", function () {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timeout);
+        redis.disconnect();
+        node.disconnect(function () {
+          done();
+        });
+      });
+    });
   });
 
   describe("autoResendUnfulfilledCommands", function () {
