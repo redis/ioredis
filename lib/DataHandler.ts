@@ -67,13 +67,13 @@ export default class DataHandler {
     const decoder = new Decoder({
       getTypeMapping: () => typeMapping,
       onReply: (reply: any) => {
-        this.returnReply(reply);
+        this.dispatch(() => this.returnReply(reply));
       },
       onErrorReply: (err: Error) => {
-        this.returnError(err);
+        this.dispatch(() => this.returnError(err));
       },
       onPush: (reply: any) => {
-        this.returnPush(reply);
+        this.dispatch(() => this.returnPush(reply));
       },
     });
 
@@ -87,6 +87,20 @@ export default class DataHandler {
     });
     // prependListener() doesn't enable flowing mode automatically - we need to resume the stream manually
     redis.stream.resume();
+  }
+
+  // Rethrows user listener/transformer exceptions asynchronously so they
+  // surface as uncaught exceptions (as with redis-parser in v5) instead of
+  // unwinding the decoder mid-parse and tearing down the connection as a
+  // fatal protocol error.
+  private dispatch(fn: () => void) {
+    try {
+      fn();
+    } catch (err) {
+      process.nextTick(() => {
+        throw err;
+      });
+    }
   }
 
   private returnFatalError(err: Error) {

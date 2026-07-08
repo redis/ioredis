@@ -142,6 +142,44 @@ describe("DataHandler", () => {
     expect(moved.called).to.be.false;
   });
 
+  it("contains user listener exceptions without killing the connection", async () => {
+    const setup = setupDataHandler();
+    const listenerError = new Error("listener boom");
+
+    const subscribe = new Command("subscribe", ["channel"], {
+      replyEncoding: "utf8",
+    });
+    setup.redis.commandQueue.push({ command: subscribe, select: 0 });
+    setup.write(">3\r\n$9\r\nsubscribe\r\n$7\r\nchannel\r\n:1\r\n");
+    expect(await subscribe.promise).to.equal(1);
+
+    setup.redis.on("message", () => {
+      throw listenerError;
+    });
+
+    const command = new Command("get", ["key"], { replyEncoding: "utf8" });
+    setup.redis.commandQueue.push({ command, select: 0 });
+
+    const nextTick = sinon.stub(process, "nextTick");
+    try {
+      setup.write(
+        ">3\r\n$7\r\nmessage\r\n$7\r\nchannel\r\n$5\r\nhello\r\n+VALUE\r\n"
+      );
+    } finally {
+      nextTick.restore();
+    }
+
+    // The reply following the throwing listener is still parsed and resolved.
+    expect(await command.promise).to.equal("VALUE");
+    expect(setup.redis.recoverFromFatalError.called).to.be.false;
+
+    // The listener exception is rethrown asynchronously as an uncaught
+    // exception instead of being swallowed or misreported as a parser error.
+    expect(nextTick.calledOnce).to.be.true;
+    const rethrow = nextTick.firstCall.args[0];
+    expect(rethrow).to.throw(listenerError);
+  });
+
   it("ignores empty RESP3 push frames without firing fatal error", () => {
     const setup = setupDataHandler();
     const command = new Command("ping", [], { replyEncoding: "utf8" });
