@@ -198,6 +198,10 @@ export default class DataHandler {
           this.redis.condition.subscriber = false;
         }
 
+        if (this.handleUnsolicitedUnsubscribe(replyType)) {
+          return;
+        }
+
         const item = this.shiftCommand(reply);
         if (!item) {
           return;
@@ -208,6 +212,21 @@ export default class DataHandler {
         break;
       }
     }
+  }
+
+  // Cluster sends unsolicited `sunsubscribe` pushes on slot migration; those
+  // answer no queued command, so shifting the queue head would resolve an
+  // unrelated in-flight command. Detected via a non-matching queue head, and
+  // `sunsubscribe` reuses the ssubscribe-MOVED recovery path.
+  private handleUnsolicitedUnsubscribe(replyType: string): boolean {
+    const head = this.redis.commandQueue.peekFront();
+    if (head && head.command.name === replyType) {
+      return false;
+    }
+    if (replyType === "sunsubscribe") {
+      this.redis.emit("moved");
+    }
+    return true;
   }
 
   private handleSubscriberReply(reply: ReplyData): boolean {
@@ -277,6 +296,9 @@ export default class DataHandler {
         const count = reply[2];
         if (Number(count) === 0) {
           this.redis.condition.subscriber = false;
+        }
+        if (this.handleUnsolicitedUnsubscribe(replyType)) {
+          break;
         }
         const item = this.shiftCommand(reply);
         if (!item) {

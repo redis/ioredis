@@ -91,6 +91,57 @@ describe("DataHandler", () => {
     ]);
   });
 
+  it("does not shift the command queue for server-initiated RESP3 sunsubscribe pushes", async () => {
+    const setup = setupDataHandler();
+    const error = sinon.spy();
+    const moved = sinon.spy();
+    setup.redis.on("error", error);
+    setup.redis.on("moved", moved);
+
+    const subscribe = new Command("ssubscribe", ["channel"], {
+      replyEncoding: "utf8",
+    });
+    setup.redis.commandQueue.push({ command: subscribe, select: 0 });
+    setup.write(">3\r\n$10\r\nssubscribe\r\n$7\r\nchannel\r\n:1\r\n");
+    expect(await subscribe.promise).to.equal(1);
+
+    const command = new Command("get", ["key"], { replyEncoding: "utf8" });
+    setup.redis.commandQueue.push({ command, select: 0 });
+    setup.write(
+      ">3\r\n$12\r\nsunsubscribe\r\n$7\r\nchannel\r\n:0\r\n+VALUE\r\n"
+    );
+
+    expect(await command.promise).to.equal("VALUE");
+    expect(setup.redis.condition.subscriber).to.equal(false);
+    expect(setup.redis.commandQueue.length).to.equal(0);
+    expect(error.called).to.be.false;
+    expect(moved.calledOnce).to.be.true;
+  });
+
+  it("resolves queued RESP3 sunsubscribe commands", async () => {
+    const setup = setupDataHandler();
+    const moved = sinon.spy();
+    setup.redis.on("moved", moved);
+
+    const subscribe = new Command("ssubscribe", ["channel"], {
+      replyEncoding: "utf8",
+    });
+    setup.redis.commandQueue.push({ command: subscribe, select: 0 });
+    setup.write(">3\r\n$10\r\nssubscribe\r\n$7\r\nchannel\r\n:1\r\n");
+    expect(await subscribe.promise).to.equal(1);
+
+    const unsubscribe = new Command("sunsubscribe", ["channel"], {
+      replyEncoding: "utf8",
+    });
+    setup.redis.commandQueue.push({ command: unsubscribe, select: 0 });
+    setup.write(">3\r\n$12\r\nsunsubscribe\r\n$7\r\nchannel\r\n:0\r\n");
+
+    expect(await unsubscribe.promise).to.equal(0);
+    expect(setup.redis.condition.subscriber).to.equal(false);
+    expect(setup.redis.commandQueue.length).to.equal(0);
+    expect(moved.called).to.be.false;
+  });
+
   it("ignores empty RESP3 push frames without firing fatal error", () => {
     const setup = setupDataHandler();
     const command = new Command("ping", [], { replyEncoding: "utf8" });
