@@ -381,11 +381,11 @@ module.exports = {
   zpopmax: (types) =>
     types.length > 1
       ? { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" }
-      : { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>]" },
+      : { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>] | []" },
   zpopmin: (types) =>
     types.length > 1
       ? { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" }
-      : { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>]" },
+      : { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>] | []" },
   zrandmember: (types) => {
     if (hasToken(types, "WITHSCORES")) {
       return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };

@@ -5181,8 +5181,8 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(log(N)*M) with N being the number of elements in the sorted set, and M being the number of elements popped.
    * - _since_: 5.0.0
    */
-  zpopmax(key: RedisKey, callback?: Callback<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>]>, Context>>): Result<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>]>, Context>, Context>;
-  zpopmaxBuffer(key: RedisKey, callback?: Callback<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>]>, Context>>): Result<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>]>, Context>, Context>;
+  zpopmax(key: RedisKey, callback?: Callback<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>] | []>, Context>>): Result<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>] | []>, Context>, Context>;
+  zpopmaxBuffer(key: RedisKey, callback?: Callback<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>] | []>, Context>>): Result<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>] | []>, Context>, Context>;
   zpopmax(key: RedisKey, count: number | string, callback?: Callback<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>][]>, Context>>): Result<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>][]>, Context>, Context>;
   zpopmaxBuffer(key: RedisKey, count: number | string, callback?: Callback<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>][]>, Context>>): Result<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>][]>, Context>, Context>;
 
@@ -5192,8 +5192,8 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(log(N)*M) with N being the number of elements in the sorted set, and M being the number of elements popped.
    * - _since_: 5.0.0
    */
-  zpopmin(key: RedisKey, callback?: Callback<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>]>, Context>>): Result<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>]>, Context>, Context>;
-  zpopminBuffer(key: RedisKey, callback?: Callback<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>]>, Context>>): Result<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>]>, Context>, Context>;
+  zpopmin(key: RedisKey, callback?: Callback<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>] | []>, Context>>): Result<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>] | []>, Context>, Context>;
+  zpopminBuffer(key: RedisKey, callback?: Callback<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>] | []>, Context>>): Result<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>] | []>, Context>, Context>;
   zpopmin(key: RedisKey, count: number | string, callback?: Callback<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>][]>, Context>>): Result<RespShape<Resp2<string[]>, Resp3<[member: string, score: Resp3Double<string>][]>, Context>, Context>;
   zpopminBuffer(key: RedisKey, count: number | string, callback?: Callback<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>][]>, Context>>): Result<RespShape<Resp2<Buffer[]>, Resp3<[member: Buffer, score: Resp3Double<Buffer>][]>, Context>, Context>;
 

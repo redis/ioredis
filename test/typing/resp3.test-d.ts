@@ -156,7 +156,9 @@ expectType<Promise<string[]>>(r2.zrandmember("key", 2, "WITHSCORES"));
 expectType<Promise<ScoredMember[]>>(r3.zrandmember("key", 2, "WITHSCORES"));
 
 expectType<Promise<string[]>>(r2.zpopmin("key"));
-expectType<Promise<ScoredMember>>(r3.zpopmin("key"));
+expectType<Promise<ScoredMember | []>>(r3.zpopmin("key"));
+expectType<Promise<string[]>>(r2.zpopmax("key"));
+expectType<Promise<ScoredMember | []>>(r3.zpopmax("key"));
 expectType<Promise<string[]>>(r2.zpopmax("key", 2));
 expectType<Promise<ScoredMember[]>>(r3.zpopmax("key", 2));
 
@@ -254,6 +256,10 @@ expectType<Promise<Buffer[]>>(r2.zrangeBuffer("key", "0", "-1", "WITHSCORES"));
 expectType<Promise<ScoredBufferMember[]>>(
   r3.zrangeBuffer("key", "0", "-1", "WITHSCORES"),
 );
+expectType<Promise<Buffer[]>>(r2.zpopminBuffer("key"));
+expectType<Promise<ScoredBufferMember | []>>(r3.zpopminBuffer("key"));
+expectType<Promise<Buffer[]>>(r2.zpopmaxBuffer("key"));
+expectType<Promise<ScoredBufferMember | []>>(r3.zpopmaxBuffer("key"));
 
 expectType<Promise<Buffer[]>>(r2.vsimBuffer("key", "ELE", "member"));
 expectType<Promise<Buffer[]>>(r3.vsimBuffer("key", "ELE", "member"));
