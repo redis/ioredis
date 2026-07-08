@@ -169,6 +169,13 @@ export function toArg(arg: any): string {
   if (arg === null || typeof arg === "undefined") {
     return "";
   }
+  if (
+    typeof arg === "number" &&
+    Number.isInteger(arg) &&
+    !Number.isSafeInteger(arg)
+  ) {
+    return BigInt(arg).toString();
+  }
   return String(arg);
 }
 
