@@ -46,6 +46,30 @@ describe("protocol downgrade", () => {
     });
   });
 
+  it("downgrades to RESP2 when reconnectOnError is configured", (done) => {
+    new MockServer(PORT, (argv) => {
+      if (argv[0] === "hello") {
+        return new Error("ERR unknown command 'HELLO'");
+      }
+      if (argv[0] === "get") {
+        return "bar";
+      }
+    });
+
+    const redis = new Redis({
+      port: PORT,
+      protocol: 3,
+      reconnectOnError: () => 1,
+    });
+    redis.on("ready", () => {
+      redis.get("foo").then((value) => {
+        expect(value).to.eql("bar");
+        redis.disconnect();
+        done();
+      }, done);
+    });
+  });
+
   it("re-sends AUTH after downgrading when a password is set", (done) => {
     let helloSeen = false;
     let authedAfterHello = false;
@@ -116,7 +140,7 @@ describe("protocol downgrade", () => {
       try {
         expect(selectedBeforeAuth).to.eql(true);
         expect(errors.map((err) => err.message)).to.not.include(
-          "NOAUTH Authentication required.",
+          "NOAUTH Authentication required."
         );
         expect(await redis.get("foo")).to.eql("bar");
         redis.disconnect();

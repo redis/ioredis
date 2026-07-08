@@ -139,8 +139,14 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     host: string,
     options: RedisOptions & { replyMapping?: ReplyMapping }
   );
-  constructor(path: string, options: RedisOptions & { replyMapping?: ReplyMapping });
-  constructor(port: number, options: RedisOptions & { replyMapping?: ReplyMapping });
+  constructor(
+    path: string,
+    options: RedisOptions & { replyMapping?: ReplyMapping }
+  );
+  constructor(
+    port: number,
+    options: RedisOptions & { replyMapping?: ReplyMapping }
+  );
   constructor(port: number, host: string);
   constructor(options: RedisOptions & { replyMapping?: ReplyMapping });
   constructor(port: number);
@@ -785,10 +791,12 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
    */
   handleReconnection(err: Error, item: CommandItem) {
     let needReconnect: ReturnType<ReconnectOnError> = false;
-    if (
-      this.options.reconnectOnError &&
-      !Command.checkFlag("IGNORE_RECONNECT_ON_ERROR", item.command.name)
-    ) {
+    const ignoreReconnectOnError =
+      Command.checkFlag("IGNORE_RECONNECT_ON_ERROR", item.command.name) ||
+      (this.condition?.handshake &&
+        Command.checkFlag("HANDSHAKE_COMMANDS", item.command.name));
+
+    if (this.options.reconnectOnError && !ignoreReconnectOnError) {
       needReconnect = this.options.reconnectOnError(err);
     }
 
@@ -832,9 +840,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     };
   }
 
-  private _buildCommandContext(
-    command: Command
-  ): CommandTraceContext {
+  private _buildCommandContext(command: Command): CommandTraceContext {
     const { address, port } = this._getServerAddress();
     return {
       command: command.name,
