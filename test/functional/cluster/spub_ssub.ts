@@ -93,6 +93,63 @@ describe("cluster:spub/ssub", function () {
     });
   });
 
+  it("sunsubscribe() without channels unsubscribes across all shards", (done) => {
+    const slots = [
+      [0, 8191, ["127.0.0.1", 30001]],
+      [8192, 16383, ["127.0.0.1", 30002]],
+    ];
+    const node1Commands: string[][] = [];
+    const node2Commands: string[][] = [];
+
+    const makeHandler = (sink: string[][]) =>
+      function (argv) {
+        sink.push(argv);
+        const name = argv[0].toLowerCase();
+        if (name === "cluster" && String(argv[1]).toLowerCase() === "slots") {
+          return slots;
+        }
+        if (name === "ssubscribe") {
+          return ["ssubscribe", argv[1], 1];
+        }
+        if (name === "sunsubscribe") {
+          return ["sunsubscribe", argv[1] ?? null, 0];
+        }
+      };
+
+    new MockServer(30001, makeHandler(node1Commands));
+    new MockServer(30002, makeHandler(node2Commands));
+
+    const ssub = new Cluster([{ host: "127.0.0.1", port: 30001 }], {
+      shardedSubscribers: true,
+    });
+
+    const sunsubscribeOf = (commands: string[][]) =>
+      commands.filter((argv) => argv[0].toLowerCase() === "sunsubscribe");
+
+    ssub.on("ready", async () => {
+      try {
+        // "bar" hashes to slot 5061 (node1), "foo" to slot 12182 (node2),
+        // so each shard ends up with its own sharded subscriber connection.
+        await ssub.ssubscribe("bar");
+        await ssub.ssubscribe("foo");
+
+        const result = await ssub.sunsubscribe();
+        expect(result).to.eql(0);
+
+        // Every shard that held a subscription receives a zero-argument
+        // SUNSUBSCRIBE, unsubscribing it from all of its shard channels.
+        expect(sunsubscribeOf(node1Commands)).to.eql([["sunsubscribe"]]);
+        expect(sunsubscribeOf(node2Commands)).to.eql([["sunsubscribe"]]);
+
+        ssub.disconnect();
+        done();
+      } catch (err) {
+        ssub.disconnect();
+        done(err);
+      }
+    });
+  });
+
   it("should works when sending regular commands", (done) => {
     const handler = function (argv) {
       if (argv[0] === "cluster" && argv[1] === "SLOTS") {

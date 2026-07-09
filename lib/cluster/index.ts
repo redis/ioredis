@@ -588,6 +588,22 @@ class Cluster extends Commander {
             _this.options.shardedSubscribers &&
             (command.name == "ssubscribe" || command.name == "sunsubscribe")
           ) {
+            // A zero-argument SUNSUBSCRIBE has no channel to compute a target
+            // slot from, so it can't be routed to a single sharded subscriber.
+            // Redis unsubscribes the connection from all of its shard channels
+            // in that case; fan the command out across every sharded subscriber
+            // that currently holds channels.
+            if (
+              command.name == "sunsubscribe" &&
+              command.getKeys().length === 0
+            ) {
+              _this.shardedSubscribers
+                .sunsubscribeAll()
+                .then((count) => command.resolve(count))
+                .catch((err) => command.reject(err));
+              return;
+            }
+
             const sub =
               _this.shardedSubscribers.getResponsibleSubscriber(targetSlot);
 

@@ -122,6 +122,38 @@ export default class ClusterSubscriberGroup {
   }
 
   /**
+   * Unsubscribe every sharded subscriber from all of its shard channels.
+   *
+   * A zero-argument `SUNSUBSCRIBE` carries no channel to compute a target slot
+   * from, so it can't be routed to a single subscriber. Redis unsubscribes the
+   * connection from all of its shard channels in that case; we mirror that by
+   * fanning the command out to every subscriber that currently holds channels.
+   *
+   * @returns the number of remaining shard subscriptions (always 0)
+   */
+  async sunsubscribeAll(): Promise<number> {
+    const pending: Promise<unknown>[] = [];
+
+    for (const [nodeKey, subscriber] of this.shardedSubscribers) {
+      if (!this.hasSubscribedChannels(nodeKey)) {
+        continue;
+      }
+
+      const redis = subscriber.getInstance();
+      if (redis && redis.status === "ready") {
+        pending.push(redis.sunsubscribe());
+      }
+    }
+
+    // Drop the tracked channels so a later reconnect doesn't resubscribe them.
+    this.channels.clear();
+
+    await Promise.all(pending);
+
+    return 0;
+  }
+
+  /**
    * Disconnect all subscribers and clear some of the internal state.
    */
   stop() {
@@ -463,7 +495,14 @@ export default class ClusterSubscriberGroup {
       return true;
     }
 
-    const subscriberSlots = this.subscriberToSlotsIndex.get(sub.getNodeKey());
+    return this.hasSubscribedChannels(sub.getNodeKey());
+  }
+
+  /**
+   * Whether the subscriber owning `nodeKey` currently holds any active channels.
+   */
+  private hasSubscribedChannels(nodeKey: string): boolean {
+    const subscriberSlots = this.subscriberToSlotsIndex.get(nodeKey);
 
     if (!subscriberSlots) {
       return false;
