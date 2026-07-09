@@ -26,6 +26,14 @@ describe("Command", () => {
         "*4\r\n$3\r\nget\r\n$3\r\nfoo\r\n$3\r\nbar\r\n$4\r\nzooo\r\n"
       );
     });
+
+    it("should serialize large integer arguments in decimal notation", () => {
+      const command = new Command("set", ["key", 10 ** 21]);
+      expect(command.args).to.eql(["key", "1000000000000000000000"]);
+      expect(command.toWritable()).to.eql(
+        "*3\r\n$3\r\nset\r\n$3\r\nkey\r\n$22\r\n1000000000000000000000\r\n"
+      );
+    });
   });
 
   describe("#resolve()", () => {
