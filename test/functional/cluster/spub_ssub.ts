@@ -4,6 +4,7 @@ import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
 import Redis from "../../../lib/Redis";
 import ShardedSubscriber from "../../../lib/cluster/ShardedSubscriber";
+import ClusterSubscriberGroup from "../../../lib/cluster/ClusterSubscriberGroup";
 import { noop } from "../../../lib/utils";
 import { EventEmitter } from "events";
 
@@ -148,6 +149,52 @@ describe("cluster:spub/ssub", function () {
         done(err);
       }
     });
+  });
+
+  it("sunsubscribeAll unsubscribes shards whose connection is not ready", async () => {
+    // Regression: a non-ready shard connection used to be skipped, yet its
+    // channels were cleared and the call resolved with 0. On reconnect,
+    // `autoResubscribe` replays SSUBSCRIBE from that connection's own
+    // subscription set, so it would silently resume delivering shard messages
+    // while the client believed it had unsubscribed. SUNSUBSCRIBE must reach
+    // the non-ready connection too so it gets cleared once it comes back.
+    const group: any = new ClusterSubscriberGroup(
+      new EventEmitter(),
+      {} as any,
+    );
+
+    const makeSubscriber = (nodeKey: string, status: string) => {
+      const redis = {
+        status,
+        sunsubscribe: sinon.stub().resolves(["sunsubscribe", null, 0]),
+      };
+      return {
+        redis,
+        getInstance: () => redis,
+        getNodeKey: () => nodeKey,
+      };
+    };
+
+    const readySub = makeSubscriber("127.0.0.1:30001", "ready");
+    const connectingSub = makeSubscriber("127.0.0.1:30002", "connecting");
+
+    group.shardedSubscribers.set("127.0.0.1:30001", readySub);
+    group.shardedSubscribers.set("127.0.0.1:30002", connectingSub);
+    // Map each node to a slot that currently holds a channel so
+    // hasSubscribedChannels() reports both as active.
+    group.subscriberToSlotsIndex.set("127.0.0.1:30001", [1]);
+    group.subscriberToSlotsIndex.set("127.0.0.1:30002", [2]);
+    group.channels.set(1, ["chan-ready"]);
+    group.channels.set(2, ["chan-connecting"]);
+
+    const result = await group.sunsubscribeAll();
+
+    expect(result).to.equal(0);
+    // Both the ready and the not-yet-ready connection receive SUNSUBSCRIBE.
+    expect(readySub.redis.sunsubscribe.calledOnce).to.equal(true);
+    expect(connectingSub.redis.sunsubscribe.calledOnce).to.equal(true);
+    // Tracked channels are cleared afterwards.
+    expect(group.channels.size).to.equal(0);
   });
 
   it("should works when sending regular commands", (done) => {

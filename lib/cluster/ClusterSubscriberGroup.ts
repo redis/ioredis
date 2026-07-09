@@ -140,12 +140,28 @@ export default class ClusterSubscriberGroup {
       }
 
       const redis = subscriber.getInstance();
-      if (redis && redis.status === "ready") {
-        pending.push(redis.sunsubscribe());
+      if (!redis) {
+        continue;
+      }
+
+      // Issue SUNSUBSCRIBE even when the connection isn't ready. ioredis queues
+      // it and, on reply, drops these channels from the connection's own
+      // subscription set — the set `autoResubscribe` replays on reconnect.
+      // Skipping a non-ready connection would leave it subscribed there, so it
+      // would silently resume delivering shard messages once it reconnects even
+      // though we reported everything as unsubscribed. Swallow per-connection
+      // errors so one failing shard doesn't reject the whole fan-out.
+      const settled = redis.sunsubscribe().catch(() => {});
+
+      // Only block on connections that can flush now; a reconnecting or dead
+      // shard's queued command must not hang the caller. Its channels are still
+      // cleared once it comes back and the queued command flushes.
+      if (redis.status === "ready") {
+        pending.push(settled);
       }
     }
 
-    // Drop the tracked channels so a later reconnect doesn't resubscribe them.
+    // Drop the tracked channels so the group no longer treats them as active.
     this.channels.clear();
 
     await Promise.all(pending);
