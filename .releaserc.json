@@ -21,6 +21,7 @@
     "@semantic-release/release-notes-generator",
     ["@semantic-release/changelog", { "changelogFile": "CHANGELOG.md" }],
     "@semantic-release/npm",
+    ["@semantic-release/exec", { "prepareCmd": "node bin/generate-version.js" }],
     [
       "@semantic-release/git",
       {
@@ -28,7 +29,8 @@
           "package.json",
           "package-lock.json",
           "CHANGELOG.md",
-          "docs/**/*"
+          "docs/**/*",
+          "lib/utils/version.ts"
         ]
       }
     ],

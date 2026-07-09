@@ -6,6 +6,7 @@ import Command from "../Command";
 import { MaxRetriesPerRequestError } from "../errors";
 import { CommandItem, Respondable } from "../types";
 import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
+import { PACKAGE_VERSION } from "../utils/version";
 import DataHandler from "../DataHandler";
 
 const debug = Debug("connection");
@@ -74,21 +75,9 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
   if (!self.options.disableClientInfo) {
     debug("set the client info");
 
-    let version = "unknown";
-
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { version: clientVersion } = require("../../package.json") as {
-        version: string;
-      };
-      version = clientVersion;
-    } catch {
-      // noop
-    }
-
     commands.push({
       kind: "client",
-      send: () => self.client("SETINFO", "LIB-VER", version),
+      send: () => self.client("SETINFO", "LIB-VER", PACKAGE_VERSION),
       errorHandler: noop,
     });
     commands.push({

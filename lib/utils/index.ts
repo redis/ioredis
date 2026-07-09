@@ -1,5 +1,3 @@
-import { promises as fsPromises } from "fs";
-import { resolve } from "path";
 import { defaults, isArguments, noop } from "./lodash";
 import { Callback, ProtocolVersion } from "../types";
 import Debug from "./debug";
@@ -426,43 +424,6 @@ export function zipMap<K, V>(keys: K[], values: V[]): Map<K, V> {
     map.set(key, values[index]);
   });
   return map;
-}
-
-/**
- * Memoized package metadata to avoid repeated file system reads.
- *
- * @internal
- */
-let cachedPackageMeta: { version: string } = null;
-
-/**
- * Retrieves cached package metadata from package.json.
- *
- * @internal
- * @returns {Promise<{version: string} | null>} Package metadata or null if unavailable
- */
-export async function getPackageMeta() {
-  if (cachedPackageMeta) {
-    return cachedPackageMeta;
-  }
-
-  try {
-    const filePath = resolve(__dirname, "..", "..", "package.json");
-    const data = await fsPromises.readFile(filePath, "utf8");
-    const parsed = JSON.parse(data);
-
-    cachedPackageMeta = {
-      version: parsed.version,
-    };
-
-    return cachedPackageMeta;
-  } catch (err) {
-    cachedPackageMeta = {
-      version: "error-fetching-version",
-    };
-
-    return cachedPackageMeta;
-  }
 }
 
 export { Debug, defaults, isArguments, noop };
