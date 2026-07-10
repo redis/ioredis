@@ -1,5 +1,11 @@
+/*
+ * Portions adapted from node-redis:
+ * https://github.com/redis/node-redis
+ *
+ * Copyright (c) 2022-2023, Redis, Inc.
+ * Licensed under the MIT License.
+ */
 // @ts-nocheck
-// Vendored from @redis/client and adapted for ioredis internal RESP3 work.
 import { VerbatimString } from "./verbatim-string";
 import { SimpleError, BlobError, ErrorReply } from "./errors";
 import { TypeMapping } from "./types";
