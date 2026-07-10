@@ -51,6 +51,8 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 
 Refer to [CHANGELOG.md](CHANGELOG.md) for features and bug fixes introduced in v5.
 
+🚀 [Upgrading from v5 to v6](https://github.com/redis/ioredis/wiki/Upgrading-from-v5-to-v6)
+
 🚀 [Upgrading from v4 to v5](https://github.com/redis/ioredis/wiki/Upgrading-from-v4-to-v5)
 
 # Links
@@ -672,7 +674,12 @@ await redis.zscore("myzset", "member"); // 1.5  (a number; legacy: "1.5")
 
 Notes: `"resp3"` with `protocol: 2` throws at construction. If the server
 downgrades to RESP2, replies fall back to legacy shapes (with a warning). Buffer
-variants (`getBuffer`, etc.) always return buffers, unaffected by `replyMapping`.
+variants (`getBuffer`, etc.) always return buffers for values, unaffected by
+`replyMapping` — with one exception: under `"resp3"`, map replies are plain
+objects whose keys are always decoded as UTF-8 strings. For `hgetallBuffer`,
+hash values remain buffers, but hash field names are strings under either
+mapping. To receive hash field names as buffers, use the default `"legacy"`
+mapping together with a custom `hgetall` reply transformer like the one above.
 
 ## Monitor
 
