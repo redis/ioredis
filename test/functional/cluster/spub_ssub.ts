@@ -197,6 +197,51 @@ describe("cluster:spub/ssub", function () {
     expect(group.channels.size).to.equal(0);
   });
 
+  it("sunsubscribeAll rejects naming the failed shard and keeps its channels", async () => {
+    // When a shard's SUNSUBSCRIBE fails the client may still be subscribed
+    // there, so reject with the failing node and leave the tracked channels in
+    // place: a zero-argument SUNSUBSCRIBE is idempotent, so a retry can safely
+    // fan out again and still see those shards via hasSubscribedChannels().
+    const group: any = new ClusterSubscriberGroup(new EventEmitter(), {} as any);
+
+    const makeSubscriber = (nodeKey: string, sunsubscribe: any) => {
+      const redis = { status: "ready", sunsubscribe };
+      return {
+        redis,
+        getInstance: () => redis,
+        getNodeKey: () => nodeKey,
+      };
+    };
+
+    const okSub = makeSubscriber(
+      "127.0.0.1:30001",
+      sinon.stub().resolves(["sunsubscribe", null, 0]),
+    );
+    const failSub = makeSubscriber(
+      "127.0.0.1:30002",
+      sinon.stub().rejects(new Error("connection lost")),
+    );
+
+    group.shardedSubscribers.set("127.0.0.1:30001", okSub);
+    group.shardedSubscribers.set("127.0.0.1:30002", failSub);
+    group.subscriberToSlotsIndex.set("127.0.0.1:30001", [1]);
+    group.subscriberToSlotsIndex.set("127.0.0.1:30002", [2]);
+    group.channels.set(1, ["chan-ok"]);
+    group.channels.set(2, ["chan-fail"]);
+
+    let error: Error | undefined;
+    try {
+      await group.sunsubscribeAll();
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).to.be.an("error");
+    expect(error.message).to.contain("127.0.0.1:30002");
+    // Channels stay tracked so a retry still targets both shards.
+    expect(group.channels.size).to.equal(2);
+  });
+
   it("should works when sending regular commands", (done) => {
     const handler = function (argv) {
       if (argv[0] === "cluster" && argv[1] === "SLOTS") {

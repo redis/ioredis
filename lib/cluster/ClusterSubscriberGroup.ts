@@ -132,7 +132,7 @@ export default class ClusterSubscriberGroup {
    * @returns the number of remaining shard subscriptions (always 0)
    */
   async sunsubscribeAll(): Promise<number> {
-    const pending: Promise<unknown>[] = [];
+    const pending: { nodeKey: string; result: Promise<unknown> }[] = [];
 
     for (const [nodeKey, subscriber] of this.shardedSubscribers) {
       if (!this.hasSubscribedChannels(nodeKey)) {
@@ -144,27 +144,27 @@ export default class ClusterSubscriberGroup {
         continue;
       }
 
-      // Issue SUNSUBSCRIBE even when the connection isn't ready. ioredis queues
-      // it and, on reply, drops these channels from the connection's own
-      // subscription set — the set `autoResubscribe` replays on reconnect.
-      // Skipping a non-ready connection would leave it subscribed there, so it
-      // would silently resume delivering shard messages once it reconnects even
-      // though we reported everything as unsubscribed. Swallow per-connection
-      // errors so one failing shard doesn't reject the whole fan-out.
-      const settled = redis.sunsubscribe().catch(() => {});
-
-      // Only block on connections that can flush now; a reconnecting or dead
-      // shard's queued command must not hang the caller. Its channels are still
-      // cleared once it comes back and the queued command flushes.
+      // Fire SUNSUBSCRIBE on every subscriber with channels (non-ready ones queue it
+      // and clear on reconnect); only await ready ones so a dead shard can't hang us.
+      const result = redis.sunsubscribe();
       if (redis.status === "ready") {
-        pending.push(settled);
+        pending.push({ nodeKey, result });
+      } else {
+        result.catch(() => {});
       }
     }
 
-    // Drop the tracked channels so the group no longer treats them as active.
-    this.channels.clear();
+    const settled = await Promise.allSettled(pending.map((p) => p.result));
+    const failed = pending.filter((_, i) => settled[i].status === "rejected");
 
-    await Promise.all(pending);
+    if (failed.length > 0) {
+      // Keep the tracked channels so a retry (SUNSUBSCRIBE is idempotent) still targets these shards.
+      throw new Error(
+        `SUNSUBSCRIBE failed on ${failed.map((p) => p.nodeKey).join(", ")}`,
+      );
+    }
+
+    this.channels.clear();
 
     return 0;
   }
