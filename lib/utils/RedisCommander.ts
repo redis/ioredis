@@ -1892,16 +1892,16 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(N) where N is the number of specified fields
    * - _since_: 7.4.0
    */
-  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, nx: 'NX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, nx: 'NX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
-  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, xx: 'XX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, xx: 'XX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
-  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, gt: 'GT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, gt: 'GT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
-  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, lt: 'LT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, lt: 'LT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
-  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, nx: 'NX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, nx: 'NX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, xx: 'XX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, xx: 'XX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, gt: 'GT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, gt: 'GT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, lt: 'LT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, lt: 'LT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
 
   /**
    * Returns the expiration time of a hash field as a Unix timestamp, in seconds.
@@ -1909,8 +1909,8 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(N) where N is the number of specified fields
    * - _since_: 7.4.0
    */
-  hexpiretime(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hexpiretime(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
+  hexpiretime(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hexpiretime(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
 
   /**
    * Returns the value of a field in a hash.
@@ -1936,8 +1936,10 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(N) where N is the number of specified fields
    * - _since_: 8.0.0
    */
-  hgetdel(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hgetdel(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
+  hgetdel(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<(string | null)[]>]): Result<(string | null)[], Context>;
+  hgetdelBuffer(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<(Buffer | null)[]>]): Result<(Buffer | null)[], Context>;
+  hgetdel(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<(string | null)[], Context>;
+  hgetdelBuffer(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<(Buffer | null)[], Context>;
 
   /**
    * Get the value of one or more fields of a given hash key, and optionally set their expiration.
@@ -1945,18 +1947,30 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(N) where N is the number of specified fields
    * - _since_: 8.0.0
    */
-  hgetex(...args: [key: RedisKey, secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hgetex(...args: [key: RedisKey, secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
-  hgetex(...args: [key: RedisKey, millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hgetex(...args: [key: RedisKey, millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
-  hgetex(...args: [key: RedisKey, unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hgetex(...args: [key: RedisKey, unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
-  hgetex(...args: [key: RedisKey, unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hgetex(...args: [key: RedisKey, unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
-  hgetex(...args: [key: RedisKey, persist: 'PERSIST', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hgetex(...args: [key: RedisKey, persist: 'PERSIST', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
-  hgetex(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hgetex(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
+  hgetex(...args: [key: RedisKey, secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<(string | null)[]>]): Result<(string | null)[], Context>;
+  hgetexBuffer(...args: [key: RedisKey, secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<(Buffer | null)[]>]): Result<(Buffer | null)[], Context>;
+  hgetex(...args: [key: RedisKey, secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<(string | null)[], Context>;
+  hgetexBuffer(...args: [key: RedisKey, secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<(Buffer | null)[], Context>;
+  hgetex(...args: [key: RedisKey, millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<(string | null)[]>]): Result<(string | null)[], Context>;
+  hgetexBuffer(...args: [key: RedisKey, millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<(Buffer | null)[]>]): Result<(Buffer | null)[], Context>;
+  hgetex(...args: [key: RedisKey, millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<(string | null)[], Context>;
+  hgetexBuffer(...args: [key: RedisKey, millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<(Buffer | null)[], Context>;
+  hgetex(...args: [key: RedisKey, unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<(string | null)[]>]): Result<(string | null)[], Context>;
+  hgetexBuffer(...args: [key: RedisKey, unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<(Buffer | null)[]>]): Result<(Buffer | null)[], Context>;
+  hgetex(...args: [key: RedisKey, unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<(string | null)[], Context>;
+  hgetexBuffer(...args: [key: RedisKey, unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<(Buffer | null)[], Context>;
+  hgetex(...args: [key: RedisKey, unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<(string | null)[]>]): Result<(string | null)[], Context>;
+  hgetexBuffer(...args: [key: RedisKey, unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<(Buffer | null)[]>]): Result<(Buffer | null)[], Context>;
+  hgetex(...args: [key: RedisKey, unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<(string | null)[], Context>;
+  hgetexBuffer(...args: [key: RedisKey, unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<(Buffer | null)[], Context>;
+  hgetex(...args: [key: RedisKey, persist: 'PERSIST', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<(string | null)[]>]): Result<(string | null)[], Context>;
+  hgetexBuffer(...args: [key: RedisKey, persist: 'PERSIST', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<(Buffer | null)[]>]): Result<(Buffer | null)[], Context>;
+  hgetex(...args: [key: RedisKey, persist: 'PERSIST', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<(string | null)[], Context>;
+  hgetexBuffer(...args: [key: RedisKey, persist: 'PERSIST', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<(Buffer | null)[], Context>;
+  hgetex(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<(string | null)[]>]): Result<(string | null)[], Context>;
+  hgetexBuffer(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<(Buffer | null)[]>]): Result<(Buffer | null)[], Context>;
+  hgetex(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<(string | null)[], Context>;
+  hgetexBuffer(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<(Buffer | null)[], Context>;
 
   /**
    * Increments the integer value of a field in a hash by a number. Uses 0 as initial value if the field doesn't exist.
@@ -2020,8 +2034,8 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(N) where N is the number of specified fields
    * - _since_: 7.4.0
    */
-  hpersist(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hpersist(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
+  hpersist(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpersist(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
 
   /**
    * Set expiry for hash field using relative time to expire (milliseconds)
@@ -2046,16 +2060,16 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(N) where N is the number of specified fields
    * - _since_: 7.4.0
    */
-  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, nx: 'NX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, nx: 'NX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
-  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, xx: 'XX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, xx: 'XX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
-  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, gt: 'GT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, gt: 'GT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
-  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, lt: 'LT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, lt: 'LT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
-  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
+  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, nx: 'NX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, nx: 'NX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, xx: 'XX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, xx: 'XX', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, gt: 'GT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, gt: 'GT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, lt: 'LT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, lt: 'LT', fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
+  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
 
   /**
    * Returns the expiration time of a hash field as a Unix timestamp, in msec.
@@ -2063,8 +2077,8 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(N) where N is the number of specified fields
    * - _since_: 7.4.0
    */
-  hpexpiretime(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hpexpiretime(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
+  hpexpiretime(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpexpiretime(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
 
   /**
    * Returns the TTL in milliseconds of a hash field.
@@ -2072,8 +2086,8 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(N) where N is the number of specified fields
    * - _since_: 7.4.0
    */
-  hpttl(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hpttl(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
+  hpttl(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  hpttl(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
 
   /**
    * Returns one or more random fields from a hash.
@@ -2128,42 +2142,42 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(N) where N is the number of fields being set.
    * - _since_: 8.0.0
    */
-  hsetex(...args: [key: RedisKey, fnx: 'FNX', secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fnx: 'FNX', secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fnx: 'FNX', millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fnx: 'FNX', millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fnx: 'FNX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fnx: 'FNX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fnx: 'FNX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fnx: 'FNX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fnx: 'FNX', keepttl: 'KEEPTTL', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fnx: 'FNX', keepttl: 'KEEPTTL', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fxx: 'FXX', secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fxx: 'FXX', secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fxx: 'FXX', millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fxx: 'FXX', millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fxx: 'FXX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fxx: 'FXX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fxx: 'FXX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fxx: 'FXX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fxx: 'FXX', keepttl: 'KEEPTTL', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fxx: 'FXX', keepttl: 'KEEPTTL', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, keepttl: 'KEEPTTL', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, keepttl: 'KEEPTTL', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fnx: 'FNX', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fnx: 'FNX', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fxx: 'FXX', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fxx: 'FXX', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  hsetex(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<unknown, Context>;
+  hsetex(...args: [key: RedisKey, fnx: 'FNX', secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fnx: 'FNX', secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fnx: 'FNX', millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fnx: 'FNX', millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fnx: 'FNX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fnx: 'FNX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fnx: 'FNX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fnx: 'FNX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fnx: 'FNX', keepttl: 'KEEPTTL', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fnx: 'FNX', keepttl: 'KEEPTTL', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fxx: 'FXX', secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fxx: 'FXX', secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fxx: 'FXX', millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fxx: 'FXX', millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fxx: 'FXX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fxx: 'FXX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fxx: 'FXX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fxx: 'FXX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fxx: 'FXX', keepttl: 'KEEPTTL', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fxx: 'FXX', keepttl: 'KEEPTTL', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, secondsToken: 'EX', seconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, millisecondsToken: 'PX', milliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, keepttl: 'KEEPTTL', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, keepttl: 'KEEPTTL', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fnx: 'FNX', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fnx: 'FNX', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fxx: 'FXX', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fxx: 'FXX', fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  hsetex(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...data: (string | Buffer | number)[]]): Result<number, Context>;
 
   /**
    * Sets the value of a field in a hash only when the field doesn't exist.
@@ -2187,8 +2201,8 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(N) where N is the number of specified fields
    * - _since_: 7.4.0
    */
-  httl(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<unknown>]): Result<unknown, Context>;
-  httl(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<unknown, Context>;
+  httl(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[], callback: Callback<number[]>]): Result<number[], Context>;
+  httl(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<number[], Context>;
 
   /**
    * Returns all values in a hash.

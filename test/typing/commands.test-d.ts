@@ -59,6 +59,41 @@ expectType<Promise<(string | null)[]>>(redis.mget(["key", "bar"]));
 expectType<Promise<Record<string, string>>>(redis.hgetall("key"));
 expectType<Promise<Record<string, Buffer>>>(redis.hgetallBuffer("key"));
 
+// Hash field expiration commands
+expectType<Promise<number[]>>(
+  redis.hexpireat("key", 1_700_000_000, "FIELDS", 1, "field")
+);
+expectType<Promise<number[]>>(redis.hexpiretime("key", "FIELDS", 1, "field"));
+expectType<Promise<(string | null)[]>>(
+  redis.hgetdel("key", "FIELDS", 1, "field")
+);
+expectType<Promise<(Buffer | null)[]>>(
+  redis.hgetdelBuffer("key", "FIELDS", 1, "field")
+);
+expectType<Promise<(string | null)[]>>(
+  redis.hgetex("key", "FIELDS", 1, "field")
+);
+expectType<Promise<(Buffer | null)[]>>(
+  redis.hgetexBuffer("key", "FIELDS", 1, "field")
+);
+expectType<Promise<(string | null)[]>>(
+  redis.hgetex("key", "EX", 60, "FIELDS", 1, "field")
+);
+expectType<Promise<(string | null)[]>>(
+  redis.hgetex("key", "PXAT", 1_700_000_000_000, "FIELDS", 1, "field")
+);
+expectType<Promise<(string | null)[]>>(
+  redis.hgetex("key", "PERSIST", "FIELDS", 1, "field")
+);
+expectType<Promise<number[]>>(redis.hpersist("key", "FIELDS", 1, "field"));
+expectType<Promise<number[]>>(
+  redis.hpexpireat("key", 1_700_000_000_000, "FIELDS", 1, "field")
+);
+expectType<Promise<number[]>>(redis.hpexpiretime("key", "FIELDS", 1, "field"));
+expectType<Promise<number[]>>(redis.hpttl("key", "FIELDS", 1, "field"));
+expectType<Promise<number>>(redis.hsetex("key", "FIELDS", 1, "field", "value"));
+expectType<Promise<number[]>>(redis.httl("key", "FIELDS", 1, "field"));
+
 // LPOP
 expectType<Promise<string | null>>(redis.lpop("key"));
 expectType<Promise<Buffer | null>>(redis.lpopBuffer("key"));
@@ -173,6 +208,16 @@ expectType<Promise<number>>(redis.arset("key", 0, "a", "b"));
 redis.getBuffer("foo", (err, res) => {
   expectType<Error | null | undefined>(err);
   expectType<Buffer | null | undefined>(res);
+});
+
+redis.hgetdelBuffer("key", "FIELDS", 1, "field", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<(Buffer | null)[] | undefined>(res);
+});
+
+redis.hgetexBuffer("key", "EX", 60, "FIELDS", 1, "field", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<(Buffer | null)[] | undefined>(res);
 });
 
 redis.set("foo", "bar", (err, res) => {
