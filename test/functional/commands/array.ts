@@ -1,12 +1,14 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
 import { isRedisVersionLowerThan } from "../../helpers/util";
+import { isReCluster } from "../../helpers/re-config";
 
 describe("array commands", () => {
   let redis: Redis;
 
   before(async function () {
-    if (await isRedisVersionLowerThan("8.7")) {
+    // The AR.* array commands are an OSS preview not shipped in managed Redis Enterprise.
+    if (isReCluster() || (await isRedisVersionLowerThan("8.7"))) {
       this.skip();
     }
   });

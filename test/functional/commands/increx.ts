@@ -1,12 +1,14 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
 import { isRedisVersionLowerThan } from "../../helpers/util";
+import { isReCluster } from "../../helpers/re-config";
 
 describe("increx", function () {
   let redis: Redis;
 
   before(async function () {
-    if (await isRedisVersionLowerThan("8.7")) {
+    // INCREX is an OSS preview command not available in managed Redis Enterprise.
+    if (isReCluster() || (await isRedisVersionLowerThan("8.7"))) {
       this.skip();
     }
   });
