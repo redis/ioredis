@@ -58,7 +58,24 @@ export default class DataHandler {
 
     // prependListener ensures the parser receives and processes data before socket timeout checks are performed
     redis.stream.prependListener("data", (data) => {
-      parser.execute(data);
+      try {
+        parser.execute(data);
+      } catch (err) {
+        // redis-parser recurses once per level of RESP aggregate nesting
+        // with no depth limit, so a sufficiently deeply nested reply (from
+        // a compromised/malicious server, or a corrupted stream) throws a
+        // synchronous RangeError instead of reporting a parser error.
+        // Treat it the same way as `returnFatalError`: recover the
+        // connection instead of letting the exception escape and crash
+        // the process.
+        this.returnFatalError(
+          new Error(
+            `Unhandled error while parsing the Redis reply: ${
+              (err as Error).message
+            }`
+          )
+        );
+      }
     });
     // prependListener() doesn't enable flowing mode automatically - we need to resume the stream manually
     redis.stream.resume();
