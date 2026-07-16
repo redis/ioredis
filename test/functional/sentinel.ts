@@ -422,6 +422,55 @@ describe("sentinel", () => {
       });
     });
 
+    it("should preserve zero preferred slave priority without mutating options", async () => {
+      const preferredSlaves = [
+        { ip: "127.0.0.1", port: "17382" },
+        { ip: "127.0.0.1", port: "17383", prio: 0 },
+      ];
+      const originalPreferredSlaves = preferredSlaves.map((slave) => ({
+        ...slave,
+      }));
+
+      const sentinel = new MockServer(27379, (argv) => {
+        if (
+          argv[0] === "sentinel" &&
+          argv[1] === "slaves" &&
+          argv[2] === "master"
+        ) {
+          return [
+            ["ip", "127.0.0.1", "port", "17382", "flags", "slave"],
+            ["ip", "127.0.0.1", "port", "17383", "flags", "slave"],
+          ];
+        }
+      });
+      const defaultPrioritySlave = new MockServer(17382);
+      const zeroPrioritySlave = new MockServer(17383);
+
+      const redis = new Redis({
+        sentinels: [{ host: "127.0.0.1", port: 27379 }],
+        name: "master",
+        role: "slave",
+        preferredSlaves,
+      });
+
+      try {
+        const selectedPort = await Promise.race([
+          once(defaultPrioritySlave, "connect").then(() => "17382"),
+          once(zeroPrioritySlave, "connect").then(() => "17383"),
+        ]);
+
+        expect(selectedPort).to.eql("17383");
+        expect(preferredSlaves).to.deep.equal(originalPreferredSlaves);
+      } finally {
+        redis.disconnect();
+        await Promise.all([
+          sentinel.disconnectPromise(),
+          defaultPrioritySlave.disconnectPromise(),
+          zeroPrioritySlave.disconnectPromise(),
+        ]);
+      }
+    });
+
     it("should connect to the slave successfully based on preferred slave filter function", (done) => {
       new MockServer(27379, (argv) => {
         if (

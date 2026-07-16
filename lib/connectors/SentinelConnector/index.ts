@@ -405,24 +405,20 @@ function selectPreferredSentinel(
     selectedSlave = preferredSlaves(availableSlaves);
   } else if (preferredSlaves !== null && typeof preferredSlaves === "object") {
     const preferredSlavesArray = Array.isArray(preferredSlaves)
-      ? preferredSlaves
+      ? [...preferredSlaves]
       : [preferredSlaves];
 
     // sort by priority
     preferredSlavesArray.sort((a, b) => {
       // default the priority to 1
-      if (!a.prio) {
-        a.prio = 1;
-      }
-      if (!b.prio) {
-        b.prio = 1;
-      }
+      const aPrio = a.prio ?? 1;
+      const bPrio = b.prio ?? 1;
 
       // lowest priority first
-      if (a.prio < b.prio) {
+      if (aPrio < bPrio) {
         return -1;
       }
-      if (a.prio > b.prio) {
+      if (aPrio > bPrio) {
         return 1;
       }
       return 0;
