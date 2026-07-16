@@ -1,12 +1,16 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
 import { isRedisVersionLowerThan } from "../../helpers/util";
+import { isReCluster } from "../../helpers/re-config";
 
 describe("vector set commands", function () {
   let redis: Redis;
 
   before(async function () {
-    if (await isRedisVersionLowerThan("8.0")) {
+    // Vector set commands are not available across all managed Redis Enterprise
+    // versions (e.g. VRANGE is missing on RE 8.0.x), so skip them on RE for
+    // consistent behaviour across the version matrix.
+    if (isReCluster() || (await isRedisVersionLowerThan("8.0"))) {
       this.skip();
     }
   });
