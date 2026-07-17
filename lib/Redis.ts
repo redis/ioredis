@@ -358,14 +358,24 @@ class Redis extends Commander implements DataHandledable {
   /**
    * Create a new instance with the same options as the current one.
    *
+   * When called on a subclass, this returns an instance of the subclass —
+   * making `duplicate()` safe to use with custom Redis classes for
+   * instrumentation, logging, etc.
+   *
    * @example
    * ```js
    * var redis = new Redis(6380);
    * var anotherRedis = redis.duplicate();
+   *
+   * class MyRedis extends Redis {}
+   * var custom = new MyRedis(6380);
+   * var clone = custom.duplicate();
+   * // clone instanceof MyRedis === true
    * ```
    */
-  duplicate(override?: Partial<RedisOptions>) {
-    return new Redis({ ...this.options, ...override });
+  duplicate(override?: Partial<RedisOptions>): this {
+    const Ctor = this.constructor as new (options: RedisOptions) => this;
+    return new Ctor({ ...this.options, ...override });
   }
 
   /**
