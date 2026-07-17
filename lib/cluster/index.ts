@@ -510,6 +510,9 @@ class Cluster extends Commander {
    * @ignore
    */
   sendCommand(command: Command, stream?: WriteableStream, node?: any): unknown {
+    if (command.isSettled) {
+      return command.promise;
+    }
     if (this.status === "wait") {
       this.connect().catch(noop);
     }

@@ -212,6 +212,7 @@ export default class Command implements Respondable {
   resolve: (result: any) => void;
   promise: Promise<any>;
 
+  isSettled = false;
   private replyEncoding: BufferEncoding | null;
   private errorStack: Error;
   private bufferMode: boolean;
@@ -375,7 +376,7 @@ export default class Command implements Respondable {
   setTimeout(ms: number) {
     if (!this._commandTimeoutTimer) {
       this._commandTimeoutTimer = setTimeout(() => {
-        if (!this.isResolved) {
+        if (!this.isSettled) {
           this.reject(new Error("Command timed out"));
         }
       }, ms);
@@ -415,7 +416,7 @@ export default class Command implements Respondable {
     }
 
     this._blockingTimeoutTimer = setTimeout(() => {
-      if (this.isResolved) {
+      if (this.isSettled) {
         this._blockingTimeoutTimer = undefined;
         return;
       }
@@ -475,6 +476,8 @@ export default class Command implements Respondable {
   }
 
   private initPromise() {
+    this.isResolved = false;
+    this.isSettled = false;
     const promise = new Promise((resolve, reject) => {
       if (!this.transformed) {
         this.transformed = true;
@@ -487,7 +490,11 @@ export default class Command implements Respondable {
 
       this.resolve = this._convertValue(resolve);
       this.reject = (err: Error) => {
+        if (this.isSettled) {
+          return;
+        }
         this._clearTimers();
+        this.isSettled = true;
         if (this.errorStack) {
           reject(optimizeErrorStack(err, this.errorStack.stack, __dirname));
         } else {
@@ -526,10 +533,14 @@ export default class Command implements Respondable {
    */
   private _convertValue(resolve: Function): (result: any) => void {
     return (value) => {
+      if (this.isSettled) {
+        return this.promise;
+      }
       try {
         this._clearTimers();
         resolve(this.transformReply(value));
         this.isResolved = true;
+        this.isSettled = true;
       } catch (err) {
         this.reject(err);
       }

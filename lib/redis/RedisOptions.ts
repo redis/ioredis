@@ -14,8 +14,11 @@ export interface CommonRedisOptions extends CommanderOptions {
   retryStrategy?: RetryStrategy;
 
   /**
-   * If a command does not return a reply within a set number of milliseconds,
+   * If a command is not completed within a set number of milliseconds,
    * a "Command timed out" error will be thrown.
+   *
+   * This timer starts when the command is issued, so it includes time spent
+   * waiting in the offline queue for reconnect/ready state.
    */
   commandTimeout?: number | undefined;
 
