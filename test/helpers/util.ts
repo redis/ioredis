@@ -10,6 +10,27 @@ export function toRecord(entry: unknown[]): Record<string, unknown> {
   return record;
 }
 
+type StreamEntry = [id: string, fields: string[] | null];
+type StreamReadReply =
+  | [key: string, entries: StreamEntry[]][]
+  | Record<string, StreamEntry[]>
+  | null;
+
+export function countStreamEntries(reply: StreamReadReply): number {
+  if (reply === null) {
+    return 0;
+  }
+
+  if (Array.isArray(reply)) {
+    return reply.reduce((total, [, entries]) => total + entries.length, 0);
+  }
+
+  return Object.values(reply).reduce(
+    (total, entries) => total + entries.length,
+    0
+  );
+}
+
 export function sleep(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
