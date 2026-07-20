@@ -142,6 +142,82 @@ describe("DataHandler", () => {
     expect(moved.called).to.be.false;
   });
 
+  it("resolves uppercase unsubscribe commands without desyncing the queue", async () => {
+    const setup = setupDataHandler();
+    const error = sinon.spy();
+    setup.redis.on("error", error);
+
+    const subscribe = new Command("subscribe", ["channel"], {
+      replyEncoding: "utf8",
+    });
+    setup.redis.commandQueue.push({ command: subscribe, select: 0 });
+    setup.write(">3\r\n$9\r\nsubscribe\r\n$7\r\nchannel\r\n:1\r\n");
+    expect(await subscribe.promise).to.equal(1);
+
+    const unsubscribe = new Command("UNSUBSCRIBE", ["channel"], {
+      replyEncoding: "utf8",
+    });
+    setup.redis.commandQueue.push({ command: unsubscribe, select: 0 });
+    const command = new Command("get", ["key"], { replyEncoding: "utf8" });
+    setup.redis.commandQueue.push({ command, select: 0 });
+
+    setup.write(">3\r\n$11\r\nunsubscribe\r\n$7\r\nchannel\r\n:0\r\n+VALUE\r\n");
+
+    expect(await unsubscribe.promise).to.equal(0);
+    expect(await command.promise).to.equal("VALUE");
+    expect(setup.redis.commandQueue.length).to.equal(0);
+    expect(error.called).to.be.false;
+  });
+
+  it("settles ssubscribe commands on MOVED instead of leaving them pending", async () => {
+    const setup = setupDataHandler();
+    const moved = sinon.spy();
+    setup.redis.on("moved", moved);
+
+    const command = new Command("ssubscribe", ["channel"], {
+      replyEncoding: "utf8",
+    });
+    setup.redis.commandQueue.push({ command, select: 0 });
+
+    setup.write("-MOVED 1234 127.0.0.1:30002\r\n");
+
+    expect(moved.calledOnce).to.be.true;
+    expect(setup.redis.handleReconnection.calledOnce).to.be.true;
+    expect(setup.redis.handleReconnection.firstCall.args[1].command).to.equal(
+      command
+    );
+
+    try {
+      await command.promise;
+      expect.fail("Expected command to reject");
+    } catch (err) {
+      expect(err.message).to.equal("MOVED 1234 127.0.0.1:30002");
+    }
+  });
+
+  it("does not emit moved for non-MOVED ssubscribe errors", async () => {
+    const setup = setupDataHandler();
+    const moved = sinon.spy();
+    setup.redis.on("moved", moved);
+
+    const command = new Command("ssubscribe", ["channel"], {
+      replyEncoding: "utf8",
+    });
+    setup.redis.commandQueue.push({ command, select: 0 });
+
+    setup.write("-ERR keys moved around\r\n");
+
+    expect(moved.called).to.be.false;
+    expect(setup.redis.handleReconnection.calledOnce).to.be.true;
+
+    try {
+      await command.promise;
+      expect.fail("Expected command to reject");
+    } catch (err) {
+      expect(err.message).to.equal("ERR keys moved around");
+    }
+  });
+
   it("contains user listener exceptions without killing the connection", async () => {
     const setup = setupDataHandler();
     const listenerError = new Error("listener boom");

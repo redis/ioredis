@@ -119,9 +119,15 @@ export default class DataHandler {
       args: item.command.args,
     };
 
-    if (item.command.name == "ssubscribe" && err.message.includes("MOVED")) {
+    // A MOVED reply to SSUBSCRIBE means the shard channel's slot migrated.
+    // Signal the subscriber layer to refresh its topology, but still settle
+    // the command through normal error handling so the caller's promise
+    // rejects instead of staying pending forever.
+    const isMovedSsubscribe =
+      item.command.name === "ssubscribe" && err.message.startsWith("MOVED ");
+
+    if (isMovedSsubscribe) {
       this.redis.emit("moved");
-      return;
     }
 
     this.redis.handleReconnection(err, item);
@@ -234,7 +240,11 @@ export default class DataHandler {
   // `sunsubscribe` reuses the ssubscribe-MOVED recovery path.
   private handleUnsolicitedUnsubscribe(replyType: string): boolean {
     const head = this.redis.commandQueue.peekFront();
-    if (head && head.command.name === replyType) {
+    // Command names keep the user's casing (e.g. `call("UNSUBSCRIBE")`), while
+    // reply types from the server are lowercase — compare case-insensitively
+    // or an uppercase unsubscribe would be treated as unsolicited and its
+    // reply dropped, desyncing the queue.
+    if (head && head.command.name.toLowerCase() === replyType) {
       return false;
     }
     if (replyType === "sunsubscribe") {
