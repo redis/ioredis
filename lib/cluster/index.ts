@@ -8,7 +8,13 @@ import Pipeline from "../Pipeline";
 import Redis from "../Redis";
 import ScanStream from "../ScanStream";
 import { addTransactionSupport, Transaction } from "../transaction";
-import { Callback, ScanStreamOptions, WriteableStream } from "../types";
+import {
+  Callback,
+  ReplyMappingFromClusterOptions,
+  ReplyMappingMode,
+  ScanStreamOptions,
+  WriteableStream,
+} from "../types";
 import {
   CONNECTION_CLOSED_ERROR_MSG,
   Debug,
@@ -21,7 +27,11 @@ import {
 } from "../utils";
 import applyMixin from "../utils/applyMixin";
 import Commander from "../utils/Commander";
-import { ClusterOptions, DEFAULT_CLUSTER_OPTIONS } from "./ClusterOptions";
+import {
+  ClusterOptions,
+  ClusterOptionsWithReplyMapping,
+  DEFAULT_CLUSTER_OPTIONS,
+} from "./ClusterOptions";
 import ClusterSubscriber from "./ClusterSubscriber";
 import ConnectionPool from "./ConnectionPool";
 import DelayQueue from "./DelayQueue";
@@ -71,7 +81,10 @@ type ClusterStatus =
 /**
  * Client for the official Redis Cluster
  */
-class Cluster extends Commander {
+class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commander<{
+  type: "default";
+  mapping: ReplyMapping extends "resp3" ? "resp3" : "resp2";
+}> {
   options: ClusterOptions;
   slots: NodeKey[][] = [];
   status: ClusterStatus;
@@ -99,8 +112,8 @@ class Cluster extends Commander {
   private offlineQueue = new Deque<OfflineQueueItem>();
   private subscriber: ClusterSubscriber;
   private shardedSubscribers: ClusterSubscriberGroup;
-  private slotsTimer: NodeJS.Timer;
-  private reconnectTimeout: NodeJS.Timer;
+  private slotsTimer: ReturnType<typeof setTimeout> | null;
+  private reconnectTimeout: ReturnType<typeof setTimeout> | null;
   private isRefreshing = false;
   private _refreshSlotsCacheCallbacks = [];
   private _autoPipelines: Map<string, typeof Pipeline> = new Map();
@@ -120,7 +133,13 @@ class Cluster extends Commander {
    * Creates an instance of Cluster.
    */
   //TODO: Add an option that enables or disables sharded PubSub
-  constructor(startupNodes: ClusterNode[], options: ClusterOptions = {}) {
+  // `redisOptions.replyMapping` carries the `ReplyMapping` class type parameter
+  // so RESP3 return shapes are inferred from the options literal at construction,
+  // mirroring the single-node `Redis` constructor.
+  constructor(
+    startupNodes: ClusterNode[],
+    options: ClusterOptionsWithReplyMapping<ReplyMapping> = {}
+  ) {
     super();
     EventEmitter.call(this);
 
@@ -399,13 +418,29 @@ class Cluster extends Commander {
    * var anotherCluster = cluster.duplicate();
    * ```
    */
-  duplicate(overrideStartupNodes = [], overrideOptions = {}) {
+  duplicate<
+    OverrideOptions extends
+      | ClusterOptionsWithReplyMapping<ReplyMappingMode>
+      | undefined = undefined
+  >(
+    overrideStartupNodes: ClusterNode[] = [],
+    overrideOptions?: OverrideOptions
+  ): Cluster<ReplyMappingFromClusterOptions<ReplyMapping, OverrideOptions>> {
     const startupNodes =
       overrideStartupNodes.length > 0
         ? overrideStartupNodes
         : this.startupNodes.slice(0);
     const options = Object.assign({}, this.options, overrideOptions);
-    return new Cluster(startupNodes, options);
+    if (this.options.redisOptions && overrideOptions?.redisOptions) {
+      options.redisOptions = Object.assign(
+        {},
+        this.options.redisOptions,
+        overrideOptions.redisOptions
+      );
+    }
+    return new Cluster(startupNodes, options) as Cluster<
+      ReplyMappingFromClusterOptions<ReplyMapping, OverrideOptions>
+    >;
   }
 
   /**
@@ -941,6 +976,8 @@ class Cluster extends Commander {
       enableOfflineQueue: true,
       enableReadyCheck: false,
       retryStrategy: null,
+      protocol: 2,
+      replyMapping: "legacy",
       connectionName: getConnectionName(
         "refresher",
         this.options.redisOptions && this.options.redisOptions.connectionName
@@ -1254,10 +1291,13 @@ class Cluster extends Commander {
   }
 }
 
-interface Cluster extends EventEmitter {}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface Cluster<ReplyMapping extends "legacy" | "resp3" = "legacy">
+  extends EventEmitter {}
 applyMixin(Cluster, EventEmitter);
 
 addTransactionSupport(Cluster.prototype);
-interface Cluster extends Transaction {}
+interface Cluster<ReplyMapping extends "legacy" | "resp3" = "legacy">
+  extends Transaction<ReplyMapping extends "resp3" ? "resp3" : "resp2"> {}
 
 export default Cluster;

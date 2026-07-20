@@ -2,6 +2,7 @@ import { CommanderOptions } from "../utils/Commander";
 import ConnectorConstructor from "../connectors/ConnectorConstructor";
 import { SentinelConnectionOptions } from "../connectors/SentinelConnector";
 import { StandaloneConnectionOptions } from "../connectors/StandaloneConnector";
+import { ProtocolVersion, ReplyMappingMode } from "../types";
 
 export type ReconnectOnError = (err: Error) => boolean | 1 | 2;
 export type RetryStrategy =
@@ -142,6 +143,26 @@ export interface CommonRedisOptions extends CommanderOptions {
   stringNumbers?: boolean | undefined;
 
   /**
+   * The RESP protocol version to use.
+   * @default 3
+   */
+  protocol?: ProtocolVersion | undefined;
+
+  /**
+   * How RESP3-only reply types are represented in JavaScript.
+   * Only supported when `protocol` is 3.
+   *
+   * - `"legacy"` (default): RESP2-compatible shapes. Map replies arrive as
+   *   flat `[key, value, ...]` arrays and doubles as strings, so replies are
+   *   identical across both protocols.
+   * - `"resp3"`: map replies arrive as plain objects (with string keys) and
+   *   doubles as numbers.
+   *
+   * @default "legacy"
+   */
+  replyMapping?: ReplyMappingMode | undefined;
+
+  /**
    * How long the client will wait before killing a socket due to inactivity during initial connection.
    * @default 10000
    */
@@ -275,6 +296,8 @@ export const DEFAULT_REDIS_OPTIONS: RedisOptions = {
   reconnectOnError: null,
   readOnly: false,
   stringNumbers: false,
+  protocol: 3,
+  replyMapping: "legacy",
   maxRetriesPerRequest: 20,
   maxLoadingRetryTime: 10000,
   enableAutoPipelining: false,

@@ -25,6 +25,46 @@ describe("utils", () => {
         ])
       ).to.eql(["abc", 5, "b", [["abc", 4]]]);
     });
+
+    it("should convert values of plain objects", () => {
+      expect(
+        utils.convertBufferToString(
+          {
+            a: Buffer.from("abc"),
+            b: 5,
+            c: [Buffer.from("abc"), { d: Buffer.from("abc") }],
+          },
+          "utf8"
+        )
+      ).to.eql({ a: "abc", b: 5, c: ["abc", { d: "abc" }] });
+    });
+
+    it("should leave non-plain objects untouched", () => {
+      const date = new Date(0);
+
+      expect(utils.convertBufferToString(date, "utf8")).to.equal(date);
+    });
+
+    it("should keep special keys as own properties", () => {
+      const input: Record<string, unknown> = { a: Buffer.from("abc") };
+      Object.defineProperty(input, "__proto__", {
+        value: Buffer.from("x"),
+        configurable: true,
+        enumerable: true,
+        writable: true,
+      });
+
+      const res = utils.convertBufferToString(input, "utf8") as Record<
+        string,
+        unknown
+      >;
+
+      expect(Object.getPrototypeOf(res)).to.equal(Object.prototype);
+      expect(Object.getOwnPropertyDescriptor(res, "__proto__")?.value).to.equal(
+        "x"
+      );
+      expect(res.a).to.equal("abc");
+    });
   });
 
   describe(".wrapMultiResult", () => {

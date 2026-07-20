@@ -45,10 +45,13 @@ used in the world's biggest online commerce company [Alibaba](http://www.alibaba
 
 | Version        | Branch | Node.js Version | Redis Version   |
 | -------------- | ------ | --------------- | --------------- |
-| 5.x.x (latest) | main   | >= 12           | 2.6.12 ~ latest |
+| 6.x.x (latest) | main   | >= 20           | 6.2    ~ latest |
+| 5.x.x          | v5     | >= 12           | 2.6.12 ~ latest |
 | 4.x.x          | v4     | >= 8            | 2.6.12 ~ 7      |
 
 Refer to [CHANGELOG.md](CHANGELOG.md) for features and bug fixes introduced in v5.
+
+🚀 [Upgrading from v5 to v6](https://github.com/redis/ioredis/wiki/Upgrading-from-v5-to-v6)
 
 🚀 [Upgrading from v4 to v5](https://github.com/redis/ioredis/wiki/Upgrading-from-v4-to-v5)
 
@@ -649,6 +652,34 @@ redis.hgetallBuffer("h1", (err, result) => {
   // result === [ [ <Buffer 01>, <Buffer 02> ], [ <Buffer 03>, <Buffer 04> ] ];
 });
 ```
+
+## RESP3 Protocol
+
+ioredis uses RESP3 by default (`protocol: 3`), sending `HELLO 3` on connect and
+transparently downgrading to RESP2 when the server can't do RESP3 (Redis < 6).
+Set `protocol: 2` to skip RESP3.
+
+`replyMapping` controls how RESP3-only reply types (maps, doubles) surface,
+and is only valid with `protocol: 3`:
+
+- **`"legacy"`** (default): RESP2-compatible shapes — maps as flat
+  `[key, value, ...]` arrays, doubles as strings. Identical across both protocols.
+- **`"resp3"`**: maps as plain objects, doubles as numbers.
+
+```javascript
+const redis = new Redis({ protocol: 3, replyMapping: "resp3" });
+await redis.config("GET", "maxmemory"); // { maxmemory: "0" }  (legacy: ["maxmemory", "0"])
+await redis.zscore("myzset", "member"); // 1.5  (a number; legacy: "1.5")
+```
+
+Notes: `"resp3"` with `protocol: 2` throws at construction. If the server
+downgrades to RESP2, replies fall back to legacy shapes (with a warning). Buffer
+variants (`getBuffer`, etc.) always return buffers for values, unaffected by
+`replyMapping` — with one exception: under `"resp3"`, map replies are plain
+objects whose keys are always decoded as UTF-8 strings. For `hgetallBuffer`,
+hash values remain buffers, but hash field names are strings under either
+mapping. To receive hash field names as buffers, use the default `"legacy"`
+mapping together with a custom `hgetall` reply transformer like the one above.
 
 ## Monitor
 

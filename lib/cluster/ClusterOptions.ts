@@ -1,5 +1,6 @@
 import { SrvRecord, resolveSrv, lookup } from "dns";
 import { RedisOptions, RetryStrategy } from "../redis/RedisOptions";
+import { ReplyMappingMode } from "../types";
 import { CommanderOptions } from "../utils/Commander";
 import { NodeRole } from "./util";
 
@@ -233,6 +234,13 @@ export interface ClusterOptions extends CommanderOptions {
     | Record<string, { lua: string; numberOfKeys?: number; readOnly?: boolean }>
     | undefined;
 }
+
+export type ClusterOptionsWithReplyMapping<Mapping extends ReplyMappingMode> =
+  ClusterOptions & {
+    redisOptions?: ClusterOptions["redisOptions"] & {
+      replyMapping?: Mapping;
+    };
+  };
 
 export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = {
   clusterRetryStrategy: (times) => Math.min(100 + times * 2, 2000),

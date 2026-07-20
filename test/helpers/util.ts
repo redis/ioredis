@@ -1,10 +1,24 @@
 import Redis from "../../lib/Redis";
+import { RedisOptions } from "../../lib/redis/RedisOptions";
+
+export function toRecord(entry: unknown[]): Record<string, unknown> {
+  const record: Record<string, unknown> = {};
+  for (let index = 0; index < entry.length; index += 2) {
+    record[String(entry[index])] = entry[index + 1];
+  }
+
+  return record;
+}
+
+export function sleep(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
 
 export function waitForMonitorReady() {
   // It takes a while for the monitor to be ready.
   // This is a hack to wait for it because the monitor command
   // does not have a response
-  return new Promise((resolve) => setTimeout(resolve, 150));
+  return sleep(150);
 }
 
 function parseRedisVersion(version: string): number[] {
@@ -27,9 +41,10 @@ function compareRedisVersions(left: string, right: string): number {
 }
 
 export async function isRedisVersionLowerThan(
-  minimumVersion: string
+  minimumVersion: string,
+  options?: RedisOptions
 ): Promise<boolean> {
-  const redis = new Redis();
+  const redis = new Redis(options);
 
   try {
     const info = await redis.info("server");
@@ -58,7 +73,9 @@ export async function getCommandsFromMonitor(
   const promise = new Promise((resolve, reject) => {
     setTimeout(reject, 1000, new Error("Monitor timed out"));
     monitor.on("monitor", (_, command) => {
-      if (arr.length !== count) arr.push(command);
+      if (arr.length !== count) {
+        arr.push(command);
+      }
       if (arr.length === count) {
         resolve(arr);
         monitor.disconnect();

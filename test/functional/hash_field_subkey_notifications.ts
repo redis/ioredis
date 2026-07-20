@@ -7,7 +7,7 @@ describe("hash field subkey notifications", function () {
   let restoreNotifyConfig = false;
 
   before(async function () {
-    if (await isRedisVersionLowerThan("8.7")) {
+    if (await isRedisVersionLowerThan("8.8")) {
       this.skip();
     }
 

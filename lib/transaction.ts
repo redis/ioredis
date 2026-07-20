@@ -5,12 +5,12 @@ import { Callback } from "./types";
 import { ChainableCommander } from "./utils/RedisCommander";
 import { traceBatch } from "./tracing";
 
-export interface Transaction {
-  pipeline(commands?: unknown[][]): ChainableCommander;
+export interface Transaction<Mapping extends "resp2" | "resp3" = "resp2"> {
+  pipeline(commands?: unknown[][]): ChainableCommander<Mapping>;
   multi(options: { pipeline: false }): Promise<"OK">;
-  multi(): ChainableCommander;
-  multi(options: { pipeline: true }): ChainableCommander;
-  multi(commands?: unknown[][]): ChainableCommander;
+  multi(): ChainableCommander<Mapping>;
+  multi(options: { pipeline: true }): ChainableCommander<Mapping>;
+  multi(commands?: unknown[][]): ChainableCommander<Mapping>;
 }
 
 export function addTransactionSupport(redis) {

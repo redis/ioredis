@@ -1,208 +1,241 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
+import { RESP_CONFIGS, ReplyMapping } from "../../helpers/respConfigs";
 import { isRedisVersionLowerThan } from "../../helpers/util";
 
-describe("increx", function () {
-  let redis: Redis;
+for (const { name, opts } of RESP_CONFIGS) {
+  describe(`increx (${name})`, function () {
+    let redis: Redis;
 
-  before(async function () {
-    if (await isRedisVersionLowerThan("8.7")) {
-      this.skip();
-    }
-  });
+    before(async function () {
+      if (await isRedisVersionLowerThan("8.8")) {
+        this.skip();
+      }
+    });
 
-  beforeEach(() => {
-    redis = new Redis();
-  });
+    beforeEach(async () => {
+      redis = new Redis(opts);
+      await redis.flushdb();
+    });
 
-  afterEach(() => {
-    redis.disconnect();
-  });
+    afterEach(() => {
+      redis.disconnect();
+    });
 
-  it("increments by one by default", async () => {
-    const key = `increx_default_${Date.now()}`;
+    it("increments by one by default", async () => {
+      const key = `increx:default:${Date.now()}`;
 
-    const result = await redis.increx(key);
+      const result = await redis.increx(key);
 
-    expect(result).to.deep.equal([1, 1]);
-  });
+      expect(result).to.deep.equal([1, 1]);
+    });
 
-  it("supports BYINT with bounds, SATURATE, and expiration options", async () => {
-    const key = `increx_byint_${Date.now()}`;
+    it("supports BYINT with bounds, SATURATE, and expiration options", async () => {
+      const key = `increx:byint:${Date.now()}`;
 
-    await redis.set(key, 5);
-    const result = await redis.increx(
-      key,
-      "BYINT",
-      20,
-      "LBOUND",
-      0,
-      "UBOUND",
-      10,
-      "SATURATE",
-      "EX",
-      60,
-    );
-
-    expect(result).to.deep.equal([10, 5]);
-    expect(await redis.ttl(key)).to.be.greaterThan(0);
-  });
-
-  it("saturates BYINT to an explicit LBOUND", async () => {
-    const key = `increx_byint_lbound_${Date.now()}`;
-
-    await redis.set(key, 5);
-    const result = await redis.increx(
-      key,
-      "BYINT",
-      -20,
-      "LBOUND",
-      0,
-      "SATURATE",
-    );
-
-    expect(result).to.deep.equal([0, -5]);
-    expect(await redis.get(key)).to.equal("0");
-  });
-
-  it("surfaces out-of-bounds BYINT rejection with expiration options", async () => {
-    const timestamp = Date.now();
-    const cases: Array<{
-      key: string;
-      options: Array<string | number>;
-    }> = [
-      { key: `increx_byint_reject_ex_${timestamp}`, options: ["EX", 60] },
-      { key: `increx_byint_reject_px_${timestamp}`, options: ["PX", 30_000] },
-      { key: `increx_byint_reject_persist_${timestamp}`, options: ["PERSIST"] },
-    ];
-
-    for (const { key, options } of cases) {
-      await redis.set(key, 10);
+      await redis.set(key, 5);
       const result = await redis.increx(
         key,
         "BYINT",
-        100,
+        20,
+        "LBOUND",
+        0,
         "UBOUND",
-        15,
-        ...options
+        10,
+        "SATURATE",
+        "EX",
+        60
       );
 
-      expect(result).to.deep.equal([10, 0]);
-      expect(result[1]).to.equal(0);
-    }
-  });
+      expect(result).to.deep.equal([10, 5]);
+      expect(await redis.ttl(key)).to.be.greaterThan(0);
+    });
 
-  it("supports expiration-only integer options", async () => {
-    const key = `increx_expiration_${Date.now()}`;
+    it("saturates BYINT to an explicit LBOUND", async () => {
+      const key = `increx:byint_lbound:${Date.now()}`;
 
-    const result = await redis.increx(key, "EX", 60, "ENX");
+      await redis.set(key, 5);
+      const result = await redis.increx(
+        key,
+        "BYINT",
+        -20,
+        "LBOUND",
+        0,
+        "SATURATE"
+      );
 
-    expect(result).to.deep.equal([1, 1]);
-    expect(await redis.ttl(key)).to.be.greaterThan(0);
-  });
+      expect(result).to.deep.equal([0, -5]);
+      expect(await redis.get(key)).to.equal("0");
+    });
 
-  it("supports PERSIST without an explicit increment mode", async () => {
-    const key = `increx_persist_${Date.now()}`;
+    it("surfaces out-of-bounds BYINT rejection with expiration options", async () => {
+      const timestamp = Date.now();
+      const cases: Array<{
+        key: string;
+        options: Array<string | number>;
+      }> = [
+        { key: `increx:byint_reject_ex:${timestamp}`, options: ["EX", 60] },
+        { key: `increx:byint_reject_px:${timestamp}`, options: ["PX", 30_000] },
+        {
+          key: `increx:byint_reject_persist:${timestamp}`,
+          options: ["PERSIST"],
+        },
+      ];
 
-    await redis.set(key, 10, "EX", 60);
-    const result = await redis.increx(key, "PERSIST");
+      for (const { key, options } of cases) {
+        await redis.set(key, 10);
+        const result = await redis.increx(
+          key,
+          "BYINT",
+          100,
+          "UBOUND",
+          15,
+          ...options
+        );
 
-    expect(result).to.deep.equal([11, 1]);
-    expect(await redis.ttl(key)).to.equal(-1);
-  });
+        expect(result).to.deep.equal([10, 0]);
+        expect(result[1]).to.equal(0);
+      }
+    });
 
-  it("returns string values for BYFLOAT", async () => {
-    const key = `increx_byfloat_${Date.now()}`;
+    it("supports expiration-only integer options", async () => {
+      const key = `increx:expiration:${Date.now()}`;
 
-    const result = await redis.increx(key, "BYFLOAT", "0.5", "EX", 60, "ENX");
+      const result = await redis.increx(key, "EX", 60, "ENX");
 
-    expect(result).to.deep.equal(["0.5", "0.5"]);
-  });
+      expect(result).to.deep.equal([1, 1]);
+      expect(await redis.ttl(key)).to.be.greaterThan(0);
+    });
 
-  it("supports BYFLOAT with bounds, SATURATE, and expiration options", async () => {
-    const key = `increx_byfloat_options_${Date.now()}`;
+    it("supports PERSIST without an explicit increment mode", async () => {
+      const key = `increx:persist:${Date.now()}`;
 
-    await redis.set(key, "9.75");
-    const result = await redis.increx(
-      key,
-      "BYFLOAT",
-      "0.5",
-      "LBOUND",
-      "0",
-      "UBOUND",
-      "10",
-      "SATURATE",
-      "PX",
-      60_000,
-      "ENX",
-    );
+      await redis.set(key, 10, "EX", 60);
+      const result = await redis.increx(key, "PERSIST");
 
-    expect(result).to.deep.equal(["10", "0.25"]);
-    expect(await redis.pttl(key)).to.be.greaterThan(0);
-  });
+      expect(result).to.deep.equal([11, 1]);
+      expect(await redis.ttl(key)).to.equal(-1);
+    });
 
-  it("surfaces out-of-bounds BYFLOAT rejection without SATURATE", async () => {
-    const key = `increx_byfloat_reject_${Date.now()}`;
+    it("returns string values for BYFLOAT", async () => {
+      const key = `increx:byfloat:${Date.now()}`;
 
-    await redis.set(key, "9.75");
-    const result = await redis.increx(
-      key,
-      "BYFLOAT",
-      "0.5",
-      "UBOUND",
-      "10",
-    );
+      const result = await redis.increx(key, "BYFLOAT", "0.5", "EX", 60, "ENX");
 
-    expect(result).to.deep.equal(["9.75", "0"]);
-    expect(result[1]).to.equal("0");
-  });
+      const expected: Record<ReplyMapping, unknown> = {
+        legacy: ["0.5", "0.5"],
+        resp3: [0.5, 0.5],
+      };
 
-  it("supports PERSIST after BYFLOAT", async () => {
-    const key = `increx_persist_byfloat_${Date.now()}`;
+      expect(result).to.deep.equal(expected[opts.replyMapping]);
+    });
 
-    await redis.set(key, "1.25", "EX", 60);
-    const result = await redis.increx(key, "BYFLOAT", "0.25", "PERSIST");
+    it("supports BYFLOAT with bounds, SATURATE, and expiration options", async () => {
+      const key = `increx:byfloat_options:${Date.now()}`;
 
-    expect(result).to.deep.equal(["1.5", "0.25"]);
-    expect(await redis.ttl(key)).to.equal(-1);
-  });
+      await redis.set(key, "9.75");
+      const result = await redis.increx(
+        key,
+        "BYFLOAT",
+        "0.5",
+        "LBOUND",
+        "0",
+        "UBOUND",
+        "10",
+        "SATURATE",
+        "PX",
+        60_000,
+        "ENX"
+      );
 
-  it("returns buffers for BYFLOAT buffer variant", async () => {
-    const key = `increx_byfloat_buffer_${Date.now()}`;
+      const expected: Record<ReplyMapping, unknown> = {
+        legacy: ["10", "0.25"],
+        resp3: [10, 0.25],
+      };
 
-    const result = await redis.increxBuffer(key, "BYFLOAT", "0.5");
+      expect(result).to.deep.equal(expected[opts.replyMapping]);
+      expect(await redis.pttl(key)).to.be.greaterThan(0);
+    });
 
-    expect(result).to.have.lengthOf(2);
-    expect(result[0]).to.be.instanceOf(Buffer);
-    expect(result[1]).to.be.instanceOf(Buffer);
-    expect(result.map((item) => item.toString())).to.deep.equal(["0.5", "0.5"]);
-  });
+    it("surfaces out-of-bounds BYFLOAT rejection without SATURATE", async () => {
+      const key = `increx:byfloat_reject:${Date.now()}`;
 
-  it("keeps integer replies as numbers for buffer variant", async () => {
-    const key = `increx_integer_buffer_${Date.now()}`;
+      await redis.set(key, "9.75");
+      const result = await redis.increx(
+        key,
+        "BYFLOAT",
+        "0.5",
+        "UBOUND",
+        "10"
+      );
 
-    const result = await redis.increxBuffer(key, "EX", 60);
+      const expected: Record<ReplyMapping, unknown> = {
+        legacy: ["9.75", "0"],
+        resp3: [9.75, 0],
+      };
+      const expectedIncrement: Record<ReplyMapping, unknown> = {
+        legacy: "0",
+        resp3: 0,
+      };
 
-    expect(result).to.deep.equal([1, 1]);
-  });
+      expect(result).to.deep.equal(expected[opts.replyMapping]);
+      expect(result[1]).to.equal(expectedIncrement[opts.replyMapping]);
+    });
 
-  it("supports callback form", async () => {
-    const key = `increx_callback_${Date.now()}`;
+    it("supports PERSIST after BYFLOAT", async () => {
+      const key = `increx:persist_byfloat:${Date.now()}`;
 
-    await new Promise<void>((resolve, reject) => {
-      redis.increx(key, "BYINT", 2, (error, result) => {
-        if (error) {
-          reject(error);
-          return;
-        }
+      await redis.set(key, "1.25", "EX", 60);
+      const result = await redis.increx(key, "BYFLOAT", "0.25", "PERSIST");
 
-        try {
-          expect(result).to.deep.equal([2, 2]);
-          resolve();
-        } catch (assertionError) {
-          reject(assertionError);
-        }
+      const expected: Record<ReplyMapping, unknown> = {
+        legacy: ["1.5", "0.25"],
+        resp3: [1.5, 0.25],
+      };
+
+      expect(result).to.deep.equal(expected[opts.replyMapping]);
+      expect(await redis.ttl(key)).to.equal(-1);
+    });
+
+    it("returns buffers for BYFLOAT buffer variant", async () => {
+      const key = `increx:byfloat_buffer:${Date.now()}`;
+
+      const result = await redis.increxBuffer(key, "BYFLOAT", "0.5");
+
+      const expected: Record<ReplyMapping, unknown> = {
+        legacy: [Buffer.from("0.5"), Buffer.from("0.5")],
+        resp3: [0.5, 0.5],
+      };
+
+      expect(result).to.deep.equal(expected[opts.replyMapping]);
+    });
+
+    it("keeps integer replies as numbers for buffer variant", async () => {
+      const key = `increx:integer_buffer:${Date.now()}`;
+
+      const result = await redis.increxBuffer(key, "EX", 60);
+
+      expect(result).to.deep.equal([1, 1]);
+    });
+
+    it("supports callback form", async () => {
+      const key = `increx:callback:${Date.now()}`;
+
+      await new Promise<void>((resolve, reject) => {
+        redis.increx(key, "BYINT", 2, (error, result) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+
+          try {
+            expect(result).to.deep.equal([2, 2]);
+            resolve();
+          } catch (assertionError) {
+            reject(assertionError);
+          }
+        });
       });
     });
   });
-});
+}
