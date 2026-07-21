@@ -576,6 +576,52 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   blmoveBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', timeout: number | string, callback?: Callback<Buffer | null>): Result<Buffer | null, Context>;
   blmove(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', timeout: number | string, callback?: Callback<string | null>): Result<string | null, Context>;
   blmoveBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', timeout: number | string, callback?: Callback<Buffer | null>): Result<Buffer | null, Context>;
+  /**
+   * Moves up to (or exactly) a number of elements from one list to another and returns them. Blocks until the elements are available otherwise. Deletes the source list if it becomes empty.
+   * - _group_: list
+   * - _complexity_: O(N) where N is the number of elements moved.
+   * - _since_: 8.10.0
+   */
+  blmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', timeout: number | string, countToken: 'COUNT', count: number | string, obo: 'OBO', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', timeout: number | string, countToken: 'COUNT', count: number | string, obo: 'OBO', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', timeout: number | string, countToken: 'COUNT', count: number | string, bulk: 'BULK', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', timeout: number | string, countToken: 'COUNT', count: number | string, bulk: 'BULK', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', timeout: number | string, exactlyToken: 'EXACTLY', exactly: number | string, obo: 'OBO', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', timeout: number | string, exactlyToken: 'EXACTLY', exactly: number | string, obo: 'OBO', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', timeout: number | string, exactlyToken: 'EXACTLY', exactly: number | string, bulk: 'BULK', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', timeout: number | string, exactlyToken: 'EXACTLY', exactly: number | string, bulk: 'BULK', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', timeout: number | string, countToken: 'COUNT', count: number | string, obo: 'OBO', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', timeout: number | string, countToken: 'COUNT', count: number | string, obo: 'OBO', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', timeout: number | string, countToken: 'COUNT', count: number | string, bulk: 'BULK', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', timeout: number | string, countToken: 'COUNT', count: number | string, bulk: 'BULK', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', timeout: number | string, exactlyToken: 'EXACTLY', exactly: number | string, obo: 'OBO', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', timeout: number | string, exactlyToken: 'EXACTLY', exactly: number | string, obo: 'OBO', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', timeout: number | string, exactlyToken: 'EXACTLY', exactly: number | string, bulk: 'BULK', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', timeout: number | string, exactlyToken: 'EXACTLY', exactly: number | string, bulk: 'BULK', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', timeout: number | string, countToken: 'COUNT', count: number | string, obo: 'OBO', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', timeout: number | string, countToken: 'COUNT', count: number | string, obo: 'OBO', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', timeout: number | string, countToken: 'COUNT', count: number | string, bulk: 'BULK', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', timeout: number | string, countToken: 'COUNT', count: number | string, bulk: 'BULK', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', timeout: number | string, exactlyToken: 'EXACTLY', exactly: number | string, obo: 'OBO', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', timeout: number | string, exactlyToken: 'EXACTLY', exactly: number | string, obo: 'OBO', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', timeout: number | string, exactlyToken: 'EXACTLY', exactly: number | string, bulk: 'BULK', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', timeout: number | string, exactlyToken: 'EXACTLY', exactly: number | string, bulk: 'BULK', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', timeout: number | string, countToken: 'COUNT', count: number | string, obo: 'OBO', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', timeout: number | string, countToken: 'COUNT', count: number | string, obo: 'OBO', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', timeout: number | string, countToken: 'COUNT', count: number | string, bulk: 'BULK', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', timeout: number | string, countToken: 'COUNT', count: number | string, bulk: 'BULK', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', timeout: number | string, exactlyToken: 'EXACTLY', exactly: number | string, obo: 'OBO', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', timeout: number | string, exactlyToken: 'EXACTLY', exactly: number | string, obo: 'OBO', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', timeout: number | string, exactlyToken: 'EXACTLY', exactly: number | string, bulk: 'BULK', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', timeout: number | string, exactlyToken: 'EXACTLY', exactly: number | string, bulk: 'BULK', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', timeout: number | string, callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', timeout: number | string, callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', timeout: number | string, callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', timeout: number | string, callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', timeout: number | string, callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', timeout: number | string, callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  blmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', timeout: number | string, callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  blmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', timeout: number | string, callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
 
   /**
    * Pops the first element from one of multiple lists. Blocks until an element is available otherwise. Deletes the list if the last element was popped.
@@ -2398,6 +2444,52 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   lmoveBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', callback?: Callback<Buffer>): Result<Buffer, Context>;
   lmove(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', callback?: Callback<string>): Result<string, Context>;
   lmoveBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', callback?: Callback<Buffer>): Result<Buffer, Context>;
+  /**
+   * Moves up to (or exactly) a number of elements from one list to another and returns them. Deletes the source list if it becomes empty.
+   * - _group_: list
+   * - _complexity_: O(N) where N is the number of elements moved.
+   * - _since_: 8.10.0
+   */
+  lmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', countToken: 'COUNT', count: number | string, obo: 'OBO', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', countToken: 'COUNT', count: number | string, obo: 'OBO', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', countToken: 'COUNT', count: number | string, bulk: 'BULK', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', countToken: 'COUNT', count: number | string, bulk: 'BULK', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', exactlyToken: 'EXACTLY', exactly: number | string, obo: 'OBO', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', exactlyToken: 'EXACTLY', exactly: number | string, obo: 'OBO', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', exactlyToken: 'EXACTLY', exactly: number | string, bulk: 'BULK', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', exactlyToken: 'EXACTLY', exactly: number | string, bulk: 'BULK', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', countToken: 'COUNT', count: number | string, obo: 'OBO', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', countToken: 'COUNT', count: number | string, obo: 'OBO', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', countToken: 'COUNT', count: number | string, bulk: 'BULK', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', countToken: 'COUNT', count: number | string, bulk: 'BULK', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', exactlyToken: 'EXACTLY', exactly: number | string, obo: 'OBO', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', exactlyToken: 'EXACTLY', exactly: number | string, obo: 'OBO', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', exactlyToken: 'EXACTLY', exactly: number | string, bulk: 'BULK', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', exactlyToken: 'EXACTLY', exactly: number | string, bulk: 'BULK', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', countToken: 'COUNT', count: number | string, obo: 'OBO', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', countToken: 'COUNT', count: number | string, obo: 'OBO', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', countToken: 'COUNT', count: number | string, bulk: 'BULK', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', countToken: 'COUNT', count: number | string, bulk: 'BULK', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', exactlyToken: 'EXACTLY', exactly: number | string, obo: 'OBO', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', exactlyToken: 'EXACTLY', exactly: number | string, obo: 'OBO', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', exactlyToken: 'EXACTLY', exactly: number | string, bulk: 'BULK', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', exactlyToken: 'EXACTLY', exactly: number | string, bulk: 'BULK', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', countToken: 'COUNT', count: number | string, obo: 'OBO', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', countToken: 'COUNT', count: number | string, obo: 'OBO', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', countToken: 'COUNT', count: number | string, bulk: 'BULK', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', countToken: 'COUNT', count: number | string, bulk: 'BULK', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', exactlyToken: 'EXACTLY', exactly: number | string, obo: 'OBO', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', exactlyToken: 'EXACTLY', exactly: number | string, obo: 'OBO', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', exactlyToken: 'EXACTLY', exactly: number | string, bulk: 'BULK', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', exactlyToken: 'EXACTLY', exactly: number | string, bulk: 'BULK', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', left1: 'LEFT', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, left: 'LEFT', right: 'RIGHT', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
+  lmovem(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', callback?: Callback<string[] | null>): Result<string[] | null, Context>;
+  lmovemBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', callback?: Callback<Buffer[] | null>): Result<Buffer[] | null, Context>;
 
   /**
    * Returns multiple elements from a list after removing them. Deletes the list if the last element was popped.

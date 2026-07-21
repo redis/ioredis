@@ -100,6 +100,48 @@ expectType<Promise<Buffer | null>>(redis.lpopBuffer("key"));
 expectType<Promise<string[] | null>>(redis.lpop("key", 17));
 expectType<Promise<Buffer[] | null>>(redis.lpopBuffer("key", 17));
 
+// LMOVEM / BLMOVEM
+expectType<Promise<string[] | null>>(
+  redis.lmovem("source", "destination", "LEFT", "RIGHT")
+);
+expectType<Promise<string[] | null>>(
+  redis.lmovem(
+    "source",
+    "destination",
+    "LEFT",
+    "RIGHT",
+    "COUNT",
+    2,
+    "BULK"
+  )
+);
+expectType<Promise<Buffer[] | null>>(
+  redis.lmovemBuffer(
+    "source",
+    "destination",
+    "RIGHT",
+    "LEFT",
+    "EXACTLY",
+    "2",
+    "OBO"
+  )
+);
+expectType<Promise<string[] | null>>(
+  redis.blmovem(
+    "source",
+    "destination",
+    "LEFT",
+    "RIGHT",
+    0,
+    "COUNT",
+    2,
+    "BULK"
+  )
+);
+expectType<Promise<Buffer[] | null>>(
+  redis.blmovemBuffer("source", "destination", "RIGHT", "LEFT", "0")
+);
+
 // LPOS
 expectType<Promise<number | null>>(redis.lpos("key", "element"));
 expectType<Promise<number[]>>(
@@ -219,6 +261,21 @@ redis.hgetexBuffer("key", "EX", 60, "FIELDS", 1, "field", (err, res) => {
   expectType<Error | null | undefined>(err);
   expectType<(Buffer | null)[] | undefined>(res);
 });
+
+redis.blmovem(
+  "source",
+  "destination",
+  "LEFT",
+  "RIGHT",
+  0,
+  "EXACTLY",
+  2,
+  "OBO",
+  (err, res) => {
+    expectType<Error | null | undefined>(err);
+    expectType<string[] | null | undefined>(res);
+  }
+);
 
 redis.set("foo", "bar", (err, res) => {
   expectType<Error | null | undefined>(err);
