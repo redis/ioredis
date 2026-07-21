@@ -1,5 +1,5 @@
 x-redis-common: &redis-common
-  image: redislabs/client-libs-test:${REDIS_VERSION:-custom-28772936538-debian}
+  image: redislabs/client-libs-test:${REDIS_VERSION:-8.10-rc2}
 
 services:
   single:
