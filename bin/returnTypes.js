@@ -192,6 +192,10 @@ module.exports = {
   hgetall: "[field: string, value: string][]",
   hgetdel: "(string | null)[]",
   hgetex: "(string | null)[]",
+  himport: (types) => {
+    if (matchSubcommand(types, ["PREPARE", "SET"])) return "'OK'";
+    return "number";
+  },
   hincrby: "number",
   hincrbyfloat: "string",
   hkeys: "string[]",

@@ -65,6 +65,10 @@ export default class ShardedSubscriber {
            */
           retryStrategy: null,
           lazyConnect: true,
+          // Subscriber connections never run data commands, so don't
+          // inherit fieldsets from the node options (`null`, not
+          // `undefined` — `defaults` would fill `undefined` back in).
+          himportFieldsets: null,
         },
         options,
         redisOptions,

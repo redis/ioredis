@@ -1973,6 +1973,40 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   hgetexBuffer(...args: [key: RedisKey, fieldsToken: 'FIELDS', numfields: number | string, ...fields: (string | Buffer)[]]): Result<(Buffer | null)[], Context>;
 
   /**
+   * Removes a single session-local fieldset by name.
+   * - _group_: hash
+   * - _complexity_: O(N) where N is the number of session-local fieldsets.
+   * - _since_: 8.10.0
+   */
+  himport(subcommand: 'DISCARD', fieldsetName: string | Buffer, callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Removes all session-local fieldsets for the connection.
+   * - _group_: hash
+   * - _complexity_: O(N) where N is the number of session-local fieldsets.
+   * - _since_: 8.10.0
+   */
+  himport(subcommand: 'DISCARDALL', callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Defines a session-local fieldset that maps a name to a sorted set of field names.
+   * - _group_: hash
+   * - _complexity_: O(N*log(N)) where N is the number of fields.
+   * - _since_: 8.10.0
+   */
+  himport(...args: [subcommand: 'PREPARE', fieldsetName: string | Buffer, ...fields: (string | Buffer)[], callback: Callback<'OK'>]): Result<'OK', Context>;
+  himport(...args: [subcommand: 'PREPARE', fieldsetName: string | Buffer, ...fields: (string | Buffer)[]]): Result<'OK', Context>;
+
+  /**
+   * Creates a fieldset-based hash from values supplied in the order matching a previously prepared fieldset.
+   * - _group_: hash
+   * - _complexity_: O(N) where N is the number of fields in the fieldset.
+   * - _since_: 8.10.0
+   */
+  himport(...args: [subcommand: 'SET', key: RedisKey, fieldsetName: string | Buffer, ...values: (string | Buffer | number)[], callback: Callback<'OK'>]): Result<'OK', Context>;
+  himport(...args: [subcommand: 'SET', key: RedisKey, fieldsetName: string | Buffer, ...values: (string | Buffer | number)[]]): Result<'OK', Context>;
+
+  /**
    * Increments the integer value of a field in a hash by a number. Uses 0 as initial value if the field doesn't exist.
    * - _group_: hash
    * - _complexity_: O(1)

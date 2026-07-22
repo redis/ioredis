@@ -52,7 +52,11 @@ export {
   SentinelConnectionOptions,
 } from "./connectors/SentinelConnector";
 export { StandaloneConnectionOptions } from "./connectors/StandaloneConnector";
-export { RedisOptions, CommonRedisOptions } from "./redis/RedisOptions";
+export {
+  RedisOptions,
+  CommonRedisOptions,
+  HimportFieldset,
+} from "./redis/RedisOptions";
 export { ClusterNode } from "./cluster";
 export {
   ClusterOptions,

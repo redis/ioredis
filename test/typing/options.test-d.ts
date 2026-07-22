@@ -1,4 +1,4 @@
-import { expectAssignable, expectType } from "tsd";
+import { expectAssignable, expectError, expectType } from "tsd";
 import { Redis, Cluster, NatMap, DNSLookupFunction } from "../../built";
 
 expectType<Redis>(new Redis());
@@ -48,4 +48,23 @@ expectAssignable<NatMap>({
 
 expectAssignable<DNSLookupFunction>((address, callback) =>
   callback(null, address)
+);
+
+// HIMPORT fieldsets
+expectType<Redis>(
+  new Redis({
+    himportFieldsets: [{ name: "fs", fields: ["f1", "f2"] }],
+  })
+);
+expectType<Cluster>(
+  new Cluster([30001], {
+    himportFieldsets: [{ name: Buffer.from("fs"), fields: [Buffer.from("f1")] }],
+  })
+);
+expectError(
+  new Cluster([30001], {
+    redisOptions: {
+      himportFieldsets: [{ name: "fs", fields: ["f1"] }],
+    },
+  })
 );
