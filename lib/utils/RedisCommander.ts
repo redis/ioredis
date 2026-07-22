@@ -3365,6 +3365,21 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   sdiffBuffer(...args: [keys: (RedisKey)[]]): Result<Buffer[], Context>;
 
   /**
+   * Returns the number of members of the difference between the first set and all successive sets.
+   * - _group_: set
+   * - _complexity_: O(N) where N is the total number of elements in all given sets.
+   * - _since_: 8.10.0
+   */
+  sdiffcard(...args: [numkeys: number | string, ...keys: (RedisKey)[], limitToken: 'LIMIT', limit: number | string, callback: Callback<number>]): Result<number, Context>;
+  sdiffcard(...args: [numkeys: number | string, keys: (RedisKey)[], limitToken: 'LIMIT', limit: number | string, callback: Callback<number>]): Result<number, Context>;
+  sdiffcard(...args: [numkeys: number | string, ...keys: (RedisKey)[], limitToken: 'LIMIT', limit: number | string]): Result<number, Context>;
+  sdiffcard(...args: [numkeys: number | string, keys: (RedisKey)[], limitToken: 'LIMIT', limit: number | string]): Result<number, Context>;
+  sdiffcard(...args: [numkeys: number | string, ...keys: (RedisKey)[], callback: Callback<number>]): Result<number, Context>;
+  sdiffcard(...args: [numkeys: number | string, keys: (RedisKey)[], callback: Callback<number>]): Result<number, Context>;
+  sdiffcard(...args: [numkeys: number | string, ...keys: (RedisKey)[]]): Result<number, Context>;
+  sdiffcard(...args: [numkeys: number | string, keys: (RedisKey)[]]): Result<number, Context>;
+
+  /**
    * Stores the difference of multiple sets in a key.
    * - _group_: set
    * - _complexity_: O(N) where N is the total number of elements in all given sets.
@@ -4032,6 +4047,29 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   sunionBuffer(...args: [...keys: (RedisKey)[]]): Result<Buffer[], Context>;
   sunion(...args: [keys: (RedisKey)[]]): Result<string[], Context>;
   sunionBuffer(...args: [keys: (RedisKey)[]]): Result<Buffer[], Context>;
+
+  /**
+   * Returns the number of members of the union of multiple sets.
+   * - _group_: set
+   * - _complexity_: O(N) where N is the total number of elements in all given sets.
+   * - _since_: 8.10.0
+   */
+  sunioncard(...args: [numkeys: number | string, ...keys: (RedisKey)[], approx: 'APPROX', limitToken: 'LIMIT', limit: number | string, callback: Callback<number>]): Result<number, Context>;
+  sunioncard(...args: [numkeys: number | string, keys: (RedisKey)[], approx: 'APPROX', limitToken: 'LIMIT', limit: number | string, callback: Callback<number>]): Result<number, Context>;
+  sunioncard(...args: [numkeys: number | string, ...keys: (RedisKey)[], approx: 'APPROX', limitToken: 'LIMIT', limit: number | string]): Result<number, Context>;
+  sunioncard(...args: [numkeys: number | string, keys: (RedisKey)[], approx: 'APPROX', limitToken: 'LIMIT', limit: number | string]): Result<number, Context>;
+  sunioncard(...args: [numkeys: number | string, ...keys: (RedisKey)[], limitToken: 'LIMIT', limit: number | string, callback: Callback<number>]): Result<number, Context>;
+  sunioncard(...args: [numkeys: number | string, keys: (RedisKey)[], limitToken: 'LIMIT', limit: number | string, callback: Callback<number>]): Result<number, Context>;
+  sunioncard(...args: [numkeys: number | string, ...keys: (RedisKey)[], limitToken: 'LIMIT', limit: number | string]): Result<number, Context>;
+  sunioncard(...args: [numkeys: number | string, keys: (RedisKey)[], limitToken: 'LIMIT', limit: number | string]): Result<number, Context>;
+  sunioncard(...args: [numkeys: number | string, ...keys: (RedisKey)[], approx: 'APPROX', callback: Callback<number>]): Result<number, Context>;
+  sunioncard(...args: [numkeys: number | string, keys: (RedisKey)[], approx: 'APPROX', callback: Callback<number>]): Result<number, Context>;
+  sunioncard(...args: [numkeys: number | string, ...keys: (RedisKey)[], approx: 'APPROX']): Result<number, Context>;
+  sunioncard(...args: [numkeys: number | string, keys: (RedisKey)[], approx: 'APPROX']): Result<number, Context>;
+  sunioncard(...args: [numkeys: number | string, ...keys: (RedisKey)[], callback: Callback<number>]): Result<number, Context>;
+  sunioncard(...args: [numkeys: number | string, keys: (RedisKey)[], callback: Callback<number>]): Result<number, Context>;
+  sunioncard(...args: [numkeys: number | string, ...keys: (RedisKey)[]]): Result<number, Context>;
+  sunioncard(...args: [numkeys: number | string, keys: (RedisKey)[]]): Result<number, Context>;
 
   /**
    * Stores the union of multiple sets in a key.
