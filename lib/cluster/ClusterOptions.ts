@@ -1,5 +1,9 @@
 import { SrvRecord, resolveSrv, lookup } from "dns";
-import { RedisOptions, RetryStrategy } from "../redis/RedisOptions";
+import {
+  HimportFieldset,
+  RedisOptions,
+  RetryStrategy,
+} from "../redis/RedisOptions";
 import { ReplyMappingMode } from "../types";
 import { CommanderOptions } from "../utils/Commander";
 import { NodeRole } from "./util";
@@ -170,6 +174,9 @@ export interface ClusterOptions extends CommanderOptions {
         | "retryStrategy"
         | "enableOfflineQueue"
         | "readOnly"
+        // Use the cluster-level `himportFieldsets` option instead, so
+        // fieldsets are prepared on master data connections only.
+        | "himportFieldsets"
       >
     | undefined;
 
@@ -233,6 +240,22 @@ export interface ClusterOptions extends CommanderOptions {
   scripts?:
     | Record<string, { lua: string; numberOfKeys?: number; readOnly?: boolean }>
     | undefined;
+
+  /**
+   * Fieldsets to register with `HIMPORT PREPARE` on every master node, as
+   * part of each connection's handshake, on every (re)connection. When a
+   * replica is promoted to master, the fieldsets are prepared on its
+   * connection as well.
+   *
+   * Note that `HIMPORT DISCARD`/`DISCARDALL` won't work as intended for
+   * fieldsets listed here: they remove the fieldset from the current node
+   * sessions, but reconnections and promotions re-prepare everything from
+   * this list. For ad-hoc imports, call `himport("PREPARE", ...)` explicitly
+   * instead and manage the fieldset lifecycle in the application.
+   *
+   * @default undefined
+   */
+  himportFieldsets?: HimportFieldset[] | undefined;
 }
 
 export type ClusterOptionsWithReplyMapping<Mapping extends ReplyMappingMode> =

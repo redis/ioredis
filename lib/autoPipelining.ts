@@ -22,6 +22,10 @@ export const notAllowedAutoPipelineCommands = [
   "client",
   "hello",
   "readonly",
+  // Keyless subcommands (PREPARE/DISCARD/DISCARDALL) would be slotted by
+  // their subcommand literal, and cluster fan-out can't happen inside an
+  // auto pipeline. Use an explicit pipeline() to batch HIMPORT SET calls.
+  "himport",
 ];
 
 function executeAutoPipeline(client, slotKey: string) {

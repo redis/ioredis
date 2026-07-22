@@ -5,6 +5,23 @@ import { StandaloneConnectionOptions } from "../connectors/StandaloneConnector";
 import { ProtocolVersion, ReplyMappingMode } from "../types";
 
 export type ReconnectOnError = (err: Error) => boolean | 1 | 2;
+
+/**
+ * A fieldset registered with `HIMPORT PREPARE`, used by `HIMPORT SET` to
+ * create hashes by sending only values.
+ */
+export interface HimportFieldset {
+  /**
+   * Fieldset name referenced by later `HIMPORT SET` and `HIMPORT DISCARD`
+   * calls on the same connection.
+   */
+  name: string | Buffer;
+  /**
+   * Ordered hash field names. `HIMPORT SET` pairs values positionally with
+   * this order.
+   */
+  fields: (string | Buffer)[];
+}
 export type RetryStrategy =
   | ((times: number) => number | void | null)
   | null
@@ -242,6 +259,25 @@ export interface CommonRedisOptions extends CommanderOptions {
     string,
     { lua: string; numberOfKeys?: number | undefined; readOnly?: boolean | undefined }
   > | undefined;
+
+  /**
+   * Fieldsets to register with `HIMPORT PREPARE` as part of the connection
+   * handshake, on every (re)connection. Use this when the application relies
+   * on `HIMPORT SET` for its whole lifetime.
+   *
+   * Note that `HIMPORT DISCARD`/`DISCARDALL` won't work as intended for
+   * fieldsets listed here: they remove the fieldset from the current
+   * connection session, but the next reconnection re-prepares everything
+   * from this list. For ad-hoc imports, call `himport("PREPARE", ...)`
+   * explicitly instead and manage the fieldset lifecycle in the application.
+   *
+   * A failed `HIMPORT PREPARE` during the handshake is not fatal: the error
+   * is emitted on the client (like a failed `SELECT`) and the connection
+   * stays usable.
+   *
+   * @default undefined
+   */
+  himportFieldsets?: HimportFieldset[] | undefined;
 }
 
 export type RedisOptions = CommonRedisOptions &
