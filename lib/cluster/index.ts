@@ -143,7 +143,10 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
     super();
     EventEmitter.call(this);
 
-    this.startupNodes = startupNodes;
+    this.startupNodes = startupNodes
+      ?.map((node) => (typeof node === 'string' ? node.split(',') : [node]))
+      .flat();
+
     this.options = defaults({}, options, DEFAULT_CLUSTER_OPTIONS, this.options);
 
     if (this.options.shardedSubscribers) {
