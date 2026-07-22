@@ -1,6 +1,10 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
 import { RESP_CONFIGS, ReplyMapping } from "../../helpers/respConfigs";
+import {
+  countStreamEntries,
+  isRedisVersionLowerThan,
+} from "../../helpers/util";
 
 for (const { name, opts } of RESP_CONFIGS) {
   describe(`xread (${name})`, () => {
@@ -13,6 +17,58 @@ for (const { name, opts } of RESP_CONFIGS) {
 
     afterEach(() => {
       redis.disconnect();
+    });
+
+    describe("MAXCOUNT and MAXSIZE", function () {
+      before(async function () {
+        if (await isRedisVersionLowerThan("8.10")) {
+          this.skip();
+        }
+      });
+
+      async function seedStreams() {
+        const first = `xread:first:${Date.now()}`;
+        const second = `xread:second:${Date.now()}`;
+
+        await redis.xadd(first, "1-1", "field", "first-1");
+        await redis.xadd(first, "1-2", "field", "first-2");
+        await redis.xadd(second, "1-1", "field", "second-1");
+        await redis.xadd(second, "1-2", "field", "second-2");
+
+        return { first, second };
+      }
+
+      it("limits the cumulative entry count across streams", async () => {
+        const { first, second } = await seedStreams();
+
+        const reply = await redis.xread(
+          "MAXCOUNT",
+          3,
+          "STREAMS",
+          first,
+          second,
+          "0-0",
+          "0-0"
+        );
+
+        expect(countStreamEntries(reply)).to.equal(3);
+      });
+
+      it("limits the cumulative reply size while returning one entry", async () => {
+        const { first, second } = await seedStreams();
+
+        const reply = await redis.xread(
+          "MAXSIZE",
+          1,
+          "STREAMS",
+          first,
+          second,
+          "0-0",
+          "0-0"
+        );
+
+        expect(countStreamEntries(reply)).to.equal(1);
+      });
     });
 
     it("returns null when there is nothing to read", async () => {

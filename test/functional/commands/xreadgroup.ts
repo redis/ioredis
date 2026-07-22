@@ -1,6 +1,10 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
 import { RESP_CONFIGS, ReplyMapping } from "../../helpers/respConfigs";
+import {
+  countStreamEntries,
+  isRedisVersionLowerThan,
+} from "../../helpers/util";
 
 for (const { name, opts } of RESP_CONFIGS) {
   describe(`xreadgroup (${name})`, () => {
@@ -13,6 +17,67 @@ for (const { name, opts } of RESP_CONFIGS) {
 
     afterEach(() => {
       redis.disconnect();
+    });
+
+    describe("MAXCOUNT and MAXSIZE", function () {
+      before(async function () {
+        if (await isRedisVersionLowerThan("8.10")) {
+          this.skip();
+        }
+      });
+
+      async function seedStreams() {
+        const first = `xreadgroup:first:${Date.now()}`;
+        const second = `xreadgroup:second:${Date.now()}`;
+        const group = "group";
+
+        await redis.xadd(first, "1-1", "field", "first-1");
+        await redis.xadd(first, "1-2", "field", "first-2");
+        await redis.xadd(second, "1-1", "field", "second-1");
+        await redis.xadd(second, "1-2", "field", "second-2");
+        await redis.xgroup("CREATE", first, group, "0");
+        await redis.xgroup("CREATE", second, group, "0");
+
+        return { first, second, group };
+      }
+
+      it("limits the cumulative entry count across streams", async () => {
+        const { first, second, group } = await seedStreams();
+
+        const reply = await redis.xreadgroup(
+          "GROUP",
+          group,
+          "consumer",
+          "MAXCOUNT",
+          3,
+          "STREAMS",
+          first,
+          second,
+          ">",
+          ">"
+        );
+
+        expect(countStreamEntries(reply)).to.equal(3);
+      });
+
+      it("limits the cumulative reply size while returning one entry", async () => {
+        const { first, second, group } = await seedStreams();
+
+        const reply = await redis.xreadgroup(
+          "GROUP",
+          group,
+          "consumer",
+          "MAXSIZE",
+          1,
+          "STREAMS",
+          first,
+          second,
+          ">",
+          ">"
+        );
+
+        expect(countStreamEntries(reply)).to.equal(1);
+      });
     });
 
     it("returns null when there are no new messages", async () => {
