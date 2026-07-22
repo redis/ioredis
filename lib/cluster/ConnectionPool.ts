@@ -2,6 +2,7 @@ import { EventEmitter } from "events";
 import { sample, Debug, noop, defaults } from "../utils";
 import { RedisOptions, getNodeKey, NodeKey, NodeRole } from "./util";
 import { ClusterOptions, ClusterNodeRetryStrategy } from "./ClusterOptions";
+import { HimportFieldset } from "../redis/RedisOptions";
 import Redis from "../Redis";
 
 const debug = Debug("cluster:connectionPool");
@@ -19,7 +20,9 @@ export default class ConnectionPool extends EventEmitter {
   private specifiedOptions: { [key: string]: any } = {};
 
   constructor(
-    private redisOptions: NonNullable<ClusterOptions["redisOptions"]>,
+    private redisOptions: NonNullable<ClusterOptions["redisOptions"]> & {
+      himportFieldsets?: HimportFieldset[];
+    },
     private clusterNodeRetryStrategy: ClusterNodeRetryStrategy = null
   ) {
     super();
@@ -121,6 +124,7 @@ export default class ConnectionPool extends EventEmitter {
           delete this.nodes.slave[key];
           this.nodes.master[key] = redis;
         }
+        this.emit("role-change", redis, key, readOnly);
       }
     } else {
       debug("Connecting to %s as %s", key, readOnly ? "slave" : "master");

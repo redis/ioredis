@@ -79,7 +79,8 @@ export interface CommandNameFlags {
     "select",
     "client",
     "readonly",
-    "info"
+    "info",
+    "himport"
   ];
   // Commands that should not trigger a reconnection when errors occur
   IGNORE_RECONNECT_ON_ERROR: ["client"];
@@ -156,6 +157,7 @@ export default class Command implements Respondable {
       "client",
       "readonly",
       "info",
+      "himport",
     ],
     IGNORE_RECONNECT_ON_ERROR: ["client"],
     BLOCKING_COMMANDS: [
@@ -313,6 +315,13 @@ export default class Command implements Respondable {
 
   getKeys(): Array<string | Buffer> {
     return this._iterateKeys();
+  }
+
+  /**
+   * @ignore
+   */
+  getReplyEncoding(): BufferEncoding | null {
+    return this.replyEncoding;
   }
 
   setReplyContext(context: ReplyContext | null | undefined): void {

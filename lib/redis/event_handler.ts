@@ -12,7 +12,7 @@ import DataHandler from "../DataHandler";
 const debug = Debug("connection");
 
 interface HandshakeCommand {
-  kind: "hello" | "auth" | "select" | "client" | "readonly";
+  kind: "hello" | "auth" | "select" | "client" | "readonly" | "himport";
   send: () => Promise<unknown>;
   errorHandler?: (err: Error) => void;
 }
@@ -92,6 +92,24 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
         ),
       errorHandler: noop,
     });
+  }
+
+  // Fieldsets are session state: they die with the connection, so they have
+  // to be re-prepared on every (re)connection. Replicas are skipped — SET is
+  // a write command and only ever executes on masters; a promoted replica is
+  // re-prepared by the cluster client (see ConnectionPool "role-change").
+  if (!self.options.readOnly && self.options.himportFieldsets?.length) {
+    debug(
+      "prepare %d HIMPORT fieldsets",
+      self.options.himportFieldsets.length,
+    );
+    for (const { name, fields } of self.options.himportFieldsets) {
+      commands.push({
+        kind: "himport",
+        send: () => self.himport("PREPARE", name, ...fields),
+        errorHandler: (err) => self.silentEmit("error", err),
+      });
+    }
   }
 
   return commands;

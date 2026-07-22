@@ -1,4 +1,4 @@
-import { exists, hasFlag } from "@ioredis/commands";
+import { exists, hasFlag, hasRequestPolicy } from "@ioredis/commands";
 import { EventEmitter } from "events";
 import { AbortError, RedisError } from "redis-errors";
 import asCallback from "standard-as-callback";
@@ -35,6 +35,7 @@ import {
 import ClusterSubscriber from "./ClusterSubscriber";
 import ConnectionPool from "./ConnectionPool";
 import DelayQueue from "./DelayQueue";
+import PolicyExecutor from "./PolicyExecutor";
 import {
   getConnectionName,
   getNodeKey,
@@ -106,6 +107,7 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
 
   private startupNodes: (string | number | object)[];
   private connectionPool: ConnectionPool;
+  private policyExecutor: PolicyExecutor;
   private manuallyClosing: boolean;
   private retryAttempts = 0;
   private delayQueue: DelayQueue = new DelayQueue();
@@ -171,9 +173,16 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
     }
 
     this.connectionPool = new ConnectionPool(
-      this.options.redisOptions ?? {},
+      {
+        ...(this.options.redisOptions ?? {}),
+        // Every data connection carries the fieldsets, but the handshake
+        // only prepares them on masters (`readOnly: false`). See
+        // `getHandshakeCommands` in redis/event_handler.ts.
+        himportFieldsets: this.options.himportFieldsets,
+      },
       this.options.clusterNodeRetryStrategy
     );
+    this.policyExecutor = new PolicyExecutor(this.connectionPool);
 
     this.connectionPool.on("-node", (redis, key) => {
       this.emit("-node", redis);
@@ -187,6 +196,28 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
     this.connectionPool.on("nodeError", (error, key) => {
       this.emit("node error", error, key);
     });
+    this.connectionPool.on(
+      "role-change",
+      (redis: Redis, key: NodeKey, readOnly: boolean) => {
+        // A promoted replica keeps its connection, so the handshake never
+        // re-runs for it: replay the configured fieldsets here, before
+        // writes are routed to it.
+        const fieldsets = this.options.himportFieldsets;
+        if (readOnly || !fieldsets?.length) {
+          return;
+        }
+        debug(
+          "prepare %d HIMPORT fieldsets on promoted node %s",
+          fieldsets.length,
+          key
+        );
+        for (const { name, fields } of fieldsets) {
+          redis.himport("PREPARE", name, ...fields).catch((err) => {
+            this.emit("node error", err, key);
+          });
+        }
+      }
+    );
 
     this.subscriber = new ClusterSubscriber(this.connectionPool, this);
 
@@ -550,6 +581,22 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
     }
     if (this.status === "end") {
       command.reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
+      return command.promise;
+    }
+
+    // Commands advertising a request policy (e.g. HIMPORT PREPARE with
+    // `all_shards`) may be fanned out by the policy executor (which limits
+    // itself to commands whose reply handling it implements). Skipped for
+    // commands targeting a specific connection (`node`, i.e. pipelines —
+    // pinning to one connection is how session-scoped command sequences are
+    // expressed) and before "ready" (such commands take the offline-queue
+    // path below and re-enter here once the node pool is populated).
+    if (
+      !node &&
+      this.status === "ready" &&
+      hasRequestPolicy(command.name) &&
+      this.policyExecutor.execute(command)
+    ) {
       return command.promise;
     }
     let to = this.options.scaleReads;
@@ -978,6 +1025,9 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
       retryStrategy: null,
       protocol: 2,
       replyMapping: "legacy",
+      // No data commands run here — don't waste a handshake round trip
+      // preparing fieldsets on this throwaway connection.
+      himportFieldsets: undefined,
       connectionName: getConnectionName(
         "refresher",
         this.options.redisOptions && this.options.redisOptions.connectionName

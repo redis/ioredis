@@ -290,3 +290,21 @@ redis.zunionstore(
     expectType<number | undefined>(res);
   }
 );
+
+// HIMPORT
+expectType<Promise<"OK">>(redis.himport("PREPARE", "fs", "f1", "f2"));
+expectType<Promise<"OK">>(
+  redis.himport("SET", "key", "fs", "v1", Buffer.from("v2"), 3)
+);
+expectType<Promise<number>>(redis.himport("DISCARD", "fs"));
+expectType<Promise<number>>(redis.himport("DISCARDALL"));
+expectError(redis.himport("NOPE"));
+
+redis.himport("PREPARE", "fs", "f1", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<"OK" | undefined>(res);
+});
+redis.himport("DISCARD", "fs", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<number | undefined>(res);
+});

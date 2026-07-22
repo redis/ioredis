@@ -448,6 +448,8 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     const monitorInstance = this.duplicate({
       monitor: true,
       lazyConnect: false,
+      // Monitor connections never run data commands.
+      himportFieldsets: undefined,
     });
 
     return asCallback(
