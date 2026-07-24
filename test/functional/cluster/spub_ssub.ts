@@ -7,6 +7,7 @@ import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
 import Redis from "../../../lib/Redis";
 import ShardedSubscriber from "../../../lib/cluster/ShardedSubscriber";
+import ClusterSubscriberGroup from "../../../lib/cluster/ClusterSubscriberGroup";
 import { noop } from "../../../lib/utils";
 import { EventEmitter } from "events";
 
@@ -105,6 +106,157 @@ describe("cluster:spub/ssub", function () {
         done();
       });
     });
+  });
+
+  it("sunsubscribe() without channels unsubscribes across all shards", (done) => {
+    const slots = [
+      [0, 8191, ["127.0.0.1", 30001]],
+      [8192, 16383, ["127.0.0.1", 30002]],
+    ];
+    const node1Commands: string[][] = [];
+    const node2Commands: string[][] = [];
+
+    const makeHandler = (sink: string[][]) =>
+      function (argv) {
+        sink.push(argv);
+        const name = argv[0].toLowerCase();
+        if (name === "cluster" && String(argv[1]).toLowerCase() === "slots") {
+          return slots;
+        }
+        if (name === "ssubscribe") {
+          return ["ssubscribe", argv[1], 1];
+        }
+        if (name === "sunsubscribe") {
+          return ["sunsubscribe", argv[1] ?? null, 0];
+        }
+      };
+
+    new MockServer(30001, makeHandler(node1Commands));
+    new MockServer(30002, makeHandler(node2Commands));
+
+    const ssub = new Cluster([{ host: "127.0.0.1", port: 30001 }], {
+      shardedSubscribers: true,
+    });
+
+    const sunsubscribeOf = (commands: string[][]) =>
+      commands.filter((argv) => argv[0].toLowerCase() === "sunsubscribe");
+
+    ssub.on("ready", async () => {
+      try {
+        // "bar" hashes to slot 5061 (node1), "foo" to slot 12182 (node2),
+        // so each shard ends up with its own sharded subscriber connection.
+        await ssub.ssubscribe("bar");
+        await ssub.ssubscribe("foo");
+
+        const result = await ssub.sunsubscribe();
+        expect(result).to.eql(0);
+
+        // Every shard that held a subscription receives a zero-argument
+        // SUNSUBSCRIBE, unsubscribing it from all of its shard channels.
+        expect(sunsubscribeOf(node1Commands)).to.eql([["sunsubscribe"]]);
+        expect(sunsubscribeOf(node2Commands)).to.eql([["sunsubscribe"]]);
+
+        ssub.disconnect();
+        done();
+      } catch (err) {
+        ssub.disconnect();
+        done(err);
+      }
+    });
+  });
+
+  it("sunsubscribeAll unsubscribes shards whose connection is not ready", async () => {
+    // Regression: a non-ready shard connection used to be skipped, yet its
+    // channels were cleared and the call resolved with 0. On reconnect,
+    // `autoResubscribe` replays SSUBSCRIBE from that connection's own
+    // subscription set, so it would silently resume delivering shard messages
+    // while the client believed it had unsubscribed. SUNSUBSCRIBE must reach
+    // the non-ready connection too so it gets cleared once it comes back.
+    const group: any = new ClusterSubscriberGroup(
+      new EventEmitter(),
+      {} as any
+    );
+
+    const makeSubscriber = (nodeKey: string, status: string) => {
+      const redis = {
+        status,
+        sunsubscribe: sinon.stub().resolves(["sunsubscribe", null, 0]),
+      };
+      return {
+        redis,
+        getInstance: () => redis,
+        getNodeKey: () => nodeKey,
+      };
+    };
+
+    const readySub = makeSubscriber("127.0.0.1:30001", "ready");
+    const connectingSub = makeSubscriber("127.0.0.1:30002", "connecting");
+
+    group.shardedSubscribers.set("127.0.0.1:30001", readySub);
+    group.shardedSubscribers.set("127.0.0.1:30002", connectingSub);
+    // Map each node to a slot that currently holds a channel so
+    // hasSubscribedChannels() reports both as active.
+    group.subscriberToSlotsIndex.set("127.0.0.1:30001", [1]);
+    group.subscriberToSlotsIndex.set("127.0.0.1:30002", [2]);
+    group.channels.set(1, ["chan-ready"]);
+    group.channels.set(2, ["chan-connecting"]);
+
+    const result = await group.sunsubscribeAll();
+
+    expect(result).to.equal(0);
+    // Both the ready and the not-yet-ready connection receive SUNSUBSCRIBE.
+    expect(readySub.redis.sunsubscribe.calledOnce).to.equal(true);
+    expect(connectingSub.redis.sunsubscribe.calledOnce).to.equal(true);
+    // Tracked channels are cleared afterwards.
+    expect(group.channels.size).to.equal(0);
+  });
+
+  it("sunsubscribeAll rejects naming the failed shard and keeps its channels", async () => {
+    // When a shard's SUNSUBSCRIBE fails the client may still be subscribed
+    // there, so reject with the failing node and leave the tracked channels in
+    // place: a zero-argument SUNSUBSCRIBE is idempotent, so a retry can safely
+    // fan out again and still see those shards via hasSubscribedChannels().
+    const group: any = new ClusterSubscriberGroup(
+      new EventEmitter(),
+      {} as any
+    );
+
+    const makeSubscriber = (nodeKey: string, sunsubscribe: any) => {
+      const redis = { status: "ready", sunsubscribe };
+      return {
+        redis,
+        getInstance: () => redis,
+        getNodeKey: () => nodeKey,
+      };
+    };
+
+    const okSub = makeSubscriber(
+      "127.0.0.1:30001",
+      sinon.stub().resolves(["sunsubscribe", null, 0])
+    );
+    const failSub = makeSubscriber(
+      "127.0.0.1:30002",
+      sinon.stub().rejects(new Error("connection lost"))
+    );
+
+    group.shardedSubscribers.set("127.0.0.1:30001", okSub);
+    group.shardedSubscribers.set("127.0.0.1:30002", failSub);
+    group.subscriberToSlotsIndex.set("127.0.0.1:30001", [1]);
+    group.subscriberToSlotsIndex.set("127.0.0.1:30002", [2]);
+    group.channels.set(1, ["chan-ok"]);
+    group.channels.set(2, ["chan-fail"]);
+
+    let error: Error | undefined;
+    try {
+      await group.sunsubscribeAll();
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).to.be.an("error");
+    expect(error.message).to.contain("127.0.0.1:30002");
+    // Channels stay tracked so a retry still targets both shards.
+    expect(group.channels.size).to.equal(2);
   });
 
   ([2, 3] as const).forEach((protocol) => {
