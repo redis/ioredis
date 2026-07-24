@@ -1,13 +1,12 @@
-import { promises as fsPromises } from "fs";
-import { resolve } from "path";
 import { defaults, isArguments, noop } from "./lodash";
-import { Callback } from "../types";
+import { Callback, ProtocolVersion } from "../types";
 import Debug from "./debug";
 
 import TLSProfiles from "../constants/TLSProfiles";
 
 /**
- * Convert a buffer to string, supports buffer array
+ * Convert a buffer to string, supports buffer array and plain objects
+ * (RESP3 map replies decoded with `replyMapping: "resp3"`)
  *
  * @example
  * ```js
@@ -31,7 +30,44 @@ export function convertBufferToString(value: any, encoding?: BufferEncoding) {
     }
     return res;
   }
+  if (isPlainObject(value)) {
+    const keys = Object.keys(value);
+    const res: Record<string, unknown> = {};
+    for (const element of keys) {
+      const item = value[element];
+      const converted =
+        item instanceof Buffer && encoding === "utf8"
+          ? item.toString()
+          : convertBufferToString(item, encoding);
+      // Guard "__proto__"/"constructor" via defineProperty, where a bare
+      // assignment would tamper with the object. Issue #1267. Normal keys take
+      // the fast plain-assignment path.
+      if (element === "__proto__" || element === "constructor") {
+        Object.defineProperty(res, element, {
+          value: converted,
+          configurable: true,
+          enumerable: true,
+          writable: true,
+        });
+      } else {
+        res[element] = converted;
+      }
+    }
+    return res;
+  }
   return value;
+}
+
+/**
+ * Matches only the plain objects produced by RESP3 map replies, so other
+ * object types (class instances etc.) pass through reply conversion untouched.
+ */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
 }
 
 /**
@@ -368,49 +404,26 @@ export function shuffle<T>(array: T[]): T[] {
  */
 export const CONNECTION_CLOSED_ERROR_MSG = "Connection is closed.";
 
+/**
+ * Whether a connection is restricted to subscriber commands.
+ * Only RESP2 has a restricted subscriber mode; with RESP3 (HELLO 3),
+ * regular commands remain allowed while subscribed.
+ */
+export function isResp2SubscriberMode(
+  condition:
+    | { subscriber: false | object; protocol: ProtocolVersion }
+    | null
+    | undefined
+): boolean {
+  return Boolean(condition?.subscriber) && condition?.protocol !== 3;
+}
+
 export function zipMap<K, V>(keys: K[], values: V[]): Map<K, V> {
   const map = new Map<K, V>();
   keys.forEach((key, index) => {
     map.set(key, values[index]);
   });
   return map;
-}
-
-/**
- * Memoized package metadata to avoid repeated file system reads.
- *
- * @internal
- */
-let cachedPackageMeta: { version: string } = null;
-
-/**
- * Retrieves cached package metadata from package.json.
- *
- * @internal
- * @returns {Promise<{version: string} | null>} Package metadata or null if unavailable
- */
-export async function getPackageMeta() {
-  if (cachedPackageMeta) {
-    return cachedPackageMeta;
-  }
-
-  try {
-    const filePath = resolve(__dirname, "..", "..", "package.json");
-    const data = await fsPromises.readFile(filePath, "utf8");
-    const parsed = JSON.parse(data);
-
-    cachedPackageMeta = {
-      version: parsed.version,
-    };
-
-    return cachedPackageMeta;
-  } catch (err) {
-    cachedPackageMeta = {
-      version: "error-fetching-version",
-    };
-
-    return cachedPackageMeta;
-  }
 }
 
 export { Debug, defaults, isArguments, noop };

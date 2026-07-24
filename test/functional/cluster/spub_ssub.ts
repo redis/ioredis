@@ -1,4 +1,7 @@
-import MockServer, { getConnectionName } from "../../helpers/mock_server";
+import MockServer, {
+  getConnectionName,
+  pubSubReply,
+} from "../../helpers/mock_server";
 import { expect } from "chai";
 import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
@@ -27,10 +30,10 @@ describe("cluster:spub/ssub", function () {
 
     ssub.once("ready", () => {
       expect(node1.findClientByName("ioredis-cluster(ssubscriber)")).to.equal(
-        undefined,
+        undefined
       );
       expect(node2.findClientByName("ioredis-cluster(ssubscriber)")).to.equal(
-        undefined,
+        undefined
       );
       ssub.disconnect();
       done();
@@ -64,33 +67,44 @@ describe("cluster:spub/ssub", function () {
     });
   });
 
-  it("should receive messages", (done) => {
-    const handler = function (argv) {
-      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
-        return [
-          [0, 1, ["127.0.0.1", 30001]],
-          [2, 16383, ["127.0.0.1", 30002]],
-        ];
-      }
-    };
-    new MockServer(30001, handler);
-    //Node 2 is responsible for the vast majority of slots
-    const node2 = new MockServer(30002, handler);
-    const startupNodes = [{ host: "127.0.0.1", port: 30001 }];
-    const clusterOptions = { shardedSubscribers: true };
-    const ssub = new Cluster(startupNodes, clusterOptions);
+  ([2, 3] as const).forEach((protocol) => {
+    it(`should receive messages - RESP ${protocol}`, (done) => {
+      const handler = function (argv) {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+          return [
+            [0, 1, ["127.0.0.1", 30001]],
+            [2, 16383, ["127.0.0.1", 30002]],
+          ];
+        }
+        if (argv[0] === "ssubscribe") {
+          return pubSubReply(protocol, "ssubscribe", argv[1]);
+        }
+      };
+      new MockServer(30001, handler);
+      //Node 2 is responsible for the vast majority of slots
+      const node2 = new MockServer(30002, handler);
+      const startupNodes = [{ host: "127.0.0.1", port: 30001 }];
+      const clusterOptions = {
+        shardedSubscribers: true,
+        redisOptions: { protocol },
+      };
+      const ssub = new Cluster(startupNodes, clusterOptions);
 
-    ssub.ssubscribe("test cluster", function () {
-      const clientSocket = node2.findClientByName(
-        "ioredis-cluster(ssubscriber)",
-      );
-      node2.write(clientSocket, ["smessage", "test shard channel", "hi"]);
-    });
-    ssub.on("smessage", function (channel, message) {
-      expect(channel).to.eql("test shard channel");
-      expect(message).to.eql("hi");
-      ssub.disconnect();
-      done();
+      ssub.ssubscribe("test cluster", function () {
+        const clientSocket = node2.findClientByName(
+          "ioredis-cluster(ssubscriber)"
+        );
+        node2.write(
+          clientSocket,
+          pubSubReply(protocol, "smessage", "test shard channel", "hi")
+        );
+      });
+      ssub.on("smessage", function (channel, message) {
+        expect(channel).to.eql("test shard channel");
+        expect(message).to.eql("hi");
+        ssub.disconnect();
+        done();
+      });
     });
   });
 
@@ -160,7 +174,7 @@ describe("cluster:spub/ssub", function () {
     // the non-ready connection too so it gets cleared once it comes back.
     const group: any = new ClusterSubscriberGroup(
       new EventEmitter(),
-      {} as any,
+      {} as any
     );
 
     const makeSubscriber = (nodeKey: string, status: string) => {
@@ -202,7 +216,10 @@ describe("cluster:spub/ssub", function () {
     // there, so reject with the failing node and leave the tracked channels in
     // place: a zero-argument SUNSUBSCRIBE is idempotent, so a retry can safely
     // fan out again and still see those shards via hasSubscribedChannels().
-    const group: any = new ClusterSubscriberGroup(new EventEmitter(), {} as any);
+    const group: any = new ClusterSubscriberGroup(
+      new EventEmitter(),
+      {} as any
+    );
 
     const makeSubscriber = (nodeKey: string, sunsubscribe: any) => {
       const redis = { status: "ready", sunsubscribe };
@@ -215,11 +232,11 @@ describe("cluster:spub/ssub", function () {
 
     const okSub = makeSubscriber(
       "127.0.0.1:30001",
-      sinon.stub().resolves(["sunsubscribe", null, 0]),
+      sinon.stub().resolves(["sunsubscribe", null, 0])
     );
     const failSub = makeSubscriber(
       "127.0.0.1:30002",
-      sinon.stub().rejects(new Error("connection lost")),
+      sinon.stub().rejects(new Error("connection lost"))
     );
 
     group.shardedSubscribers.set("127.0.0.1:30001", okSub);
@@ -242,48 +259,64 @@ describe("cluster:spub/ssub", function () {
     expect(group.channels.size).to.equal(2);
   });
 
-  it("should works when sending regular commands", (done) => {
-    const handler = function (argv) {
-      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
-        return [[0, 16383, ["127.0.0.1", 30001]]];
-      }
-    };
-    new MockServer(30001, handler);
+  ([2, 3] as const).forEach((protocol) => {
+    it(`should works when sending regular commands - RESP ${protocol}`, (done) => {
+      const handler = function (argv) {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+          return [[0, 16383, ["127.0.0.1", 30001]]];
+        }
+        if (argv[0] === "ssubscribe") {
+          return pubSubReply(protocol, "ssubscribe", argv[1]);
+        }
+      };
+      new MockServer(30001, handler);
 
-    const ssub = new Cluster([{ port: "30001" }], { shardedSubscribers: true });
+      const ssub = new Cluster([{ port: "30001" }], {
+        shardedSubscribers: true,
+        redisOptions: { protocol },
+      });
 
-    ssub.ssubscribe("test cluster", function () {
-      ssub.set("foo", "bar").then((res) => {
-        expect(res).to.eql("OK");
-        ssub.disconnect();
-        done();
+      ssub.ssubscribe("test cluster", function () {
+        ssub.set("foo", "bar").then((res) => {
+          expect(res).to.eql("OK");
+          ssub.disconnect();
+          done();
+        });
       });
     });
   });
 
-  it("supports password", (done) => {
-    const handler = function (argv, c) {
-      if (argv[0] === "auth") {
-        c.password = argv[1];
-        return;
-      }
-      if (argv[0] === "ssubscribe") {
-        expect(c.password).to.eql("abc");
-        expect(getConnectionName(c)).to.eql("ioredis-cluster(ssubscriber)");
-      }
-      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
-        return [[0, 16383, ["127.0.0.1", 30001]]];
-      }
-    };
-    new MockServer(30001, handler);
+  ([2, 3] as const).forEach((protocol) => {
+    it(`supports password - RESP ${protocol}`, (done) => {
+      const handler = function (argv, c) {
+        if (argv[0] === "auth") {
+          c.password = argv[1];
+          return;
+        }
+        if (argv[0] === "hello") {
+          c.password = argv[4];
+          return;
+        }
+        if (argv[0] === "ssubscribe") {
+          expect(c.password).to.eql("abc");
+          expect(getConnectionName(c)).to.eql("ioredis-cluster(ssubscriber)");
+          return pubSubReply(protocol, "ssubscribe", argv[1]);
+        }
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+          return [[0, 16383, ["127.0.0.1", 30001]]];
+        }
+      };
+      new MockServer(30001, handler);
 
-    const ssub = new Redis.Cluster([{ port: 30001, password: "abc" }], {
-      shardedSubscribers: true,
-    });
+      const ssub = new Redis.Cluster([{ port: 30001, password: "abc" }], {
+        shardedSubscribers: true,
+        redisOptions: { protocol },
+      });
 
-    ssub.ssubscribe("test cluster", function () {
-      ssub.disconnect();
-      done();
+      ssub.ssubscribe("test cluster", function () {
+        ssub.disconnect();
+        done();
+      });
     });
   });
 
@@ -303,6 +336,9 @@ describe("cluster:spub/ssub", function () {
           return new Error("CLUSTERDOWN The cluster is down");
         }
         return [[0, 16383, ["127.0.0.1", 30001]]];
+      }
+      if (argv[0] === "ssubscribe") {
+        return pubSubReply(3, "ssubscribe", argv[1]);
       }
     };
     const server = new MockServer(30001, handler);
@@ -360,7 +396,7 @@ describe("cluster:spub/ssub", function () {
       await Promise.resolve();
 
       expect(connectStub.calledOnce).to.equal(true);
-      expect(subscriber.subscriberStatus).to.equal('starting');
+      expect(subscriber.subscriberStatus).to.equal("starting");
       expect(firstSettled).to.equal(false);
       expect(secondSettled).to.equal(false);
       expect(resolveConnect).to.be.a("function");
@@ -368,7 +404,7 @@ describe("cluster:spub/ssub", function () {
       resolveConnect();
       await Promise.all([firstStart, secondStart]);
 
-      expect(subscriber.subscriberStatus).to.equal('connected');
+      expect(subscriber.subscriberStatus).to.equal("connected");
       expect(firstSettled).to.equal(true);
       expect(secondSettled).to.equal(true);
     } finally {

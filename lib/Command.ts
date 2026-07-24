@@ -8,11 +8,25 @@ import {
   convertMapToArray,
   convertObjectToArray,
 } from "./utils";
-import { Callback, Respondable, CommandParameter } from "./types";
+import {
+  Callback,
+  Respondable,
+  CommandParameter,
+  ProtocolVersion,
+  ReplyMappingMode,
+} from "./types";
 import {
   parseBlockOption,
   parseSecondsArgument,
 } from "./utils/argumentParsers";
+import {
+  ReplyContext,
+  ReplyTransformer,
+  sortedSetWithScorePairCommands,
+  transformPairReply,
+  transformStreamReadReply,
+  transformVsimReply,
+} from "./replyTransformers";
 
 export type ArgumentType =
   | string
@@ -34,7 +48,6 @@ interface CommandOptions {
 }
 
 type ArgumentTransformer = (args: any[]) => any[];
-type ReplyTransformer = (reply: any) => any;
 interface FlagMap {
   [flag: string]: { [command: string]: true };
 }
@@ -60,7 +73,14 @@ export interface CommandNameFlags {
   // Commands that will make client disconnect from server TODO shutdown?
   WILL_DISCONNECT: ["quit"];
   // Commands that are sent when the client is connecting
-  HANDSHAKE_COMMANDS: ["auth", "select", "client", "readonly", "info"];
+  HANDSHAKE_COMMANDS: [
+    "auth",
+    "hello",
+    "select",
+    "client",
+    "readonly",
+    "info"
+  ];
   // Commands that should not trigger a reconnection when errors occur
   IGNORE_RECONNECT_ON_ERROR: ["client"];
   // Commands that block
@@ -129,7 +149,14 @@ export default class Command implements Respondable {
     ENTER_SUBSCRIBER_MODE: ["subscribe", "psubscribe", "ssubscribe"],
     EXIT_SUBSCRIBER_MODE: ["unsubscribe", "punsubscribe", "sunsubscribe"],
     WILL_DISCONNECT: ["quit"],
-    HANDSHAKE_COMMANDS: ["auth", "select", "client", "readonly", "info"],
+    HANDSHAKE_COMMANDS: [
+      "auth",
+      "hello",
+      "select",
+      "client",
+      "readonly",
+      "info",
+    ],
     IGNORE_RECONNECT_ON_ERROR: ["client"],
     BLOCKING_COMMANDS: [
       "blpop",
@@ -213,6 +240,8 @@ export default class Command implements Respondable {
   promise: Promise<any>;
 
   private replyEncoding: BufferEncoding | null;
+  private protocol: ProtocolVersion;
+  private replyMapping: ReplyMappingMode;
   private errorStack: Error;
   private bufferMode: boolean;
   private callback: Callback;
@@ -239,6 +268,8 @@ export default class Command implements Respondable {
     callback?: Callback
   ) {
     this.replyEncoding = options.replyEncoding;
+    this.protocol = 2;
+    this.replyMapping = "legacy";
     this.errorStack = options.errorStack;
 
     this.args = args.flat();
@@ -282,6 +313,11 @@ export default class Command implements Respondable {
 
   getKeys(): Array<string | Buffer> {
     return this._iterateKeys();
+  }
+
+  setReplyContext(context: ReplyContext | null | undefined): void {
+    this.protocol = context?.protocol ?? 2;
+    this.replyMapping = context?.replyMapping ?? "legacy";
   }
 
   /**
@@ -362,7 +398,11 @@ export default class Command implements Respondable {
     }
     const transformer = Command._transformer.reply[this.name];
     if (transformer) {
-      result = transformer(result);
+      result = transformer(result, {
+        commandName: this.name,
+        protocol: this.protocol,
+        replyMapping: this.replyMapping,
+      });
     }
 
     return result;
@@ -591,6 +631,15 @@ Command.setReplyTransformer("hgetall", function (result) {
   }
   return result;
 });
+
+Command.setReplyTransformer("vsim", transformVsimReply);
+Command.setReplyTransformer("hrandfield", transformPairReply);
+Command.setReplyTransformer("xread", transformStreamReadReply);
+Command.setReplyTransformer("xreadgroup", transformStreamReadReply);
+
+for (const command of sortedSetWithScorePairCommands) {
+  Command.setReplyTransformer(command, transformPairReply);
+}
 
 class MixedBuffers {
   length = 0;

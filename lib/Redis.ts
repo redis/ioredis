@@ -19,6 +19,9 @@ import {
   Callback,
   CommandItem,
   NetStream,
+  ProtocolVersion,
+  ReplyMappingFromOptions,
+  ReplyMappingMode,
   ScanStreamOptions,
   WriteableStream,
 } from "./types";
@@ -26,6 +29,7 @@ import {
   CONNECTION_CLOSED_ERROR_MSG,
   Debug,
   isInt,
+  isResp2SubscriberMode,
   parseURL,
   resolveTLSProfile,
 } from "./utils";
@@ -68,7 +72,13 @@ type RedisStatus =
  * }
  * ```
  */
-class Redis extends Commander implements DataHandledable {
+class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
+  extends Commander<{
+    type: "default";
+    mapping: ReplyMapping extends "resp3" ? "resp3" : "resp2";
+  }>
+  implements DataHandledable
+{
   static Cluster = Cluster;
   static Command = Command;
   /**
@@ -119,11 +129,26 @@ class Redis extends Commander implements DataHandledable {
   private _autoPipelines = new Map();
   private _runningAutoPipelines = new Set();
 
-  constructor(port: number, host: string, options: RedisOptions);
-  constructor(path: string, options: RedisOptions);
-  constructor(port: number, options: RedisOptions);
+  // The `replyMapping` intersection on the options-bearing overloads lets the
+  // `ReplyMapping` class type parameter be inferred from the literal passed at
+  // construction time (e.g. `new Redis({ protocol: 3, replyMapping: "resp3" })`),
+  // which in turn selects the RESP3 return shapes via `Resp3<...>`. Omitting it
+  // (or passing "legacy") keeps the default RESP2 shapes.
+  constructor(
+    port: number,
+    host: string,
+    options: RedisOptions & { replyMapping?: ReplyMapping }
+  );
+  constructor(
+    path: string,
+    options: RedisOptions & { replyMapping?: ReplyMapping }
+  );
+  constructor(
+    port: number,
+    options: RedisOptions & { replyMapping?: ReplyMapping }
+  );
   constructor(port: number, host: string);
-  constructor(options: RedisOptions);
+  constructor(options: RedisOptions & { replyMapping?: ReplyMapping });
   constructor(port: number);
   constructor(path: string);
   constructor();
@@ -218,6 +243,12 @@ class Redis extends Commander implements DataHandledable {
           ? [options.username, options.password]
           : options.password,
         subscriber: false,
+        protocol: options.protocol as ProtocolVersion,
+        replyMapping:
+          options.protocol === 3 && options.replyMapping === "resp3"
+            ? "resp3"
+            : "legacy",
+        handshake: false,
       };
 
       const _this = this;
@@ -364,8 +395,13 @@ class Redis extends Commander implements DataHandledable {
    * var anotherRedis = redis.duplicate();
    * ```
    */
-  duplicate(override?: Partial<RedisOptions>) {
-    return new Redis({ ...this.options, ...override });
+  duplicate<Override extends Partial<RedisOptions> | undefined = undefined>(
+    override?: Override
+  ): Redis<ReplyMappingFromOptions<ReplyMapping, Override>> {
+    return new Redis({
+      ...this.options,
+      ...(override ?? {}),
+    }) as Redis<ReplyMappingFromOptions<ReplyMapping, Override>>;
   }
 
   /**
@@ -377,7 +413,7 @@ class Redis extends Commander implements DataHandledable {
   get mode(): "normal" | "subscriber" | "monitor" {
     return this.options.monitor
       ? "monitor"
-      : this.condition?.subscriber
+      : isResp2SubscriberMode(this.condition)
       ? "subscriber"
       : "normal";
   }
@@ -443,6 +479,8 @@ class Redis extends Commander implements DataHandledable {
    * @ignore
    */
   sendCommand(command: Command, stream?: WriteableStream): unknown {
+    command.setReplyContext(this.condition ?? this.options);
+
     if (this.status === "wait") {
       this.connect().catch(noop);
     }
@@ -451,7 +489,7 @@ class Redis extends Commander implements DataHandledable {
       return command.promise;
     }
     if (
-      this.condition?.subscriber &&
+      isResp2SubscriberMode(this.condition) &&
       !Command.checkFlag("VALID_IN_SUBSCRIBER_MODE", command.name)
     ) {
       command.reject(
@@ -470,11 +508,17 @@ class Redis extends Commander implements DataHandledable {
 
     let writable =
       this.status === "ready" ||
+      // During handshake, only internal handshake commands may bypass the queue.
       (!stream &&
         this.status === "connect" &&
+        this.condition?.handshake &&
+        Command.checkFlag("HANDSHAKE_COMMANDS", command.name)) ||
+      // Before ready, loading-safe commands remain writable after handshake.
+      (!stream &&
+        this.status === "connect" &&
+        !this.condition?.handshake &&
         exists(command.name, { caseInsensitive: true }) &&
-        (hasFlag(command.name, "loading", { nameCaseInsensitive: true }) ||
-          Command.checkFlag("HANDSHAKE_COMMANDS", command.name)));
+        hasFlag(command.name, "loading", { nameCaseInsensitive: true }));
     if (!this.stream) {
       writable = false;
     } else if (!this.stream.writable) {
@@ -747,10 +791,12 @@ class Redis extends Commander implements DataHandledable {
    */
   handleReconnection(err: Error, item: CommandItem) {
     let needReconnect: ReturnType<ReconnectOnError> = false;
-    if (
-      this.options.reconnectOnError &&
-      !Command.checkFlag("IGNORE_RECONNECT_ON_ERROR", item.command.name)
-    ) {
+    const ignoreReconnectOnError =
+      Command.checkFlag("IGNORE_RECONNECT_ON_ERROR", item.command.name) ||
+      (this.condition?.handshake &&
+        Command.checkFlag("HANDSHAKE_COMMANDS", item.command.name));
+
+    if (this.options.reconnectOnError && !ignoreReconnectOnError) {
       needReconnect = this.options.reconnectOnError(err);
     }
 
@@ -794,9 +840,7 @@ class Redis extends Commander implements DataHandledable {
     };
   }
 
-  private _buildCommandContext(
-    command: Command
-  ): CommandTraceContext {
+  private _buildCommandContext(command: Command): CommandTraceContext {
     const { address, port } = this._getServerAddress();
     return {
       command: command.name,
@@ -882,6 +926,12 @@ class Redis extends Commander implements DataHandledable {
     }
     if (typeof options.db === "string") {
       options.db = parseInt(options.db, 10);
+    }
+
+    if (options.replyMapping === "resp3" && options.protocol !== 3) {
+      throw new Error(
+        'The "resp3" replyMapping is only supported with protocol 3'
+      );
     }
 
     // @ts-expect-error
@@ -1001,7 +1051,9 @@ class Redis extends Commander implements DataHandledable {
   }
 }
 
-interface Redis extends EventEmitter {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface Redis<ReplyMapping extends "legacy" | "resp3" = "legacy">
+  extends EventEmitter {
   on(event: "message", cb: (channel: string, message: string) => void): this;
   once(event: "message", cb: (channel: string, message: string) => void): this;
 
@@ -1046,6 +1098,7 @@ interface Redis extends EventEmitter {
 applyMixin(Redis, EventEmitter);
 
 addTransactionSupport(Redis.prototype);
-interface Redis extends Transaction {}
+interface Redis<ReplyMapping extends "legacy" | "resp3" = "legacy">
+  extends Transaction<ReplyMapping extends "resp3" ? "resp3" : "resp2"> {}
 
 export default Redis;

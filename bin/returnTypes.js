@@ -134,9 +134,21 @@ module.exports = {
   blmove: "string | null",
   lmpop: "[key: string, members: string[]] | null",
   blmpop: "[key: string, members: string[]] | null",
-  bzpopmin: "[key: string, member: string, score: string] | null",
-  bzpopmax: "[key: string, member: string, score: string] | null",
+  bzpopmin: {
+    resp2: "[key: string, member: string, score: string] | null",
+    resp3: "[key: string, member: string, score: Resp3Double<string>] | null",
+  },
+  bzpopmax: {
+    resp2: "[key: string, member: string, score: string] | null",
+    resp3: "[key: string, member: string, score: Resp3Double<string>] | null",
+  },
   command: "unknown[]",
+  config: (types) => {
+    // CONFIG GET is a MAP reply: flat [k, v, ...] under RESP2, object under RESP3.
+    // Other subcommands (SET/REWRITE/RESETSTAT/HELP) fall through to the default.
+    if (matchSubcommand(types, "GET"))
+      return { resp2: "string[]", resp3: "Resp3Map<string>" };
+  },
   copy: "number",
   dbsize: "number",
   decr: "number",
@@ -155,7 +167,11 @@ module.exports = {
   flushdb: "'OK'",
   geoadd: "number",
   geohash: "string[]",
-  geopos: "([longitude: string, latitude: string] | null)[]",
+  geopos: {
+    resp2: "([longitude: string, latitude: string] | null)[]",
+    resp3:
+      "([longitude: Resp3Double<string>, latitude: Resp3Double<string>] | null)[]",
+  },
   geodist: "string | null",
   georadius: "unknown[]",
   geosearch: "unknown[]",
@@ -166,20 +182,30 @@ module.exports = {
   getrange: "string",
   getset: "string | null",
   hdel: "number",
-  hello: "unknown[]",
+  hello: { resp2: "unknown[]", resp3: "Resp3Map<unknown>" },
   hexists: "number",
   hexpire: "number[]",
+  hexpireat: "number[]",
+  hexpiretime: "number[]",
   hpexpire: "number[]",
   hget: "string | null",
   hgetall: "[field: string, value: string][]",
+  hgetdel: "(string | null)[]",
+  hgetex: "(string | null)[]",
   hincrby: "number",
   hincrbyfloat: "string",
   hkeys: "string[]",
   hlen: "number",
   hmget: "(string | null)[]",
   hmset: "'OK'",
+  hpersist: "number[]",
+  hpexpireat: "number[]",
+  hpexpiretime: "number[]",
+  hpttl: "number[]",
   hset: "number",
+  hsetex: "number",
   hsetnx: "number",
+  httl: "number[]",
   acl: (types) => {
     if (matchSubcommand(types, "SAVE")) return '"OK"';
     if (matchSubcommand(types, "DELUSER")) return "number";
@@ -206,7 +232,8 @@ module.exports = {
     if (matchSubcommand(types, "MALLOC-STATS")) return "string";
     if (matchSubcommand(types, "PURGE")) return '"OK"';
     if (matchSubcommand(types, "HELP")) return "unknown[]";
-    if (matchSubcommand(types, "STATS")) return "unknown[]";
+    if (matchSubcommand(types, "STATS"))
+      return { resp2: "unknown[]", resp3: "Resp3Map<unknown>" };
     if (matchSubcommand(types, "USAGE")) return "number | null";
     if (matchSubcommand(types, "DOCTOR")) return "string";
   },
@@ -216,8 +243,11 @@ module.exports = {
   incr: "number",
   incrby: "number",
   incrbyfloat: "string",
-  increx:
-    "[value: number, increment: number] | [value: string, increment: string]",
+  increx: {
+    resp2:
+      "[value: number, increment: number] | [value: string, increment: string]",
+    resp3: "[value: number, increment: number]",
+  },
   info: "string",
   lolwut: "string",
   keys: "string[]",
@@ -293,7 +323,7 @@ module.exports = {
   replicaof: "'OK'",
   smembers: "string[]",
   smove: "number",
-  sort: "number" | "unknown[]",
+  sort: "number | unknown[]",
   sortRo: "unknown[]",
   spop: (types) => (types.length > 1 ? "string[]" : "string | null"),
   srandmember: (types) => (types.length > 1 ? "string[]" : "string | null"),
@@ -308,13 +338,16 @@ module.exports = {
   type: "string",
   unlink: "number",
   unwatch: "'OK'",
-  vadd: "number",
+  vadd: { resp2: "number", resp3: "boolean" },
   vcard: "number",
   vdim: "number",
-  vemb: "string[] | null",
+  vemb: { resp2: "string[] | null", resp3: "number[] | null" },
   vgetattr: "string | null",
-  vinfo: "(string | number)[] | null",
-  vismember: "number",
+  vinfo: {
+    resp2: "(string | number)[] | null",
+    resp3: "Resp3Map<string | number> | null",
+  },
+  vismember: { resp2: "number", resp3: "boolean" },
   vlinks: "string[][] | null",
   vrandmember: (types) => {
     return types.some((type) => type.includes("number"))
@@ -322,52 +355,112 @@ module.exports = {
       : "string | null";
   },
   vrange: "string[]",
-  vrem: "number",
-  vsetattr: "number",
-  vsim: "(string | null)[]",
+  vrem: { resp2: "number", resp3: "boolean" },
+  vsetattr: { resp2: "number", resp3: "boolean" },
   wait: "number",
   watch: "'OK'",
   zadd: (types) => {
     if (types.find((type) => type.includes("INCR"))) {
+      // INCR returns the new score (a DOUBLE), or null when NX/XX skips the add.
       if (types.find((type) => type.includes("XX") || type.includes("NX"))) {
-        return "string | null";
+        return { resp2: "string | null", resp3: "Resp3Double<string> | null" };
       }
-      return "string";
+      return { resp2: "string", resp3: "Resp3Double<string>" };
     }
     return "number";
   },
   zcard: "number",
   zcount: "number",
-  zdiff: "string[]",
+  zdiff: (types) => {
+    if (hasToken(types, "WITHSCORES")) {
+      return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };
+    }
+    return "string[]";
+  },
   zdiffstore: "number",
-  zincrby: "string",
-  zinter: "string[]",
+  zincrby: { resp2: "string", resp3: "Resp3Double<string>" },
+  zinter: (types) => {
+    if (hasToken(types, "WITHSCORES")) {
+      return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };
+    }
+    return "string[]";
+  },
   zintercard: "number",
   zinterstore: "number",
   zlexcount: "number",
-  zpopmax: "string[]",
-  zpopmin: "string[]",
+  zpopmax: (types) =>
+    types.length > 1
+      ? { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" }
+      : { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>] | []" },
+  zpopmin: (types) =>
+    types.length > 1
+      ? { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" }
+      : { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>] | []" },
   zrandmember: (types) => {
+    if (hasToken(types, "WITHSCORES")) {
+      return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };
+    }
     return types.some((type) => type.includes("number"))
       ? "string[]"
       : "string | null";
   },
   zrangestore: "number",
-  zrange: "string[]",
+  zrange: (types) => {
+    if (hasToken(types, "WITHSCORES")) {
+      return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };
+    }
+    return "string[]";
+  },
   zrangebylex: "string[]",
   zrevrangebylex: "string[]",
-  zrangebyscore: "string[]",
-  zrank: "number | null",
+  zrangebyscore: (types) => {
+    if (hasToken(types, "WITHSCORES")) {
+      return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };
+    }
+    return "string[]";
+  },
+  zrank: (types) => {
+    if (hasToken(types, "WITHSCORE")) {
+      return {
+        resp2: "[rank: number, score: string] | null",
+        resp3: "[rank: number, score: Resp3Double<string>] | null",
+      };
+    }
+    return "number | null";
+  },
   zrem: "number",
   zremrangebylex: "number",
   zremrangebyrank: "number",
   zremrangebyscore: "number",
-  zrevrange: "string[]",
-  zrevrangebyscore: "string[]",
-  zrevrank: "number | null",
-  zscore: "string | null",
-  zunion: "string[]",
-  zmscore: "(string | null)[]",
+  zrevrange: (types) => {
+    if (hasToken(types, "WITHSCORES")) {
+      return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };
+    }
+    return "string[]";
+  },
+  zrevrangebyscore: (types) => {
+    if (hasToken(types, "WITHSCORES")) {
+      return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };
+    }
+    return "string[]";
+  },
+  zrevrank: (types) => {
+    if (hasToken(types, "WITHSCORE")) {
+      return {
+        resp2: "[rank: number, score: string] | null",
+        resp3: "[rank: number, score: Resp3Double<string>] | null",
+      };
+    }
+    return "number | null";
+  },
+  zscore: { resp2: "string | null", resp3: "Resp3Double<string> | null" },
+  zunion: (types) => {
+    if (hasToken(types, "WITHSCORES")) {
+      return { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" };
+    }
+    return "string[]";
+  },
+  zmscore: { resp2: "(string | null)[]", resp3: "(Resp3Double<string> | null)[]" },
   zunionstore: "number",
   scan: "[cursor: string, elements: string[]]",
   sscan: "[cursor: string, elements: string[]]",
@@ -379,8 +472,16 @@ module.exports = {
   xrange: "[id: string, fields: string[]][]",
   xrevrange: "[id: string, fields: string[]][]",
   xlen: "number",
-  xread: "[key: string, items: [id: string, fields: string[]][]][] | null",
-  xreadgroup: "unknown[]",
+  xread: {
+    resp2: "[key: string, items: [id: string, fields: string[]][]][] | null",
+    resp3: "Resp3Map<[id: string, fields: string[]][]> | null",
+  },
+  xreadgroup: {
+    // Reading the PEL by explicit ID can surface entries whose stream payload
+    // was XDEL'd; Redis returns those with a null fields array.
+    resp2: "[key: string, items: [id: string, fields: string[] | null][]][] | null",
+    resp3: "Resp3Map<[id: string, fields: string[] | null][]> | null",
+  },
   xack: "number",
   xnack: "number",
   xclaim: "unknown[]",

@@ -151,6 +151,8 @@ export default class ClusterSubscriber {
       connectionName: getConnectionName(connectionPrefix, options.connectionName),
       lazyConnect: true,
       tls: options.tls,
+      protocol: options.protocol,
+      replyMapping: options.replyMapping,
       // Don't try to reconnect the subscriber connection. If the connection fails
       // we will get an end event (handled below), at which point we'll pick a new
       // node from the pool and try to connect to that as the subscriber connection.

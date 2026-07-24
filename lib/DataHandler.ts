@@ -1,19 +1,37 @@
-import { NetStream, CommandItem, Respondable } from "./types";
+import {
+  NetStream,
+  CommandItem,
+  Respondable,
+  ProtocolVersion,
+  ReplyMappingMode,
+} from "./types";
 import Deque = require("denque");
 import { EventEmitter } from "events";
 import Command from "./Command";
 import { Debug } from "./utils";
-import * as RedisParser from "redis-parser";
 import SubscriptionSet from "./SubscriptionSet";
+import { Decoder, RESP_TYPES } from "./resp/decoder";
+import { TypeMapping } from "./resp/types";
 
 const debug = Debug("dataHandler");
 
-type ReplyData = string | Buffer | number | Array<string | Buffer | number>;
+type ReplyData = null | boolean | string | Buffer | number | Array<ReplyData>;
 
 export interface Condition {
   select: number;
   auth?: string | [string, string];
   subscriber: false | SubscriptionSet;
+  // The protocol actually in effect for this connection. Seeded from
+  // `options.protocol` at connect time, but flipped to 2 in place if the
+  // server rejects `HELLO 3` (RESP3 unsupported). Single source of truth
+  // shared by the handshake and the parser.
+  protocol: ProtocolVersion;
+  // The reply shape actually in effect for this connection. This can differ
+  // from the requested option when RESP3 negotiation falls back to RESP2.
+  replyMapping: ReplyMappingMode;
+  // Internal connection gate. While true, only handshake commands are writable;
+  // user commands are queued so they cannot race ahead of the ready check.
+  handshake: boolean;
 }
 
 export type FlushQueueOptions = {
@@ -38,30 +56,51 @@ export interface DataHandledable extends EventEmitter {
 
 interface ParserOptions {
   stringNumbers: boolean;
+  replyMapping: ReplyMappingMode;
 }
 
 export default class DataHandler {
   constructor(private redis: DataHandledable, parserOptions: ParserOptions) {
-    const parser = new RedisParser({
-      stringNumbers: parserOptions.stringNumbers,
-      returnBuffers: true,
-      returnError: (err: Error) => {
-        this.returnError(err);
+    // Parser options can't change over the lifetime of a connection, so the
+    // mapping is resolved once instead of per reply.
+    const typeMapping = getParserTypeMapping(parserOptions);
+    const decoder = new Decoder({
+      getTypeMapping: () => typeMapping,
+      onReply: (reply: any) => {
+        this.dispatch(() => this.returnReply(reply));
       },
-      returnFatalError: (err: Error) => {
-        this.returnFatalError(err);
+      onErrorReply: (err: Error) => {
+        this.dispatch(() => this.returnError(err));
       },
-      returnReply: (reply: any) => {
-        this.returnReply(reply);
+      onPush: (reply: any) => {
+        this.dispatch(() => this.returnPush(reply));
       },
     });
 
     // prependListener ensures the parser receives and processes data before socket timeout checks are performed
     redis.stream.prependListener("data", (data) => {
-      parser.execute(data);
+      try {
+        decoder.write(data);
+      } catch (err) {
+        this.returnFatalError(err as Error);
+      }
     });
     // prependListener() doesn't enable flowing mode automatically - we need to resume the stream manually
     redis.stream.resume();
+  }
+
+  // Rethrows user listener/transformer exceptions asynchronously so they
+  // surface as uncaught exceptions (as with redis-parser in v5) instead of
+  // unwinding the decoder mid-parse and tearing down the connection as a
+  // fatal protocol error.
+  private dispatch(fn: () => void) {
+    try {
+      fn();
+    } catch (err) {
+      process.nextTick(() => {
+        throw err;
+      });
+    }
   }
 
   private returnFatalError(err: Error) {
@@ -80,9 +119,15 @@ export default class DataHandler {
       args: item.command.args,
     };
 
-    if (item.command.name == "ssubscribe" && err.message.includes("MOVED")) {
+    // A MOVED reply to SSUBSCRIBE means the shard channel's slot migrated.
+    // Signal the subscriber layer to refresh its topology, but still settle
+    // the command through normal error handling so the caller's promise
+    // rejects instead of staying pending forever.
+    const isMovedSsubscribe =
+      item.command.name === "ssubscribe" && err.message.startsWith("MOVED ");
+
+    if (isMovedSsubscribe) {
       this.redis.emit("moved");
-      return;
     }
 
     this.redis.handleReconnection(err, item);
@@ -92,7 +137,12 @@ export default class DataHandler {
     if (this.handleMonitorReply(reply)) {
       return;
     }
-    if (this.handleSubscriberReply(reply)) {
+    // Under RESP3, pub/sub traffic arrives exclusively as push frames
+    // (returnPush), so a normal reply on a subscribed connection is always a
+    // command response. Routing it by content would misinterpret replies that
+    // merely look like pub/sub messages (e.g. an LRANGE result starting with
+    // "message") and desync the command queue.
+    if (this.redis.condition.protocol !== 3 && this.handleSubscriberReply(reply)) {
       return;
     }
 
@@ -117,6 +167,90 @@ export default class DataHandler {
     } else {
       item.command.resolve(reply);
     }
+  }
+
+  private returnPush(reply: ReplyData) {
+    if (!Array.isArray(reply) || reply.length === 0) {
+      return;
+    }
+
+    const replyType = reply[0].toString();
+    debug('receive push "%s"', replyType);
+
+    switch (replyType) {
+      case "message":
+      case "pmessage":
+      case "smessage":
+        this.handleSubscriberReply(reply);
+        break;
+      case "ssubscribe":
+      case "subscribe":
+      case "psubscribe": {
+        if (!this.redis.condition.subscriber) {
+          this.redis.condition.subscriber = new SubscriptionSet();
+        }
+
+        const channel = reply[1].toString();
+        this.redis.condition.subscriber.add(replyType, channel);
+        const item = this.shiftCommand(reply);
+        if (!item) {
+          return;
+        }
+        if (
+          !fillSubCommand(item.command, reply[2] as string | Buffer | number)
+        ) {
+          this.redis.commandQueue.unshift(item);
+        }
+        break;
+      }
+      case "sunsubscribe":
+      case "unsubscribe":
+      case "punsubscribe": {
+        if (this.redis.condition.subscriber) {
+          const channel = reply[1] ? reply[1].toString() : null;
+          if (channel) {
+            this.redis.condition.subscriber.del(replyType, channel);
+          }
+        }
+
+        const count = reply[2] as string | Buffer | number;
+        if (Number(count) === 0) {
+          this.redis.condition.subscriber = false;
+        }
+
+        if (this.handleUnsolicitedUnsubscribe(replyType)) {
+          return;
+        }
+
+        const item = this.shiftCommand(reply);
+        if (!item) {
+          return;
+        }
+        if (!fillUnsubCommand(item.command, count)) {
+          this.redis.commandQueue.unshift(item);
+        }
+        break;
+      }
+    }
+  }
+
+  // Cluster sends unsolicited `sunsubscribe` pushes on slot migration; those
+  // answer no queued command, so shifting the queue head would resolve an
+  // unrelated in-flight command. Detected via a non-matching queue head, and
+  // `sunsubscribe` reuses the ssubscribe-MOVED recovery path.
+  private handleUnsolicitedUnsubscribe(replyType: string): boolean {
+    const head = this.redis.commandQueue.peekFront();
+    // Command names keep the user's casing (e.g. `call("UNSUBSCRIBE")`), while
+    // reply types from the server are lowercase — compare case-insensitively
+    // or an uppercase unsubscribe would be treated as unsolicited and its
+    // reply dropped, desyncing the queue.
+    if (head && head.command.name.toLowerCase() === replyType) {
+      return false;
+    }
+    if (replyType === "sunsubscribe") {
+      this.redis.emit("moved");
+    }
+    return true;
   }
 
   private handleSubscriberReply(reply: ReplyData): boolean {
@@ -187,6 +321,9 @@ export default class DataHandler {
         if (Number(count) === 0) {
           this.redis.condition.subscriber = false;
         }
+        if (this.handleUnsolicitedUnsubscribe(replyType)) {
+          break;
+        }
         const item = this.shiftCommand(reply);
         if (!item) {
           return;
@@ -254,9 +391,57 @@ export default class DataHandler {
   }
 }
 
+// All string RESP types (simple, blob, verbatim) decode to Buffer rather than
+// utf8 strings. This keeps the parser encoding-agnostic: ioredis decides
+// utf8-vs-Buffer per command afterwards via `replyEncoding`. Decoding to utf8
+// here would be irreversible and corrupt binary-safe values (e.g. DUMP output,
+// serialized blobs), whereas bytes -> string stays lossless and deferred. This
+// mirrors the old `redis-parser` running with `returnBuffers: true`.
+
+// RESP2-compatible shapes: RESP3-only container and numeric types are
+// flattened so replies are identical across both protocols. Strings stay
+// buffers; utf8 conversion is decided per command by `replyEncoding`.
+const legacyTypeMapping: TypeMapping = {
+  [RESP_TYPES.SIMPLE_STRING]: Buffer,
+  [RESP_TYPES.BLOB_STRING]: Buffer,
+  [RESP_TYPES.VERBATIM_STRING]: Buffer,
+  [RESP_TYPES.BIG_NUMBER]: String,
+  // RESP2 represented doubles as bulk strings and booleans as `1`/`0`
+  // integers. Decode doubles to Buffer (like blob strings, so `replyEncoding`
+  // still chooses string-vs-buffer per command) and booleans to numbers, so
+  // RESP3 replies match the classic RESP2 shape.
+  [RESP_TYPES.DOUBLE]: Buffer,
+  [RESP_TYPES.BOOLEAN]: Number,
+  [RESP_TYPES.MAP]: Array,
+  [RESP_TYPES.SET]: Array,
+};
+
+// Leaving MAP and DOUBLE unmapped makes the decoder produce plain objects
+// (with string keys) and numbers respectively.
+const resp3TypeMapping: TypeMapping = {
+  [RESP_TYPES.SIMPLE_STRING]: Buffer,
+  [RESP_TYPES.BLOB_STRING]: Buffer,
+  [RESP_TYPES.VERBATIM_STRING]: Buffer,
+  [RESP_TYPES.BIG_NUMBER]: String,
+  [RESP_TYPES.SET]: Array,
+};
+
+function getParserTypeMapping(parserOptions: ParserOptions): TypeMapping {
+  const base =
+    parserOptions.replyMapping === "resp3"
+      ? resp3TypeMapping
+      : legacyTypeMapping;
+
+  // `stringNumbers` means "all numerics as strings", so it wins over the
+  // preset for DOUBLE as well.
+  return parserOptions.stringNumbers
+    ? { ...base, [RESP_TYPES.NUMBER]: String, [RESP_TYPES.DOUBLE]: String }
+    : base;
+}
+
 const remainingRepliesMap = new WeakMap<Respondable, number>();
 
-function fillSubCommand(command: Respondable, count: number) {
+function fillSubCommand(command: Respondable, count: string | Buffer | number) {
   let remainingReplies = remainingRepliesMap.has(command)
     ? remainingRepliesMap.get(command)
     : command.args.length;
@@ -272,7 +457,10 @@ function fillSubCommand(command: Respondable, count: number) {
   return false;
 }
 
-function fillUnsubCommand(command: Respondable, count: number) {
+function fillUnsubCommand(
+  command: Respondable,
+  count: string | Buffer | number
+) {
   let remainingReplies = remainingRepliesMap.has(command)
     ? remainingRepliesMap.get(command)
     : command.args.length;

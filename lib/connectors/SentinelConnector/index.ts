@@ -11,7 +11,7 @@ import { connect as createTLSConnection, ConnectionOptions } from "tls";
 import SentinelIterator from "./SentinelIterator";
 import { RedisClient, SentinelAddress, Sentinel } from "./types";
 import AbstractConnector, { ErrorEmitter } from "../AbstractConnector";
-import { NetStream } from "../../types";
+import { NetStream, ProtocolVersion, ReplyMappingMode } from "../../types";
 import Redis from "../../Redis";
 import { RedisOptions } from "../../redis/RedisOptions";
 import { FailoverDetector } from "./FailoverDetector";
@@ -44,6 +44,8 @@ export interface SentinelConnectionOptions {
   sentinelUsername?: string | undefined;
   sentinelPassword?: string | undefined;
   sentinels?: Array<Partial<SentinelAddress>> | undefined;
+  path?: string | undefined;
+  family?: number | undefined;
   sentinelRetryStrategy?:
     | ((retryAttempts: number) => number | void | null)
     | undefined;
@@ -63,6 +65,8 @@ export interface SentinelConnectionOptions {
    */
   sentinelMaxConnections?: number | undefined;
   failoverDetector?: boolean | undefined;
+  protocol?: ProtocolVersion | undefined;
+  replyMapping?: ReplyMappingMode | undefined;
 }
 
 export default class SentinelConnector extends AbstractConnector {
@@ -312,14 +316,14 @@ export default class SentinelConnector extends AbstractConnector {
       password: this.options.sentinelPassword || null,
       family:
         endpoint.family ||
-        // @ts-expect-error
         ("path" in this.options && this.options.path
           ? undefined
-          : // @ts-expect-error
-            this.options.family),
+          : this.options.family),
       tls: this.options.sentinelTLS,
       retryStrategy: null,
       enableReadyCheck: false,
+      protocol: this.options.protocol,
+      replyMapping: "legacy",
       connectTimeout: this.options.connectTimeout,
       commandTimeout: this.options.sentinelCommandTimeout,
       ...options,
@@ -367,6 +371,8 @@ export default class SentinelConnector extends AbstractConnector {
       const client = this.connectToSentinel(value, {
         lazyConnect: true,
         retryStrategy: this.options.sentinelReconnectStrategy,
+        protocol: this.options.protocol,
+        replyMapping: "legacy",
       });
 
       client.on("reconnecting", () => {
@@ -405,24 +411,20 @@ function selectPreferredSentinel(
     selectedSlave = preferredSlaves(availableSlaves);
   } else if (preferredSlaves !== null && typeof preferredSlaves === "object") {
     const preferredSlavesArray = Array.isArray(preferredSlaves)
-      ? preferredSlaves
+      ? [...preferredSlaves]
       : [preferredSlaves];
 
     // sort by priority
     preferredSlavesArray.sort((a, b) => {
       // default the priority to 1
-      if (!a.prio) {
-        a.prio = 1;
-      }
-      if (!b.prio) {
-        b.prio = 1;
-      }
+      const aPrio = a.prio ?? 1;
+      const bPrio = b.prio ?? 1;
 
       // lowest priority first
-      if (a.prio < b.prio) {
+      if (aPrio < bPrio) {
         return -1;
       }
-      if (a.prio > b.prio) {
+      if (aPrio > bPrio) {
         return 1;
       }
       return 0;

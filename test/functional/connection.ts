@@ -10,6 +10,7 @@ describe("connection", function () {
   it('should emit "connect" when connected', (done) => {
     const redis = new Redis();
     redis.on("connect", function () {
+      expect(redis.status).to.eql("connect");
       redis.disconnect();
       done();
     });
@@ -23,14 +24,14 @@ describe("connection", function () {
     });
   });
 
-  it("should send AUTH command before any other commands", (done) => {
+  it("should send HELLO command before any other commands", (done) => {
     const redis = new Redis({ password: "123" });
     redis.get("foo");
     let times = 0;
     sinon.stub(redis, "sendCommand").callsFake((command) => {
       times += 1;
       if (times === 1) {
-        expect(command.name).to.eql("auth");
+        expect(command.name).to.eql("hello");
       } else if (times === 2 || times === 3) {
         expect(command.name).to.eql("client");
       } else if (times === 4) {
@@ -354,8 +355,8 @@ describe("connection", function () {
   });
 
   describe("readOnly", function () {
-    it("should send readonly command before other commands", (done) => {
-      let called = false;
+    it("should send readonly command exactly once before other commands", (done) => {
+      let readonlyCount = 0;
       const redis = new Redis({
         port: 30001,
         readOnly: true,
@@ -363,9 +364,9 @@ describe("connection", function () {
       });
       var node = new MockServer(30001, function (argv) {
         if (argv[0] === "readonly") {
-          called = true;
+          readonlyCount += 1;
         } else if (argv[0] === "get" && argv[1] === "foo") {
-          expect(called).to.eql(true);
+          expect(readonlyCount).to.eql(1);
           redis.disconnect();
           node.disconnect(function () {
             done();
@@ -373,6 +374,39 @@ describe("connection", function () {
         }
       });
       redis.get("foo").catch(function () {});
+    });
+
+    it("should become ready with auto-pipelining enabled", (done) => {
+      let settled = false;
+      const node = new MockServer(30001);
+      const redis = new Redis({
+        port: 30001,
+        readOnly: true,
+        enableAutoPipelining: true,
+        showFriendlyErrorStack: true,
+      });
+      const timeout = setTimeout(function () {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        redis.disconnect();
+        node.disconnect(function () {
+          done(new Error("ready was not emitted"));
+        });
+      }, 1000);
+
+      redis.once("ready", function () {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timeout);
+        redis.disconnect();
+        node.disconnect(function () {
+          done();
+        });
+      });
     });
   });
 
