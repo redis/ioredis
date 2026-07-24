@@ -95,6 +95,13 @@ export default class ClusterSubscriber {
       );
       return;
     }
+
+    // the ClusterSubscriber connection is created with { retryStrategy: null }
+    // and the cluster is created with { slotsRefreshInterval: undefined } (slotsRefreshInterval https://github.com/redis/ioredis/blob/main/lib/cluster/ClusterOptions.ts#L217)
+    // if the subscriber connection terminated due to a node dying
+    // we must (TBC) refresh slot cache
+    this.emitter.emit("forceRefresh");
+    
     // If the subscriber closes whilst it's still the active connection,
     // we might as well try to connecting to a new node if possible to
     // minimise the number of missed publishes.
