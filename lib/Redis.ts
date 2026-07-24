@@ -685,8 +685,9 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
   }
 
   private setSocketTimeout() {
+    const stream = this.stream;
     this.socketTimeoutTimer = setTimeout(() => {
-      this.stream.destroy(
+      stream.destroy(
         new Error(
           `Socket timeout. Expecting data, but didn't receive any in ${this.options.socketTimeout}ms.`
         )
@@ -696,7 +697,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
 
     // this handler must run after the "data" handler in "DataHandler"
     // so that `this.commandQueue.length` will be updated
-    this.stream.once("data", () => {
+    stream.once("data", () => {
       clearTimeout(this.socketTimeoutTimer);
       this.socketTimeoutTimer = undefined;
       if (this.commandQueue.length === 0) return;

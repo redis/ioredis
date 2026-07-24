@@ -343,6 +343,12 @@ export function closeHandler(self) {
     const prevStatus = self.status;
     self.setStatus("close");
 
+    // The timeout belongs to the stream that just closed and must not survive reconnect.
+    if (self.socketTimeoutTimer !== undefined) {
+      clearTimeout(self.socketTimeoutTimer);
+      self.socketTimeoutTimer = undefined;
+    }
+
     if (self.commandQueue.length) {
       abortIncompletePipelines(self.commandQueue);
     }
