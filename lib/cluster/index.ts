@@ -81,7 +81,9 @@ type ClusterStatus =
 /**
  * Client for the official Redis Cluster
  */
-class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commander<{
+class Cluster<
+  ReplyMapping extends ReplyMappingMode = "legacy"
+> extends Commander<{
   type: "default";
   mapping: ReplyMapping extends "resp3" ? "resp3" : "resp2";
 }> {
@@ -377,7 +379,6 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
       this.shardedSubscribers.stop();
     }
 
-
     if (status === "wait") {
       const ret = asCallback(Promise.resolve<"OK">("OK"), callback);
 
@@ -492,7 +493,7 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
     if (this.isRefreshing) {
       return;
     }
-    
+
     this.isRefreshing = true;
 
     const _this = this;
@@ -646,6 +647,23 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
             _this.options.shardedSubscribers &&
             (command.name == "ssubscribe" || command.name == "sunsubscribe")
           ) {
+            const keys = command.getKeys();
+
+            // Zero-argument sunsubscribe: unsubscribe from all sharded channels
+            if (command.name == "sunsubscribe" && keys.length === 0) {
+              const subscribers = _this.shardedSubscribers.removeAllChannels();
+
+              for (const sub of subscribers) {
+                const subInstance = sub.getInstance();
+                if (subInstance) {
+                  subInstance.sendCommand(new Command("sunsubscribe"));
+                }
+              }
+
+              command.resolve(undefined);
+              return;
+            }
+
             const sub =
               _this.shardedSubscribers.getResponsibleSubscriber(targetSlot);
 
@@ -659,13 +677,11 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
             let status = -1;
 
             if (command.name == "ssubscribe") {
-              status = _this.shardedSubscribers.addChannels(command.getKeys());
+              status = _this.shardedSubscribers.addChannels(keys);
             }
 
             if (command.name == "sunsubscribe") {
-              status = _this.shardedSubscribers.removeChannels(
-                command.getKeys()
-              );
+              status = _this.shardedSubscribers.removeChannels(keys);
             }
 
             if (status !== -1) {
@@ -943,9 +959,7 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
 
   private natMapper(nodeKey: NodeKey | RedisOptions): RedisOptions {
     const key =
-      typeof nodeKey === "string"
-        ? nodeKey
-        : `${nodeKey.host}:${nodeKey.port}`;
+      typeof nodeKey === "string" ? nodeKey : `${nodeKey.host}:${nodeKey.port}`;
 
     let mapped = null;
     if (this.options.natMap && typeof this.options.natMap === "function") {
