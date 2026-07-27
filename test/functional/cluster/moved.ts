@@ -208,6 +208,36 @@ describe("cluster:MOVED", () => {
     });
   });
 
+  it("rejects a MOVED redirect with a non-numeric slot without polluting Array.prototype", (done) => {
+    // A malicious/compromised node replying with a crafted slot such as
+    // "__proto__" must not be used to index the internal slots array,
+    // which would write to Array.prototype[0].
+    // https://hackerone.com/reports/3761875
+    let cluster = undefined;
+    const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
+    new MockServer(30001, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+      if (argv[0] === "get" && argv[1] === "foo") {
+        return new Error("MOVED __proto__ 127.0.0.1:30002");
+      }
+    });
+
+    cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      maxRedirections: 2,
+    });
+    cluster.get("foo", (err) => {
+      expect(err).to.be.instanceOf(Error);
+      expect(err.message).to.include("MOVED __proto__");
+      // eslint-disable-next-line no-prototype-builtins
+      expect(Array.prototype.hasOwnProperty(0)).to.eql(false);
+      expect([].length).to.eql(0);
+      cluster.disconnect();
+      done();
+    });
+  });
+
   it("should supports retryDelayOnMoved", (done) => {
     let cluster = undefined;
     const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];

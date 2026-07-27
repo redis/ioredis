@@ -578,13 +578,25 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
           moved: function (slot, key) {
             debug("command %s is moved to %s", command.name, key);
             targetSlot = Number(slot);
-            if (_this.slots[slot]) {
-              _this.slots[slot][0] = key;
-            } else {
-              _this.slots[slot] = [key];
+            // Reject redirects whose slot is not a valid integer in the
+            // cluster range. A malformed slot such as "__proto__" would
+            // otherwise index Array.prototype and pollute it globally.
+            if (
+              !Number.isInteger(targetSlot) ||
+              targetSlot < 0 ||
+              targetSlot >= 16384
+            ) {
+              debug("ignoring MOVED with invalid slot %s", slot);
+              reject.call(command, err);
+              return;
             }
-            _this._groupsBySlot[slot] =
-              _this._groupsIds[_this.slots[slot].join(";")];
+            if (_this.slots[targetSlot]) {
+              _this.slots[targetSlot][0] = key;
+            } else {
+              _this.slots[targetSlot] = [key];
+            }
+            _this._groupsBySlot[targetSlot] =
+              _this._groupsIds[_this.slots[targetSlot].join(";")];
             const mapped = _this.natMapper(key);
             const mappedKey = getNodeKey(mapped);
             if (
