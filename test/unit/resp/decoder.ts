@@ -213,6 +213,26 @@ describe("RESP Decoder", () => {
       replies: [-1.1e1],
     });
 
+    test("Number.MAX_VALUE", {
+      toWrite: Buffer.from(",1.7976931348623157e308\r\n"),
+      replies: [Number.MAX_VALUE],
+    });
+
+    test("Number.MIN_VALUE", {
+      toWrite: Buffer.from(",5e-324\r\n"),
+      replies: [Number.MIN_VALUE],
+    });
+
+    test("sub-1e-17 decimal", {
+      toWrite: Buffer.from(",0.000000000000000001\r\n"),
+      replies: [1e-18],
+    });
+
+    test("correctly rounded decimal", {
+      toWrite: Buffer.from(",0.30000000000000004\r\n"),
+      replies: [0.30000000000000004],
+    });
+
     test("1 as string", {
       typeMapping: {
         [RESP_TYPES.DOUBLE]: String,
