@@ -238,6 +238,39 @@ describe("cluster:MOVED", () => {
     });
   });
 
+  it("rejects a MOVED redirect with a non-numeric slot inside a pipeline without polluting Array.prototype", (done) => {
+    // The pipeline retry path has its own MOVED handler; it must also
+    // reject a crafted slot such as "__proto__" (or a token like "length"
+    // that would throw RangeError). https://hackerone.com/reports/3761875
+    let cluster = undefined;
+    const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
+    new MockServer(30001, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+      if (argv[0] === "get" && argv[1] === "foo") {
+        return new Error("MOVED __proto__ 127.0.0.1:30002");
+      }
+    });
+
+    cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      maxRedirections: 2,
+    });
+    cluster
+      .pipeline()
+      .get("foo")
+      .exec((err, results) => {
+        expect(err).to.eql(null);
+        expect(results[0][0]).to.be.instanceOf(Error);
+        expect(results[0][0].message).to.include("MOVED __proto__");
+        // eslint-disable-next-line no-prototype-builtins
+        expect(Array.prototype.hasOwnProperty(0)).to.eql(false);
+        expect([].length).to.eql(0);
+        cluster.disconnect();
+        done();
+      });
+  });
+
   it("should supports retryDelayOnMoved", (done) => {
     let cluster = undefined;
     const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
