@@ -266,6 +266,29 @@ describe("DataHandler", () => {
     expect(setup.redis.recoverFromFatalError.called).to.be.false;
     expect(setup.redis.commandQueue.length).to.equal(1);
   });
+
+  it("recovers instead of crashing on a reply that overflows the decoder's call stack | https://github.com/redis/ioredis/issues/2108", () => {
+    const setup = setupDataHandler();
+
+    // The decoder recurses once per level of RESP aggregate nesting, with no
+    // depth limit, so a sufficiently deeply nested reply (from a
+    // compromised/malicious server, or a corrupted stream) throws a
+    // synchronous RangeError instead of reporting a parser error.
+    let deeplyNested = ":1\r\n";
+    for (let i = 0; i < 50000; i++) {
+      deeplyNested = "*1\r\n" + deeplyNested;
+    }
+
+    expect(() => setup.write(deeplyNested)).to.not.throw();
+
+    expect(setup.redis.recoverFromFatalError.calledOnce).to.be.true;
+    const [commandError, err, options] =
+      setup.redis.recoverFromFatalError.firstCall.args;
+    expect(commandError).to.be.instanceOf(RangeError);
+    expect(err).to.equal(commandError);
+    expect(commandError.message).to.include("Maximum call stack size exceeded");
+    expect(options).to.deep.equal({ offlineQueue: false });
+  });
 });
 
 function setupDataHandler(parserOptions = { stringNumbers: false }) {
