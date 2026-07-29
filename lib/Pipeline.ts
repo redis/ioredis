@@ -163,17 +163,17 @@ class Pipeline extends Commander<{ type: "pipeline" }> {
         };
         const cluster = this.redis as Cluster;
         cluster.handleError(commonError, this.leftRedirections, {
-          moved: function (_slot: string, key: string) {
+          moved: function (slot: number, key: string) {
             _this.preferKey = key;
-            if (cluster.slots[errv[1]]) {
-                if (cluster.slots[errv[1]][0] !== key) {
-                  cluster.slots[errv[1]] = [key];
-                }
+            if (cluster.slots[slot]) {
+              if (cluster.slots[slot][0] !== key) {
+                cluster.slots[slot] = [key];
+              }
             } else {
-              cluster.slots[errv[1]] = [key];
+              cluster.slots[slot] = [key];
             }
-            cluster._groupsBySlot[errv[1]] =
-              cluster._groupsIds[cluster.slots[errv[1]].join(";")];
+            cluster._groupsBySlot[slot] =
+              cluster._groupsIds[cluster.slots[slot].join(";")];
             cluster.refreshSlotsCache();
             _this.exec();
           },

@@ -803,15 +803,25 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
     }
     const errv = error.message.split(" ");
     if (errv[0] === "MOVED") {
+      const slot = Number(errv[1]);
+      // Reject redirects whose slot is not a valid integer in the cluster
+      // range. The moved handlers use the slot to index the `slots` array;
+      // a crafted token such as "__proto__" would otherwise resolve to
+      // Array.prototype and pollute it globally. See
+      // https://hackerone.com/reports/3761875
+      if (!Number.isInteger(slot) || slot < 0 || slot >= 16384) {
+        handlers.defaults();
+        return;
+      }
       const timeout = this.options.retryDelayOnMoved;
       if (timeout && typeof timeout === "number") {
         this.delayQueue.push(
           "moved",
-          handlers.moved.bind(null, errv[1], errv[2]),
+          handlers.moved.bind(null, slot, errv[2]),
           { timeout }
         );
       } else {
-        handlers.moved(errv[1], errv[2]);
+        handlers.moved(slot, errv[2]);
       }
     } else if (errv[0] === "ASK") {
       handlers.ask(errv[1], errv[2]);
