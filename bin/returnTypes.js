@@ -132,6 +132,7 @@ module.exports = {
   brpop: "[string, string] | null",
   brpoplpush: "string | null",
   blmove: "string | null",
+  blmovem: "string[] | null",
   lmpop: "[key: string, members: string[]] | null",
   blmpop: "[key: string, members: string[]] | null",
   bzpopmin: {
@@ -301,6 +302,7 @@ module.exports = {
   },
   rpoplpush: "string",
   lmove: "string",
+  lmovem: "string[] | null",
   rpush: "number",
   rpushx: "number",
   sadd: "number",

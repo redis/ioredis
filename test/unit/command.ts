@@ -173,6 +173,7 @@ describe("Command", () => {
         false
       );
       expect(Command.checkFlag("WILL_DISCONNECT", "quit")).to.eql(true);
+      expect(Command.checkFlag("BLOCKING_COMMANDS", "blmovem")).to.eql(true);
     });
 
     it("should be case insensitive for command name", () => {
@@ -349,6 +350,47 @@ describe("Command", () => {
       it("handles fractional seconds", () => {
         const command = new Command("blpop", ["key", "1.5"]);
         expect(command.extractBlockingTimeout()).to.equal(1500);
+      });
+    });
+
+    describe("BLMOVEM", () => {
+      it("extracts timeout without trailing options", () => {
+        const command = new Command("blmovem", [
+          "source",
+          "destination",
+          "LEFT",
+          "RIGHT",
+          "5",
+        ]);
+        expect(command.extractBlockingTimeout()).to.equal(5000);
+      });
+
+      it("extracts timeout with trailing COUNT options", () => {
+        const command = new Command("blmovem", [
+          "source",
+          "destination",
+          "LEFT",
+          "RIGHT",
+          "1.5",
+          "COUNT",
+          "2",
+          "BULK",
+        ]);
+        expect(command.extractBlockingTimeout()).to.equal(1500);
+      });
+
+      it("extracts timeout with trailing EXACTLY options", () => {
+        const command = new Command("BLMOVEM", [
+          "source",
+          "destination",
+          "RIGHT",
+          "LEFT",
+          Buffer.from("10"),
+          "EXACTLY",
+          "3",
+          "OBO",
+        ]);
+        expect(command.extractBlockingTimeout()).to.equal(10000);
       });
     });
 
