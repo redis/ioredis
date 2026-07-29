@@ -115,6 +115,18 @@ expectType<Promise<Buffer[]>>(redis.srandmemberBuffer("key", 10));
 // LMISMEMBER
 expectType<Promise<number[]>>(redis.smismember("key", "e1", "e2"));
 
+// Set cardinality commands
+expectType<Promise<number>>(redis.sdiffcard(2, "s1", "s2"));
+expectType<Promise<number>>(redis.sdiffcard(2, ["s1", "s2"]));
+expectType<Promise<number>>(redis.sdiffcard(2, "s1", "s2", "LIMIT", 1));
+expectType<Promise<number>>(redis.sunioncard(2, "s1", "s2"));
+expectType<Promise<number>>(redis.sunioncard(2, ["s1", "s2"]));
+expectType<Promise<number>>(redis.sunioncard(2, "s1", "s2", "LIMIT", 1));
+expectType<Promise<number>>(redis.sunioncard(2, "s1", "s2", "APPROX"));
+expectType<Promise<number>>(
+  redis.sunioncard(2, "s1", "s2", "APPROX", "LIMIT", 1)
+);
+
 // ZADD
 expectType<Promise<number>>(redis.zadd("key", 1, "member"));
 expectType<Promise<number>>(redis.zadd("key", "CH", 1, "member"));
@@ -236,6 +248,16 @@ redis.del("key1", "key2", (err, res) => {
 });
 
 redis.del(["key1", "key2"], (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<number | undefined>(res);
+});
+
+redis.sdiffcard(2, "s1", "s2", "LIMIT", 1, (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<number | undefined>(res);
+});
+
+redis.sunioncard(2, "s1", "s2", "APPROX", (err, res) => {
   expectType<Error | null | undefined>(err);
   expectType<number | undefined>(res);
 });
