@@ -1,3 +1,31 @@
+# [6.0.0-beta.1](https://github.com/redis/ioredis/compare/v5.11.1...v6.0.0-beta.1) (2026-07-29)
+
+
+* Add RESP3 ([#2127](https://github.com/redis/ioredis/issues/2127)) ([5d0862e](https://github.com/redis/ioredis/commit/5d0862e078c1252470872fa3a96d7435bb34f078))
+
+
+### Bug Fixes
+
+* clear stale socket timeout on reconnect ([#2148](https://github.com/redis/ioredis/issues/2148)) ([6455dbe](https://github.com/redis/ioredis/commit/6455dbe6c7dbbd801aae112c8be935aa2896d7ac))
+* **cluster:** recreate stale connection on circular MOVED ([#2135](https://github.com/redis/ioredis/issues/2135)) ([08c8967](https://github.com/redis/ioredis/commit/08c89671790d5121853e51ed3465dc6b248e8803))
+* **cluster:** validate MOVED slot to prevent Array.prototype pollution ([#2151](https://github.com/redis/ioredis/issues/2151)) ([9618206](https://github.com/redis/ioredis/commit/9618206b93d7022e9fb76f300503a53e1aefb4bc)), closes [#1267](https://github.com/redis/ioredis/issues/1267)
+* **command:** serialize large integer arguments in decimal notation ([#2136](https://github.com/redis/ioredis/issues/2136)) ([09b8d04](https://github.com/redis/ioredis/commit/09b8d04b62481e68521359a43cb3638e09e92565))
+* **redis:** keep reconnecting when connection closes during client setup ([#2099](https://github.com/redis/ioredis/issues/2099)) ([#2123](https://github.com/redis/ioredis/issues/2123)) ([f9a66bc](https://github.com/redis/ioredis/commit/f9a66bc0d9022bb21c479ef5580c65e544aa6629))
+* **sentinel:** preserve zero preferred slave priority ([#2129](https://github.com/redis/ioredis/issues/2129)) ([a3f9f2d](https://github.com/redis/ioredis/commit/a3f9f2dded99f55a59713a8e8d3e395c015d51c1))
+* **tracing:** redact values for GETSET and PSETEX ([#2134](https://github.com/redis/ioredis/issues/2134)) ([832765d](https://github.com/redis/ioredis/commit/832765dbe8c13d23b57392bdd3d88a0a37131732))
+
+
+### Features
+
+* add LMOVEM and BLMOVEM command support ([#2144](https://github.com/redis/ioredis/issues/2144)) ([c26af46](https://github.com/redis/ioredis/commit/c26af46dc91874b1da58aec9da337822a4851d97))
+* add Redis 8.10 set cardinality commands ([#2143](https://github.com/redis/ioredis/issues/2143)) ([301099b](https://github.com/redis/ioredis/commit/301099b77d059dfc47ec591e7f011790ed475a84))
+* support MAXCOUNT and MAXSIZE for stream reads ([#2142](https://github.com/redis/ioredis/issues/2142)) ([ae5e41b](https://github.com/redis/ioredis/commit/ae5e41b231d9c1e6d6289848f58355f01f5ba6ec))
+
+
+### BREAKING CHANGES
+
+* ioredis now requires Node.js 20 or newer and uses RESP3 by default. Set `protocol: 2` to retain the v5 wire protocol.
+
 ## [5.11.1](https://github.com/luin/ioredis/compare/v5.11.0...v5.11.1) (2026-06-04)
 
 
