@@ -341,6 +341,40 @@ expectType<Promise<StreamReadLegacyBuffer>>(
 expectType<Promise<StreamReadResp3Buffer>>(
   r3.xreadBuffer("STREAMS", "stream", "0"),
 );
+expectType<Promise<StreamReadLegacy>>(
+  r2.xread(
+    "COUNT",
+    1,
+    "MAXCOUNT",
+    2,
+    "MAXSIZE",
+    1024,
+    "BLOCK",
+    1,
+    "STREAMS",
+    "stream",
+    "0",
+  ),
+);
+expectType<Promise<StreamReadResp3>>(
+  r3.xread("MAXCOUNT", 2, "MAXSIZE", 1024, "STREAMS", "stream", "0"),
+);
+expectType<Promise<StreamReadLegacyBuffer>>(
+  r2.xreadBuffer("MAXSIZE", 1024, "STREAMS", "stream", "0"),
+);
+r3.xread(
+  "MAXCOUNT",
+  2,
+  "MAXSIZE",
+  1024,
+  "STREAMS",
+  "stream",
+  "0",
+  (err, value) => {
+    expectType<Error | null | undefined>(err);
+    expectType<StreamReadResp3 | undefined>(value);
+  },
+);
 
 // xreadgroup can read the PEL by explicit ID; XDEL'd entries come back with a
 // null fields payload, so the fields array is nullable per entry.
@@ -370,6 +404,69 @@ expectType<Promise<StreamGroupReadLegacyBuffer>>(
 );
 expectType<Promise<StreamGroupReadResp3Buffer>>(
   r3.xreadgroupBuffer("GROUP", "group", "consumer", "STREAMS", "stream", ">"),
+);
+expectType<Promise<StreamGroupReadLegacy>>(
+  r2.xreadgroup(
+    "GROUP",
+    "group",
+    "consumer",
+    "COUNT",
+    1,
+    "MAXCOUNT",
+    2,
+    "MAXSIZE",
+    1024,
+    "BLOCK",
+    1,
+    "CLAIM",
+    1000,
+    "NOACK",
+    "STREAMS",
+    "stream",
+    ">",
+  ),
+);
+expectType<Promise<StreamGroupReadResp3>>(
+  r3.xreadgroup(
+    "GROUP",
+    "group",
+    "consumer",
+    "MAXCOUNT",
+    2,
+    "MAXSIZE",
+    1024,
+    "STREAMS",
+    "stream",
+    ">",
+  ),
+);
+expectType<Promise<StreamGroupReadLegacyBuffer>>(
+  r2.xreadgroupBuffer(
+    "GROUP",
+    "group",
+    "consumer",
+    "MAXSIZE",
+    1024,
+    "STREAMS",
+    "stream",
+    ">",
+  ),
+);
+r3.xreadgroupBuffer(
+  "GROUP",
+  "group",
+  "consumer",
+  "MAXCOUNT",
+  2,
+  "MAXSIZE",
+  1024,
+  "STREAMS",
+  "stream",
+  ">",
+  (err, value) => {
+    expectType<Error | null | undefined>(err);
+    expectType<StreamGroupReadResp3Buffer | undefined>(value);
+  },
 );
 
 // Cluster inference mirrors single-node Redis inference.
