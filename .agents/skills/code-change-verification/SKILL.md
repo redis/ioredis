@@ -23,7 +23,8 @@ Use this skill to choose the smallest credible validation set for an ioredis cha
    - Build/tooling changes: run `npm run build` and the affected script directly.
 
 3. Prefer focused validation before broad validation.
-   - Unit-only change: `TS_NODE_TRANSPILE_ONLY=true NODE_ENV=test npx mocha --no-experimental-strip-types "test/helpers/*.ts" "test/unit/<file>.ts"`.
+   - For self-contained pure unit files, run the test file alone first: `TS_NODE_TRANSPILE_ONLY=true NODE_ENV=test npx mocha --no-experimental-strip-types "test/unit/<file>.ts"`.
+   - Include `test/helpers/*.ts` only when the unit file relies on global hooks or helper setup.
    - Functional command change: include `test/helpers/*.ts` and the specific `test/functional/...` file.
    - Typing change: `npm run build` then `npx tsd --files test/typing/<file>.test-d.ts` when a focused file exists.
    - Public API or cross-cutting behavior: escalate to `npm test` after focused tests pass.
