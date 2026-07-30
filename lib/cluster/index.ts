@@ -68,7 +68,7 @@ export type ClusterNode =
       port?: number | undefined;
     };
 
-type ClusterStatus =
+export type ClusterStatus =
   | "end"
   | "close"
   | "wait"

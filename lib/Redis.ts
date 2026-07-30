@@ -46,7 +46,7 @@ import { defaults, noop } from "./utils/lodash";
 import Deque = require("denque");
 const debug = Debug("redis");
 
-type RedisStatus =
+export type RedisStatus =
   | "wait"
   | "reconnecting"
   | "connecting"
