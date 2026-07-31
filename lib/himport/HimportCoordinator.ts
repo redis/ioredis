@@ -54,6 +54,12 @@ export interface HimportBinding {
   role: HimportConnectionRole;
 }
 
+export const hasHimportCoordinator = Symbol("hasHimportCoordinator");
+
+type HimportBindingOwner = object & {
+  [hasHimportCoordinator]?: boolean;
+};
+
 const bindings = new WeakMap<object, HimportBinding>();
 const internalCommands = new WeakSet<Command>();
 const debug = Debug("himport");
@@ -447,6 +453,7 @@ export function bindHimportCoordinator(
   role: HimportConnectionRole
 ): void {
   bindings.set(owner, { coordinator, role });
+  (owner as HimportBindingOwner)[hasHimportCoordinator] = true;
 }
 
 export function getHimportBinding(owner: object): HimportBinding | undefined {
@@ -542,6 +549,7 @@ export function unbindHimportCoordinator(owner: object): void {
     binding.coordinator.detach(owner as HimportConnection);
     bindings.delete(owner);
   }
+  (owner as HimportBindingOwner)[hasHimportCoordinator] = false;
 }
 
 export function isInternalHimportCommand(command: Command): boolean {

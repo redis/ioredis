@@ -45,6 +45,7 @@ import Commander from "./utils/Commander";
 import { defaults, noop } from "./utils/lodash";
 import HimportCoordinator, {
   bindHimportCoordinator,
+  hasHimportCoordinator,
   interceptHimportCommand,
   isInternalHimportCommand,
 } from "./himport/HimportCoordinator";
@@ -130,6 +131,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
   private retryAttempts = 0;
   private manuallyClosing = false;
   private socketTimeoutTimer: NodeJS.Timeout | undefined;
+  private [hasHimportCoordinator] = false;
 
   // Prepare autopipelines structures
   private _autoPipelines = new Map();
@@ -524,6 +526,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
 
     if (
       !stream &&
+      this[hasHimportCoordinator] &&
       interceptHimportCommand(
         this,
         command,
