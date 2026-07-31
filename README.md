@@ -313,15 +313,16 @@ const result = await redis.setBuffer("foo", "new value", "GET");
 // result is `<Buffer 62 75 66>` as `GET` indicates returning the old value.
 ```
 
-## HIMPORT Fieldsets (experimental)
+## Managed HIMPORT Fieldsets (experimental)
 
 > [!WARNING]
-> HIMPORT support is experimental and may change in a future release. When a
-> managed `HIMPORT SET` needs fieldset preparation or recovery, later commands
-> may be sent before that SET resumes. Await the SET before issuing commands
-> that depend on its write.
+> ioredis managed-fieldset support is experimental and may change in a future
+> release. When a managed `HIMPORT SET` needs fieldset preparation or recovery,
+> later commands may be sent before that SET resumes. Await the SET before
+> issuing commands that depend on its write.
 
-HIMPORT provides a faster ingestion mechanism for loading many hashes that
+[`HIMPORT`](https://redis.io/docs/latest/commands/himport/) requires Redis 8.10
+or newer. It provides a faster ingestion mechanism for loading many hashes that
 share the same set of field names.
 
 Explicit pipelines containing a configured `HIMPORT SET` wait for required
@@ -347,6 +348,31 @@ await redis.himport(
   "37"
 );
 ```
+
+For Cluster clients, pass `himportFieldsets` at the top level of the Cluster
+options, not under `redisOptions`. ioredis prepares managed fieldsets on current
+and future master connections:
+
+```javascript
+const cluster = new Redis.Cluster(nodes, {
+  himportFieldsets: [
+    {
+      name: "user-profile",
+      fields: ["name", "email", "age"],
+    },
+  ],
+});
+```
+
+Direct `HIMPORT PREPARE`, `DISCARD`, and `DISCARDALL` calls on a Cluster client
+fan out to all current masters, wait for every reply, and reject if any master
+fails. Inside an explicit pipeline, these commands remain connection-affine and
+are not managed.
+
+Background preparation failures do not prevent a connection from becoming
+ready. Standalone and Sentinel clients report them through the `error` event;
+Cluster clients report them through `node error`. A dependent managed
+`HIMPORT SET` retries preparation and rejects if recovery fails.
 
 See [`examples/himport.js`](examples/himport.js) for managed fieldsets and
 manual batches.

@@ -251,7 +251,7 @@ export interface CommonRedisOptions extends CommanderOptions {
   > | undefined;
 
   /**
-   * Experimental.
+   * Managed-fieldset support is experimental and requires Redis 8.10 or newer.
    *
    * Long-lived HIMPORT fieldsets managed for the lifetime of this client.
    * Definitions are copied during construction and prepared again whenever
@@ -263,6 +263,10 @@ export interface CommonRedisOptions extends CommanderOptions {
    *
    * Explicit pipelines containing a managed `HIMPORT SET` wait for required
    * fieldset preparation before the batch is sent.
+   *
+   * Background preparation failures do not prevent the connection from
+   * becoming ready and are reported through the `error` event. A dependent
+   * managed `HIMPORT SET` retries preparation and rejects if recovery fails.
    *
    * Use explicit `HIMPORT PREPARE` and `DISCARD` commands on a separate
    * client for bounded, manually managed batches.

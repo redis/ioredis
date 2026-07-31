@@ -2,6 +2,8 @@
  * A long-lived HIMPORT fieldset managed by ioredis for the lifetime of a
  * logical Redis or Cluster client.
  *
+ * Requires Redis 8.10 or newer.
+ *
  * @experimental
  */
 export interface HimportFieldset {

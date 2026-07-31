@@ -1,5 +1,7 @@
 const Redis = require("..");
 
+// Requires Redis 8.10 or newer.
+
 // -----------------------------------------------------------------------------
 // 1. Managed fieldsets: configure once and use for the client's lifetime
 // -----------------------------------------------------------------------------
