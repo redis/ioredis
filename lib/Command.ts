@@ -523,6 +523,9 @@ export default class Command implements Respondable {
   }
 
   private initPromise() {
+    this.isResolved = false;
+    this.isSettled = false;
+
     const promise = new Promise((resolve, reject) => {
       if (!this.transformed) {
         this.transformed = true;
