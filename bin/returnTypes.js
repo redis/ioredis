@@ -191,6 +191,10 @@ module.exports = {
   hpexpire: "number[]",
   hget: "string | null",
   hgetall: "[field: string, value: string][]",
+  himport: (types) => {
+    if (matchSubcommand(types, ["PREPARE", "SET"])) return "'OK'";
+    if (matchSubcommand(types, ["DISCARD", "DISCARDALL"])) return "number";
+  },
   hgetdel: "(string | null)[]",
   hgetex: "(string | null)[]",
   hincrby: "number",

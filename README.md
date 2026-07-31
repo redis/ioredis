@@ -313,6 +313,44 @@ const result = await redis.setBuffer("foo", "new value", "GET");
 // result is `<Buffer 62 75 66>` as `GET` indicates returning the old value.
 ```
 
+## HIMPORT Fieldsets (experimental)
+
+> [!WARNING]
+> HIMPORT support is experimental and may change in a future release. When a
+> managed `HIMPORT SET` needs fieldset preparation or recovery, later commands
+> may be sent before that SET resumes. Await the SET before issuing commands
+> that depend on its write.
+
+HIMPORT provides a faster ingestion mechanism for loading many hashes that
+share the same set of field names.
+
+Explicit pipelines containing a configured `HIMPORT SET` wait for required
+fieldset preparation on their selected connection before the batch is sent.
+Unconfigured fieldsets remain manually managed.
+
+```javascript
+const redis = new Redis({
+  himportFieldsets: [
+    {
+      name: "user-profile",
+      fields: ["name", "email", "age"],
+    },
+  ],
+});
+
+await redis.himport(
+  "SET",
+  "user:42",
+  "user-profile",
+  "Ada",
+  "ada@example.com",
+  "37"
+);
+```
+
+See [`examples/himport.js`](examples/himport.js) for managed fieldsets and
+manual batches.
+
 ## Pipelining
 
 If you want to send a batch of commands (e.g. > 5), you can use pipelining to queue

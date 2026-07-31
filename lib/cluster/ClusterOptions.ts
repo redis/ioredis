@@ -3,6 +3,7 @@ import { RedisOptions, RetryStrategy } from "../redis/RedisOptions";
 import { ReplyMappingMode } from "../types";
 import { CommanderOptions } from "../utils/Commander";
 import { NodeRole } from "./util";
+import type { HimportFieldset } from "../himport/types";
 
 export type DNSResolveSrvFunction = (
   hostname: string,
@@ -170,6 +171,7 @@ export interface ClusterOptions extends CommanderOptions {
         | "retryStrategy"
         | "enableOfflineQueue"
         | "readOnly"
+        | "himportFieldsets"
       >
     | undefined;
 
@@ -233,6 +235,27 @@ export interface ClusterOptions extends CommanderOptions {
   scripts?:
     | Record<string, { lua: string; numberOfKeys?: number; readOnly?: boolean }>
     | undefined;
+
+  /**
+   * Experimental.
+   *
+   * Long-lived HIMPORT fieldsets managed across all current and future master
+   * connections for the lifetime of this Cluster client.
+   *
+   * When a managed `HIMPORT SET` needs fieldset preparation or recovery,
+   * later commands issued on this Cluster client may be sent before that SET
+   * resumes. Await the SET before issuing commands that depend on its write.
+   *
+   * Explicit pipelines containing a managed `HIMPORT SET` wait for required
+   * fieldset preparation on the selected master before the batch is sent.
+   *
+   * Use explicit HIMPORT commands on a separate unconfigured client for
+   * bounded, manually managed batches.
+   *
+   * @default undefined
+   * @experimental
+   */
+  himportFieldsets?: readonly HimportFieldset[] | undefined;
 }
 
 export type ClusterOptionsWithReplyMapping<Mapping extends ReplyMappingMode> =

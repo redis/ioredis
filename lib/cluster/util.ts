@@ -1,4 +1,9 @@
-import { parseURL, resolveTLSProfile } from "../utils";
+import type Redis from "../Redis";
+import {
+  CONNECTION_CLOSED_ERROR_MSG,
+  parseURL,
+  resolveTLSProfile,
+} from "../utils";
 import { isIP } from "net";
 import { SrvRecord } from "dns";
 
@@ -20,6 +25,32 @@ export interface SrvRecordsGroup {
 
 export interface GroupedSrvRecords {
   [key: number]: SrvRecordsGroup;
+}
+
+export function waitForRedisReady(redis: Redis): Promise<void> {
+  if (redis.status === "ready") {
+    return Promise.resolve();
+  }
+  if (redis.status === "wait") {
+    return redis.connect();
+  }
+  if (redis.status === "end") {
+    return Promise.reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
+  }
+
+  return new Promise((resolve, reject) => {
+    const onReady = () => {
+      redis.removeListener("end", onEnd);
+      resolve();
+    };
+    const onEnd = () => {
+      redis.removeListener("ready", onReady);
+      reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
+    };
+
+    redis.once("ready", onReady);
+    redis.once("end", onEnd);
+  });
 }
 
 export function getNodeKey(node: RedisOptions): NodeKey {

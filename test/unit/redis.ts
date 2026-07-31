@@ -1,5 +1,7 @@
 import * as sinon from "sinon";
 import { expect } from "chai";
+import Command from "../../lib/Command";
+import HimportCoordinator, * as HimportCoordinatorModule from "../../lib/himport/HimportCoordinator";
 import Redis from "../../lib/Redis";
 import { DEFAULT_REDIS_OPTIONS } from "../../lib/redis/RedisOptions";
 
@@ -178,6 +180,75 @@ describe("Redis", () => {
         done();
       });
       redis.end();
+    });
+  });
+
+  describe("#sendCommand", () => {
+    it("bypasses HIMPORT interception when no coordinator is attached", () => {
+      const intercept = sinon.spy(
+        HimportCoordinatorModule,
+        "interceptHimportCommand"
+      );
+      const redis = new Redis({ lazyConnect: true });
+      const connect = sinon.stub(redis, "connect").resolves();
+      const command = new Command("get", ["key"]);
+      redis.condition = {
+        select: 0,
+        subscriber: false,
+        protocol: 2,
+        replyMapping: "legacy",
+        handshake: false,
+      };
+
+      try {
+        redis.sendCommand(command);
+        expect(intercept.called).to.equal(false);
+      } finally {
+        command.resolve(Buffer.from("value"));
+        connect.restore();
+        intercept.restore();
+      }
+    });
+
+    it("enables HIMPORT interception when a coordinator is attached externally", () => {
+      const intercept = sinon.spy(
+        HimportCoordinatorModule,
+        "interceptHimportCommand"
+      );
+      const redis = new Redis({ lazyConnect: true });
+      const connect = sinon.stub(redis, "connect").resolves();
+      const coordinator = new HimportCoordinator([
+        { name: "fieldset", fields: ["field"] },
+      ]);
+      const first = new Command("get", ["key"]);
+      const second = new Command("get", ["key"]);
+      redis.condition = {
+        select: 0,
+        subscriber: false,
+        protocol: 2,
+        replyMapping: "legacy",
+        handshake: false,
+      };
+
+      try {
+        HimportCoordinatorModule.bindHimportCoordinator(
+          redis,
+          coordinator,
+          "master"
+        );
+        redis.sendCommand(first);
+        expect(intercept.callCount).to.equal(1);
+
+        HimportCoordinatorModule.unbindHimportCoordinator(redis);
+        redis.sendCommand(second);
+        expect(intercept.callCount).to.equal(1);
+      } finally {
+        first.resolve(Buffer.from("value"));
+        second.resolve(Buffer.from("value"));
+        HimportCoordinatorModule.unbindHimportCoordinator(redis);
+        connect.restore();
+        intercept.restore();
+      }
     });
   });
 

@@ -108,6 +108,51 @@ describe("cluster:pipeline", () => {
       });
   });
 
+  it("should time out when a MOVED pipeline retry stops responding", async () => {
+    const slotTable = [
+      [0, 12181, ["127.0.0.1", 30001]],
+      [12182, 16383, ["127.0.0.1", 30002]],
+    ];
+    new MockServer(30001, (argv, _socket, flags) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+      if (argv[0] === "get" && argv[1] === "foo") {
+        flags.hang = true;
+      }
+    });
+    new MockServer(30002, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+      if (argv[0] === "get" && argv[1] === "foo") {
+        return new Error("MOVED " + calculateSlot("foo") + " 127.0.0.1:30001");
+      }
+    });
+
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      redisOptions: {
+        commandTimeout: 50,
+      },
+    });
+
+    try {
+      const result = await Promise.race([
+        cluster.pipeline().get("foo").exec(),
+        new Promise<never>((_resolve, reject) => {
+          setTimeout(
+            () => reject(new Error("Pipeline retry did not time out")),
+            500
+          );
+        }),
+      ]);
+
+      expect(result[0][0]?.message).to.equal("Command timed out");
+    } finally {
+      cluster.disconnect();
+    }
+  });
+
   it("should auto redirect commands on ASK", (done) => {
     let asked = false;
     const slotTable = [

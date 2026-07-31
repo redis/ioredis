@@ -8,11 +8,12 @@ import { CommandItem, Respondable } from "../types";
 import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import { PACKAGE_VERSION } from "../utils/version";
 import DataHandler from "../DataHandler";
+import { getHimportBinding } from "../himport/HimportCoordinator";
 
 const debug = Debug("connection");
 
 interface HandshakeCommand {
-  kind: "hello" | "auth" | "select" | "client" | "readonly";
+  kind: "hello" | "auth" | "select" | "client" | "readonly" | "himport";
   send: () => Promise<unknown>;
   errorHandler?: (err: Error) => void;
 }
@@ -94,6 +95,19 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
     });
   }
 
+  const himportBinding = getHimportBinding(self);
+  if (himportBinding && himportBinding.role !== "replica") {
+    for (const definition of himportBinding.coordinator.getDefinitions()) {
+      commands.push({
+        kind: "himport",
+        send: () =>
+          himportBinding.coordinator.ensurePrepared(self, definition) ??
+          Promise.resolve(),
+        errorHandler: (err) => self.silentEmit("error", err),
+      });
+    }
+  }
+
   return commands;
 }
 
@@ -154,6 +168,8 @@ export function connectHandler(self) {
       });
 
       const { connectionEpoch } = self;
+      const himportBinding = getHimportBinding(self);
+      himportBinding?.coordinator.beginSession(self);
       const isActiveConnect = () =>
         connectionEpoch === self.connectionEpoch && self.status === "connect";
       const finishHandshake = () => {

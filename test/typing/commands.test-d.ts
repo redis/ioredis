@@ -59,6 +59,17 @@ expectType<Promise<(string | null)[]>>(redis.mget(["key", "bar"]));
 expectType<Promise<Record<string, string>>>(redis.hgetall("key"));
 expectType<Promise<Record<string, Buffer>>>(redis.hgetallBuffer("key"));
 
+// HIMPORT
+expectType<Promise<"OK">>(
+  redis.himport("PREPARE", "fieldset", "field1", Buffer.from("field2"))
+);
+expectType<Promise<"OK">>(
+  redis.himport("SET", "key", "fieldset", "value1", 2)
+);
+expectType<Promise<number>>(redis.himport("DISCARD", "fieldset"));
+expectType<Promise<number>>(redis.himport("DISCARDALL"));
+expectError(redis.himport("UNKNOWN", "fieldset"));
+
 // Hash field expiration commands
 expectType<Promise<number[]>>(
   redis.hexpireat("key", 1_700_000_000, "FIELDS", 1, "field")
@@ -327,6 +338,16 @@ redis.argrep("key", 0, 4, "MATCH", "alpha", (err, res) => {
 redis.arop("key", 0, 2, "SUM", (err, res) => {
   expectType<Error | null | undefined>(err);
   expectType<string | null | undefined>(res);
+});
+
+redis.himport("SET", "key", "fieldset", "value", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<"OK" | undefined>(res);
+});
+
+redis.himport("DISCARD", "fieldset", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<number | undefined>(res);
 });
 
 // XNACK

@@ -8,6 +8,12 @@ const debug = Debug("cluster:connectionPool");
 
 type NODE_TYPE = "all" | "master" | "slave";
 
+export interface ConnectionPoolHooks {
+  onCreate?: (redis: Redis, readOnly: boolean) => void;
+  onRoleChange?: (redis: Redis, key: NodeKey, readOnly: boolean) => void;
+  onRemove?: (redis: Redis) => void;
+}
+
 export default class ConnectionPool extends EventEmitter {
   // master + slave = all
   private nodes: { [key in NODE_TYPE]: { [key: string]: Redis } } = {
@@ -20,7 +26,8 @@ export default class ConnectionPool extends EventEmitter {
 
   constructor(
     private redisOptions: NonNullable<ClusterOptions["redisOptions"]>,
-    private clusterNodeRetryStrategy: ClusterNodeRetryStrategy = null
+    private clusterNodeRetryStrategy: ClusterNodeRetryStrategy = null,
+    private hooks: ConnectionPoolHooks = {}
   ) {
     super();
   }
@@ -90,6 +97,7 @@ export default class ConnectionPool extends EventEmitter {
         )
     );
 
+    this.hooks.onCreate?.(redis, readOnly);
     return redis
   }
 
@@ -121,6 +129,7 @@ export default class ConnectionPool extends EventEmitter {
           delete this.nodes.slave[key];
           this.nodes.master[key] = redis;
         }
+        this.hooks.onRoleChange?.(redis, key, readOnly);
       }
     } else {
       debug("Connecting to %s as %s", key, readOnly ? "slave" : "master");
@@ -211,6 +220,7 @@ export default class ConnectionPool extends EventEmitter {
     const { nodes } = this;
     if (nodes.all[key]) {
       debug("Remove %s from the pool", key);
+      this.hooks.onRemove?.(nodes.all[key]);
       delete nodes.all[key];
     }
     delete nodes.master[key];

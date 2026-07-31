@@ -79,6 +79,43 @@ describe("Command", () => {
     });
   });
 
+  describe("#reject()", () => {
+    it("marks the command as settled", async () => {
+      const command = new Command("get", ["foo"]);
+      const rejection = command.promise.catch(() => undefined);
+
+      command.reject(new Error("ERR failed"));
+      await rejection;
+
+      expect(command.isSettled).to.equal(true);
+      expect(command.isResolved).to.equal(false);
+    });
+
+    it("resets settlement state when reinitialized for a retry", async () => {
+      const command = new Command("get", ["foo"]);
+      const firstRejection = command.promise.catch(() => undefined);
+
+      command.reject(new Error("MOVED 12182 127.0.0.1:30001"));
+      await firstRejection;
+      expect(command.isSettled).to.equal(true);
+
+      (command as any).initPromise();
+      expect(command.isResolved).to.equal(false);
+      expect(command.isSettled).to.equal(false);
+
+      command.setTimeout(10);
+
+      let error: Error | undefined;
+      try {
+        await command.promise;
+      } catch (receivedError) {
+        error = receivedError as Error;
+      }
+      expect(error?.message).to.equal("Command timed out");
+      expect(command.isSettled).to.equal(true);
+    });
+  });
+
   describe("#getKeys()", () => {
     it("should return keys", () => {
       expect(getKeys("get", ["foo"])).to.eql(["foo"]);

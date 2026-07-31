@@ -22,6 +22,7 @@ export const notAllowedAutoPipelineCommands = [
   "client",
   "hello",
   "readonly",
+  "himport",
 ];
 
 function executeAutoPipeline(client, slotKey: string) {
