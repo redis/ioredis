@@ -1,6 +1,7 @@
 import * as sinon from "sinon";
 import { expect } from "chai";
 import Redis from "../../lib/Redis";
+import { DEFAULT_REDIS_OPTIONS } from "../../lib/redis/RedisOptions";
 
 describe("Redis", () => {
   describe("constructor", () => {
@@ -15,6 +16,10 @@ describe("Redis", () => {
         expect(option).to.have.property("port", 6379);
         expect(option).to.have.property("host", "localhost");
         expect(option).to.have.property("family", 0);
+        expect(option).to.have.property("keepAlive", 30000);
+
+        option = getOption({ keepAlive: 1234 });
+        expect(option).to.have.property("keepAlive", 1234);
 
         option = getOption(6380);
         expect(option).to.have.property("port", 6380);
@@ -125,6 +130,43 @@ describe("Redis", () => {
       const redis = Redis.createClient({ name: "pass", lazyConnect: true });
       expect(redis.options).to.have.property("name", "pass");
       expect(redis.options).to.have.property("lazyConnect", true);
+    });
+  });
+
+  describe("default retryStrategy", () => {
+    afterEach(() => {
+      sinon.restore();
+    });
+
+    it("uses exponential backoff capped at 5000ms", () => {
+      const retryStrategy = DEFAULT_REDIS_OPTIONS.retryStrategy;
+      expect(retryStrategy).to.be.a("function");
+      if (typeof retryStrategy !== "function") {
+        throw new Error("Expected the default retryStrategy to be a function");
+      }
+
+      sinon.stub(Math, "random").returns(0);
+
+      expect(retryStrategy(1)).to.eql(50);
+      expect(retryStrategy(2)).to.eql(100);
+      expect(retryStrategy(3)).to.eql(200);
+      expect(retryStrategy(6)).to.eql(1600);
+      expect(retryStrategy(7)).to.eql(3200);
+      expect(retryStrategy(8)).to.eql(5000);
+      expect(retryStrategy(20)).to.eql(5000);
+    });
+
+    it("adds up to 199ms of random jitter", () => {
+      const retryStrategy = DEFAULT_REDIS_OPTIONS.retryStrategy;
+      expect(retryStrategy).to.be.a("function");
+      if (typeof retryStrategy !== "function") {
+        throw new Error("Expected the default retryStrategy to be a function");
+      }
+
+      sinon.stub(Math, "random").returns(0.999);
+
+      expect(retryStrategy(1)).to.eql(249);
+      expect(retryStrategy(8)).to.eql(5199);
     });
   });
 
