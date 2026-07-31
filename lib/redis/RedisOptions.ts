@@ -3,6 +3,7 @@ import ConnectorConstructor from "../connectors/ConnectorConstructor";
 import { SentinelConnectionOptions } from "../connectors/SentinelConnector";
 import { StandaloneConnectionOptions } from "../connectors/StandaloneConnector";
 import { ProtocolVersion, ReplyMappingMode } from "../types";
+import type { HimportFieldset } from "../himport/types";
 
 export type ReconnectOnError = (err: Error) => boolean | 1 | 2;
 export type RetryStrategy =
@@ -242,6 +243,25 @@ export interface CommonRedisOptions extends CommanderOptions {
     string,
     { lua: string; numberOfKeys?: number | undefined; readOnly?: boolean | undefined }
   > | undefined;
+
+  /**
+   * Experimental.
+   *
+   * Long-lived HIMPORT fieldsets managed for the lifetime of this client.
+   * Definitions are copied during construction and prepared again whenever
+   * the physical Redis connection changes.
+   *
+   * When a managed `HIMPORT SET` needs fieldset preparation or recovery,
+   * later commands issued on this client may be sent before that SET resumes.
+   * Await the SET before issuing commands that depend on its write.
+   *
+   * Use explicit `HIMPORT PREPARE` and `DISCARD` commands on a separate
+   * client for bounded, manually managed batches.
+   *
+   * @default undefined
+   * @experimental
+   */
+  himportFieldsets?: readonly HimportFieldset[] | undefined;
 }
 
 export type RedisOptions = CommonRedisOptions &

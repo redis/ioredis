@@ -237,6 +237,7 @@ export default class Command implements Respondable {
   isTraced = false;
 
   isResolved = false;
+  isSettled = false;
   reject: (err: Error) => void;
   resolve: (result: any) => void;
   promise: Promise<any>;
@@ -417,7 +418,7 @@ export default class Command implements Respondable {
   setTimeout(ms: number) {
     if (!this._commandTimeoutTimer) {
       this._commandTimeoutTimer = setTimeout(() => {
-        if (!this.isResolved) {
+        if (!this.isSettled) {
           this.reject(new Error("Command timed out"));
         }
       }, ms);
@@ -457,7 +458,7 @@ export default class Command implements Respondable {
     }
 
     this._blockingTimeoutTimer = setTimeout(() => {
-      if (this.isResolved) {
+      if (this.isSettled) {
         this._blockingTimeoutTimer = undefined;
         return;
       }
@@ -535,6 +536,7 @@ export default class Command implements Respondable {
       this.resolve = this._convertValue(resolve);
       this.reject = (err: Error) => {
         this._clearTimers();
+        this.isSettled = true;
         if (this.errorStack) {
           reject(optimizeErrorStack(err, this.errorStack.stack, __dirname));
         } else {
@@ -577,6 +579,7 @@ export default class Command implements Respondable {
         this._clearTimers();
         resolve(this.transformReply(value));
         this.isResolved = true;
+        this.isSettled = true;
       } catch (err) {
         this.reject(err);
       }

@@ -1,5 +1,11 @@
 import { expectAssignable, expectType } from "tsd";
-import { Redis, Cluster, NatMap, DNSLookupFunction } from "../../built";
+import {
+  Redis,
+  Cluster,
+  NatMap,
+  DNSLookupFunction,
+  HimportFieldset,
+} from "../../built";
 
 expectType<Redis>(new Redis());
 
@@ -12,6 +18,13 @@ expectType<Redis>(new Redis({ host: "localhost", port: 6379 }));
 expectType<Redis>(new Redis({ host: "localhost", port: 6379, family: 4 }));
 expectType<Redis>(new Redis({ host: "localhost", port: 6379, family: 4 }));
 expectType<Redis>(new Redis(6379, "localhost", { password: "password" }));
+const himportFieldsets: readonly HimportFieldset[] = [
+  {
+    name: Buffer.from("fieldset"),
+    fields: ["field1", Buffer.from("field2")],
+  },
+];
+expectType<Redis>(new Redis({ himportFieldsets }));
 
 // Socket
 expectType<Redis>(new Redis("/tmp/redis.sock"));
@@ -37,6 +50,7 @@ expectType<Cluster>(new Redis.Cluster([30001, "localhost", { port: 30002 }]));
 expectType<Cluster>(
   new Redis.Cluster([30001, 30002], {
     enableAutoPipelining: true,
+    himportFieldsets,
   })
 );
 

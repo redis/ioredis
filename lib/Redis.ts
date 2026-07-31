@@ -43,6 +43,12 @@ import {
 import applyMixin from "./utils/applyMixin";
 import Commander from "./utils/Commander";
 import { defaults, noop } from "./utils/lodash";
+import HimportCoordinator, {
+  bindHimportCoordinator,
+  interceptHimportCommand,
+  isInternalHimportCommand,
+} from "./himport/HimportCoordinator";
+import { cloneHimportFieldsets } from "./himport/HimportCoordinator";
 import Deque = require("denque");
 const debug = Debug("redis");
 
@@ -157,6 +163,17 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     this.parseOptions(arg1, arg2, arg3);
 
     EventEmitter.call(this);
+
+    this.options.himportFieldsets = cloneHimportFieldsets(
+      this.options.himportFieldsets
+    );
+    if (this.options.himportFieldsets?.length) {
+      bindHimportCoordinator(
+        this,
+        new HimportCoordinator(this.options.himportFieldsets),
+        "standalone"
+      );
+    }
 
     this.resetCommandQueue();
     this.resetOfflineQueue();
@@ -448,6 +465,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     const monitorInstance = this.duplicate({
       monitor: true,
       lazyConnect: false,
+      himportFieldsets: undefined,
     });
 
     return asCallback(
@@ -504,6 +522,20 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       command.setTimeout(this.options.commandTimeout);
     }
 
+    if (
+      !stream &&
+      interceptHimportCommand(
+        this,
+        command,
+        this.status === "ready",
+        () => {
+          this.sendCommand(command);
+        }
+      )
+    ) {
+      return command.promise;
+    }
+
     const blockingTimeout = this.getBlockingTimeoutInMs(command);
 
     let writable =
@@ -512,7 +544,8 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       (!stream &&
         this.status === "connect" &&
         this.condition?.handshake &&
-        Command.checkFlag("HANDSHAKE_COMMANDS", command.name)) ||
+        (Command.checkFlag("HANDSHAKE_COMMANDS", command.name) ||
+          isInternalHimportCommand(command))) ||
       // Before ready, loading-safe commands remain writable after handshake.
       (!stream &&
         this.status === "connect" &&

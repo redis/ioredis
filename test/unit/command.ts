@@ -79,6 +79,19 @@ describe("Command", () => {
     });
   });
 
+  describe("#reject()", () => {
+    it("marks the command as settled", async () => {
+      const command = new Command("get", ["foo"]);
+      const rejection = command.promise.catch(() => undefined);
+
+      command.reject(new Error("ERR failed"));
+      await rejection;
+
+      expect(command.isSettled).to.equal(true);
+      expect(command.isResolved).to.equal(false);
+    });
+  });
+
   describe("#getKeys()", () => {
     it("should return keys", () => {
       expect(getKeys("get", ["foo"])).to.eql(["foo"]);

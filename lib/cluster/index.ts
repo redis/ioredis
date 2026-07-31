@@ -45,10 +45,19 @@ import {
   NodeRole,
   normalizeNodeOptions,
   RedisOptions,
+  waitForRedisReady,
   weightSrvRecords,
 } from "./util";
 import Deque = require("denque");
 import ClusterSubscriberGroup from "./ClusterSubscriberGroup";
+import HimportCoordinator, {
+  bindHimportCoordinator,
+  cloneHimportFieldsets,
+  getHimportBinding,
+  interceptHimportControlCommand,
+  setHimportRole,
+  unbindHimportCoordinator,
+} from "../himport/HimportCoordinator";
 
 const debug = Debug("cluster");
 
@@ -81,7 +90,9 @@ export type ClusterStatus =
 /**
  * Client for the official Redis Cluster
  */
-class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commander<{
+class Cluster<
+  ReplyMapping extends ReplyMappingMode = "legacy"
+> extends Commander<{
   type: "default";
   mapping: ReplyMapping extends "resp3" ? "resp3" : "resp2";
 }> {
@@ -145,6 +156,12 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
 
     this.startupNodes = startupNodes;
     this.options = defaults({}, options, DEFAULT_CLUSTER_OPTIONS, this.options);
+    this.options.himportFieldsets = cloneHimportFieldsets(
+      this.options.himportFieldsets
+    );
+    const himportCoordinator = this.options.himportFieldsets?.length
+      ? new HimportCoordinator(this.options.himportFieldsets)
+      : undefined;
 
     if (this.options.shardedSubscribers) {
       this.createShardedSubscriberGroup();
@@ -170,9 +187,47 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
       );
     }
 
+    const redisOptions = { ...(this.options.redisOptions ?? {}) };
+    delete (redisOptions as Partial<RedisOptions>).himportFieldsets;
     this.connectionPool = new ConnectionPool(
-      this.options.redisOptions ?? {},
-      this.options.clusterNodeRetryStrategy
+      redisOptions,
+      this.options.clusterNodeRetryStrategy,
+      himportCoordinator
+        ? {
+            onCreate: (redis, readOnly) => {
+              bindHimportCoordinator(
+                redis,
+                himportCoordinator,
+                readOnly ? "replica" : "master"
+              );
+            },
+            onRoleChange: (redis, key, readOnly) => {
+              setHimportRole(redis, readOnly ? "replica" : "master");
+              himportCoordinator.invalidate(redis);
+              if (!readOnly) {
+                waitForRedisReady(redis).then(
+                  () => {
+                    for (const definition of himportCoordinator.getDefinitions()) {
+                      const preparation = himportCoordinator.ensurePrepared(
+                        redis,
+                        definition
+                      );
+                      preparation?.catch((error) => {
+                        this.emit("node error", error, key);
+                      });
+                    }
+                  },
+                  (error: Error) => {
+                    this.emit("node error", error, key);
+                  }
+                );
+              }
+            },
+            onRemove: (redis) => {
+              unbindHimportCoordinator(redis);
+            },
+          }
+        : undefined
     );
 
     this.connectionPool.on("-node", (redis, key) => {
@@ -377,7 +432,6 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
       this.shardedSubscribers.stop();
     }
 
-
     if (status === "wait") {
       const ret = asCallback(Promise.resolve<"OK">("OK"), callback);
 
@@ -492,7 +546,7 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
     if (this.isRefreshing) {
       return;
     }
-    
+
     this.isRefreshing = true;
 
     const _this = this;
@@ -550,6 +604,17 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
     }
     if (this.status === "end") {
       command.reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
+      return command.promise;
+    }
+    if (
+      !stream &&
+      !node &&
+      this.status === "ready" &&
+      interceptHimportControlCommand(
+        this.connectionPool.getNodes("master"),
+        command
+      )
+    ) {
       return command.promise;
     }
     let to = this.options.scaleReads;
@@ -714,7 +779,6 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
             }
             if (asking) {
               redis = _this.connectionPool.getInstanceByKey(asking);
-              redis.asking();
             }
           }
           if (!redis) {
@@ -757,6 +821,43 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
       }
 
       lastRedis = redis;
+      if (asking) {
+        const himportBinding = getHimportBinding(redis);
+        const managedSet =
+          !stream && himportBinding?.role === "master"
+            ? himportBinding.coordinator.classify(command)
+            : undefined;
+        if (managedSet) {
+          waitForRedisReady(redis)
+            .then(() => {
+              if (command.isSettled) {
+                return;
+              }
+              const preparation = himportBinding.coordinator.prepareCommand(
+                redis,
+                command
+              );
+              return preparation ?? Promise.resolve();
+            })
+            .then(
+              () => {
+                if (command.isSettled) {
+                  return;
+                }
+                himportBinding.coordinator.allowNextSend(redis, command);
+                redis.asking();
+                redis.sendCommand(command, stream);
+              },
+              (error: Error) => {
+                if (!command.isSettled) {
+                  command.reject(error);
+                }
+              }
+            );
+          return;
+        }
+        redis.asking();
+      }
       redis.sendCommand(command, stream);
     }
     return command.promise;
@@ -953,9 +1054,7 @@ class Cluster<ReplyMapping extends ReplyMappingMode = "legacy"> extends Commande
 
   private natMapper(nodeKey: NodeKey | RedisOptions): RedisOptions {
     const key =
-      typeof nodeKey === "string"
-        ? nodeKey
-        : `${nodeKey.host}:${nodeKey.port}`;
+      typeof nodeKey === "string" ? nodeKey : `${nodeKey.host}:${nodeKey.port}`;
 
     let mapped = null;
     if (this.options.natMap && typeof this.options.natMap === "function") {
