@@ -237,10 +237,11 @@ export interface ClusterOptions extends CommanderOptions {
     | undefined;
 
   /**
-   * Experimental.
+   * Managed-fieldset support is experimental and requires Redis 8.10 or newer.
    *
    * Long-lived HIMPORT fieldsets managed across all current and future master
    * connections for the lifetime of this Cluster client.
+   * Configure this option at the top level, not under `redisOptions`.
    *
    * When a managed `HIMPORT SET` needs fieldset preparation or recovery,
    * later commands issued on this Cluster client may be sent before that SET
@@ -248,6 +249,15 @@ export interface ClusterOptions extends CommanderOptions {
    *
    * Explicit pipelines containing a managed `HIMPORT SET` wait for required
    * fieldset preparation on the selected master before the batch is sent.
+   *
+   * Background preparation failures do not prevent the connection from
+   * becoming ready and are reported through the `node error` event. A
+   * dependent managed `HIMPORT SET` retries preparation and rejects if
+   * recovery fails.
+   *
+   * Direct `HIMPORT PREPARE`, `DISCARD`, and `DISCARDALL` calls fan out to all
+   * current masters. Within an explicit pipeline, these commands remain
+   * connection-affine and are not managed.
    *
    * Use explicit HIMPORT commands on a separate unconfigured client for
    * bounded, manually managed batches.
