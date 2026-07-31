@@ -12,6 +12,12 @@ export type RetryStrategy =
 
 export interface CommonRedisOptions extends CommanderOptions {
   Connector?: ConnectorConstructor | undefined;
+
+  /**
+   * Determines the delay in milliseconds before reconnecting after a connection loss.
+   *
+   * @default Exponential backoff capped at 5000ms, plus 0-199ms of random jitter.
+   */
   retryStrategy?: RetryStrategy;
 
   /**
@@ -43,9 +49,9 @@ export interface CommonRedisOptions extends CommanderOptions {
   socketTimeout?: number | undefined;
 
   /**
-   * Enable/disable keep-alive functionality.
+   * Initial delay in milliseconds before the first TCP keep-alive probe.
    * @link https://nodejs.org/api/net.html#socketsetkeepaliveenable-initialdelay
-   * @default 0
+   * @default 30000
    */
   keepAlive?: number | undefined;
 
@@ -256,9 +262,12 @@ export const DEFAULT_REDIS_OPTIONS: RedisOptions = {
   connectTimeout: 10000,
   disconnectTimeout: 2000,
   retryStrategy: function (times) {
-    return Math.min(times * 50, 2000);
+    const jitter = Math.floor(Math.random() * 200);
+    // `times` is one-based, so the first retry uses an exponent of zero.
+    const delay = Math.min(Math.pow(2, times - 1) * 50, 5000);
+    return delay + jitter;
   },
-  keepAlive: 0,
+  keepAlive: 30000,
   noDelay: true,
   connectionName: null,
   disableClientInfo: false,

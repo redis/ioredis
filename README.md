@@ -805,8 +805,9 @@ using the `retryStrategy` option:
 const redis = new Redis({
   // This is the default value of `retryStrategy`
   retryStrategy(times) {
-    const delay = Math.min(times * 50, 2000);
-    return delay;
+    const jitter = Math.floor(Math.random() * 200);
+    const delay = Math.min(Math.pow(2, times - 1) * 50, 5000);
+    return delay + jitter;
   },
 });
 ```
@@ -816,6 +817,8 @@ The argument `times` means this is the nth reconnection being made and
 the return value represents how long (in ms) to wait to reconnect. When the
 return value isn't a number, ioredis will stop trying to reconnect, and the connection
 will be lost forever if the user doesn't call `redis.connect()` manually.
+The default strategy uses exponential backoff capped at 5 seconds and adds up to
+199 milliseconds of random jitter to prevent clients from reconnecting simultaneously.
 
 When reconnected, the client will auto subscribe to channels that the previous connection subscribed to.
 This behavior can be disabled by setting the `autoResubscribe` option to `false`.
