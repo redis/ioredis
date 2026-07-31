@@ -55,6 +55,7 @@ import HimportCoordinator, {
   cloneHimportFieldsets,
   getHimportBinding,
   interceptHimportControlCommand,
+  isHimportControlCommand,
   setHimportRole,
   unbindHimportCoordinator,
 } from "../himport/HimportCoordinator";
@@ -613,6 +614,7 @@ class Cluster<
       !stream &&
       !node &&
       this.status === "ready" &&
+      isHimportControlCommand(command) &&
       interceptHimportControlCommand(
         this.connectionPool.getNodes("master"),
         command

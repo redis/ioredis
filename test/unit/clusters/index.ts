@@ -1,5 +1,6 @@
 import { nodeKeyToRedisOptions } from "../../../lib/cluster/util";
 import { Cluster } from "../../../lib";
+import Command from "../../../lib/Command";
 import * as sinon from "sinon";
 import { expect } from "chai";
 
@@ -57,6 +58,22 @@ describe("cluster", () => {
     });
   });
 
+  describe("#sendCommand", () => {
+    it("does not enumerate masters for ordinary commands", () => {
+      const cluster = new Cluster([]);
+      const getNodes = sinon.spy(cluster["connectionPool"], "getNodes");
+      const command = new Command("get", ["key"]);
+      cluster.status = "ready";
+
+      try {
+        cluster.sendCommand(command);
+        expect(getNodes.called).to.equal(false);
+      } finally {
+        command.resolve(Buffer.from("value"));
+        getNodes.restore();
+      }
+    });
+  });
 
   describe("natMapper", () => {
     it("returns the original nodeKey if no NAT mapping is provided", () => {
@@ -96,7 +113,6 @@ describe("cluster", () => {
       expect(result).to.eql({ host: "203.0.113.1", port: 6379 });
     });
   });
-
 });
 
 describe("nodeKeyToRedisOptions()", () => {
