@@ -281,6 +281,66 @@ describe("cluster:himport", () => {
     }
   });
 
+  it("prepares a promoted master before a configured pipeline SET", async () => {
+    let replicaPrepared = false;
+    let replicaPrepareAttempts = 0;
+    const received = setup((argv, port) => {
+      if (port === replica && argv[0] === "himport" && argv[1] === "PREPARE") {
+        replicaPrepareAttempts += 1;
+        if (replicaPrepareAttempts === 1) {
+          return new Error("ERR temporary prepare failure");
+        }
+        replicaPrepared = true;
+      }
+      if (
+        port === replica &&
+        argv[0] === "himport" &&
+        argv[1] === "SET" &&
+        !replicaPrepared
+      ) {
+        return new Error("ERR no such fieldset");
+      }
+    });
+    createCluster({
+      himportFieldsets: [{ name: "configured", fields: ["field"] }],
+    });
+
+    await cluster.set("bar", "value");
+    slotTable[0] = [0, 8191, ["127.0.0.1", replica], ["127.0.0.1", masterOne]];
+
+    try {
+      const preparationFailed = new Promise<void>((resolve) => {
+        cluster.once("node error", (error) => {
+          expect(error.message).to.equal("ERR temporary prepare failure");
+          resolve();
+        });
+      });
+
+      cluster.refreshSlotsCache();
+      await preparationFailed;
+      expect(
+        await cluster
+          .pipeline()
+          .himport("SET", "bar", "configured", "value")
+          .exec()
+      ).to.deep.equal([[null, "OK"]]);
+      expect(
+        commands(received, replica).map(({ argv }) => argv.slice(0, 2))
+      ).to.deep.equal([
+        ["himport", "PREPARE"],
+        ["himport", "PREPARE"],
+        ["himport", "SET"],
+      ]);
+    } finally {
+      slotTable[0] = [
+        0,
+        8191,
+        ["127.0.0.1", masterOne],
+        ["127.0.0.1", replica],
+      ];
+    }
+  });
+
   it("keeps explicit pipelines connection-affine and unmanaged", async () => {
     const received = setup();
     createCluster();

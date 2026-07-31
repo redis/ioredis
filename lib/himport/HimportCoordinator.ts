@@ -2,10 +2,28 @@ import Command from "../Command";
 import { Debug } from "../utils";
 import type { HimportFieldset } from "./types";
 
-type HimportConnectionRole = "standalone" | "master" | "replica";
+type HimportConnectionRole = "standalone" | "cluster" | "master" | "replica";
 
 export interface HimportConnection {
   sendCommand(command: Command): unknown;
+}
+
+interface HimportPipelineOwner extends HimportConnection {
+  slots?: readonly (readonly string[])[];
+  connectionPool?: {
+    getInstanceByKey(key: string): HimportConnection | undefined;
+    getSampleInstance(role: "master"): HimportConnection | undefined;
+  };
+}
+
+interface HimportPipelineInterception {
+  owner: HimportPipelineOwner;
+  commands: readonly Command[];
+  slot?: number;
+  preferredNodeKey?: string;
+  setDestination(connection: HimportConnection): void;
+  resume(): void;
+  reject(error: Error): void;
 }
 
 interface HimportDefinition {
@@ -192,6 +210,27 @@ export default class HimportCoordinator {
       return undefined;
     }
     return this.ensurePrepared(connection, context.definition);
+  }
+
+  hasManagedSet(commands: readonly Command[]): boolean {
+    return commands.some((command) => this.classify(command) !== undefined);
+  }
+
+  prepareCommands(
+    connection: HimportConnection,
+    commands: readonly Command[]
+  ): Promise<void> | undefined {
+    const preparations = new Set<Promise<void>>();
+    for (const command of commands) {
+      const preparation = this.prepareCommand(connection, command);
+      if (preparation) {
+        preparations.add(preparation);
+      }
+    }
+    if (preparations.size === 0) {
+      return undefined;
+    }
+    return Promise.all(preparations).then(() => undefined);
   }
 
   interceptCommand(
@@ -431,6 +470,57 @@ export function interceptHimportCommand(
     ready,
     resumeSend
   );
+}
+
+export function interceptHimportPipeline({
+  owner,
+  commands,
+  slot,
+  preferredNodeKey,
+  setDestination,
+  resume,
+  reject,
+}: HimportPipelineInterception): boolean {
+  const binding = bindings.get(owner);
+  if (!binding || !binding.coordinator.hasManagedSet(commands)) {
+    return false;
+  }
+
+  let connection: HimportConnection = owner;
+  if (binding.role === "cluster") {
+    const nodeKey = preferredNodeKey ?? owner.slots?.[slot]?.[0];
+    const connectionPool = owner.connectionPool;
+    const clusterConnection =
+      (nodeKey && connectionPool?.getInstanceByKey(nodeKey)) ||
+      connectionPool?.getSampleInstance("master");
+
+    if (!clusterConnection) {
+      reject(new Error("No master node is available for the pipeline"));
+      return true;
+    }
+
+    connection = clusterConnection;
+    setDestination(connection);
+  }
+
+  const preparation = binding.coordinator.prepareCommands(connection, commands);
+  if (!preparation) {
+    return false;
+  }
+
+  preparation.then(
+    () => {
+      try {
+        resume();
+      } catch (error) {
+        reject(error as Error);
+      }
+    },
+    (error: Error) => {
+      reject(error);
+    }
+  );
+  return true;
 }
 
 export function setHimportRole(

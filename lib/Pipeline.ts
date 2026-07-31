@@ -9,6 +9,7 @@ import { Callback, PipelineWriteableStream } from "./types";
 import { constants } from "buffer";
 import { noop } from "./utils";
 import Commander from "./utils/Commander";
+import { interceptHimportPipeline } from "./himport/HimportCoordinator";
 
 /*
   This function derives from the cluster-key-slot implementation.
@@ -340,15 +341,33 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
   }
 
   const _this = this;
-  execPipeline();
+  let node;
+  const himportIntercepted = interceptHimportPipeline({
+    owner: _this.redis,
+    commands: _this._queue,
+    slot: pipelineSlot,
+    preferredNodeKey: _this.preferKey,
+    setDestination(connection) {
+      node = {
+        slot: pipelineSlot,
+        redis: connection,
+      };
+    },
+    resume: execPipeline,
+    reject(error) {
+      _this.reject(error);
+    },
+  });
+  if (!himportIntercepted) {
+    execPipeline();
+  }
 
   return this.promise;
 
   function execPipeline() {
     let writePending: number = (_this.replyPending = _this._queue.length);
 
-    let node;
-    if (_this.isCluster) {
+    if (_this.isCluster && !node) {
       node = {
         slot: pipelineSlot,
         redis: _this.redis.connectionPool.nodes.all[_this.preferKey],

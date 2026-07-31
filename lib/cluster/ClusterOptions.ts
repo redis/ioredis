@@ -246,6 +246,9 @@ export interface ClusterOptions extends CommanderOptions {
    * later commands issued on this Cluster client may be sent before that SET
    * resumes. Await the SET before issuing commands that depend on its write.
    *
+   * Explicit pipelines containing a managed `HIMPORT SET` wait for required
+   * fieldset preparation on the selected master before the batch is sent.
+   *
    * Use explicit HIMPORT commands on a separate unconfigured client for
    * bounded, manually managed batches.
    *

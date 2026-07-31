@@ -255,6 +255,9 @@ export interface CommonRedisOptions extends CommanderOptions {
    * later commands issued on this client may be sent before that SET resumes.
    * Await the SET before issuing commands that depend on its write.
    *
+   * Explicit pipelines containing a managed `HIMPORT SET` wait for required
+   * fieldset preparation before the batch is sent.
+   *
    * Use explicit `HIMPORT PREPARE` and `DISCARD` commands on a separate
    * client for bounded, manually managed batches.
    *

@@ -162,6 +162,9 @@ class Cluster<
     const himportCoordinator = this.options.himportFieldsets?.length
       ? new HimportCoordinator(this.options.himportFieldsets)
       : undefined;
+    if (himportCoordinator) {
+      bindHimportCoordinator(this, himportCoordinator, "cluster");
+    }
 
     if (this.options.shardedSubscribers) {
       this.createShardedSubscriberGroup();

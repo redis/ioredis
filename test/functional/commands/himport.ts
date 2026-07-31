@@ -163,6 +163,43 @@ describe("himport", () => {
     ).to.have.lengthOf(2);
   });
 
+  it("prepares configured fieldsets before pipeline SET after RESET", async () => {
+    let prepared = false;
+    const { received } = createRedis((argv) => {
+      if (argv[0] === "himport" && argv[1] === "PREPARE") {
+        prepared = true;
+      }
+      if (argv[0] === "reset") {
+        prepared = false;
+      }
+      if (argv[0] === "himport" && argv[1] === "SET" && !prepared) {
+        return new Error("ERR no such fieldset");
+      }
+    });
+
+    await redis.connect();
+    expect(await redis.reset()).to.equal("OK");
+
+    expect(
+      await redis.pipeline().himport("SET", "key", "fieldset", "1", "2").exec()
+    ).to.deep.equal([[null, "OK"]]);
+    expect(
+      received
+        .filter(
+          (argv) =>
+            argv[0] === "reset" ||
+            (argv[0] === "himport" &&
+              (argv[1] === "PREPARE" || argv[1] === "SET"))
+        )
+        .map((argv) => argv.slice(0, 2))
+    ).to.deep.equal([
+      ["himport", "PREPARE"],
+      ["reset"],
+      ["himport", "PREPARE"],
+      ["himport", "SET"],
+    ]);
+  });
+
   it("recovers once when a configured SET reports a missing fieldset", async () => {
     let setAttempts = 0;
     const { received } = createRedis((argv) => {
@@ -250,6 +287,11 @@ describe("himport", () => {
     }
 
     expect(error?.message).to.equal("ERR no such fieldset");
+    const pipelineResult = await redis
+      .pipeline()
+      .himport("SET", "pipeline-key", "unknown", "value")
+      .exec();
+    expect(pipelineResult[0][0]?.message).to.equal("ERR no such fieldset");
     expect(
       received.filter(
         (argv) =>

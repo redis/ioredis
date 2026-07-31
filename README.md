@@ -324,6 +324,10 @@ const result = await redis.setBuffer("foo", "new value", "GET");
 HIMPORT provides a faster ingestion mechanism for loading many hashes that
 share the same set of field names.
 
+Explicit pipelines containing a configured `HIMPORT SET` wait for required
+fieldset preparation on their selected connection before the batch is sent.
+Unconfigured fieldsets remain manually managed.
+
 ```javascript
 const redis = new Redis({
   himportFieldsets: [
