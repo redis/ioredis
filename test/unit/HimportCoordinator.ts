@@ -183,4 +183,58 @@ describe("HimportCoordinator", () => {
       )
     ).to.have.lengthOf(1);
   });
+
+  it("coalesces concurrent missing-fieldset recoveries", async () => {
+    const fieldsets = cloneHimportFieldsets([
+      { name: "fieldset", fields: ["field"] },
+    ]);
+    const coordinator = new HimportCoordinator(fieldsets);
+    const connection = new DeferredConnection();
+    const firstSet = new Command(
+      "himport",
+      ["SET", "key:1", "fieldset", "value"],
+      { replyEncoding: "utf8" }
+    );
+    const secondSet = new Command(
+      "himport",
+      ["SET", "key:2", "fieldset", "value"],
+      { replyEncoding: "utf8" }
+    );
+
+    coordinator.beginSession(connection);
+    const initialPreparation = coordinator.prepareCommand(connection, firstSet);
+    connection.commands[0].resolve(Buffer.from("OK"));
+    await initialPreparation;
+
+    coordinator.installRecovery(connection, firstSet, () => {
+      connection.sendCommand(firstSet);
+    });
+    coordinator.installRecovery(connection, secondSet, () => {
+      connection.sendCommand(secondSet);
+    });
+
+    firstSet.reject(new Error("ERR no such fieldset"));
+    secondSet.reject(new Error("ERR no such fieldset"));
+
+    const preparations = connection.commands.filter(
+      (command) => String(command.args[0]).toUpperCase() === "PREPARE"
+    );
+    expect(preparations).to.have.lengthOf(2);
+
+    preparations[1].resolve(Buffer.from("OK"));
+    await preparations[1].promise;
+    await Promise.resolve();
+
+    const retriedSets = connection.commands.filter(
+      (command) => String(command.args[0]).toUpperCase() === "SET"
+    );
+    expect(retriedSets).to.have.lengthOf(2);
+    for (const command of retriedSets) {
+      command.resolve(Buffer.from("OK"));
+    }
+    expect(await Promise.all([firstSet.promise, secondSet.promise])).to.eql([
+      "OK",
+      "OK",
+    ]);
+  });
 });

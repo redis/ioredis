@@ -434,7 +434,10 @@ export default class HimportCoordinator {
     connection: HimportConnection,
     definition: HimportDefinition
   ): void {
-    this.getSession(connection).fieldsets.delete(definition.canonicalName);
+    const fieldsets = this.getSession(connection).fieldsets;
+    if (fieldsets.get(definition.canonicalName)?.status === "prepared") {
+      fieldsets.delete(definition.canonicalName);
+    }
   }
 }
 
