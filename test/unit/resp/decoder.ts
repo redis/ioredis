@@ -125,6 +125,23 @@ describe("RESP Decoder", () => {
       toWrite: Buffer.from(":1\r\n"),
       replies: ["1"],
     });
+
+    // `stringNumbers` is documented as being needed only *above*
+    // MAX_SAFE_INTEGER, so every integer up to it must decode exactly.
+    test("MAX_SAFE_INTEGER", {
+      toWrite: Buffer.from(`:${Number.MAX_SAFE_INTEGER}\r\n`),
+      replies: [Number.MAX_SAFE_INTEGER],
+    });
+
+    test("-MAX_SAFE_INTEGER", {
+      toWrite: Buffer.from(`:-${Number.MAX_SAFE_INTEGER}\r\n`),
+      replies: [-Number.MAX_SAFE_INTEGER],
+    });
+
+    test("MAX_SAFE_INTEGER - 46", {
+      toWrite: Buffer.from(":9007199254740945\r\n"),
+      replies: [9007199254740945],
+    });
   });
 
   describe("BigNumber", () => {

@@ -48,6 +48,18 @@ describe("DataHandler", () => {
     expect(await command.promise).to.equal("123");
   });
 
+  it("resolves integer replies up to MAX_SAFE_INTEGER exactly", async () => {
+    const setup = setupDataHandler();
+    const command = new Command("incrby", ["counter", "1"], {
+      replyEncoding: "utf8",
+    });
+    setup.redis.commandQueue.push({ command, select: 0 });
+
+    setup.write(`:${Number.MAX_SAFE_INTEGER}\r\n`);
+
+    expect(await command.promise).to.equal(Number.MAX_SAFE_INTEGER);
+  });
+
   it("routes Redis errors as ReplyError-compatible errors", async () => {
     const setup = setupDataHandler();
     const command = new Command("get", ["key"], { replyEncoding: "utf8" });

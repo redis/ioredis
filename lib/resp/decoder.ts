@@ -288,7 +288,9 @@ export class Decoder {
         this.#cursor = cursor + 2; // skip \r\n
         return number;
       }
-      number = number * 10 + byte - ASCII["0"];
+      // Subtract '0' before adding the digit: `number * 10 + byte` inflates
+      // the running total by 48, which crosses 2^53 one digit early and rounds.
+      number = number * 10 + (byte - ASCII["0"]);
     } while (++cursor < chunk.length);
 
     this.#cursor = cursor;
