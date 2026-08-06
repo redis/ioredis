@@ -19,6 +19,10 @@ describe("Redis", () => {
         expect(option).to.have.property("host", "localhost");
         expect(option).to.have.property("family", 0);
         expect(option).to.have.property("keepAlive", 30000);
+        expect(option).to.have.property("maintNotifications", "auto");
+        expect(option).to.have.property("maintEndpointType", "auto");
+        expect(option).to.have.property("maintRelaxedCommandTimeout", 10000);
+        expect(option).to.have.property("maintRelaxedSocketTimeout", 10000);
 
         option = getOption({ keepAlive: 1234 });
         expect(option).to.have.property("keepAlive", 1234);

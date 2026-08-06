@@ -4,6 +4,7 @@ import { SentinelConnectionOptions } from "../connectors/SentinelConnector";
 import { StandaloneConnectionOptions } from "../connectors/StandaloneConnector";
 import { ProtocolVersion, ReplyMappingMode } from "../types";
 import type { HimportFieldset } from "../himport/types";
+import type { MaintEndpointType, MaintNotifications } from "../maintNotifications";
 
 export type ReconnectOnError = (err: Error) => boolean | 1 | 2;
 export type RetryStrategy =
@@ -170,6 +171,45 @@ export interface CommonRedisOptions extends CommanderOptions {
   replyMapping?: ReplyMappingMode | undefined;
 
   /**
+   * Controls registration for Smart Client Handoff maintenance notifications.
+   * Smart Client Handoffs require RESP3; this option has no effect with RESP2.
+   *
+   * - `"auto"`: Try to register and continue if the server does not support it.
+   * - `"enabled"`: Register and fail the connection if registration fails.
+   * - `"disabled"`: Do not register.
+   *
+   * @default "auto"
+   */
+  maintNotifications?: MaintNotifications | undefined;
+
+  /**
+   * The endpoint type requested in Smart Client Handoff `MOVING`
+   * notifications. `"auto"` selects an internal or external endpoint from
+   * the connection address and requests an FQDN when TLS is enabled.
+   *
+   * @default "auto"
+   */
+  maintEndpointType?: MaintEndpointType | undefined;
+
+  /**
+   * Specifies a more relaxed timeout (in milliseconds) for commands during a maintenance window.
+   * This helps minimize command timeouts during maintenance. Timeouts during maintenance period result
+   * in a `CommandTimeoutDuringMaintenance` error.
+   *
+   * @default 10000
+   */
+  maintRelaxedCommandTimeout?: number;
+
+  /**
+   * Specifies a more relaxed timeout (in milliseconds) for the socket during a maintenance window.
+   * This helps minimize socket timeouts during maintenance. Timeouts during maintenance period result
+   * in a `SocketTimeoutDuringMaintenance` error.
+   *
+   * @default 10000
+   */
+  maintRelaxedSocketTimeout?: number;
+
+  /** 
    * How long the client will wait before killing a socket due to inactivity during initial connection.
    * @default 10000
    */
@@ -334,6 +374,10 @@ export const DEFAULT_REDIS_OPTIONS: RedisOptions = {
   stringNumbers: false,
   protocol: 3,
   replyMapping: "legacy",
+  maintNotifications: "auto",
+  maintEndpointType: "auto",
+  maintRelaxedCommandTimeout: 10000,
+  maintRelaxedSocketTimeout: 10000,
   maxRetriesPerRequest: 20,
   maxLoadingRetryTime: 10000,
   enableAutoPipelining: false,

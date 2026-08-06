@@ -9,16 +9,24 @@ import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import { PACKAGE_VERSION } from "../utils/version";
 import DataHandler from "../DataHandler";
 import { getHimportBinding } from "../himport/HimportCoordinator";
+import { getMaintNotificationsHandshakeCommand } from "../maintNotifications";
 
 const debug = Debug("connection");
 
-interface HandshakeCommand {
-  kind: "hello" | "auth" | "select" | "client" | "readonly" | "himport";
+export interface HandshakeCommand {
+  kind:
+    | "hello"
+    | "auth"
+    | "select"
+    | "client"
+    | "maint_notifications"
+    | "readonly"
+    | "himport";
   send: () => Promise<unknown>;
   errorHandler?: (err: Error) => void;
 }
 
-function getHandshakeCommands(self: any): HandshakeCommand[] {
+async function getHandshakeCommands(self: any): Promise<HandshakeCommand[]> {
   const commands: HandshakeCommand[] = [];
 
   if (self.condition.protocol === 3) {
@@ -108,6 +116,11 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
     }
   }
 
+  const maintCommand = await getMaintNotificationsHandshakeCommand(self);
+  if (maintCommand) {
+    commands.push(maintCommand);
+  }
+
   return commands;
 }
 
@@ -181,7 +194,10 @@ export function connectHandler(self) {
       };
 
       try {
-        await sendHandshake(getHandshakeCommands(self), self.condition.protocol);
+        await sendHandshake(
+          await getHandshakeCommands(self),
+          self.condition.protocol,
+        );
       } catch (err) {
         // The connection may have been closed (and possibly already
         // reconnected) while the client setup commands above were still
@@ -216,7 +232,7 @@ export function connectHandler(self) {
 
         try {
           await sendHandshake(
-            getHandshakeCommands(self),
+            await getHandshakeCommands(self),
             self.condition.protocol,
           );
         } catch (downgradeErr) {

@@ -53,6 +53,7 @@ export {
 } from "./connectors/SentinelConnector";
 export { StandaloneConnectionOptions } from "./connectors/StandaloneConnector";
 export { RedisOptions, CommonRedisOptions } from "./redis/RedisOptions";
+export type { MaintEndpointType, MaintNotifications } from "./maintNotifications";
 export type { HimportFieldset } from "./himport/types";
 export { ClusterNode } from "./cluster";
 export {
