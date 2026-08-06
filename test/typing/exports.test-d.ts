@@ -5,6 +5,8 @@ import {
   ScanStreamOptions,
   RedisStatus,
   ClusterStatus,
+  MaintEndpointType,
+  MaintNotifications,
 } from "../../built";
 
 // The types used by the public API are exported, so consumers can name them
@@ -33,3 +35,7 @@ expectAssignable<RedisStatus>("connecting");
 declare const cluster: Cluster;
 expectType<ClusterStatus>(cluster.status);
 expectAssignable<ClusterStatus>("ready");
+
+// Smart Client Handoff option unions are public.
+expectAssignable<MaintNotifications>("disabled");
+expectAssignable<MaintEndpointType>("external-fqdn");
