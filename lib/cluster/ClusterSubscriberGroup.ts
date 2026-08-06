@@ -122,6 +122,54 @@ export default class ClusterSubscriberGroup {
   }
 
   /**
+   * Unsubscribe every sharded subscriber from all of its shard channels.
+   *
+   * A zero-argument `SUNSUBSCRIBE` carries no channel to compute a target slot
+   * from, so it can't be routed to a single subscriber. Redis unsubscribes the
+   * connection from all of its shard channels in that case; we mirror that by
+   * fanning the command out to every subscriber that currently holds channels.
+   *
+   * @returns the number of remaining shard subscriptions (always 0)
+   */
+  async sunsubscribeAll(): Promise<number> {
+    const pending: { nodeKey: string; result: Promise<unknown> }[] = [];
+
+    for (const [nodeKey, subscriber] of this.shardedSubscribers) {
+      if (!this.hasSubscribedChannels(nodeKey)) {
+        continue;
+      }
+
+      const redis = subscriber.getInstance();
+      if (!redis) {
+        continue;
+      }
+
+      // Fire SUNSUBSCRIBE on every subscriber with channels (non-ready ones queue it
+      // and clear on reconnect); only await ready ones so a dead shard can't hang us.
+      const result = redis.sunsubscribe();
+      if (redis.status === "ready") {
+        pending.push({ nodeKey, result });
+      } else {
+        result.catch(() => {});
+      }
+    }
+
+    const settled = await Promise.allSettled(pending.map((p) => p.result));
+    const failed = pending.filter((_, i) => settled[i].status === "rejected");
+
+    if (failed.length > 0) {
+      // Keep the tracked channels so a retry (SUNSUBSCRIBE is idempotent) still targets these shards.
+      throw new Error(
+        `SUNSUBSCRIBE failed on ${failed.map((p) => p.nodeKey).join(", ")}`,
+      );
+    }
+
+    this.channels.clear();
+
+    return 0;
+  }
+
+  /**
    * Disconnect all subscribers and clear some of the internal state.
    */
   stop() {
@@ -463,7 +511,14 @@ export default class ClusterSubscriberGroup {
       return true;
     }
 
-    const subscriberSlots = this.subscriberToSlotsIndex.get(sub.getNodeKey());
+    return this.hasSubscribedChannels(sub.getNodeKey());
+  }
+
+  /**
+   * Whether the subscriber owning `nodeKey` currently holds any active channels.
+   */
+  private hasSubscribedChannels(nodeKey: string): boolean {
+    const subscriberSlots = this.subscriberToSlotsIndex.get(nodeKey);
 
     if (!subscriberSlots) {
       return false;
