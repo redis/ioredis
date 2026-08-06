@@ -34,11 +34,6 @@ const ASCII = {
   "+": 43,
   "-": 45,
   "0": 48,
-  ".": 46,
-  i: 105,
-  n: 110,
-  E: 69,
-  e: 101,
 } as const;
 
 export const PUSH_TYPE_MAPPING = {
@@ -357,148 +352,31 @@ export class Decoder {
       return this.#decodeSimpleString(type, chunk);
     }
 
-    switch (chunk[this.#cursor]) {
-      case ASCII.n:
-        this.#cursor += 5; // skip nan\r\n
+    const value = this.#decodeSimpleString(String, chunk);
+    return typeof value === "function"
+      ? this.#continueDecodeDouble.bind(this, value)
+      : Decoder.#parseDouble(value);
+  }
+
+  #continueDecodeDouble(cb, chunk) {
+    const value = cb(chunk);
+    return typeof value === "function"
+      ? this.#continueDecodeDouble.bind(this, value)
+      : Decoder.#parseDouble(value);
+  }
+
+  static #parseDouble(value) {
+    switch (value) {
+      case "inf":
+      case "+inf":
+        return Infinity;
+      case "-inf":
+        return -Infinity;
+      case "nan":
         return NaN;
-
-      case ASCII["+"]:
-        return this.#maybeDecodeDoubleInteger(false, chunk);
-
-      case ASCII["-"]:
-        return this.#maybeDecodeDoubleInteger(true, chunk);
-
       default:
-        return this.#decodeDoubleInteger(false, 0, chunk);
+        return Number(value);
     }
-  }
-
-  #maybeDecodeDoubleInteger(isNegative, chunk) {
-    return ++this.#cursor === chunk.length
-      ? this.#decodeDoubleInteger.bind(this, isNegative, 0)
-      : this.#decodeDoubleInteger(isNegative, 0, chunk);
-  }
-
-  #decodeDoubleInteger(isNegative, integer, chunk) {
-    if (chunk[this.#cursor] === ASCII.i) {
-      this.#cursor += 5; // skip inf\r\n
-      return isNegative ? -Infinity : Infinity;
-    }
-
-    return this.#continueDecodeDoubleInteger(isNegative, integer, chunk);
-  }
-
-  #continueDecodeDoubleInteger(isNegative, integer, chunk) {
-    let cursor = this.#cursor;
-    do {
-      const byte = chunk[cursor];
-      switch (byte) {
-        case ASCII["."]:
-          this.#cursor = cursor + 1; // skip .
-          return this.#cursor < chunk.length
-            ? this.#decodeDoubleDecimal(isNegative, 0, integer, chunk)
-            : this.#decodeDoubleDecimal.bind(this, isNegative, 0, integer);
-
-        case ASCII.E:
-        case ASCII.e: {
-          this.#cursor = cursor + 1; // skip E/e
-          const i = isNegative ? -integer : integer;
-          return this.#cursor < chunk.length
-            ? this.#decodeDoubleExponent(i, chunk)
-            : this.#decodeDoubleExponent.bind(this, i);
-        }
-
-        case ASCII["\r"]:
-          this.#cursor = cursor + 2; // skip \r\n
-          return isNegative ? -integer : integer;
-
-        default:
-          integer = integer * 10 + byte - ASCII["0"];
-      }
-    } while (++cursor < chunk.length);
-
-    this.#cursor = cursor;
-    return this.#continueDecodeDoubleInteger.bind(this, isNegative, integer);
-  }
-
-  // Precalculated multipliers for decimal points to improve performance
-  // "... about 15 to 17 decimal places ..."
-  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number#:~:text=about%2015%20to%2017%20decimal%20places
-  static #DOUBLE_DECIMAL_MULTIPLIERS = [
-    1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10, 1e-11, 1e-12,
-    1e-13, 1e-14, 1e-15, 1e-16, 1e-17,
-  ];
-
-  #decodeDoubleDecimal(isNegative, decimalIndex, double, chunk) {
-    let cursor = this.#cursor;
-    do {
-      const byte = chunk[cursor];
-      switch (byte) {
-        case ASCII.E:
-        case ASCII.e: {
-          this.#cursor = cursor + 1; // skip E/e
-          const d = isNegative ? -double : double;
-          return this.#cursor === chunk.length
-            ? this.#decodeDoubleExponent.bind(this, d)
-            : this.#decodeDoubleExponent(d, chunk);
-        }
-
-        case ASCII["\r"]:
-          this.#cursor = cursor + 2; // skip \r\n
-          return isNegative ? -double : double;
-      }
-
-      if (decimalIndex < Decoder.#DOUBLE_DECIMAL_MULTIPLIERS.length) {
-        double +=
-          (byte - ASCII["0"]) *
-          Decoder.#DOUBLE_DECIMAL_MULTIPLIERS[decimalIndex++];
-      }
-    } while (++cursor < chunk.length);
-
-    this.#cursor = cursor;
-    return this.#decodeDoubleDecimal.bind(
-      this,
-      isNegative,
-      decimalIndex,
-      double
-    );
-  }
-
-  #decodeDoubleExponent(double, chunk) {
-    switch (chunk[this.#cursor]) {
-      case ASCII["+"]:
-        return ++this.#cursor === chunk.length
-          ? this.#continueDecodeDoubleExponent.bind(this, false, double, 0)
-          : this.#continueDecodeDoubleExponent(false, double, 0, chunk);
-
-      case ASCII["-"]:
-        return ++this.#cursor === chunk.length
-          ? this.#continueDecodeDoubleExponent.bind(this, true, double, 0)
-          : this.#continueDecodeDoubleExponent(true, double, 0, chunk);
-    }
-
-    return this.#continueDecodeDoubleExponent(false, double, 0, chunk);
-  }
-
-  #continueDecodeDoubleExponent(isNegative, double, exponent, chunk) {
-    let cursor = this.#cursor;
-    do {
-      const byte = chunk[cursor];
-      if (byte === ASCII["\r"]) {
-        this.#cursor = cursor + 2; // skip \r\n
-        return double * 10 ** (isNegative ? -exponent : exponent);
-      }
-
-      exponent = exponent * 10 + byte - ASCII["0"];
-    } while (++cursor < chunk.length);
-
-    this.#cursor = cursor;
-    return this.#continueDecodeDoubleExponent.bind(
-      this,
-      isNegative,
-      double,
-      exponent
-    );
   }
 
   #findCRLF(chunk, cursor) {
