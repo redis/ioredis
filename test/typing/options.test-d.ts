@@ -5,6 +5,8 @@ import {
   NatMap,
   DNSLookupFunction,
   HimportFieldset,
+  MaintEndpointType,
+  MaintNotifications,
 } from "../../built";
 
 expectType<Redis>(new Redis());
@@ -25,6 +27,17 @@ const himportFieldsets: readonly HimportFieldset[] = [
   },
 ];
 expectType<Redis>(new Redis({ himportFieldsets }));
+expectType<Redis>(
+  new Redis({
+    maintNotifications: "enabled",
+    maintEndpointType: "internal-fqdn",
+    maintRelaxedCommandTimeout: 15000,
+    maintRelaxedSocketTimeout: 15000,
+  })
+);
+
+expectAssignable<MaintNotifications>("auto");
+expectAssignable<MaintEndpointType>("none");
 
 // Socket
 expectType<Redis>(new Redis("/tmp/redis.sock"));
