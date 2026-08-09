@@ -520,21 +520,12 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       return command.promise;
     }
 
-    if (typeof this.options.commandTimeout === "number") {
-      command.setTimeout(this.options.commandTimeout);
-    }
-
     if (
       !stream &&
       this[hasHimportCoordinator] &&
-      interceptHimportCommand(
-        this,
-        command,
-        this.status === "ready",
-        () => {
-          this.sendCommand(command);
-        }
-      )
+      interceptHimportCommand(this, command, this.status === "ready", () => {
+        this.sendCommand(command);
+      })
     ) {
       return command.promise;
     }
@@ -609,6 +600,9 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
         }
       }
     } else {
+      if (typeof this.options.commandTimeout === "number") {
+        command.setTimeout(this.options.commandTimeout);
+      }
       // @ts-expect-error
       if (debug.enabled) {
         debug(
