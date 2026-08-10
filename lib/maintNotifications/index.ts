@@ -3,6 +3,18 @@ import { isIP } from "net";
 import { noop } from "../utils";
 import type { HandshakeCommand } from "../redis/event_handler";
 
+export { parseMaintenanceNotification } from "./parser";
+export { MaintenanceNotificationType } from "./types";
+export type {
+  FailedOverNotification,
+  FailingOverNotification,
+  MaintenanceEndpoint,
+  MaintenanceNotification,
+  MigratedNotification,
+  MigratingNotification,
+  MovingNotification,
+} from "./types";
+
 export type MaintNotifications = "auto" | "enabled" | "disabled";
 
 export type MaintEndpointType =
@@ -106,6 +118,7 @@ export async function getMaintNotificationsHandshakeCommand(
         "moving-endpoint-type",
         endpointType
       ),
-    errorHandler: redis.options.maintNotifications === "auto" ? noop : undefined,
+    errorHandler:
+      redis.options.maintNotifications === "auto" ? noop : undefined,
   };
 }

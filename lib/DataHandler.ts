@@ -8,12 +8,20 @@ import {
 import Deque = require("denque");
 import { EventEmitter } from "events";
 import Command from "./Command";
-import { Debug } from "./utils";
+import { Debug, toError } from "./utils";
 import SubscriptionSet from "./SubscriptionSet";
 import { Decoder, RESP_TYPES } from "./resp/decoder";
 import { TypeMapping } from "./resp/types";
+import {
+  parseMaintenanceNotification,
+  type MaintenanceNotification,
+} from "./maintNotifications";
+import { createDiagnosticChannel } from "./utils/diagnostics";
 
 const debug = Debug("dataHandler");
+const maintenanceChannel = createDiagnosticChannel<MaintenanceNotification>(
+  "ioredis:maintenance"
+);
 
 type ReplyData = null | boolean | string | Buffer | number | Array<ReplyData>;
 
@@ -44,6 +52,9 @@ export interface DataHandledable extends EventEmitter {
   status: string;
   condition: Condition | null;
   commandQueue: Deque<CommandItem>;
+  onMaintenanceNotification?: (
+    notification: MaintenanceNotification
+  ) => void | Promise<void>;
 
   disconnect(reconnect: boolean): void;
   recoverFromFatalError(
@@ -52,6 +63,7 @@ export interface DataHandledable extends EventEmitter {
     options: FlushQueueOptions
   ): void;
   handleReconnection(err: Error, item: CommandItem): void;
+  silentEmit(eventName: string, arg?: unknown): boolean;
 }
 
 interface ParserOptions {
@@ -142,7 +154,10 @@ export default class DataHandler {
     // command response. Routing it by content would misinterpret replies that
     // merely look like pub/sub messages (e.g. an LRANGE result starting with
     // "message") and desync the command queue.
-    if (this.redis.condition.protocol !== 3 && this.handleSubscriberReply(reply)) {
+    if (
+      this.redis.condition.protocol !== 3 &&
+      this.handleSubscriberReply(reply)
+    ) {
       return;
     }
 
@@ -174,7 +189,27 @@ export default class DataHandler {
       return;
     }
 
-    const replyType = reply[0].toString();
+    const replyTypeValue = reply[0];
+
+    const replyType =
+      typeof replyTypeValue === "string" || Buffer.isBuffer(replyTypeValue)
+        ? replyTypeValue.toString()
+        : null;
+
+    if (!replyType) {
+      return;
+    }
+
+    const maintenanceNotification = parseMaintenanceNotification(
+      reply,
+      replyType
+    );
+
+    if (maintenanceNotification) {
+      this.handleMaintenanceNotification(maintenanceNotification);
+      return;
+    }
+
     debug('receive push "%s"', replyType);
 
     switch (replyType) {
@@ -232,6 +267,29 @@ export default class DataHandler {
         break;
       }
     }
+  }
+
+  private handleMaintenanceNotification(
+    notification: MaintenanceNotification
+  ): void {
+    maintenanceChannel.publish(notification);
+
+    const handler = this.redis.onMaintenanceNotification;
+    if (!handler) {
+      return;
+    }
+
+    try {
+      void Promise.resolve(handler(notification)).catch((err) => {
+        this.reportMaintenanceError(err);
+      });
+    } catch (err) {
+      this.reportMaintenanceError(err);
+    }
+  }
+
+  private reportMaintenanceError(err: unknown): void {
+    this.dispatch(() => this.redis.silentEmit("error", toError(err)));
   }
 
   // Cluster sends unsolicited `sunsubscribe` pushes on slot migration; those

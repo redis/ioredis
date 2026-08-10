@@ -285,13 +285,14 @@ describe("utils", () => {
       expect(utils.isArguments(new Date())).to.eql(false);
       expect(utils.isArguments(new Error())).to.eql(false);
       expect(utils.isArguments(slice)).to.eql(false);
-      expect(utils.isArguments({ 0: 1, callee: utils.noop, length: 1 })).to.eql(false);
+      expect(utils.isArguments({ 0: 1, callee: utils.noop, length: 1 })).to.eql(
+        false
+      );
       expect(utils.isArguments(1)).to.eql(false);
       expect(utils.isArguments(/x/)).to.eql(false);
       expect(utils.isArguments("a")).to.eql(false);
       expect(utils.isArguments(symbol)).to.eql(false);
     });
-
   });
 
   describe(".toArg", () => {
@@ -300,6 +301,16 @@ describe("utils", () => {
       expect(utils.toArg(undefined)).to.eql("");
       expect(utils.toArg("abc")).to.eql("abc");
       expect(utils.toArg(123)).to.eql("123");
+    });
+  });
+
+  describe(".toError", () => {
+    it("returns errors unchanged and wraps other values", () => {
+      const error = new Error("original");
+
+      expect(utils.toError(error)).to.equal(error);
+      expect(utils.toError("failure")).to.be.instanceOf(Error);
+      expect(utils.toError("failure").message).to.equal("failure");
     });
   });
 
