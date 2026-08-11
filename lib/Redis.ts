@@ -49,6 +49,7 @@ import HimportCoordinator, {
   interceptHimportCommand,
   isInternalHimportCommand,
 } from "./himport/HimportCoordinator";
+import MaintenanceManager from "./maintNotifications/MaintenanceManager";
 import { cloneHimportFieldsets } from "./himport/HimportCoordinator";
 import Deque = require("denque");
 const debug = Debug("redis");
@@ -125,6 +126,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
   commandQueue: Deque<CommandItem>;
 
   private connector: AbstractConnector;
+  private maintenanceManager: MaintenanceManager | null = null;
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private offlineQueue: Deque;
   private connectionEpoch = 0;
@@ -175,6 +177,10 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
         new HimportCoordinator(this.options.himportFieldsets),
         "standalone"
       );
+    }
+
+    if (this.options.maintNotifications !== "disabled") {
+      this.maintenanceManager = new MaintenanceManager(this);
     }
 
     this.resetCommandQueue();
@@ -527,14 +533,9 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     if (
       !stream &&
       this[hasHimportCoordinator] &&
-      interceptHimportCommand(
-        this,
-        command,
-        this.status === "ready",
-        () => {
-          this.sendCommand(command);
-        }
-      )
+      interceptHimportCommand(this, command, this.status === "ready", () => {
+        this.sendCommand(command);
+      })
     ) {
       return command.promise;
     }

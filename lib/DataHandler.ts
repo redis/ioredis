@@ -52,9 +52,6 @@ export interface DataHandledable extends EventEmitter {
   status: string;
   condition: Condition | null;
   commandQueue: Deque<CommandItem>;
-  onMaintenanceNotification?: (
-    notification: MaintenanceNotification
-  ) => void | Promise<void>;
 
   disconnect(reconnect: boolean): void;
   recoverFromFatalError(
@@ -69,10 +66,18 @@ export interface DataHandledable extends EventEmitter {
 interface ParserOptions {
   stringNumbers: boolean;
   replyMapping: ReplyMappingMode;
+  onMaintenanceNotification?: (
+    notification: MaintenanceNotification
+  ) => void | Promise<void>;
 }
 
 export default class DataHandler {
+  private readonly onMaintenanceNotification?: (
+    notification: MaintenanceNotification
+  ) => void | Promise<void>;
+
   constructor(private redis: DataHandledable, parserOptions: ParserOptions) {
+    this.onMaintenanceNotification = parserOptions.onMaintenanceNotification;
     // Parser options can't change over the lifetime of a connection, so the
     // mapping is resolved once instead of per reply.
     const typeMapping = getParserTypeMapping(parserOptions);
@@ -274,7 +279,7 @@ export default class DataHandler {
   ): void {
     maintenanceChannel.publish(notification);
 
-    const handler = this.redis.onMaintenanceNotification;
+    const handler = this.onMaintenanceNotification;
     if (!handler) {
       return;
     }

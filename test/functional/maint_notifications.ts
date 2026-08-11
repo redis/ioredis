@@ -1,8 +1,19 @@
 import { expect } from "chai";
 import Redis from "../../lib/Redis";
+import type MaintenanceManager from "../../lib/maintNotifications/MaintenanceManager";
 import MockServer from "../helpers/mock_server";
 
 const PORT = 30001;
+
+const waitFor = async (predicate: () => boolean, timeoutMs = 1000) => {
+  const start = Date.now();
+  while (!predicate()) {
+    if (Date.now() - start > timeoutMs) {
+      throw new Error("Timed out waiting for condition");
+    }
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+};
 
 describe("maintenance notification handshake", () => {
   it("registers during the RESP3 handshake", (done) => {
@@ -93,6 +104,35 @@ describe("maintenance notification handshake", () => {
       redis.disconnect();
       done();
     });
+  });
+
+  it("tracks maintenance windows from server pushes", async () => {
+    const server = new MockServer(PORT, () => {});
+    const redis = new Redis({ port: PORT });
+    await new Promise((resolve) => redis.once("ready", resolve));
+
+    const manager = (redis as any)
+      .maintenanceManager as MaintenanceManager | null;
+    expect(manager).to.not.eql(null);
+    expect(manager!.isMaintenanceActive()).to.eql(false);
+
+    server.broadcast(MockServer.raw(">3\r\n$9\r\nMIGRATING\r\n:1\r\n:10\r\n"));
+    await waitFor(() => manager!.isMaintenanceActive());
+
+    server.broadcast(MockServer.raw(">2\r\n$8\r\nMIGRATED\r\n:2\r\n"));
+    await waitFor(() => !manager!.isMaintenanceActive());
+
+    redis.disconnect();
+  });
+
+  it("does not create a manager when disabled", async () => {
+    new MockServer(PORT, () => {});
+    const redis = new Redis({ port: PORT, maintNotifications: "disabled" });
+    await new Promise((resolve) => redis.once("ready", resolve));
+
+    expect((redis as any).maintenanceManager).to.eql(null);
+
+    redis.disconnect();
   });
 
   it("does not change the RESP2 handshake", (done) => {

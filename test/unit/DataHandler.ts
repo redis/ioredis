@@ -90,8 +90,11 @@ describe("DataHandler", () => {
   });
 
   it("dispatches typed maintenance pushes without shifting the command queue", async () => {
-    const setup = setupDataHandler();
-    setup.redis.onMaintenanceNotification = sinon.spy();
+    const onMaintenanceNotification = sinon.spy();
+    const setup = setupDataHandler({
+      stringNumbers: false,
+      onMaintenanceNotification,
+    });
     const command = new Command("get", ["key"], { replyEncoding: "utf8" });
     setup.redis.commandQueue.push({ command, select: 0 });
 
@@ -100,7 +103,7 @@ describe("DataHandler", () => {
     );
 
     expect(
-      setup.redis.onMaintenanceNotification.calledOnceWithExactly({
+      onMaintenanceNotification.calledOnceWithExactly({
         type: "MOVING",
         sequenceNumber: 17,
         timeSeconds: 15,
@@ -146,8 +149,11 @@ describe("DataHandler", () => {
   });
 
   it("ignores unknown and malformed pushes without shifting the command queue", async () => {
-    const setup = setupDataHandler();
-    setup.redis.onMaintenanceNotification = sinon.spy();
+    const onMaintenanceNotification = sinon.spy();
+    const setup = setupDataHandler({
+      stringNumbers: false,
+      onMaintenanceNotification,
+    });
     const command = new Command("get", ["key"], { replyEncoding: "utf8" });
     setup.redis.commandQueue.push({ command, select: 0 });
 
@@ -157,7 +163,7 @@ describe("DataHandler", () => {
         "+VALUE\r\n"
     );
 
-    expect(setup.redis.onMaintenanceNotification.called).to.be.false;
+    expect(onMaintenanceNotification.called).to.be.false;
     expect(await command.promise).to.equal("VALUE");
     expect(setup.redis.commandQueue.length).to.equal(0);
   });
@@ -174,9 +180,11 @@ describe("DataHandler", () => {
   });
 
   it("observes asynchronous maintenance handler failures", async () => {
-    const setup = setupDataHandler();
     const handlerError = new Error("maintenance handler failed");
-    setup.redis.onMaintenanceNotification = sinon.stub().rejects(handlerError);
+    const setup = setupDataHandler({
+      stringNumbers: false,
+      onMaintenanceNotification: sinon.stub().rejects(handlerError),
+    });
 
     setup.write(">3\r\n$12\r\nFAILING_OVER\r\n:17\r\n:30\r\n");
     await new Promise((resolve) => setImmediate(resolve));
@@ -403,7 +411,11 @@ describe("DataHandler", () => {
   });
 });
 
-function setupDataHandler(parserOptions = { stringNumbers: false }) {
+type DataHandlerOptions = ConstructorParameters<typeof DataHandler>[1];
+
+function setupDataHandler(
+  parserOptions: Partial<DataHandlerOptions> = { stringNumbers: false }
+) {
   let dataHandler: (data: Buffer) => void;
   const redis = new EventEmitter() as any;
   redis.stream = {
@@ -428,7 +440,7 @@ function setupDataHandler(parserOptions = { stringNumbers: false }) {
   });
   redis.silentEmit = sinon.spy();
 
-  new DataHandler(redis, parserOptions);
+  new DataHandler(redis, parserOptions as DataHandlerOptions);
 
   return {
     redis,
