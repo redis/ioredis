@@ -56,23 +56,52 @@ function parseKnownNotification(
     }
     case MaintenanceNotificationType.MIGRATING:
     case MaintenanceNotificationType.FAILING_OVER: {
-      if (push.length !== 3) {
+      if (push.length !== 3 && push.length !== 4) {
         return null;
       }
       const timeSeconds = parseInteger(push[2]);
       if (timeSeconds === null) {
         return null;
       }
-      return { type, sequenceNumber, timeSeconds };
+      const shardIds = push.length === 4 ? parseShardIds(push[3]) : undefined;
+      return shardIds
+        ? { type, sequenceNumber, timeSeconds, shardIds }
+        : { type, sequenceNumber, timeSeconds };
     }
     case MaintenanceNotificationType.MIGRATED:
     case MaintenanceNotificationType.FAILED_OVER: {
-      if (push.length !== 2) {
+      if (push.length !== 2 && push.length !== 3) {
         return null;
       }
-      return { type, sequenceNumber };
+      const shardIds = push.length === 3 ? parseShardIds(push[2]) : undefined;
+      return shardIds
+        ? { type, sequenceNumber, shardIds }
+        : { type, sequenceNumber };
     }
   }
+}
+
+// The server appends shard ids as a stringified JSON array (e.g. '["1","2"]').
+// They are informational for standalone clients, so a value that fails to
+// parse degrades to an absent list instead of discarding the notification.
+function parseShardIds(value: unknown): string[] | undefined {
+  const raw = parseString(value);
+  if (!raw) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (
+      Array.isArray(parsed) &&
+      parsed.every((id) => typeof id === "string" || typeof id === "number")
+    ) {
+      return parsed.map(String);
+    }
+  } catch {
+    // Not JSON; treat the notification as valid without shard ids.
+  }
+  return undefined;
 }
 
 function isMaintenanceNotificationType(

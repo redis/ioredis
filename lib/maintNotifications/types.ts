@@ -28,19 +28,23 @@ export interface MovingNotification extends MaintenanceNotificationBase {
 export interface MigratingNotification extends MaintenanceNotificationBase {
   type: typeof MaintenanceNotificationType.MIGRATING;
   timeSeconds: number;
+  shardIds?: string[];
 }
 
 export interface MigratedNotification extends MaintenanceNotificationBase {
   type: typeof MaintenanceNotificationType.MIGRATED;
+  shardIds?: string[];
 }
 
 export interface FailingOverNotification extends MaintenanceNotificationBase {
   type: typeof MaintenanceNotificationType.FAILING_OVER;
   timeSeconds: number;
+  shardIds?: string[];
 }
 
 export interface FailedOverNotification extends MaintenanceNotificationBase {
   type: typeof MaintenanceNotificationType.FAILED_OVER;
+  shardIds?: string[];
 }
 
 export type MaintenanceNotification =

@@ -297,6 +297,53 @@ export class FaultInjectorClient {
     );
   }
 
+  createStandaloneTestDatabase(
+    namePrefix: string
+  ): Promise<RedisConnectionConfig> {
+    return this.createDatabase(
+      getCreateDatabaseConfig(CreateDatabaseConfigType.STANDALONE, namePrefix)
+    );
+  }
+
+  /**
+   * Migrates the database's shards to another node and then rebinds the
+   * endpoint, which makes the server emit the MIGRATING, MIGRATED and MOVING
+   * maintenance push notifications.
+   */
+  migrateAndBindAction({
+    bdbId,
+    clusterIndex = 0,
+  }: {
+    bdbId: number | string;
+    clusterIndex?: number | string;
+  }) {
+    const bdbIdStr = String(bdbId);
+    const clusterIndexStr = String(clusterIndex);
+
+    return this.triggerAction<{ action_id: string }>({
+      type: "sequence_of_actions",
+      parameters: {
+        bdbId: bdbIdStr,
+        actions: [
+          {
+            type: "migrate",
+            params: {
+              cluster_index: clusterIndexStr,
+              bdb_id: bdbIdStr,
+            },
+          },
+          {
+            type: "bind",
+            params: {
+              cluster_index: clusterIndexStr,
+              bdb_id: bdbIdStr,
+            },
+          },
+        ],
+      },
+    });
+  }
+
   async deleteDatabase(bdbId: number | string, clusterIndex = 0) {
     const { action_id } = await this.triggerAction<{ action_id: string }>({
       type: "delete_database",
