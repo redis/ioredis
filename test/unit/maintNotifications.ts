@@ -109,6 +109,60 @@ describe("maintenance", () => {
       });
     });
 
+    it("parses shard ids from start and end notifications", () => {
+      expect(
+        parseMaintenanceNotification([
+          "MIGRATING",
+          18,
+          "30",
+          Buffer.from('["1","2"]'),
+        ])
+      ).to.eql({
+        type: "MIGRATING",
+        sequenceNumber: 18,
+        timeSeconds: 30,
+        shardIds: ["1", "2"],
+      });
+      expect(parseMaintenanceNotification(["MIGRATED", 19, "[3,4]"])).to.eql({
+        type: "MIGRATED",
+        sequenceNumber: 19,
+        shardIds: ["3", "4"],
+      });
+      expect(
+        parseMaintenanceNotification(["FAILING_OVER", 20, 30, '["5"]'])
+      ).to.eql({
+        type: "FAILING_OVER",
+        sequenceNumber: 20,
+        timeSeconds: 30,
+        shardIds: ["5"],
+      });
+      expect(parseMaintenanceNotification(["FAILED_OVER", 21, "[6]"])).to.eql({
+        type: "FAILED_OVER",
+        sequenceNumber: 21,
+        shardIds: ["6"],
+      });
+    });
+
+    it("keeps notifications with unparseable shard ids", () => {
+      expect(
+        parseMaintenanceNotification(["MIGRATING", 18, 30, "not-json"])
+      ).to.eql({
+        type: "MIGRATING",
+        sequenceNumber: 18,
+        timeSeconds: 30,
+      });
+      expect(
+        parseMaintenanceNotification(["MIGRATED", 19, '{"not":"an-array"}'])
+      ).to.eql({
+        type: "MIGRATED",
+        sequenceNumber: 19,
+      });
+      expect(parseMaintenanceNotification(["FAILED_OVER", 21, null])).to.eql({
+        type: "FAILED_OVER",
+        sequenceNumber: 21,
+      });
+    });
+
     it("parses IPv4, IPv6, and null MOVING endpoints", () => {
       expect(
         parseMaintenanceNotification(["MOVING", 1, 15, "10.0.0.8:6379"])
@@ -137,12 +191,13 @@ describe("maintenance", () => {
         ["MOVING", 1, 15, "cache.internal:70000"],
         ["MIGRATING", 1],
         ["MIGRATING", 1, null],
+        ["MIGRATING", 1, 30, '["1"]', "unexpected"],
         ["MIGRATED", "not-a-number"],
-        ["MIGRATED", 1, "unexpected"],
+        ["MIGRATED", 1, '["1"]', "unexpected"],
         ["FAILING_OVER", 1],
         ["FAILING_OVER", 1, -1],
         ["FAILED_OVER"],
-        ["FAILED_OVER", 1, "unexpected"],
+        ["FAILED_OVER", 1, '["1"]', "unexpected"],
       ]) {
         expect(parseMaintenanceNotification(push), JSON.stringify(push)).to.eql(
           null
