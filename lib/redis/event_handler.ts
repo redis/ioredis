@@ -97,7 +97,7 @@ async function getHandshakeCommands(self: any): Promise<HandshakeCommand[]> {
           "LIB-NAME",
           self.options?.clientInfoTag
             ? `ioredis(${self.options.clientInfoTag})`
-            : "ioredis",
+            : "ioredis"
         ),
       errorHandler: noop,
     });
@@ -126,13 +126,13 @@ async function getHandshakeCommands(self: any): Promise<HandshakeCommand[]> {
 
 async function sendHandshake(
   commands: HandshakeCommand[],
-  protocol: number,
+  protocol: number
 ): Promise<void> {
   if (protocol !== 3) {
     await Promise.all(
       commands.map(({ send, errorHandler }) =>
-        errorHandler ? send().catch(errorHandler) : send(),
-      ),
+        errorHandler ? send().catch(errorHandler) : send()
+      )
     );
     return;
   }
@@ -178,6 +178,7 @@ export function connectHandler(self) {
       new DataHandler(self, {
         stringNumbers: self.options.stringNumbers,
         replyMapping: self.condition.replyMapping,
+        onMaintenanceNotification: self.maintenanceManager?.handle,
       });
 
       const { connectionEpoch } = self;
@@ -196,7 +197,7 @@ export function connectHandler(self) {
       try {
         await sendHandshake(
           await getHandshakeCommands(self),
-          self.condition.protocol,
+          self.condition.protocol
         );
       } catch (err) {
         // The connection may have been closed (and possibly already
@@ -222,7 +223,7 @@ export function connectHandler(self) {
         if (self.options.replyMapping === "resp3") {
           console.warn(
             '[WARN] replyMapping "resp3" was requested, but the server does not support RESP3. ' +
-              "Replies will use RESP2-compatible shapes until connected to a server that supports RESP3.",
+              "Replies will use RESP2-compatible shapes until connected to a server that supports RESP3."
           );
         }
 
@@ -233,7 +234,7 @@ export function connectHandler(self) {
         try {
           await sendHandshake(
             await getHandshakeCommands(self),
-            self.condition.protocol,
+            self.condition.protocol
           );
         } catch (downgradeErr) {
           if (!isActiveConnect()) {
@@ -284,7 +285,7 @@ function handleAuthError(err: Error): void {
   const msg = err.message || "";
   if (msg.indexOf("no password is set") !== -1) {
     console.warn(
-      "[WARN] Redis server does not require a password, but a password was supplied.",
+      "[WARN] Redis server does not require a password, but a password was supplied."
     );
     return;
   }
@@ -292,13 +293,13 @@ function handleAuthError(err: Error): void {
     msg.indexOf("without any password configured for the default user") !== -1
   ) {
     console.warn(
-      "[WARN] This Redis server's `default` user does not require a password, but a password was supplied",
+      "[WARN] This Redis server's `default` user does not require a password, but a password was supplied"
     );
     return;
   }
   if (msg.indexOf("wrong number of arguments for 'auth' command") !== -1) {
     console.warn(
-      `[ERROR] The server returned "wrong number of arguments for 'auth' command". You are probably passing both username and password to Redis version 5 or below. You should only pass the 'password' option for Redis version 5 and under.`,
+      `[ERROR] The server returned "wrong number of arguments for 'auth' command". You are probably passing both username and password to Redis version 5 or below. You should only pass the 'password' option for Redis version 5 and under.`
     );
     return;
   }
@@ -411,7 +412,7 @@ export function closeHandler(self) {
 
     if (typeof retryDelay !== "number") {
       debug(
-        "skip reconnecting because `retryStrategy` doesn't return a number",
+        "skip reconnecting because `retryStrategy` doesn't return a number"
       );
       return close();
     }
@@ -432,7 +433,7 @@ export function closeHandler(self) {
         const remainder = self.retryAttempts % (maxRetriesPerRequest + 1);
         if (remainder === 0) {
           debug(
-            "reach maxRetriesPerRequest limitation, flushing command queue...",
+            "reach maxRetriesPerRequest limitation, flushing command queue..."
           );
           self.flushQueue(new MaxRetriesPerRequestError(maxRetriesPerRequest));
         }
@@ -461,7 +462,7 @@ export function readyHandler(self) {
     if (self.options.monitor) {
       self.call("monitor").then(
         () => self.setStatus("monitoring"),
-        (error: Error) => self.emit("error", error),
+        (error: Error) => self.emit("error", error)
       );
       const { sendCommand } = self;
       self.sendCommand = function (command) {
@@ -469,9 +470,7 @@ export function readyHandler(self) {
           return sendCommand.call(self, command);
         }
         command.reject(
-          new Error(
-            "Connection is in monitoring mode, can't process commands.",
-          ),
+          new Error("Connection is in monitoring mode, can't process commands.")
         );
         return command.promise;
       };
