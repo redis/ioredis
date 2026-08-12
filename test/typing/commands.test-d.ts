@@ -55,6 +55,16 @@ expectType<Promise<string>>(redis.incrbyfloat("key", "42"));
 expectType<Promise<(string | null)[]>>(redis.mget("key", "bar"));
 expectType<Promise<(string | null)[]>>(redis.mget(["key", "bar"]));
 
+// HMGET
+expectType<Promise<(string | null)[]>>(redis.hmget("key", "foo", "bar"));
+expectType<Promise<(string | null)[]>>(redis.hmget("key", ["foo", "bar"]));
+expectType<Promise<(Buffer | null)[]>>(
+  redis.hmgetBuffer("key", "foo", Buffer.from("bar"))
+);
+expectType<Promise<(Buffer | null)[]>>(
+  redis.hmgetBuffer("key", ["foo", Buffer.from("bar")])
+);
+
 // HGETALL
 expectType<Promise<Record<string, string>>>(redis.hgetall("key"));
 expectType<Promise<Record<string, Buffer>>>(redis.hgetallBuffer("key"));
@@ -285,6 +295,26 @@ redis.hgetdelBuffer("key", "FIELDS", 1, "field", (err, res) => {
 });
 
 redis.hgetexBuffer("key", "EX", 60, "FIELDS", 1, "field", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<(Buffer | null)[] | undefined>(res);
+});
+
+redis.hmget("key", ["foo", "bar"], (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<(string | null)[] | undefined>(res);
+});
+
+redis.hmget("key", "foo", "bar", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<(string | null)[] | undefined>(res);
+});
+
+redis.hmgetBuffer("key", ["foo", "bar"], (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<(Buffer | null)[] | undefined>(res);
+});
+
+redis.hmgetBuffer("key", "foo", "bar", (err, res) => {
   expectType<Error | null | undefined>(err);
   expectType<(Buffer | null)[] | undefined>(res);
 });

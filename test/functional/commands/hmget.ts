@@ -31,5 +31,16 @@ for (const { name, opts } of RESP_CONFIGS) {
         null,
       ]);
     });
+
+    it("accepts fields as an array", async () => {
+      const key = `hmget:${Date.now()}`;
+      await redis.hset(key, "field1", "value1", "field2", "value2");
+
+      expect(await redis.hmget(key, ["field1", "field2", "missing"])).to.eql([
+        "value1",
+        "value2",
+        null
+      ]);
+    });
   });
 }

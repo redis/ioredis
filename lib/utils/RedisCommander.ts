@@ -2092,6 +2092,8 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(N) where N is the number of fields being requested.
    * - _since_: 2.0.0
    */
+  hmget(key: RedisKey, fields: (string | Buffer)[], callback?: Callback<(string | null)[]>): Result<(string | null)[], Context>
+  hmgetBuffer(key: RedisKey, fields: (string | Buffer)[], callback?: Callback<(Buffer | null)[]>): Result<(Buffer | null)[], Context>
   hmget(...args: [key: RedisKey, ...fields: (string | Buffer)[], callback: Callback<(string | null)[]>]): Result<(string | null)[], Context>;
   hmgetBuffer(...args: [key: RedisKey, ...fields: (string | Buffer)[], callback: Callback<(Buffer | null)[]>]): Result<(Buffer | null)[], Context>;
   hmget(...args: [key: RedisKey, ...fields: (string | Buffer)[]]): Result<(string | null)[], Context>;

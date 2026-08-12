@@ -14,6 +14,13 @@ module.exports = {
       "$1Buffer(key: RedisKey, callback?: Callback<Record<string, Buffer>>): Result<Record<string, Buffer>, Context>",
     ],
   },
+  hmget: {
+    overwrite: false,
+    defs: [
+      "$1(key: RedisKey, fields: (string | Buffer)[], callback?: Callback<(string | null)[]>): Result<(string | null)[], Context>",
+      "$1Buffer(key: RedisKey, fields: (string | Buffer)[], callback?: Callback<(Buffer | null)[]>): Result<(Buffer | null)[], Context>",
+    ],
+  },
   mset: msetOverrides,
   msetnx: msetOverrides,
   hset: {
