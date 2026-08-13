@@ -32,6 +32,7 @@ export interface Respondable {
   args: CommandParameter[];
   resolve(result: any): void;
   reject(error: Error): void;
+  extendTimeout?(ms: number, createTimeoutError?: () => Error): void;
 }
 
 export interface PipelineWriteableStream {

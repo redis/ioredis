@@ -73,14 +73,7 @@ export interface CommandNameFlags {
   // Commands that will make client disconnect from server TODO shutdown?
   WILL_DISCONNECT: ["quit"];
   // Commands that are sent when the client is connecting
-  HANDSHAKE_COMMANDS: [
-    "auth",
-    "hello",
-    "select",
-    "client",
-    "readonly",
-    "info"
-  ];
+  HANDSHAKE_COMMANDS: ["auth", "hello", "select", "client", "readonly", "info"];
   // Commands that should not trigger a reconnection when errors occur
   IGNORE_RECONNECT_ON_ERROR: ["client"];
   // Commands that block
@@ -250,6 +243,7 @@ export default class Command implements Respondable {
   private callback: Callback;
   private transformed = false;
   private _commandTimeoutTimer?: NodeJS.Timeout;
+  private _commandDeadline?: number;
   private _blockingTimeoutTimer?: NodeJS.Timeout;
   private _blockingDeadline?: number;
 
@@ -415,14 +409,50 @@ export default class Command implements Respondable {
    * Set the wait time before terminating the attempt to execute a command
    * and generating an error.
    */
-  setTimeout(ms: number) {
+  setTimeout(ms: number, createTimeoutError?: () => Error) {
     if (!this._commandTimeoutTimer) {
+      this._commandDeadline = Date.now() + ms;
       this._commandTimeoutTimer = setTimeout(() => {
         if (!this.isSettled) {
-          this.reject(new Error("Command timed out"));
+          this.reject(
+            createTimeoutError
+              ? createTimeoutError()
+              : new Error("Command timed out")
+          );
         }
       }, ms);
     }
+  }
+
+  /**
+   * Extend a running command timeout so that it expires no earlier than
+   * `ms` from now. The deadline is only ever extended, never shortened, and
+   * a command without a running timeout is left untouched.
+   */
+  extendTimeout(ms: number, createTimeoutError?: () => Error) {
+    if (!this._commandTimeoutTimer || this.isSettled) {
+      return;
+    }
+
+    const deadline = Date.now() + ms;
+    if (
+      this._commandDeadline !== undefined &&
+      deadline <= this._commandDeadline
+    ) {
+      return;
+    }
+
+    clearTimeout(this._commandTimeoutTimer);
+    this._commandDeadline = deadline;
+    this._commandTimeoutTimer = setTimeout(() => {
+      if (!this.isSettled) {
+        this.reject(
+          createTimeoutError
+            ? createTimeoutError()
+            : new Error("Command timed out")
+        );
+      }
+    }, ms);
   }
 
   /**

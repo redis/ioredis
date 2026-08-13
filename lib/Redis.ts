@@ -50,6 +50,10 @@ import HimportCoordinator, {
   isInternalHimportCommand,
 } from "./himport/HimportCoordinator";
 import MaintenanceManager from "./maintNotifications/MaintenanceManager";
+import {
+  CommandTimeoutDuringMaintenanceError,
+  SocketTimeoutDuringMaintenanceError,
+} from "./errors";
 import { cloneHimportFieldsets } from "./himport/HimportCoordinator";
 import Deque = require("denque");
 const debug = Debug("redis");
@@ -180,7 +184,13 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     }
 
     if (this.options.maintNotifications !== "disabled") {
-      this.maintenanceManager = new MaintenanceManager(this);
+      this.maintenanceManager = new MaintenanceManager({
+        onMaintenanceStart: () => this.relaxTimeoutsForMaintenance(),
+      });
+      // A dropped connection implicitly ends every window: if maintenance is
+      // still ongoing, the server re-sends the pending notification on the
+      // next connection.
+      this.on("close", () => this.maintenanceManager?.reset());
     }
 
     this.resetCommandQueue();
@@ -527,7 +537,18 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     }
 
     if (typeof this.options.commandTimeout === "number") {
-      command.setTimeout(this.options.commandTimeout);
+      if (this.maintenanceManager?.isMaintenanceActive()) {
+        const relaxed = this.getRelaxedCommandTimeout();
+        const createTimeoutError = () =>
+          new CommandTimeoutDuringMaintenanceError(relaxed);
+        command.setTimeout(relaxed, createTimeoutError);
+        // A command re-entering sendCommand (e.g. resent from
+        // prevCommandQueue after a reconnect) already has a running timer,
+        // making setTimeout() a no-op; extend its deadline instead.
+        command.extendTimeout(relaxed, createTimeoutError);
+      } else {
+        command.setTimeout(this.options.commandTimeout);
+      }
     }
 
     if (
@@ -723,14 +744,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
 
   private setSocketTimeout() {
     const stream = this.stream;
-    this.socketTimeoutTimer = setTimeout(() => {
-      stream.destroy(
-        new Error(
-          `Socket timeout. Expecting data, but didn't receive any in ${this.options.socketTimeout}ms.`
-        )
-      );
-      this.socketTimeoutTimer = undefined;
-    }, this.options.socketTimeout);
+    this.armSocketTimeout();
 
     // this handler must run after the "data" handler in "DataHandler"
     // so that `this.commandQueue.length` will be updated
@@ -740,6 +754,68 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       if (this.commandQueue.length === 0) return;
       this.setSocketTimeout();
     });
+  }
+
+  /**
+   * Arms only the timer, deliberately without registering another "data"
+   * listener, so a pending timeout can be rescheduled (e.g. relaxed for
+   * maintenance) without stacking listeners in setSocketTimeout().
+   */
+  private armSocketTimeout() {
+    const stream = this.stream;
+    const maintenance = this.maintenanceManager?.isMaintenanceActive() ?? false;
+    const timeout = maintenance
+      ? Math.max(
+          this.options.socketTimeout,
+          this.options.maintRelaxedSocketTimeout ?? 0
+        )
+      : this.options.socketTimeout;
+
+    this.socketTimeoutTimer = setTimeout(() => {
+      stream.destroy(
+        maintenance
+          ? new SocketTimeoutDuringMaintenanceError(timeout)
+          : new Error(
+              `Socket timeout. Expecting data, but didn't receive any in ${timeout}ms.`
+            )
+      );
+      this.socketTimeoutTimer = undefined;
+    }, timeout);
+  }
+
+  private getRelaxedCommandTimeout(): number {
+    return Math.max(
+      this.options.commandTimeout ?? 0,
+      this.options.maintRelaxedCommandTimeout ?? 0
+    );
+  }
+
+  /**
+   * Invoked when the first maintenance window opens. In-flight commands get
+   * their deadlines extended to the relaxed timeout (never shortened) and a
+   * pending socket timeout is re-armed with the relaxed value. New commands
+   * and future socket arms consult `isMaintenanceActive()` themselves, which
+   * also restores normal policy once the windows close.
+   */
+  private relaxTimeoutsForMaintenance() {
+    if (typeof this.options.commandTimeout === "number") {
+      const relaxed = this.getRelaxedCommandTimeout();
+      const createTimeoutError = () =>
+        new CommandTimeoutDuringMaintenanceError(relaxed);
+
+      for (const item of this.commandQueue.toArray()) {
+        item.command.extendTimeout?.(relaxed, createTimeoutError);
+      }
+      for (const item of this.offlineQueue.toArray()) {
+        item.command.extendTimeout?.(relaxed, createTimeoutError);
+      }
+    }
+
+    if (this.socketTimeoutTimer !== undefined) {
+      clearTimeout(this.socketTimeoutTimer);
+      this.socketTimeoutTimer = undefined;
+      this.armSocketTimeout();
+    }
   }
 
   scanStream(options?: ScanStreamOptions) {

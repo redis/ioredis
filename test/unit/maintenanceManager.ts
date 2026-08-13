@@ -1,5 +1,4 @@
 import { expect } from "chai";
-import { EventEmitter } from "events";
 import * as sinon from "sinon";
 import MaintenanceManager, {
   FAILING_OVER_WINDOW_CAP_MS,
@@ -13,13 +12,13 @@ const notification = (partial: Partial<MaintenanceNotification>) =>
 
 describe("MaintenanceManager", () => {
   let clock: sinon.SinonFakeTimers;
-  let redis: EventEmitter;
+  let onMaintenanceStart: sinon.SinonSpy;
   let manager: MaintenanceManager;
 
   beforeEach(() => {
     clock = sinon.useFakeTimers();
-    redis = new EventEmitter();
-    manager = new MaintenanceManager(redis as any);
+    onMaintenanceStart = sinon.spy();
+    manager = new MaintenanceManager({ onMaintenanceStart });
   });
 
   afterEach(() => {
@@ -110,15 +109,46 @@ describe("MaintenanceManager", () => {
     expect(manager.isMaintenanceActive()).to.equal(false);
   });
 
-  it("clears every window when the connection closes", () => {
+  it("clears every window on reset", () => {
     manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
     manager.handle(notification({ type: "FAILING_OVER", timeSeconds: 10 }));
     manager.handle(
       notification({ type: "MOVING", timeSeconds: 15, endpoint: null })
     );
 
-    redis.emit("close");
+    manager.reset();
 
     expect(manager.isMaintenanceActive()).to.equal(false);
+  });
+
+  it("signals only the first opened window", () => {
+    manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
+    manager.handle(notification({ type: "FAILING_OVER", timeSeconds: 10 }));
+    manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
+
+    expect(onMaintenanceStart.calledOnce).to.equal(true);
+  });
+
+  it("signals again when a window opens after all windows closed", () => {
+    manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
+    manager.handle(notification({ type: "MIGRATED" }));
+
+    manager.handle(notification({ type: "FAILING_OVER", timeSeconds: 10 }));
+
+    expect(onMaintenanceStart.calledTwice).to.equal(true);
+  });
+
+  it("survives a throwing onMaintenanceStart callback", () => {
+    const throwingManager = new MaintenanceManager({
+      onMaintenanceStart: () => {
+        throw new Error("boom");
+      },
+    });
+
+    throwingManager.handle(
+      notification({ type: "MIGRATING", timeSeconds: 10 })
+    );
+
+    expect(throwingManager.isMaintenanceActive()).to.equal(true);
   });
 });
