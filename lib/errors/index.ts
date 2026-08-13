@@ -1,3 +1,9 @@
 import MaxRetriesPerRequestError from "./MaxRetriesPerRequestError";
+import CommandTimeoutDuringMaintenanceError from "./CommandTimeoutDuringMaintenanceError";
+import SocketTimeoutDuringMaintenanceError from "./SocketTimeoutDuringMaintenanceError";
 
-export { MaxRetriesPerRequestError };
+export {
+  MaxRetriesPerRequestError,
+  CommandTimeoutDuringMaintenanceError,
+  SocketTimeoutDuringMaintenanceError,
+};

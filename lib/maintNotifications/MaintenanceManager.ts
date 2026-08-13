@@ -3,7 +3,6 @@ import {
   MaintenanceNotificationType,
   type MaintenanceNotification,
 } from "./types";
-import type Redis from "../Redis";
 
 const debug = Debug("maintenance");
 
@@ -15,15 +14,27 @@ const debug = Debug("maintenance");
 export const MIGRATING_WINDOW_CAP_MS = 10 * 60 * 1000;
 export const FAILING_OVER_WINDOW_CAP_MS = 60 * 1000;
 
-// MOVING has no end notification. The server hard-closes the connection when
-// the grace period communicated in the notification is over, so the window
-// expires on its own shortly after that deadline.
+/**
+ * MOVING has no end notification. The server hard-closes the connection when
+ * the grace period communicated in the notification is over, so the window
+ * expires on its own shortly after that deadline.
+ */
 export const MOVING_WINDOW_MARGIN_MS = 2000;
 
 type MaintenanceWindowType =
   | typeof MaintenanceNotificationType.MIGRATING
   | typeof MaintenanceNotificationType.FAILING_OVER
   | typeof MaintenanceNotificationType.MOVING;
+
+export interface MaintenanceManagerCallbacks {
+  /**
+   * Invoked when the first window opens (no window was active before).
+   * Window closing needs no counterpart: consumers read
+   * `isMaintenanceActive()` when making new decisions, and already-relaxed
+   * deadlines are deliberately never shortened.
+   */
+  onMaintenanceStart?: () => void;
+}
 
 /**
  * Tracks server maintenance windows announced through RESP3 push
@@ -34,12 +45,7 @@ type MaintenanceWindowType =
 export default class MaintenanceManager {
   private readonly windows = new Map<MaintenanceWindowType, NodeJS.Timeout>();
 
-  constructor(redis: Redis) {
-    // A dropped connection implicitly ends every window: if maintenance is
-    // still ongoing, the server re-sends the pending notification on the
-    // next connection.
-    redis.on("close", () => this.reset());
-  }
+  constructor(private readonly callbacks: MaintenanceManagerCallbacks = {}) {}
 
   handle = (notification: MaintenanceNotification): void => {
     switch (notification.type) {
@@ -73,10 +79,13 @@ export default class MaintenanceManager {
     this.windows.clear();
   }
 
-  // A repeated start notification refreshes the window instead of stacking:
-  // the server replaces its pending notification, so the latest deadline wins.
+  /**
+   * A repeated start notification refreshes the window instead of stacking:
+   * the server replaces its pending notification, so the latest deadline wins.
+   */
   private openWindow(type: MaintenanceWindowType, maxDurationMs: number): void {
     debug("open %s window for up to %dms", type, maxDurationMs);
+    const wasActive = this.isMaintenanceActive();
     this.clearTimer(type);
     const timer = setTimeout(() => {
       debug("%s window expired", type);
@@ -84,6 +93,14 @@ export default class MaintenanceManager {
     }, maxDurationMs);
     timer.unref?.();
     this.windows.set(type, timer);
+
+    if (!wasActive) {
+      try {
+        this.callbacks.onMaintenanceStart?.();
+      } catch (err) {
+        debug("onMaintenanceStart callback failed: %s", err);
+      }
+    }
   }
 
   private closeWindow(type: MaintenanceWindowType): void {
