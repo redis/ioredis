@@ -46,6 +46,9 @@ export interface Condition {
   // Internal connection gate. While true, only handshake commands are writable;
   // user commands are queued so they cannot race ahead of the ready check.
   handshake: boolean;
+  // True while the server holds a WATCH for this connection: a WATCH was
+  // written and no UNWATCH, EXEC, DISCARD, or RESET has cleared it yet.
+  watching: boolean;
 }
 
 export type FlushQueueOptions = {

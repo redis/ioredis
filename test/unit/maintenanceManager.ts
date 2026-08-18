@@ -10,11 +10,31 @@ import type { MaintenanceNotification } from "../../lib/maintNotifications";
 const notification = (partial: Partial<MaintenanceNotification>) =>
   ({ sequenceNumber: 1, ...partial } as MaintenanceNotification);
 
+const createCandidateMock = () => {
+  const transport = {
+    stream: { destroy: sinon.spy() },
+    connector: {},
+    condition: {},
+  };
+  return {
+    transport,
+    detachTransport: sinon.stub().returns(transport),
+    dispose: sinon.spy(),
+  };
+};
+
 const createClientMock = () => ({
   options: {} as Record<string, number | undefined>,
   extendPendingCommandTimeouts: sinon.spy(),
   rearmSocketTimeout: sinon.spy(),
   flushOfflineQueue: sinon.spy(),
+  canHandoffConnection: sinon.stub().returns(true),
+  getConfiguredEndpoint: sinon
+    .stub()
+    .returns({ host: "configured.example", port: 6379 }),
+  createCandidateConnection: sinon.stub().resolves(createCandidateMock()),
+  adoptTransport: sinon.spy(),
+  waitForCommandQueueToDrain: sinon.stub().resolves(),
 });
 
 describe("MaintenanceManager", () => {
@@ -101,6 +121,7 @@ describe("MaintenanceManager", () => {
   });
 
   it("expires a MOVING window shortly after its grace period", () => {
+    client.canHandoffConnection.returns(false);
     manager.handle(
       notification({
         type: "MOVING",
@@ -233,5 +254,196 @@ describe("MaintenanceManager", () => {
 
     expect(manager.isWritePaused()).to.equal(false);
     expect(client.flushOfflineQueue.called).to.equal(false);
+  });
+
+  describe("connection handoff", () => {
+    const endpoint = { host: "10.0.0.9", port: 6380 };
+    const moving = (movingEndpoint: unknown = endpoint) =>
+      notification({
+        type: "MOVING",
+        timeSeconds: 15,
+        endpoint: movingEndpoint,
+      } as Partial<MaintenanceNotification>);
+
+    it("pauses, adopts, and resumes on a successful handoff", async () => {
+      const candidate = createCandidateMock();
+      client.createCandidateConnection.resolves(candidate);
+
+      manager.handle(moving());
+      expect(manager.isWritePaused()).to.equal(true);
+
+      await clock.tickAsync(0);
+
+      expect(
+        client.adoptTransport.calledOnceWithExactly(
+          candidate.transport,
+          endpoint
+        )
+      ).to.equal(true);
+      expect(manager.isWritePaused()).to.equal(false);
+      expect(client.flushOfflineQueue.calledOnce).to.equal(true);
+      // The MOVING window closes as soon as the handoff completes.
+      expect(manager.isMaintenanceActive()).to.equal(false);
+    });
+
+    it("adopts only after the command queue drains", async () => {
+      let resolveDrain: () => void;
+      client.waitForCommandQueueToDrain.returns(
+        new Promise<void>((resolve) => (resolveDrain = resolve))
+      );
+
+      manager.handle(moving());
+      await clock.tickAsync(0);
+      expect(client.adoptTransport.called).to.equal(false);
+
+      resolveDrain!();
+      await clock.tickAsync(0);
+      expect(client.adoptTransport.calledOnce).to.equal(true);
+    });
+
+    it("rolls back to the old connection when the candidate fails", async () => {
+      client.createCandidateConnection.rejects(new Error("connect failed"));
+
+      manager.handle(moving());
+      await clock.tickAsync(0);
+
+      expect(client.adoptTransport.called).to.equal(false);
+      expect(manager.isWritePaused()).to.equal(false);
+      expect(client.flushOfflineQueue.calledOnce).to.equal(true);
+      // The relaxation window stays open; the server may still disconnect.
+      expect(manager.isMaintenanceActive()).to.equal(true);
+    });
+
+    it("abandons the handoff at the grace deadline and disposes a late candidate", async () => {
+      const candidate = createCandidateMock();
+      let resolveCandidate: (candidate: unknown) => void;
+      client.createCandidateConnection.returns(
+        new Promise((resolve) => (resolveCandidate = resolve))
+      );
+
+      manager.handle(moving());
+      await clock.tickAsync(15_000);
+
+      expect(manager.isWritePaused()).to.equal(false);
+      expect(client.adoptTransport.called).to.equal(false);
+
+      resolveCandidate!(candidate);
+      await clock.tickAsync(0);
+      expect(candidate.dispose.calledOnce).to.equal(true);
+    });
+
+    it("hands off to the configured endpoint at half grace when MOVING has no endpoint", async () => {
+      const candidate = createCandidateMock();
+      client.createCandidateConnection.resolves(candidate);
+      const configured = { host: "configured.example", port: 6379 };
+      client.getConfiguredEndpoint.returns(configured);
+
+      manager.handle(moving(null));
+      // Nothing happens immediately; the window is open.
+      await clock.tickAsync(0);
+      expect(client.createCandidateConnection.called).to.equal(false);
+      expect(manager.isMaintenanceActive()).to.equal(true);
+
+      await clock.tickAsync(7_499);
+      expect(client.createCandidateConnection.called).to.equal(false);
+
+      await clock.tickAsync(1);
+      expect(
+        client.createCandidateConnection.calledOnceWithExactly(configured)
+      ).to.equal(true);
+
+      await clock.tickAsync(0);
+      expect(
+        client.adoptTransport.calledOnceWithExactly(
+          candidate.transport,
+          configured
+        )
+      ).to.equal(true);
+      expect(manager.isMaintenanceActive()).to.equal(false);
+      expect(manager.isWritePaused()).to.equal(false);
+    });
+
+    it("cancels the scheduled endpointless handoff on reset", async () => {
+      manager.handle(moving(null));
+
+      manager.reset();
+      await clock.tickAsync(60_000);
+
+      expect(client.createCandidateConnection.called).to.equal(false);
+    });
+
+    it("supersedes the scheduled endpointless handoff with a newer MOVING", async () => {
+      manager.handle(moving(null));
+      manager.handle(moving());
+      await clock.tickAsync(0);
+
+      expect(
+        client.createCandidateConnection.calledOnceWithExactly(endpoint)
+      ).to.equal(true);
+
+      // The half-grace timer never fires a second handoff.
+      await clock.tickAsync(60_000);
+      expect(client.createCandidateConnection.calledOnce).to.equal(true);
+    });
+
+    it("skips the scheduled endpointless handoff when the connection shape does not allow it", async () => {
+      client.canHandoffConnection.returns(false);
+
+      manager.handle(moving(null));
+      await clock.tickAsync(10_000);
+
+      expect(client.createCandidateConnection.called).to.equal(false);
+      // The window stays open; the server-side disconnect is the backstop.
+      expect(manager.isMaintenanceActive()).to.equal(true);
+    });
+
+    it("skips the scheduled endpointless handoff without a configured endpoint", async () => {
+      client.getConfiguredEndpoint.returns(null);
+
+      manager.handle(moving(null));
+      await clock.tickAsync(10_000);
+
+      expect(client.createCandidateConnection.called).to.equal(false);
+      expect(manager.isMaintenanceActive()).to.equal(true);
+    });
+
+    it("skips the handoff when the connection shape does not allow it", async () => {
+      client.canHandoffConnection.returns(false);
+
+      manager.handle(moving());
+      await clock.tickAsync(0);
+
+      expect(client.createCandidateConnection.called).to.equal(false);
+      expect(manager.isWritePaused()).to.equal(false);
+    });
+
+    it("discards the candidate when the connection drops mid-handoff", async () => {
+      const candidate = createCandidateMock();
+      let resolveCandidate: (candidate: unknown) => void;
+      client.createCandidateConnection.returns(
+        new Promise((resolve) => (resolveCandidate = resolve))
+      );
+
+      manager.handle(moving());
+      // The close path clears the pause while the candidate is connecting.
+      manager.reset();
+
+      resolveCandidate!(candidate);
+      await clock.tickAsync(0);
+
+      expect(client.adoptTransport.called).to.equal(false);
+      expect(candidate.dispose.calledOnce).to.equal(true);
+      expect(manager.isWritePaused()).to.equal(false);
+    });
+
+    it("ignores MOVING while a handoff is already active", async () => {
+      client.createCandidateConnection.returns(new Promise(() => {}));
+
+      manager.handle(moving());
+      manager.handle(moving());
+      await clock.tickAsync(0);
+
+      expect(client.createCandidateConnection.calledOnce).to.equal(true);
+    });
   });
 });

@@ -2,11 +2,17 @@ import { Debug } from "../utils";
 import {
   MaintenanceNotificationType,
   type MaintenanceNotification,
+  type MovingNotification,
 } from "./types";
 import {
   CommandTimeoutDuringMaintenanceError,
   SocketTimeoutDuringMaintenanceError,
 } from "../errors";
+import type {
+  DetachedTransport,
+  HandoffCandidate,
+  HandoffEndpoint,
+} from "../redis/ConnectionSession";
 
 const debug = Debug("maintenance");
 
@@ -54,6 +60,13 @@ export interface MaintenanceClient {
   ): void;
   rearmSocketTimeout(): void;
   flushOfflineQueue(): void;
+  canHandoffConnection(): boolean;
+  getConfiguredEndpoint(): HandoffEndpoint | null;
+  createCandidateConnection(
+    endpoint: HandoffEndpoint
+  ): Promise<HandoffCandidate>;
+  adoptTransport(transport: DetachedTransport, endpoint: HandoffEndpoint): void;
+  waitForCommandQueueToDrain(): Promise<void>;
 }
 
 /**
@@ -67,6 +80,8 @@ export interface MaintenanceClient {
 export default class MaintenanceManager {
   private readonly windows = new Map<MaintenanceWindowType, NodeJS.Timeout>();
   private writePause: symbol | null = null;
+  // Scheduled handoff to the configured endpoint for an endpointless MOVING.
+  private movingReconnectTimer: NodeJS.Timeout | null = null;
 
   constructor(private readonly client: MaintenanceClient) {}
 
@@ -85,10 +100,7 @@ export default class MaintenanceManager {
         this.closeWindow(MaintenanceNotificationType.FAILING_OVER);
         break;
       case MaintenanceNotificationType.MOVING:
-        this.openWindow(
-          notification.type,
-          notification.timeSeconds * 1000 + MOVING_WINDOW_MARGIN_MS
-        );
+        this.handleMoving(notification);
         break;
     }
   };
@@ -190,6 +202,7 @@ export default class MaintenanceManager {
   reset(): void {
     this.windows.forEach((timer) => clearTimeout(timer));
     this.windows.clear();
+    this.clearMovingReconnectTimer();
     this.writePause = null;
   }
 
@@ -227,6 +240,176 @@ export default class MaintenanceManager {
     if (timer) {
       clearTimeout(timer);
     }
+  }
+
+  /**
+   * MOVING opens a relaxation window like the other notifications and, when
+   * the connection shape allows it, starts a Smart Client Handoff to the
+   * announced endpoint.
+   */
+  private handleMoving(notification: MovingNotification): void {
+    this.openWindow(
+      MaintenanceNotificationType.MOVING,
+      notification.timeSeconds * 1000 + MOVING_WINDOW_MARGIN_MS
+    );
+    // A newer MOVING supersedes any transition scheduled by a previous one.
+    this.clearMovingReconnectTimer();
+
+    const graceMs = notification.timeSeconds * 1000;
+    if (!notification.endpoint) {
+      this.scheduleEndpointlessHandoff(graceMs);
+      return;
+    }
+    if (this.isWritePaused()) {
+      debug("a handoff is already in progress; ignoring MOVING");
+      return;
+    }
+    if (!this.client.canHandoffConnection()) {
+      debug(
+        "connection does not support a handoff; relying on ordinary reconnect"
+      );
+      return;
+    }
+
+    void this.performHandoff(notification.endpoint, graceMs);
+  }
+
+  /**
+   * An endpointless MOVING asks the client to move back to its configured
+   * endpoint, whose DNS record is being repointed. Wait half the grace
+   * period (giving DNS time to flip) and then hand off proactively while
+   * the old endpoint is still serving, rather than waiting for the abrupt
+   * server-side close at the deadline. If the handoff cannot run or fails,
+   * that hard-close remains the backstop through the ordinary reconnect
+   * path.
+   */
+  private scheduleEndpointlessHandoff(graceMs: number): void {
+    const delayMs = Math.floor(graceMs / 2);
+    debug(
+      "MOVING carries no endpoint; scheduling a handoff to the configured endpoint in %dms",
+      delayMs
+    );
+    const timer = setTimeout(() => {
+      this.movingReconnectTimer = null;
+      if (this.isWritePaused()) {
+        debug("a handoff is already in progress; skipping the scheduled one");
+        return;
+      }
+      if (!this.client.canHandoffConnection()) {
+        debug(
+          "connection does not support a handoff; relying on the server-side disconnect"
+        );
+        return;
+      }
+      const endpoint = this.client.getConfiguredEndpoint();
+      if (!endpoint) {
+        debug(
+          "no configured endpoint to hand off to; relying on the server-side disconnect"
+        );
+        return;
+      }
+      void this.performHandoff(endpoint, graceMs - delayMs);
+    }, delayMs);
+    timer.unref?.();
+    this.movingReconnectTimer = timer;
+  }
+
+  private clearMovingReconnectTimer(): void {
+    if (this.movingReconnectTimer) {
+      clearTimeout(this.movingReconnectTimer);
+      this.movingReconnectTimer = null;
+    }
+  }
+
+  /**
+   * The sequential handoff: pause writes, connect the replacement and drain
+   * the old connection in parallel, then atomically adopt the replacement
+   * and replay the paused commands. On any failure the old connection keeps
+   * (or regains) ownership: writes resume if it is still healthy, and if it
+   * is gone, the close path has already cleared the pause so the ordinary
+   * reconnect replays the offline queue.
+   */
+  private async performHandoff(
+    endpoint: HandoffEndpoint,
+    graceMs: number
+  ): Promise<void> {
+    let token: symbol;
+    try {
+      token = this.pauseWrites();
+    } catch {
+      return;
+    }
+
+    debug(
+      "start connection handoff to %s:%d (grace %dms)",
+      endpoint.host,
+      endpoint.port,
+      graceMs
+    );
+    const candidatePromise = this.client.createCandidateConnection(endpoint);
+
+    try {
+      const [candidate] = await this.withGraceDeadline(
+        Promise.all([
+          candidatePromise,
+          this.client.waitForCommandQueueToDrain(),
+        ]),
+        graceMs
+      );
+
+      // The old connection may have dropped while the candidate was
+      // connecting; the close path then cleared this pause and the ordinary
+      // reconnect owns the client. A stale handoff must not adopt.
+      if (this.writePause !== token) {
+        throw new Error("Connection handoff was superseded by a reconnect");
+      }
+
+      // Throws if the candidate connection died while the old connection
+      // was draining, so a dead transport is never adopted.
+      const transport = candidate.detachTransport();
+      this.client.adoptTransport(transport, endpoint);
+      // Relaxed timeouts return to normal as soon as the handoff completes.
+      this.closeWindow(MaintenanceNotificationType.MOVING);
+      this.resumeWrites(token);
+      debug(
+        "connection handoff to %s:%d complete",
+        endpoint.host,
+        endpoint.port
+      );
+    } catch (err) {
+      debug("connection handoff failed: %s", err);
+      // The candidate was not adopted: dispose it now, or whenever it
+      // finishes connecting.
+      candidatePromise.then(
+        (candidate) => candidate.dispose(),
+        () => {}
+      );
+      this.resumeWrites(token);
+    }
+  }
+
+  private withGraceDeadline<T>(
+    promise: Promise<T>,
+    graceMs: number
+  ): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(
+          new Error(`Connection handoff was not completed within ${graceMs}ms`)
+        );
+      }, graceMs);
+      timer.unref?.();
+      promise.then(
+        (value) => {
+          clearTimeout(timer);
+          resolve(value);
+        },
+        (err) => {
+          clearTimeout(timer);
+          reject(err);
+        }
+      );
+    });
   }
 
   /**

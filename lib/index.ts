@@ -53,7 +53,10 @@ export {
 } from "./connectors/SentinelConnector";
 export { StandaloneConnectionOptions } from "./connectors/StandaloneConnector";
 export { RedisOptions, CommonRedisOptions } from "./redis/RedisOptions";
-export type { MaintEndpointType, MaintNotifications } from "./maintNotifications";
+export type {
+  MaintEndpointType,
+  MaintNotifications,
+} from "./maintNotifications";
 export type { HimportFieldset } from "./himport/types";
 export { ClusterNode } from "./cluster";
 export {
@@ -79,6 +82,13 @@ export type {
   ConnectTraceContext,
 } from "./tracing";
 
+export {
+  WatchError,
+  CommandTimeoutDuringMaintenanceError,
+  MaxRetriesPerRequestError,
+  SocketTimeoutDuringMaintenanceError,
+} from "./errors";
+
 // No TS typings
 export const ReplyError = require("redis-errors").ReplyError;
 
@@ -88,13 +98,13 @@ export const ReplyError = require("redis-errors").ReplyError;
 Object.defineProperty(exports, "Promise", {
   get() {
     console.warn(
-      "ioredis v5 does not support plugging third-party Promise library anymore. Native Promise will be used."
+      "ioredis v5 does not support plugging third-party Promise library anymore. Native Promise will be used.",
     );
     return Promise;
   },
   set(_lib: unknown) {
     console.warn(
-      "ioredis v5 does not support plugging third-party Promise library anymore. Native Promise will be used."
+      "ioredis v5 does not support plugging third-party Promise library anymore. Native Promise will be used.",
     );
   },
 });
