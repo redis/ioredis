@@ -37,6 +37,10 @@ export interface Respondable {
 
 export interface PipelineWriteableStream {
   isPipeline: true;
+  // True when the pipeline batch wraps its commands in MULTI/EXEC. Lets the
+  // write path treat the whole batch as one transaction (e.g. when watched
+  // keys were invalidated by a connection handoff).
+  containsMulti?: boolean;
   write(data: string | Buffer): unknown;
   destination: { redis: { stream: NetStream } };
 }
