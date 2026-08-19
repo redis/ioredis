@@ -26,7 +26,7 @@ export interface HandshakeCommand {
   errorHandler?: (err: Error) => void;
 }
 
-async function getHandshakeCommands(self: any): Promise<HandshakeCommand[]> {
+function getHandshakeCommands(self: any): HandshakeCommand[] {
   const commands: HandshakeCommand[] = [];
 
   if (self.condition.protocol === 3) {
@@ -116,7 +116,7 @@ async function getHandshakeCommands(self: any): Promise<HandshakeCommand[]> {
     }
   }
 
-  const maintCommand = await getMaintNotificationsHandshakeCommand(self);
+  const maintCommand = getMaintNotificationsHandshakeCommand(self);
   if (maintCommand) {
     commands.push(maintCommand);
   }
@@ -196,7 +196,7 @@ export function connectHandler(self) {
 
       try {
         await sendHandshake(
-          await getHandshakeCommands(self),
+          getHandshakeCommands(self),
           self.condition.protocol
         );
       } catch (err) {
@@ -233,7 +233,7 @@ export function connectHandler(self) {
 
         try {
           await sendHandshake(
-            await getHandshakeCommands(self),
+            getHandshakeCommands(self),
             self.condition.protocol
           );
         } catch (downgradeErr) {

@@ -14,6 +14,8 @@ describe("maintenance", () => {
       "172.16.0.1",
       "192.168.1.1",
       "100.64.0.1",
+      "::ffff:10.0.0.1",
+      "::ffff:127.0.0.1",
       "::1",
       "fc00::1",
       "fd12:3456::1",
@@ -22,36 +24,39 @@ describe("maintenance", () => {
       expect(isPrivateAddress(address), address).to.eql(true);
     }
 
-    for (const address of ["8.8.8.8", "100.128.0.1", "2001:4860::8888"]) {
+    for (const address of [
+      "8.8.8.8",
+      "100.128.0.1",
+      "::ffff:8.8.8.8",
+      "2001:4860::8888",
+    ]) {
       expect(isPrivateAddress(address), address).to.eql(false);
     }
   });
 
-  it("resolves auto endpoint types from address and TLS", async () => {
-    expect(await resolveMaintEndpointType("auto", "10.0.0.1", false)).to.eql(
+  it("resolves auto endpoint types from the connected address and TLS", () => {
+    expect(resolveMaintEndpointType("auto", "10.0.0.1", false)).to.eql(
       "internal-ip"
     );
-    expect(await resolveMaintEndpointType("auto", "10.0.0.1", true)).to.eql(
+    expect(resolveMaintEndpointType("auto", "10.0.0.1", true)).to.eql(
       "internal-fqdn"
     );
-    expect(await resolveMaintEndpointType("auto", "8.8.8.8", false)).to.eql(
+    expect(resolveMaintEndpointType("auto", "8.8.8.8", false)).to.eql(
       "external-ip"
     );
-    expect(await resolveMaintEndpointType("auto", "8.8.8.8", true)).to.eql(
+    expect(resolveMaintEndpointType("auto", "8.8.8.8", true)).to.eql(
       "external-fqdn"
     );
-    expect(await resolveMaintEndpointType("auto", "localhost", false)).to.eql(
-      "internal-ip"
+    expect(resolveMaintEndpointType("auto", undefined, false)).to.eql(
+      "external-ip"
     );
   });
 
-  it("preserves explicit endpoint types", async () => {
-    expect(await resolveMaintEndpointType("none", "10.0.0.1", false)).to.eql(
-      "none"
+  it("preserves explicit endpoint types", () => {
+    expect(resolveMaintEndpointType("none", "10.0.0.1", false)).to.eql("none");
+    expect(resolveMaintEndpointType("external-fqdn", "10.0.0.1", false)).to.eql(
+      "external-fqdn"
     );
-    expect(
-      await resolveMaintEndpointType("external-fqdn", "10.0.0.1", false)
-    ).to.eql("external-fqdn");
   });
 
   describe("parseMaintenanceNotification", () => {

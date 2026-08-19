@@ -1,4 +1,3 @@
-import { lookup } from "dns/promises";
 import { isIP } from "net";
 import { noop } from "../utils";
 import type { HandshakeCommand } from "../redis/event_handler";
@@ -41,12 +40,20 @@ function isPrivateIPv4(address: string): boolean {
 }
 
 export function isPrivateAddress(address: string): boolean {
-  const version = isIP(address);
+  const normalized = address.toLowerCase();
+  const mappedIPv4Prefix = "::ffff:";
+  if (normalized.startsWith(mappedIPv4Prefix)) {
+    const mappedAddress = normalized.slice(mappedIPv4Prefix.length);
+    if (isIP(mappedAddress) === 4) {
+      return isPrivateIPv4(mappedAddress);
+    }
+  }
+
+  const version = isIP(normalized);
   if (version === 4) {
-    return isPrivateIPv4(address);
+    return isPrivateIPv4(normalized);
   }
   if (version === 6) {
-    const normalized = address.toLowerCase();
     return (
       normalized === "::1" ||
       normalized.startsWith("fc") ||
@@ -57,44 +64,25 @@ export function isPrivateAddress(address: string): boolean {
   return false;
 }
 
-async function isInternalHost(host: string): Promise<boolean> {
-  if (isIP(host)) {
-    return isPrivateAddress(host);
-  }
-
-  try {
-    const addresses = await lookup(host, { all: true });
-    return (
-      addresses.length > 0 &&
-      addresses.every(({ address }) => isPrivateAddress(address))
-    );
-  } catch {
-    // A connection can use a custom resolver or an already-resolved socket even
-    // when the system resolver fails here. Prefer an external endpoint in that
-    // case instead of failing an otherwise healthy connection.
-    return false;
-  }
-}
-
-export async function resolveMaintEndpointType(
+export function resolveMaintEndpointType(
   endpointType: MaintEndpointType,
-  host: string,
+  address: string | undefined,
   tlsEnabled: boolean
-): Promise<ResolvedMaintEndpointType> {
+): ResolvedMaintEndpointType {
   if (endpointType !== "auto") {
     return endpointType;
   }
 
-  const internal = await isInternalHost(host);
+  const internal = address ? isPrivateAddress(address) : false;
   if (tlsEnabled) {
     return internal ? "internal-fqdn" : "external-fqdn";
   }
   return internal ? "internal-ip" : "external-ip";
 }
 
-export async function getMaintNotificationsHandshakeCommand(
+export function getMaintNotificationsHandshakeCommand(
   redis: any
-): Promise<HandshakeCommand | null> {
+): HandshakeCommand | null {
   if (redis.options.maintNotifications === "disabled") {
     return null;
   }
@@ -103,9 +91,14 @@ export async function getMaintNotificationsHandshakeCommand(
     return null;
   }
 
-  const endpointType = await resolveMaintEndpointType(
+  let address = redis.stream?.remoteAddress;
+  if (!address && isIP(redis.options.host)) {
+    address = redis.options.host;
+  }
+
+  const endpointType = resolveMaintEndpointType(
     redis.options.maintEndpointType,
-    redis.options.host,
+    address,
     Boolean(redis.options.tls)
   );
 
