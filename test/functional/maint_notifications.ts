@@ -44,6 +44,30 @@ describe("maintenance notification handshake", () => {
     });
   });
 
+  it("derives the endpoint type from the connected peer address", (done) => {
+    const commands: string[][] = [];
+    new MockServer(PORT, (argv) => {
+      commands.push(argv);
+    });
+
+    const redis = new Redis({ port: PORT, host: "localhost" });
+    redis.on("ready", () => {
+      const registration = commands.find(
+        ([command, subcommand]) =>
+          command === "client" && subcommand === "MAINT_NOTIFICATIONS"
+      );
+      expect(registration).to.eql([
+        "client",
+        "MAINT_NOTIFICATIONS",
+        "ON",
+        "moving-endpoint-type",
+        "internal-ip",
+      ]);
+      redis.disconnect();
+      done();
+    });
+  });
+
   it("continues in auto mode when registration is unsupported", (done) => {
     new MockServer(PORT, (argv) => {
       if (argv[0] === "client" && argv[1] === "MAINT_NOTIFICATIONS") {

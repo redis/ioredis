@@ -187,8 +187,10 @@ export interface CommonRedisOptions extends CommanderOptions {
 
   /**
    * The endpoint type requested in Smart Client Handoff `MOVING`
-   * notifications. `"auto"` selects an internal or external endpoint from
-   * the connection address and requests an FQDN when TLS is enabled.
+   * notifications. `"auto"` classifies the connected peer address as internal
+   * or external and requests an FQDN when TLS is enabled. If the connected
+   * peer address is unavailable, an IP-literal configured host is used;
+   * otherwise the endpoint defaults to external.
    *
    * @default "auto"
    */
