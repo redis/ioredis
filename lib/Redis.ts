@@ -393,6 +393,18 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       eventHandler.closeHandler(this)();
     } else {
       this.connector.disconnect();
+      // When disconnecting before a stream exists or while waiting to
+      // reconnect, no stream event will ever fire to flush the pending
+      // queues. Commands stranded in the offline queue would keep their
+      // armed commandTimeout timers, which later reject with
+      // "Command timed out" even though the commands were never sent.
+      if (
+        !reconnect &&
+        this.status !== "end" &&
+        (!this.stream || this.status === "reconnecting")
+      ) {
+        eventHandler.closeHandler(this)();
+      }
     }
   }
 
