@@ -120,4 +120,21 @@ describe("commandTimeout", () => {
     await new Promise((resolve) => setTimeout(resolve, 80));
     expect(endCount.count).to.eql(1);
   });
+
+  it("does not schedule reconnect when disconnect races a stream close", async () => {
+    const server = new MockServer(30001);
+    const redis = new Redis({ port: 30001, commandTimeout: 5000 });
+    await redis.set("foo", "bar");
+
+    // Destroy the stream and disconnect in the same tick: the synchronous
+    // cleanup ends the client, and the stream's own deferred close handler
+    // must not treat that as a crash and schedule a reconnect afterwards.
+    redis.stream!.destroy();
+    redis.disconnect();
+
+    await new Promise((resolve) => setTimeout(resolve, 120));
+    expect(redis.status).to.eql("end");
+
+    await server.disconnectPromise();
+  });
 });

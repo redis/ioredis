@@ -356,6 +356,14 @@ function abortTransactionFragments(commandQueue: Deque<CommandItem>) {
 
 export function closeHandler(self) {
   return function () {
+    // "end" is terminal: a synchronous disconnect() may already have ended
+    // the client before this handler (queued by an earlier stream close)
+    // gets its turn. Re-running cleanup from that state would schedule a
+    // reconnect for an intentionally closed client.
+    if (self.status === "end") {
+      debug("skip closing because the client is already in the end status");
+      return;
+    }
     const prevStatus = self.status;
     self.setStatus("close");
 
