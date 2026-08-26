@@ -20,7 +20,18 @@ export type ActionType =
   | "bind"
   | "update_cluster_config"
   | "delete_database"
-  | "create_database";
+  | "create_database"
+  | "topology_change_standalone";
+
+export const TOPOLOGY_CHANGE_STANDALONE_EFFECTS = [
+  "data_movement_no_conn_drop",
+  "data_movement_conn_drop",
+  "conn_drop",
+  "dns_resolution_change",
+] as const;
+
+export type TopologyChangeStandaloneEffect =
+  (typeof TOPOLOGY_CHANGE_STANDALONE_EFFECTS)[number];
 
 type ActionParameters = {
   [key: string]: unknown;
@@ -143,6 +154,15 @@ export type CreateDatabaseActionRequest = BaseActionRequest<
   }
 >;
 
+export type TopologyChangeStandaloneActionRequest = BaseActionRequest<
+  "topology_change_standalone",
+  ClusterScopedParameters & {
+    bdb_id: number;
+    effect: TopologyChangeStandaloneEffect;
+    trigger: string;
+  }
+>;
+
 export type ActionRequest =
   | DmcRestartActionRequest
   | FailoverActionRequest
@@ -158,7 +178,28 @@ export type ActionRequest =
   | BindActionRequest
   | UpdateClusterConfigActionRequest
   | DeleteDatabaseActionRequest
-  | CreateDatabaseActionRequest;
+  | CreateDatabaseActionRequest
+  | TopologyChangeStandaloneActionRequest;
+
+export interface TopologyChangeStandaloneTriggerRequirement {
+  dbconfig: CreateDatabaseConfig;
+  [key: string]: unknown;
+}
+
+export interface TopologyChangeStandaloneTrigger {
+  name: string;
+  requirements: TopologyChangeStandaloneTriggerRequirement[];
+}
+
+export interface TopologyChangeStandaloneTriggersResponse {
+  triggers: TopologyChangeStandaloneTrigger[];
+}
+
+export interface TopologyChangeStandaloneTriggerCombo {
+  effect: TopologyChangeStandaloneEffect;
+  trigger: string;
+  databaseConfig: CreateDatabaseConfig;
+}
 
 export interface ActionStatus {
   status: string;
@@ -340,6 +381,77 @@ export class FaultInjectorClient {
             },
           },
         ],
+      },
+    });
+  }
+
+  /**
+   * Lists the valid triggers, and the database configuration each one
+   * requires, for a standalone topology change effect.
+   */
+  getTopologyChangeStandaloneTriggers(
+    effect: TopologyChangeStandaloneEffect,
+    clusterIndex = 0
+  ): Promise<TopologyChangeStandaloneTriggersResponse> {
+    return this.request(
+      "GET",
+      `/topology-change-standalone?effect=${effect}&cluster_index=${clusterIndex}`
+    );
+  }
+
+  /**
+   * Flattens the discovered triggers for an effect into
+   * (effect, trigger, database config) combinations, skipping the
+   * "maintenance_mode" trigger.
+   */
+  async listTopologyChangeStandaloneTriggerCombos(
+    effect: TopologyChangeStandaloneEffect,
+    clusterIndex = 0
+  ): Promise<TopologyChangeStandaloneTriggerCombo[]> {
+    const { triggers } = await this.getTopologyChangeStandaloneTriggers(
+      effect,
+      clusterIndex
+    );
+
+    const combos: TopologyChangeStandaloneTriggerCombo[] = [];
+    for (const trigger of triggers ?? []) {
+      if (trigger.name === "maintenance_mode") {
+        continue;
+      }
+      for (const requirement of trigger.requirements ?? []) {
+        combos.push({
+          effect,
+          trigger: trigger.name,
+          databaseConfig: requirement.dbconfig,
+        });
+      }
+    }
+
+    return combos;
+  }
+
+  /**
+   * Runs a standalone topology change effect against the database using one
+   * of the triggers discovered via getTopologyChangeStandaloneTriggers().
+   */
+  topologyChangeStandaloneAction({
+    bdbId,
+    effect,
+    trigger,
+    clusterIndex = 0,
+  }: {
+    bdbId: number;
+    effect: TopologyChangeStandaloneEffect;
+    trigger: string;
+    clusterIndex?: number;
+  }) {
+    return this.triggerAction<{ action_id: string }>({
+      type: "topology_change_standalone",
+      parameters: {
+        bdb_id: bdbId,
+        cluster_index: clusterIndex,
+        effect,
+        trigger,
       },
     });
   }

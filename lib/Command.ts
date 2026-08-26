@@ -427,20 +427,19 @@ export default class Command implements Respondable {
   /**
    * Extend a running command timeout so that it expires no earlier than
    * `ms` from now. The deadline is only ever extended, never shortened, and
-   * a command without a running timeout is left untouched.
+   * a command without a running timeout is left untouched. The timeout error
+   * is always replaced, even when the deadline stays unchanged.
    */
   extendTimeout(ms: number, createTimeoutError?: () => Error) {
     if (!this._commandTimeoutTimer || this.isSettled) {
       return;
     }
 
-    const deadline = Date.now() + ms;
-    if (
-      this._commandDeadline !== undefined &&
-      deadline <= this._commandDeadline
-    ) {
-      return;
-    }
+    const proposed = Date.now() + ms;
+    const deadline =
+      this._commandDeadline === undefined
+        ? proposed
+        : Math.max(this._commandDeadline, proposed);
 
     clearTimeout(this._commandTimeoutTimer);
     this._commandDeadline = deadline;
@@ -452,7 +451,7 @@ export default class Command implements Respondable {
             : new Error("Command timed out")
         );
       }
-    }, ms);
+    }, deadline - Date.now());
   }
 
   /**
@@ -535,9 +534,6 @@ export default class Command implements Respondable {
     return undefined;
   }
 
-  /**
-   * Clear the command and blocking timers
-   */
   private _clearTimers() {
     const existingTimer = this._commandTimeoutTimer;
     if (existingTimer) {

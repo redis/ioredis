@@ -163,7 +163,9 @@ describe("MaintenanceManager", () => {
 
     manager.handle(notification({ type: "FAILING_OVER", timeSeconds: 10 }));
 
-    expect(client.rearmSocketTimeout.calledTwice).to.equal(true);
+    // Re-armed on the first relaxation, the restoration, and the second
+    // relaxation.
+    expect(client.rearmSocketTimeout.callCount).to.equal(3);
   });
 
   it("extends pending command deadlines when commandTimeout is configured", () => {
@@ -184,6 +186,32 @@ describe("MaintenanceManager", () => {
     manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
 
     expect(client.extendPendingCommandTimeouts.called).to.equal(false);
+  });
+
+  it("restores the socket timeout when the last window closes", () => {
+    manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
+    manager.handle(notification({ type: "MIGRATED" }));
+
+    expect(client.rearmSocketTimeout.calledTwice).to.equal(true);
+  });
+
+  it("does not restore the socket timeout while another window is open", () => {
+    manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
+    manager.handle(notification({ type: "FAILING_OVER", timeSeconds: 10 }));
+
+    manager.handle(notification({ type: "MIGRATED" }));
+    expect(client.rearmSocketTimeout.calledOnce).to.equal(true);
+
+    manager.handle(notification({ type: "FAILED_OVER" }));
+    expect(client.rearmSocketTimeout.calledTwice).to.equal(true);
+  });
+
+  it("restores the socket timeout when the last window expires at its cap", () => {
+    manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
+
+    clock.tick(MIGRATING_WINDOW_CAP_MS);
+
+    expect(client.rearmSocketTimeout.calledTwice).to.equal(true);
   });
 
   it("survives a throwing client while relaxing timeouts", () => {

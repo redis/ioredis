@@ -217,7 +217,9 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
           this.condition?.watching &&
           this.maintenanceManager?.isMaintenanceActive()
         ) {
-          debug("connection loss during maintenance invalidates an active WATCH");
+          debug(
+            "connection loss during maintenance invalidates an active WATCH"
+          );
           this.staleWatch = true;
         }
         this.maintenanceManager?.reset();
@@ -906,7 +908,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
   /**
    * Reschedules a pending socket timeout so the next arm picks up the
    * current timeout policy. Driven by the maintenance manager when a
-   * maintenance window opens.
+   * maintenance window opens or the last one closes.
    */
   private rearmSocketTimeout(): void {
     if (this.socketTimeoutTimer === undefined) {
