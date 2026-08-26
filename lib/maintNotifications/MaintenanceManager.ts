@@ -86,6 +86,7 @@ export default class MaintenanceManager {
   constructor(private readonly client: MaintenanceClient) {}
 
   handle = (notification: MaintenanceNotification): void => {
+    debug("received notification %o", notification);
     switch (notification.type) {
       case MaintenanceNotificationType.MIGRATING:
         this.openWindow(notification.type, MIGRATING_WINDOW_CAP_MS);
@@ -217,6 +218,9 @@ export default class MaintenanceManager {
     const timer = setTimeout(() => {
       debug("%s window expired", type);
       this.windows.delete(type);
+      if (!this.isMaintenanceActive()) {
+        this.restoreSocketTimeout();
+      }
     }, maxDurationMs);
     timer.unref?.();
     this.windows.set(type, timer);
@@ -233,6 +237,9 @@ export default class MaintenanceManager {
     debug("close %s window", type);
     this.clearTimer(type);
     this.windows.delete(type);
+    if (!this.isMaintenanceActive()) {
+      this.restoreSocketTimeout();
+    }
   }
 
   private clearTimer(type: MaintenanceWindowType): void {
@@ -416,8 +423,7 @@ export default class MaintenanceManager {
    * Invoked when the first window opens. In-flight commands get their
    * deadlines extended to the relaxed timeout (never shortened) and a
    * pending socket timeout is re-armed with the relaxed value. New commands
-   * and future socket arms consult the timeout policies themselves, which
-   * also restores normal policy once the windows close.
+   * and future socket arms consult the timeout policies themselves.
    */
   private relaxTimeouts(): void {
     try {
@@ -432,6 +438,20 @@ export default class MaintenanceManager {
       this.client.rearmSocketTimeout();
     } catch (err) {
       debug("failed to relax timeouts: %s", err);
+    }
+  }
+
+  /**
+   * Invoked when the last window closes. Existing commands keep the timeout
+   * assigned to them during maintenance, while a pending socket timeout is
+   * re-armed with the normal value.
+   */
+  private restoreSocketTimeout(): void {
+    debug("all windows closed; restoring normal socket timeout");
+    try {
+      this.client.rearmSocketTimeout();
+    } catch (err) {
+      debug("failed to restore socket timeout: %s", err);
     }
   }
 }

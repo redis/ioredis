@@ -269,6 +269,19 @@ export const getConfig = (): TestConfig => {
 };
 
 /**
+ * Returns the fault injection API URL from the RE_FAULT_INJECTOR_URL
+ * environment variable.
+ * @throws Error if the environment variable is not set
+ */
+export const getFaultInjectorUrl = (): string => {
+  const url = process.env["RE_FAULT_INJECTOR_URL"];
+  if (!url) {
+    throw new Error("RE_FAULT_INJECTOR_URL environment variable must be set");
+  }
+  return url;
+};
+
+/**
  * Creates a test cluster client with the provided configuration, connects it and attaches an error handler listener
  * @param clientConfig - The Redis connection configuration
  * @param options - Optional cluster options

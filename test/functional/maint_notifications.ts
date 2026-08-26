@@ -264,6 +264,87 @@ describe("maintenance notification handshake", () => {
     redis.disconnect();
   });
 
+  it("keeps relaxed deadlines for in-flight commands resent after a maintenance disconnect", async () => {
+    let connections = 0;
+    const server = new MockServer(PORT, (argv, socket, flags) => {
+      if (argv[0] === "get") {
+        flags.hang = true;
+        if (connections === 1) {
+          // Drop the connection while the relaxed command is unanswered so
+          // it is resent after reset() closes the maintenance window.
+          setTimeout(() => socket.destroy(), 30);
+        }
+      }
+    });
+    server.on("connect", () => {
+      connections += 1;
+    });
+
+    const redis = new Redis({
+      port: PORT,
+      commandTimeout: 150,
+      maintRelaxedCommandTimeout: 500,
+      retryStrategy: () => 10,
+    });
+    redis.on("error", () => {});
+    await new Promise((resolve) => redis.once("ready", resolve));
+
+    const manager = (redis as any).maintenanceManager as MaintenanceManager;
+    server.broadcast(MockServer.raw(">3\r\n$9\r\nMIGRATING\r\n:1\r\n:10\r\n"));
+    await waitFor(() => manager.isMaintenanceActive());
+
+    const start = Date.now();
+    const err = await redis.get("foo").then(
+      () => null,
+      (e) => e
+    );
+
+    expect(connections).to.eql(2);
+    expect(manager.isMaintenanceActive()).to.eql(false);
+    expect(err?.name).to.eql("CommandTimeoutDuringMaintenanceError");
+    // The command was already in flight, so the reconnect must not shorten
+    // the relaxed deadline selected for it during maintenance.
+    expect(Date.now() - start).to.be.greaterThan(350);
+    redis.disconnect();
+  });
+
+  it("keeps relaxed deadlines for offline commands issued during maintenance", async () => {
+    const server = new MockServer(PORT, (argv, _socket, flags) => {
+      if (argv[0] === "get") {
+        flags.hang = true;
+      }
+    });
+    const redis = new Redis({
+      port: PORT,
+      commandTimeout: 150,
+      maintRelaxedCommandTimeout: 500,
+    });
+    await new Promise((resolve) => redis.once("ready", resolve));
+
+    const manager = (redis as any).maintenanceManager as MaintenanceManager;
+    server.broadcast(MockServer.raw(">3\r\n$9\r\nMIGRATING\r\n:1\r\n:10\r\n"));
+    await waitFor(() => manager.isMaintenanceActive());
+
+    const writePause = manager.pauseWrites();
+    const start = Date.now();
+    const pending = redis.get("foo").then(
+      () => null,
+      (e) => e
+    );
+
+    server.broadcast(MockServer.raw(">2\r\n$8\r\nMIGRATED\r\n:2\r\n"));
+    await waitFor(() => !manager.isMaintenanceActive());
+    manager.resumeWrites(writePause);
+
+    const err = await pending;
+
+    // The command was accepted during maintenance, so closing the window
+    // before it is flushed must not shorten its relaxed deadline.
+    expect(err?.name).to.eql("CommandTimeoutDuringMaintenanceError");
+    expect(Date.now() - start).to.be.greaterThan(350);
+    redis.disconnect();
+  });
+
   it("uses the relaxed socket timeout during a maintenance window", async () => {
     const server = new MockServer(PORT, (argv, _socket, flags) => {
       if (argv[0] === "get") {
