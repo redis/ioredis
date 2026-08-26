@@ -90,4 +90,34 @@ describe("commandTimeout", () => {
     await new Promise((resolve) => setTimeout(resolve, 80));
     redis.disconnect();
   });
+
+  it("emits end exactly once when disconnected while connecting to a refused port", async () => {
+    const redis = new Redis({
+      port: 30022,
+      lazyConnect: true,
+      commandTimeout: 50,
+      retryStrategy: () => 10000,
+      maxRetriesPerRequest: null,
+      connectTimeout: 10000,
+    });
+    redis.on("error", () => {});
+
+    const endCount = { count: 0 };
+    redis.on("end", () => {
+      endCount.count++;
+    });
+
+    // Refused connection rejects the connector promise asynchronously,
+    // after the synchronous disconnect() cleanup has already ended the
+    // client; the late "end" transition must not fire a second time.
+    const rejection = await new Promise<string>((resolve) => {
+      redis.set("foo", "bar").catch((err) => resolve(err.message));
+      redis.disconnect();
+    });
+    expect(rejection).to.eql("Connection is closed.");
+    expect(redis.status).to.eql("end");
+
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    expect(endCount.count).to.eql(1);
+  });
 });
