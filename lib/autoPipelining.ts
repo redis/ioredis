@@ -1,5 +1,5 @@
 import { isArguments, noop } from "./utils/lodash";
-import * as calculateSlot from "cluster-key-slot";
+import * as calculateSlot from "./utils/calculateSlot";
 import asCallback from "standard-as-callback";
 import { exists, getKeyIndexes, hasFlag } from "@ioredis/commands";
 import { ArgumentType } from "./Command";

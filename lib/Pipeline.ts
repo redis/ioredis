@@ -1,4 +1,4 @@
-import * as calculateSlot from "cluster-key-slot";
+import * as calculateSlot from "./utils/calculateSlot";
 import { exists, hasFlag } from "@ioredis/commands";
 import asCallback from "standard-as-callback";
 import { deprecate } from "util";

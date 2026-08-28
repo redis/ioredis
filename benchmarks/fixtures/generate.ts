@@ -2,7 +2,7 @@
 
 const start = process.hrtime.bigint();
 
-import * as calculateSlot from "cluster-key-slot";
+import * as calculateSlot from "../../lib/utils/calculateSlot";
 import { writeFileSync } from "fs";
 import { join } from "path";
 import { v4 as uuid } from "uuid";

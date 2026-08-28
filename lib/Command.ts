@@ -1,5 +1,5 @@
 import { exists, getKeyIndexes } from "@ioredis/commands";
-import * as calculateSlot from "cluster-key-slot";
+import * as calculateSlot from "./utils/calculateSlot";
 import asCallback from "standard-as-callback";
 import {
   convertBufferToString,

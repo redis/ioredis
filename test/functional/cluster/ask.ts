@@ -1,5 +1,5 @@
 import MockServer from "../../helpers/mock_server";
-import * as calculateSlot from "cluster-key-slot";
+import * as calculateSlot from "../../../lib/utils/calculateSlot";
 import { expect } from "chai";
 import { Cluster } from "../../../lib";
 

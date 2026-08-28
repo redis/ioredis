@@ -1,6 +1,6 @@
 import { Debug } from "../utils";
 import { getNodeKey } from "./util";
-import * as calculateSlot from "cluster-key-slot";
+import * as calculateSlot from "../utils/calculateSlot";
 import * as EventEmitter from "events";
 import ShardedSubscriber from "./ShardedSubscriber";
 import { ClusterOptions } from "./ClusterOptions";

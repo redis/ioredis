@@ -1,5 +1,5 @@
 import { expect, use } from "chai";
-import * as calculateKeySlot from "cluster-key-slot";
+import * as calculateKeySlot from "../../../lib/utils/calculateSlot";
 
 import { default as Cluster } from "../../../lib/cluster";
 import MockServer from "../../helpers/mock_server";
