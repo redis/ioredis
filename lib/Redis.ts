@@ -258,9 +258,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
 
       this.condition = {
         select: options.db,
-        auth: options.username
-          ? [options.username, options.password]
-          : options.password,
+        auth: undefined as any, // will be set below
         subscriber: false,
         protocol: options.protocol as ProtocolVersion,
         replyMapping:
@@ -270,7 +268,12 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
         handshake: false,
       };
 
-      const _this = this;
+      const doConnect = (password: string | undefined) => {
+        this.condition!.auth = options.username
+          ? [options.username, password]
+          : password;
+
+        const _this = this;
       asCallback(
         this.connector.connect(function (type, err) {
           _this.silentEmit(type, err);
@@ -371,6 +374,18 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
           _this.once("close", connectionCloseHandler);
         }
       );
+      };
+
+      if (typeof options.password === "function") {
+        Promise.resolve(options.password())
+          .then(doConnect)
+          .catch((err) => {
+             this.setStatus("end");
+             reject(err);
+          });
+      } else {
+        doConnect(options.password);
+      }
     });
   }
 
