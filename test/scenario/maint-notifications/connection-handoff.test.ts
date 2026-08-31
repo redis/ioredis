@@ -153,7 +153,10 @@ describe("Connection Handoff E2E", function () {
         assert.isNotNull(moving, "Should have received a MOVING notification");
         assert.isNotNull(moving!.endpoint, "MOVING should carry an endpoint");
         // The handoff has completed once the client targets the new endpoint.
-        assert.strictEqual((client as any).options.host, moving!.endpoint!.host);
+        assert.strictEqual(
+          (client as any).options.host,
+          moving!.endpoint!.host
+        );
       }, 30_000);
 
       // The watch set died with the replaced connection: the transaction
@@ -181,6 +184,108 @@ describe("Connection Handoff E2E", function () {
       assert.strictEqual(await client!.get("watched-key"), "after");
     } finally {
       diagnostics_channel.unsubscribe(MAINTENANCE_CHANNEL, onNotification);
+    }
+  });
+
+  it("keeps Pub/Sub delivery working after a connection handoff fallback", async () => {
+    const subscriber = client!;
+    const publisher = createStandaloneTestClient(databaseConfig!, {
+      maintNotifications: "disabled",
+    });
+    const channel = `maintenance-pub-sub-${databaseConfig!.bdbId}`;
+    const receivedMessages: string[] = [];
+    const closeEvents: string[] = [];
+    const reconnectEvents: string[] = [];
+    let moving: MovingNotification | null = null;
+
+    const onMessage = (receivedChannel: string, message: string) => {
+      if (receivedChannel === channel) {
+        receivedMessages.push(message);
+      }
+    };
+    const onError = () => {};
+    const onClose = () => closeEvents.push("close");
+    const onReconnecting = () => reconnectEvents.push("reconnecting");
+    const onNotification = (message: unknown) => {
+      const notification = message as MaintenanceNotification;
+      if (notification.type === "MOVING" && moving === null) {
+        moving = notification;
+      }
+    };
+
+    subscriber.on("message", onMessage);
+    subscriber.on("error", onError);
+    subscriber.on("close", onClose);
+    subscriber.on("reconnecting", onReconnecting);
+
+    try {
+      await waitClientReady(publisher, 30_000);
+      await subscriber.subscribe(channel);
+
+      const beforeEffect = "before-effect";
+      await publisher.publish(channel, beforeEffect);
+      await waitForAssertion(() => {
+        assert.include(
+          receivedMessages,
+          beforeEffect,
+          "The subscriber should receive messages before maintenance"
+        );
+      });
+
+      const originalStream = subscriber.stream;
+      diagnostics_channel.subscribe(MAINTENANCE_CHANNEL, onNotification);
+
+      const { action_id: actionId } =
+        await faultInjectorClient.migrateAndBindAction({
+          bdbId: databaseConfig!.bdbId,
+        });
+      await faultInjectorClient.waitForAction(actionId, {
+        maxWaitTimeMs: 240_000,
+      });
+
+      await waitForAssertion(() => {
+        assert.isNotNull(moving, "The subscriber should receive MOVING");
+        assert.isAbove(
+          closeEvents.length,
+          0,
+          "The subscriber should fall back to an ordinary reconnect"
+        );
+        assert.isAbove(
+          reconnectEvents.length,
+          0,
+          "The subscriber should attempt to reconnect"
+        );
+        assert.notStrictEqual(
+          subscriber.stream,
+          originalStream,
+          "The subscriber should use a new connection stream"
+        );
+        assert.strictEqual(
+          subscriber.status,
+          "ready",
+          "The subscriber should become ready again"
+        );
+      }, 60_000);
+
+      await waitClientReady(publisher, 30_000);
+      // RESP3 subscriptions leave the public mode as "normal", so message
+      // delivery is the authoritative proof that auto-resubscribe ran.
+      const afterReconnect = "after-reconnect";
+      await waitForAssertion(async () => {
+        await publisher.publish(channel, afterReconnect);
+        assert.include(
+          receivedMessages,
+          afterReconnect,
+          "The subscriber should receive messages after reconnecting"
+        );
+      }, 60_000);
+    } finally {
+      diagnostics_channel.unsubscribe(MAINTENANCE_CHANNEL, onNotification);
+      subscriber.removeListener("message", onMessage);
+      subscriber.removeListener("close", onClose);
+      subscriber.removeListener("reconnecting", onReconnecting);
+      publisher.disconnect();
+      subscriber.removeListener("error", onError);
     }
   });
 });
