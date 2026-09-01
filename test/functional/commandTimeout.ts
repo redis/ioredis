@@ -1,3 +1,4 @@
+import { PassThrough } from "stream";
 import { expect } from "chai";
 import * as sinon from "sinon";
 import Redis from "../../lib/Redis";
@@ -89,6 +90,46 @@ describe("commandTimeout", () => {
     // settled command again and keeping the event loop alive.
     await new Promise((resolve) => setTimeout(resolve, 80));
     redis.disconnect();
+  });
+
+  it("ignores a late connect that resolves after disconnect ended the client", async () => {
+    class DelayedConnector extends StandaloneConnector {
+      connect() {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            const stream = new PassThrough();
+            stream.setNoDelay = () => {};
+            stream.connecting = false;
+            stream.destroyed = false;
+            stream.destroy = () => {
+              stream.destroyed = true;
+              stream.emit("close");
+            };
+            resolve(stream);
+          }, 50);
+        });
+      }
+    }
+
+    const redis = new Redis({
+      port: 30023,
+      lazyConnect: true,
+      commandTimeout: 50,
+      Connector: DelayedConnector,
+    });
+    redis.on("error", () => {});
+
+    const setPromise = redis.set("foo", "bar").catch((err) => {
+      expect(err.message).to.eql("Connection is closed.");
+      return err;
+    });
+    redis.disconnect();
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(redis.status).to.eql("end");
+    expect(redis.stream).to.eql(undefined);
+
+    await setPromise;
   });
 
   it("emits end exactly once when disconnected while connecting to a refused port", async () => {

@@ -271,11 +271,26 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       };
 
       const _this = this;
+      const connectionEpoch = _this.connectionEpoch;
       asCallback(
         this.connector.connect(function (type, err) {
           _this.silentEmit(type, err);
         }) as Promise<NetStream>,
         function (err: Error | null, stream?: NetStream) {
+          const isStaleConnection =
+            _this.connectionEpoch !== connectionEpoch ||
+            _this.status !== "connecting";
+          if (isStaleConnection) {
+            if (stream && !stream.destroyed) {
+              stream.destroy();
+            }
+            if (err) {
+              reject(err);
+            } else {
+              reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
+            }
+            return;
+          }
           if (err) {
             _this.flushQueue(err);
             _this.silentEmit("error", err);

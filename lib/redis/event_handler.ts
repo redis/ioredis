@@ -152,6 +152,10 @@ async function sendHandshake(
 
 export function connectHandler(self) {
   return async function () {
+    if (self.status !== "connecting") {
+      debug("skip stale connect handler while status is %s", self.status);
+      return;
+    }
     try {
       self.resetCommandQueue();
       self.condition.handshake = true;
