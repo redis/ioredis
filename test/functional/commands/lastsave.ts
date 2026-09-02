@@ -1,10 +1,17 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
 import { RESP_CONFIGS } from "../../helpers/respConfigs";
+import { isReCluster } from "../../helpers/re-config";
 
 for (const { name, opts } of RESP_CONFIGS) {
-  describe(`lastsave (${name})`, () => {
+  describe(`lastsave (${name})`, function () {
     let redis: Redis;
+
+    before(function () {
+      if (isReCluster()) {
+        this.skip();
+      }
+    });
 
     beforeEach(async () => {
       redis = new Redis(opts);

@@ -1,6 +1,7 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
 import { RESP_CONFIGS } from "../../helpers/respConfigs";
+import { isReCluster } from "../../helpers/re-config";
 import { isRedisVersionLowerThan } from "../../helpers/util";
 
 // The default test server has no password configured, so AUTH without a user
@@ -13,7 +14,7 @@ for (const { name, opts } of RESP_CONFIGS) {
     const password = "ioredis_auth_password";
 
     before(async function () {
-      if (await isRedisVersionLowerThan("6.0.0")) {
+      if (isReCluster() || (await isRedisVersionLowerThan("6.0.0"))) {
         this.skip();
       }
     });
