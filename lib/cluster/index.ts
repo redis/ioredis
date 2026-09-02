@@ -342,6 +342,11 @@ class Cluster<
             this.removeListener("close", closeListener);
             this.manuallyClosing = false;
             this.setStatus("connect");
+            // Startup nodes have no authoritative role metadata until the
+            // first slots refresh completes.
+            if (this.options.subscriberNodeRole !== "all") {
+              this.subscriber.start();
+            }
             if (this.options.enableReadyCheck) {
               this.readyCheck((err, fail) => {
                 if (err || fail) {
@@ -379,7 +384,9 @@ class Cluster<
               this.connectionPool.reset([]);
             }
           });
-          this.subscriber.start();
+          if (this.options.subscriberNodeRole === "all") {
+            this.subscriber.start();
+          }
 
           if (this.options.shardedSubscribers) {
             this.shardedSubscribers.start().catch((err) => {
@@ -1215,6 +1222,8 @@ class Cluster<
         }
 
         this.connectionPool.reset(nodes);
+        // A refresh can reclassify an existing node without emitting "+node".
+        this.subscriber.selectSubscriberIfNeeded();
 
         if (this.options.shardedSubscribers) {
           this.shardedSubscribers

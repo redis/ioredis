@@ -11,9 +11,10 @@ describe("ClusterSubscriber", () => {
     const getNodes = sinon.spy(pool, "getNodes");
     const subscriber = new ClusterSubscriber(pool, new EventEmitter());
 
-    pool.findOrCreate({ host: "127.0.0.1", port: 30000, readOnly: true }, true);
-
     subscriber.start();
+    expect(subscriber.getInstance()).to.eql(null);
+
+    pool.findOrCreate({ host: "127.0.0.1", port: 30000, readOnly: true }, true);
 
     expect(getNodes.calledWith("all")).to.eql(true);
     expect(subscriber.getInstance().options.port).to.eql(30000);
@@ -57,7 +58,7 @@ describe("ClusterSubscriber", () => {
     pool.reset([]);
   });
 
-  it("waits until a node with the configured role is discovered", () => {
+  it("waits for topology discovery to finish before selecting a role", () => {
     const pool = new ConnectionPool({});
     const subscriber = new ClusterSubscriber(pool, new EventEmitter(), "slave");
 
@@ -67,11 +68,34 @@ describe("ClusterSubscriber", () => {
     expect(subscriber.getInstance()).to.eql(null);
 
     pool.findOrCreate({ host: "127.0.0.1", port: 30001 }, true);
+    expect(subscriber.getInstance()).to.eql(null);
+
+    subscriber.selectSubscriberIfNeeded();
 
     expect(subscriber.getInstance().options.port).to.eql(30001);
 
     subscriber.stop();
     pool.reset([]);
+  });
+
+  it("selects an existing node after it becomes eligible", () => {
+    const pool = new ConnectionPool({});
+    const subscriber = new ClusterSubscriber(pool, new EventEmitter(), "slave");
+
+    const node = pool.findOrCreate({ host: "127.0.0.1", port: 30000 });
+    sinon.stub(node, "readonly").resolves("OK");
+    subscriber.start();
+
+    expect(subscriber.getInstance()).to.eql(null);
+
+    pool.findOrCreate({ host: "127.0.0.1", port: 30000 }, true);
+    subscriber.selectSubscriberIfNeeded();
+
+    expect(subscriber.getInstance().options.port).to.eql(30000);
+
+    subscriber.stop();
+    pool.reset([]);
+    sinon.restore();
   });
 
   it("keeps the current subscriber when its node role changes", () => {

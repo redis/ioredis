@@ -39,8 +39,14 @@ export default class ClusterSubscriber {
         this.selectSubscriber();
       }
     });
+    // Restricted roles are selected after a complete topology refresh because
+    // "+node" can fire while the connection pool is only partially updated.
     this.connectionPool.on("+node", () => {
-      if (!this.started || this.subscriber) {
+      if (
+        !this.started ||
+        this.subscriber ||
+        this.subscriberNodeRole !== "all"
+      ) {
         return;
       }
       debug(
@@ -88,6 +94,12 @@ export default class ClusterSubscriber {
     return this.started;
   }
 
+  selectSubscriberIfNeeded(): void {
+    if (!this.started || this.subscriber) {
+      return;
+    }
+    this.selectSubscriber();
+  }
 
   private onSubscriberEnd = () => {
     if (!this.started) {
