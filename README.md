@@ -1209,6 +1209,7 @@ cluster.get("foo", (err, res) => {
     - `enableReadyCheck`: When enabled, "ready" event will only be emitted when `CLUSTER INFO` command
       reporting the cluster is ready for handling commands. Otherwise, it will be emitted immediately after "connect" is emitted.
     - `scaleReads`: Config where to send the read queries. See below for more details.
+    - `subscriberNodeRole`: Configure which node roles may be selected for the dedicated classic Pub/Sub subscriber connection. See below for more details.
     - `maxRedirections`: When a cluster related error (e.g. `MOVED`, `ASK` and `CLUSTERDOWN` etc.) is received, the client will redirect the
       command to another node. This option limits the max redirections allowed when sending a command. The default value is `16`.
     - `retryDelayOnFailover`: If the target node is disconnected when sending a command,
@@ -1253,6 +1254,33 @@ cluster.get("foo", (err, res) => {
 ```
 
 **NB** In the code snippet above, the `res` may not be equal to "bar" because of the lag of replication between the master and slaves.
+
+### Pub/Sub Subscriber Node Selection
+
+Classic Pub/Sub in cluster mode uses one dedicated subscriber connection. By default, `subscriberNodeRole` is `"all"`, so ioredis may select either a master or a slave for this connection. The available values are:
+
+1. `"all"`: Select from all discovered cluster nodes.
+2. `"master"`: Select only from master nodes.
+3. `"slave"`: Select only from slave nodes.
+
+For example, to select a master for the classic Pub/Sub subscriber connection:
+
+```javascript
+const cluster = new Redis.Cluster(
+  [
+    /* nodes */
+  ],
+  {
+    subscriberNodeRole: "master",
+  }
+);
+
+cluster.subscribe("news");
+```
+
+This option is independent of `scaleReads`. Ordinary read-only commands such as `GET` and `MGET` are routed according to `scaleReads`, while `subscriberNodeRole` controls the dedicated connection used by `SUBSCRIBE` and `PSUBSCRIBE`. It does not affect `PUBLISH` or sharded Pub/Sub subscribers.
+
+The configured role is applied whenever ioredis needs to select a subscriber. A role change alone does not replace an otherwise live subscriber connection. If no eligible node is available, the cluster remains ready and ordinary commands continue working, but subscription commands are rejected. Once a matching node is discovered, later subscription commands can proceed.
 
 ### Running Commands to Multiple Nodes
 

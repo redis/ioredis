@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import ConnectionPool from "./ConnectionPool";
-import { getConnectionName, getNodeKey } from "./util";
+import { getConnectionName, getNodeKey, NodeRole } from "./util";
 import { sample, noop, Debug } from "../utils";
 import Redis from "../Redis";
 
@@ -19,6 +19,7 @@ export default class ClusterSubscriber {
   constructor(
     private connectionPool: ConnectionPool,
     private emitter: EventEmitter,
+    private subscriberNodeRole: NodeRole = "all",
     private isSharded : boolean = false
   ) {
     // If the current node we're using as the subscriber disappears
@@ -117,7 +118,9 @@ export default class ClusterSubscriber {
       this.subscriber.disconnect();
     }
 
-    const sampleNode = sample(this.connectionPool.getNodes());
+    const sampleNode = sample(
+      this.connectionPool.getNodes(this.subscriberNodeRole)
+    );
     if (!sampleNode) {
       debug(
         "selecting subscriber failed since there is no node discovered in the cluster yet"

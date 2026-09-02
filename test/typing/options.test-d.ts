@@ -51,6 +51,7 @@ expectType<Cluster>(
   new Redis.Cluster([30001, 30002], {
     enableAutoPipelining: true,
     himportFieldsets,
+    subscriberNodeRole: "master",
   })
 );
 

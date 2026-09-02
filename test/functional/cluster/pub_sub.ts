@@ -7,6 +7,7 @@ import { Cluster } from "../../../lib";
 import * as sinon from "sinon";
 import Redis from "../../../lib/Redis";
 import { noop } from "../../../lib/utils";
+import { AbortError } from "redis-errors";
 
 describe("cluster:pub/sub", function () {
   ([2, 3] as const).forEach((protocol) => {
@@ -70,6 +71,37 @@ describe("cluster:pub/sub", function () {
         });
       });
     });
+  });
+
+  it("rejects subscription commands when no node matches the configured role", async () => {
+    new MockServer(30001, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return [[0, 16383, ["127.0.0.1", 30001]]];
+      }
+      if (argv[0] === "get") {
+        return "value";
+      }
+    });
+
+    const cluster = new Cluster([{ port: "30001" }], {
+      subscriberNodeRole: "slave",
+    });
+
+    await new Promise<void>((resolve) => cluster.once("ready", resolve));
+
+    expect(await cluster.get("key")).to.eql("value");
+
+    try {
+      await cluster.subscribe("channel");
+      expect.fail("subscribe should reject when no slave node is available");
+    } catch (error) {
+      expect(error).to.be.instanceOf(AbortError);
+      expect(error.message).to.eql(
+        'No node matching subscriberNodeRole "slave" is available for the cluster subscriber'
+      );
+    } finally {
+      cluster.disconnect();
+    }
   });
 
   ([2, 3] as const).forEach((protocol) => {

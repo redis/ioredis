@@ -70,6 +70,17 @@ export interface ClusterOptions extends CommanderOptions {
   scaleReads?: NodeRole | Function | undefined;
 
   /**
+   * Choose which node roles are eligible when selecting the dedicated classic
+   * Pub/Sub subscriber connection. Role changes alone do not replace the
+   * selected connection. This option does not affect read-command routing or
+   * sharded Pub/Sub subscribers. Subscription commands are rejected while no
+   * eligible node is available.
+   *
+   * @default "all"
+   */
+  subscriberNodeRole?: NodeRole | undefined;
+
+  /**
    * When a MOVED or ASK error is received, client will redirect the
    * command to another node.
    * This option limits the max redirections allowed to send a command.
@@ -281,6 +292,7 @@ export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = {
   enableOfflineQueue: true,
   enableReadyCheck: true,
   scaleReads: "master",
+  subscriberNodeRole: "all",
   maxRedirections: 16,
   retryDelayOnMoved: 0,
   retryDelayOnFailover: 100,

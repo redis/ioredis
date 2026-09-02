@@ -190,6 +190,15 @@ class Cluster<
           '". Expected "all", "master", "slave" or a custom function'
       );
     }
+    if (
+      ["all", "master", "slave"].indexOf(this.options.subscriberNodeRole) === -1
+    ) {
+      throw new Error(
+        'Invalid option subscriberNodeRole "' +
+          this.options.subscriberNodeRole +
+          '". Expected "all", "master" or "slave"'
+      );
+    }
 
     const redisOptions = { ...(this.options.redisOptions ?? {}) };
     delete (redisOptions as Partial<RedisOptions>).himportFieldsets;
@@ -247,7 +256,11 @@ class Cluster<
       this.emit("node error", error, key);
     });
 
-    this.subscriber = new ClusterSubscriber(this.connectionPool, this);
+    this.subscriber = new ClusterSubscriber(
+      this.connectionPool,
+      this,
+      this.options.subscriberNodeRole
+    );
 
     if (this.options.scripts) {
       Object.entries(this.options.scripts).forEach(([name, definition]) => {
@@ -765,6 +778,14 @@ class Cluster<
             }
           } else {
             redis = _this.subscriber.getInstance();
+            if (!redis && _this.options.subscriberNodeRole !== "all") {
+              command.reject(
+                new AbortError(
+                  `No node matching subscriberNodeRole "${_this.options.subscriberNodeRole}" is available for the cluster subscriber`
+                )
+              );
+              return;
+            }
           }
 
           if (!redis) {

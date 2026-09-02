@@ -259,6 +259,26 @@ describe("cluster:spub/ssub", function () {
     expect(group.channels.size).to.equal(2);
   });
 
+  it("does not apply the classic subscriber role to sharded subscribers", async () => {
+    const group: any = new ClusterSubscriberGroup(new EventEmitter(), {
+      subscriberNodeRole: "slave",
+    });
+    const master = new Redis({
+      host: "127.0.0.1",
+      port: 30001,
+      lazyConnect: true,
+    });
+
+    await group.reset([["127.0.0.1:30001"]], [master]);
+
+    expect(Array.from(group.shardedSubscribers.keys())).to.eql([
+      "127.0.0.1:30001",
+    ]);
+
+    group.stop();
+    master.disconnect();
+  });
+
   ([2, 3] as const).forEach((protocol) => {
     it(`should works when sending regular commands - RESP ${protocol}`, (done) => {
       const handler = function (argv) {

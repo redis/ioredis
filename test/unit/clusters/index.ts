@@ -20,6 +20,7 @@ describe("cluster", () => {
     const cluster = new Cluster([{ port: 7777 }], options);
     expect(cluster.options).to.have.property("maxRedirections", 1000);
     expect(cluster.options).to.have.property("scaleReads", "master");
+    expect(cluster.options).to.have.property("subscriberNodeRole", "all");
   });
 
   it("should allow overriding Commander options", () => {
@@ -41,6 +42,20 @@ describe("cluster", () => {
       // @ts-expect-error
       new Cluster([{}], { scaleReads: "invalid" });
     }).to.throw(/Invalid option scaleReads/);
+  });
+
+  it("throws when subscriberNodeRole is invalid", () => {
+    expect(() => {
+      // @ts-expect-error
+      new Cluster([{}], { subscriberNodeRole: "invalid" });
+    }).to.throw(/Invalid option subscriberNodeRole/);
+  });
+
+  it("preserves subscriberNodeRole when duplicated", () => {
+    const cluster = new Cluster([{}], { subscriberNodeRole: "slave" });
+    const duplicate = cluster.duplicate();
+
+    expect(duplicate.options.subscriberNodeRole).to.eql("slave");
   });
 
   it("disables slotsRefreshTimeout by default", () => {
