@@ -343,8 +343,12 @@ class Cluster<
             this.manuallyClosing = false;
             this.setStatus("connect");
             // Startup nodes have no authoritative role metadata until the
-            // first slots refresh completes.
-            if (this.options.subscriberNodeRole !== "all") {
+            // first slots refresh completes. Automatic reconnects recover an
+            // already-started subscriber while resetting the connection pool.
+            if (
+              this.options.subscriberNodeRole !== "all" &&
+              !this.subscriber.isStarted()
+            ) {
               this.subscriber.start();
             }
             if (this.options.enableReadyCheck) {

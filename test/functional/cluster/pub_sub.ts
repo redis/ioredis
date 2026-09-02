@@ -191,6 +191,47 @@ describe("cluster:pub/sub", function () {
     });
   });
 
+  it("keeps the recovered role-restricted subscriber during automatic reconnect", async () => {
+    const handler = (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return [[0, 16383, ["127.0.0.1", 30001]]];
+      }
+      if (argv[0] === "subscribe") {
+        return pubSubReply(2, "subscribe", argv[1]);
+      }
+    };
+    new MockServer(30001, handler);
+    const cluster = new Cluster([{ port: "30001" }], {
+      clusterRetryStrategy: () => 0,
+      lazyConnect: true,
+      subscriberNodeRole: "master",
+    });
+
+    try {
+      const initialReady = new Promise<void>((resolve) =>
+        cluster.once("ready", resolve)
+      );
+      await cluster.connect();
+      await initialReady;
+      await cluster.subscribe("channel");
+
+      let recoveredSubscriber: Redis | null = null;
+      cluster.once("refresh", () => {
+        recoveredSubscriber = cluster["subscriber"].getInstance();
+      });
+      const reconnected = new Promise<void>((resolve) =>
+        cluster.once("ready", resolve)
+      );
+      cluster["connectionPool"].reset([]);
+      await reconnected;
+
+      expect(recoveredSubscriber).to.not.eql(null);
+      expect(cluster["subscriber"].getInstance()).to.equal(recoveredSubscriber);
+    } finally {
+      cluster.disconnect();
+    }
+  });
+
   ([2, 3] as const).forEach((protocol) => {
     it(`supports password - RESP ${protocol}`, (done) => {
       const handler = function (argv, c) {
