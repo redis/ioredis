@@ -2,13 +2,14 @@ import Redis from "../../../lib/Redis";
 import { expect } from "chai";
 import { RESP_CONFIGS, ReplyMapping } from "../../helpers/respConfigs";
 import { isRedisVersionLowerThan } from "../../helpers/util";
+import { isReCluster } from "../../helpers/re-config";
 
 for (const { name, opts } of RESP_CONFIGS) {
   describe(`increx (${name})`, function () {
     let redis: Redis;
 
     before(async function () {
-      if (await isRedisVersionLowerThan("8.8")) {
+      if (isReCluster() || (await isRedisVersionLowerThan("8.8"))) {
         this.skip();
       }
     });
