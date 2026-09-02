@@ -98,27 +98,48 @@ describe("ClusterSubscriber", () => {
     sinon.restore();
   });
 
-  it("keeps the current subscriber when its node role changes", () => {
-    const pool = new ConnectionPool({});
-    const subscriber = new ClusterSubscriber(
-      pool,
-      new EventEmitter(),
-      "master"
-    );
+  (
+    [
+      {
+        subscriberNodeRole: "master",
+        nextNodeRole: "slave",
+      },
+      {
+        subscriberNodeRole: "slave",
+        nextNodeRole: "master",
+      },
+    ] as const
+  ).forEach(({ subscriberNodeRole, nextNodeRole }) => {
+    it(`keeps the current ${subscriberNodeRole} subscriber when its node becomes a ${nextNodeRole}`, () => {
+      const pool = new ConnectionPool({});
+      const subscriber = new ClusterSubscriber(
+        pool,
+        new EventEmitter(),
+        subscriberNodeRole
+      );
 
-    const node = pool.findOrCreate({ host: "127.0.0.1", port: 30000 });
-    sinon.stub(node, "readonly").resolves("OK");
+      const node = pool.findOrCreate(
+        { host: "127.0.0.1", port: 30000 },
+        subscriberNodeRole === "slave"
+      );
+      sinon
+        .stub(node, nextNodeRole === "slave" ? "readonly" : "readwrite")
+        .resolves("OK");
 
-    subscriber.start();
-    const original = subscriber.getInstance();
+      subscriber.start();
+      const original = subscriber.getInstance();
 
-    pool.findOrCreate({ host: "127.0.0.1", port: 30000 }, true);
+      pool.findOrCreate(
+        { host: "127.0.0.1", port: 30000 },
+        nextNodeRole === "slave"
+      );
 
-    expect(subscriber.getInstance()).to.equal(original);
+      expect(subscriber.getInstance()).to.equal(original);
 
-    subscriber.stop();
-    pool.reset([]);
-    sinon.restore();
+      subscriber.stop();
+      pool.reset([]);
+      sinon.restore();
+    });
   });
 
   it("cleans up subscribers when selecting a new one", async () => {

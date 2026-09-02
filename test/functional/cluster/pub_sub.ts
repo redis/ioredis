@@ -122,31 +122,73 @@ describe("cluster:pub/sub", function () {
     }
   });
 
-  it("waits for authoritative roles before selecting a master", async () => {
-    const handler = (argv) => {
-      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
-        return [[0, 16383, ["127.0.0.1", 30001], ["127.0.0.1", 30002]]];
+  (
+    [
+      {
+        seedRole: "master",
+        subscriberNodeRole: "master",
+        expectedRole: "master",
+      },
+      {
+        seedRole: "master",
+        subscriberNodeRole: "slave",
+        expectedRole: "slave",
+      },
+      {
+        seedRole: "master",
+        subscriberNodeRole: "all",
+        expectedRole: "master",
+      },
+      {
+        seedRole: "slave",
+        subscriberNodeRole: "master",
+        expectedRole: "master",
+      },
+      {
+        seedRole: "slave",
+        subscriberNodeRole: "slave",
+        expectedRole: "slave",
+      },
+      {
+        seedRole: "slave",
+        subscriberNodeRole: "all",
+        expectedRole: "slave",
+      },
+    ] as const
+  ).forEach(({ seedRole, subscriberNodeRole, expectedRole }) => {
+    it(`selects a ${expectedRole} subscriber for a ${seedRole} seed with subscriberNodeRole ${subscriberNodeRole}`, async () => {
+      const handler = (argv) => {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+          return [[0, 16383, ["127.0.0.1", 30001], ["127.0.0.1", 30002]]];
+        }
+        if (argv[0] === "subscribe") {
+          return pubSubReply(2, "subscribe", argv[1]);
+        }
+      };
+      const servers = {
+        master: new MockServer(30001, handler),
+        slave: new MockServer(30002, handler),
+      };
+      const seedPort = seedRole === "master" ? "30001" : "30002";
+      const cluster = new Cluster([{ port: seedPort }], {
+        subscriberNodeRole,
+      });
+
+      try {
+        await new Promise<void>((resolve) => cluster.once("ready", resolve));
+        await cluster.subscribe("channel");
+
+        expect(
+          servers[expectedRole].findClientByName("ioredis-cluster(subscriber)")
+        ).to.exist;
+        const otherRole = expectedRole === "master" ? "slave" : "master";
+        expect(
+          servers[otherRole].findClientByName("ioredis-cluster(subscriber)")
+        ).to.not.exist;
+      } finally {
+        cluster.disconnect();
       }
-      if (argv[0] === "subscribe") {
-        return pubSubReply(2, "subscribe", argv[1]);
-      }
-    };
-    const master = new MockServer(30001, handler);
-    const replica = new MockServer(30002, handler);
-    const cluster = new Cluster([{ port: "30002" }], {
-      subscriberNodeRole: "master",
     });
-
-    try {
-      await new Promise<void>((resolve) => cluster.once("ready", resolve));
-      await cluster.subscribe("channel");
-
-      expect(master.findClientByName("ioredis-cluster(subscriber)")).to.exist;
-      expect(replica.findClientByName("ioredis-cluster(subscriber)")).to.not
-        .exist;
-    } finally {
-      cluster.disconnect();
-    }
   });
 
   ([2, 3] as const).forEach((protocol) => {
