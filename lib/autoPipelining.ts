@@ -205,6 +205,20 @@ export function executeWithAutoPipelining(
 
   // Create the promise which will execute the command in the pipeline.
   const autoPipelinePromise = new Promise(function (resolve, reject) {
+    if (functionName === "call") {
+      args.unshift(commandName);
+    }
+
+    // A command can be defined or redefined after this pipeline was created.
+    const isDynamicCommand =
+      Object.prototype.hasOwnProperty.call(client.scriptsSet, commandName) ||
+      client.addedBuiltinSet.has(commandName);
+    const command = isDynamicCommand
+      ? client[functionName]
+      : pipeline[functionName];
+    command.call(pipeline, ...args);
+
+    // An enqueue failure must not leave a callback without a matching result.
     pipeline[kCallbacks].push(function (err: Error | null, value: any) {
       if (err) {
         reject(err);
@@ -213,12 +227,6 @@ export function executeWithAutoPipelining(
 
       resolve(value);
     });
-
-    if (functionName === "call") {
-      args.unshift(commandName);
-    }
-
-    pipeline[functionName](...args);
   });
 
   return asCallback(autoPipelinePromise, callback);

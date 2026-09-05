@@ -189,6 +189,38 @@ describe("autoPipelining for cluster", () => {
     cluster.disconnect();
   });
 
+  it("should align late custom command results in an existing auto pipeline", async () => {
+    const cluster = new Cluster(hosts, { enableAutoPipelining: true });
+    await new Promise((resolve) => cluster.once("connect", resolve));
+
+    // The get creates the auto pipeline before the custom command is defined.
+    const existingResult = cluster.get("foo1");
+    cluster.defineCommand("lateEcho", {
+      numberOfKeys: 2,
+      lua: "return {KEYS[1],KEYS[2],ARGV[1],ARGV[2]}",
+    });
+
+    const stringResult = cluster.lateEcho("foo1", "foo1", "bar1", "bar2");
+    const bufferArg1 = Buffer.from("buffer1");
+    const bufferArg2 = Buffer.from("buffer2");
+    const bufferResult = cluster.lateEchoBuffer(
+      "foo1",
+      "foo1",
+      bufferArg1,
+      bufferArg2
+    );
+
+    expect(
+      await Promise.all([existingResult, stringResult, bufferResult])
+    ).to.eql([
+      "bar1",
+      ["foo1", "foo1", "bar1", "bar2"],
+      [Buffer.from("foo1"), Buffer.from("foo1"), bufferArg1, bufferArg2],
+    ]);
+
+    cluster.disconnect();
+  });
+
   it("should support multiple commands", async () => {
     const cluster = new Cluster(hosts, { enableAutoPipelining: true });
     await new Promise((resolve) => cluster.once("connect", resolve));
@@ -433,7 +465,10 @@ describe("autoPipelining for cluster", () => {
     new MockServer(30006, handler);
 
     const cluster = new Cluster(
-      [{ host: "127.0.0.1", port: 30005 }, { host: "127.0.0.1", port: 30006 }],
+      [
+        { host: "127.0.0.1", port: 30005 },
+        { host: "127.0.0.1", port: 30006 },
+      ],
       { enableAutoPipelining: true }
     );
     await new Promise((resolve) => cluster.once("connect", resolve));
