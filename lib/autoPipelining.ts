@@ -205,20 +205,38 @@ export function executeWithAutoPipelining(
 
   // Create the promise which will execute the command in the pipeline.
   const autoPipelinePromise = new Promise(function (resolve, reject) {
-    pipeline[kCallbacks].push(function (err: Error | null, value: any) {
+    const commandCallback = function (err: Error | null, value: any) {
       if (err) {
         reject(err);
         return;
       }
 
       resolve(value);
-    });
+    };
+    pipeline[kCallbacks].push(commandCallback);
 
     if (functionName === "call") {
       args.unshift(commandName);
     }
 
-    pipeline[functionName](...args);
+    try {
+      pipeline[functionName](...args);
+    } catch (err) {
+      /*
+        pipeline[functionName] threw before queuing an actual command
+        (e.g. functionName doesn't exist on the pipeline). No entry will
+        show up for this call in the results array that pipeline.exec()
+        eventually returns, so the callback we just pushed has to come
+        back out now. Otherwise it's left dangling in kCallbacks, which
+        shifts every subsequent callback out of alignment with its
+        result and can crash or hang the rest of the pipeline.
+      */
+      const danglingIndex = pipeline[kCallbacks].indexOf(commandCallback);
+      if (danglingIndex !== -1) {
+        pipeline[kCallbacks].splice(danglingIndex, 1);
+      }
+      reject(err);
+    }
   });
 
   return asCallback(autoPipelinePromise, callback);
