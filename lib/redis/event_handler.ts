@@ -476,23 +476,31 @@ export function readyHandler(self) {
         // `SELECT` command is not valid in sub mode.
         if (self.condition.select !== finalSelect) {
           debug("connect to db [%d]", finalSelect);
-          self.select(finalSelect);
+          self
+            .select(finalSelect)
+            .catch((err) => self.silentEmit("error", err));
         }
         const subscribeChannels = condition.subscriber.channels("subscribe");
         if (subscribeChannels.length) {
           debug("subscribe %d channels", subscribeChannels.length);
-          self.subscribe(subscribeChannels);
+          self
+            .subscribe(subscribeChannels)
+            .catch((err) => self.silentEmit("error", err));
         }
         const psubscribeChannels = condition.subscriber.channels("psubscribe");
         if (psubscribeChannels.length) {
           debug("psubscribe %d channels", psubscribeChannels.length);
-          self.psubscribe(psubscribeChannels);
+          self
+            .psubscribe(psubscribeChannels)
+            .catch((err) => self.silentEmit("error", err));
         }
         const ssubscribeChannels = condition.subscriber.channels("ssubscribe");
         if (ssubscribeChannels.length) {
           debug("ssubscribe %s", ssubscribeChannels.length);
           for (const channel of ssubscribeChannels) {
-            self.ssubscribe(channel);
+            self
+              .ssubscribe(channel)
+              .catch((err) => self.silentEmit("error", err));
           }
         }
       }
@@ -507,7 +515,9 @@ export function readyHandler(self) {
             item.select !== self.condition.select &&
             item.command.name !== "select"
           ) {
-            self.select(item.select);
+            self
+              .select(item.select)
+              .catch((err) => self.silentEmit("error", err));
           }
           self.sendCommand(item.command, item.stream);
         }
@@ -526,7 +536,9 @@ export function readyHandler(self) {
           item.select !== self.condition.select &&
           item.command.name !== "select"
         ) {
-          self.select(item.select);
+          self
+            .select(item.select)
+            .catch((err) => self.silentEmit("error", err));
         }
         self.sendCommand(item.command, item.stream);
       }
@@ -534,7 +546,7 @@ export function readyHandler(self) {
 
     if (self.condition.select !== finalSelect) {
       debug("connect to db [%d]", finalSelect);
-      self.select(finalSelect);
+      self.select(finalSelect).catch((err) => self.silentEmit("error", err));
     }
   };
 }

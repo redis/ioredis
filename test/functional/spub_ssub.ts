@@ -157,7 +157,7 @@ describe("spub/ssub", function () {
     await subscriber.ssubscribe("shard2");
     await subscriber.ssubscribe("shard3");
 
-    const stub = sinon.stub(Redis.prototype, "ssubscribe");
+    const stub = sinon.stub(Redis.prototype, "ssubscribe").resolves();
 
     subscriber.disconnect(true);
 
