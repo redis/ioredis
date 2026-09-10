@@ -69,7 +69,7 @@
     "eslint": "^8.31.0",
     "eslint-config-prettier": "^8.6.0",
     "mocha": "^11.7.6",
-    "nyc": "^15.1.0",
+    "nyc": "^18.0.0",
     "prettier": "^2.6.1",
     "semantic-release": "25.0.5",
     "server-destroy": "^1.0.1",
@@ -78,7 +78,7 @@
     "tsd": "^0.31.2",
     "typedoc": "^0.25.7",
     "typescript": "^5.3.3",
-    "uuid": "^9.0.0"
+    "uuid": "^14.0.2"
   },
   "nyc": {
     "reporter": [
