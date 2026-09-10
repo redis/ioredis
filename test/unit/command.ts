@@ -116,6 +116,56 @@ describe("Command", () => {
     });
   });
 
+  describe("#extendTimeout()", () => {
+    let clock: sinon.SinonFakeTimers;
+
+    beforeEach(() => {
+      clock = sinon.useFakeTimers();
+    });
+
+    afterEach(() => {
+      clock.restore();
+    });
+
+    const maintenanceError = () => new Error("Maintenance timeout");
+
+    it("extends a running timeout to the relaxed deadline", async () => {
+      const command = new Command("get", ["foo"]);
+      const rejection = command.promise.catch((err) => err);
+      command.setTimeout(100);
+
+      command.extendTimeout(2000, maintenanceError);
+
+      await clock.tickAsync(1999);
+      expect(command.isSettled).to.equal(false);
+      await clock.tickAsync(1);
+      expect((await rejection).message).to.equal("Maintenance timeout");
+    });
+
+    it("never shortens the deadline when extending", async () => {
+      const command = new Command("get", ["foo"]);
+      const rejection = command.promise.catch((err) => err);
+      command.setTimeout(500);
+
+      command.extendTimeout(100, maintenanceError);
+
+      await clock.tickAsync(499);
+      expect(command.isSettled).to.equal(false);
+      await clock.tickAsync(1);
+      expect((await rejection).message).to.equal("Maintenance timeout");
+    });
+
+    it("leaves a command without a running timeout untouched", async () => {
+      const command = new Command("get", ["foo"]);
+      command.promise.catch(() => {});
+
+      command.extendTimeout(100, maintenanceError);
+
+      await clock.tickAsync(1000);
+      expect(command.isSettled).to.equal(false);
+    });
+  });
+
   describe("#getKeys()", () => {
     it("should return keys", () => {
       expect(getKeys("get", ["foo"])).to.eql(["foo"]);
@@ -290,19 +340,19 @@ describe("Command", () => {
 
       // First call sets deadline at now + 100ms
       command.setBlockingTimeout(100);
-      
+
       clock.tick(50);
-      
+
       // Second call (e.g., command moved from offline to command queue)
       // Should NOT extend deadline - should still fire at original 100ms
       command.setBlockingTimeout(100);
-      
+
       // At 100ms mark, command should resolve
       clock.tick(50);
-      
+
       const value = await command.promise;
       expect(value).to.be.null;
-      
+
       clock.restore();
     });
 
@@ -312,14 +362,14 @@ describe("Command", () => {
 
       // Set deadline at now + 100ms
       command.setBlockingTimeout(100);
-      
+
       clock.tick(150);
-      
+
       // Second call - deadline already passed, should resolve immediately
       command.setBlockingTimeout(100);
-      
+
       expect(command.isResolved).to.be.true;
-      
+
       clock.restore();
     });
   });
@@ -446,7 +496,12 @@ describe("Command", () => {
         });
 
         it(`extracts timeout from ${cmd.toUpperCase()} (case insensitive)`, () => {
-          const command = new Command(cmd.toUpperCase(), [3, "1", "MIN", "key"]);
+          const command = new Command(cmd.toUpperCase(), [
+            3,
+            "1",
+            "MIN",
+            "key",
+          ]);
           expect(command.extractBlockingTimeout()).to.equal(3000);
         });
 
@@ -472,12 +527,24 @@ describe("Command", () => {
 
       blockOptionCommands.forEach((cmd) => {
         it(`extracts timeout from ${cmd} with BLOCK option`, () => {
-          const command = new Command(cmd, ["BLOCK", 5000, "STREAMS", "stream", "0"]);
+          const command = new Command(cmd, [
+            "BLOCK",
+            5000,
+            "STREAMS",
+            "stream",
+            "0",
+          ]);
           expect(command.extractBlockingTimeout()).to.equal(5000);
         });
 
         it(`extracts timeout from ${cmd} with lowercase block option`, () => {
-          const command = new Command(cmd, ["block", 3000, "STREAMS", "stream", "0"]);
+          const command = new Command(cmd, [
+            "block",
+            3000,
+            "STREAMS",
+            "stream",
+            "0",
+          ]);
           expect(command.extractBlockingTimeout()).to.equal(3000);
         });
 
@@ -487,28 +554,58 @@ describe("Command", () => {
         });
 
         it(`returns 0 for ${cmd} with zero BLOCK duration`, () => {
-          const command = new Command(cmd, ["BLOCK", 0, "STREAMS", "stream", "0"]);
+          const command = new Command(cmd, [
+            "BLOCK",
+            0,
+            "STREAMS",
+            "stream",
+            "0",
+          ]);
           expect(command.extractBlockingTimeout()).to.equal(0);
         });
 
         it(`returns 0 for ${cmd} with negative BLOCK duration`, () => {
-          const command = new Command(cmd, ["BLOCK", -100, "STREAMS", "stream", "0"]);
+          const command = new Command(cmd, [
+            "BLOCK",
+            -100,
+            "STREAMS",
+            "stream",
+            "0",
+          ]);
           expect(command.extractBlockingTimeout()).to.equal(0);
         });
 
         it(`returns undefined for ${cmd} with invalid BLOCK duration`, () => {
-          const command = new Command(cmd, ["BLOCK", "invalid", "STREAMS", "stream", "0"]);
+          const command = new Command(cmd, [
+            "BLOCK",
+            "invalid",
+            "STREAMS",
+            "stream",
+            "0",
+          ]);
           expect(command.extractBlockingTimeout()).to.be.undefined;
         });
       });
 
       it("handles BLOCK option with Buffer value", () => {
-        const command = new Command("xread", ["BLOCK", Buffer.from("5000"), "STREAMS", "s", "0"]);
+        const command = new Command("xread", [
+          "BLOCK",
+          Buffer.from("5000"),
+          "STREAMS",
+          "s",
+          "0",
+        ]);
         expect(command.extractBlockingTimeout()).to.equal(5000);
       });
 
       it("handles BLOCK as Buffer token", () => {
-        const command = new Command("xread", [Buffer.from("BLOCK"), 2000, "STREAMS", "s", "0"]);
+        const command = new Command("xread", [
+          Buffer.from("BLOCK"),
+          2000,
+          "STREAMS",
+          "s",
+          "0",
+        ]);
         expect(command.extractBlockingTimeout()).to.equal(2000);
       });
     });

@@ -32,11 +32,11 @@ describe("connection", function () {
       times += 1;
       if (times === 1) {
         expect(command.name).to.eql("hello");
-      } else if (times === 2 || times === 3) {
+      } else if (times === 2 || times === 3 || times === 4) {
         expect(command.name).to.eql("client");
-      } else if (times === 4) {
-        expect(command.name).to.eql("info");
       } else if (times === 5) {
+        expect(command.name).to.eql("info");
+      } else if (times === 6) {
         redis.disconnect();
         setImmediate(() => done());
       }

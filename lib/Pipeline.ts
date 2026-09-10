@@ -378,6 +378,7 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
     let buffers: Buffer[];
     const stream: PipelineWriteableStream = {
       isPipeline: true,
+      containsMulti: _this._queue.some((command) => command.name === "multi"),
       destination: _this.isCluster ? node : { redis: _this.redis },
       write(writable) {
         if (typeof writable !== "string") {
