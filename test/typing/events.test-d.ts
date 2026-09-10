@@ -66,3 +66,23 @@ redis.once("pmessageBuffer", (pattern, channel, message) => {
   expectType<Buffer>(channel);
   expectType<Buffer>(message);
 });
+
+redis.on("smessage", (channel, message) => {
+  expectType<string>(channel);
+  expectType<string>(message);
+});
+
+redis.on("smessageBuffer", (channel, message) => {
+  expectType<Buffer>(channel);
+  expectType<Buffer>(message);
+});
+
+redis.once("smessage", (channel, message) => {
+  expectType<string>(channel);
+  expectType<string>(message);
+});
+
+redis.once("smessageBuffer", (channel, message) => {
+  expectType<Buffer>(channel);
+  expectType<Buffer>(message);
+});

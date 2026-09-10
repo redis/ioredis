@@ -1121,6 +1121,18 @@ interface Redis<ReplyMapping extends "legacy" | "resp3" = "legacy">
     cb: (pattern: string, channel: Buffer, message: Buffer) => void
   ): this;
 
+  on(event: "smessage", cb: (channel: string, message: string) => void): this;
+  once(event: "smessage", cb: (channel: string, message: string) => void): this;
+
+  on(
+    event: "smessageBuffer",
+    cb: (channel: Buffer, message: Buffer) => void
+  ): this;
+  once(
+    event: "smessageBuffer",
+    cb: (channel: Buffer, message: Buffer) => void
+  ): this;
+
   on(event: "error", cb: (error: Error) => void): this;
   once(event: "error", cb: (error: Error) => void): this;
 
