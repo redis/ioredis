@@ -522,6 +522,11 @@ export function readyHandler(self) {
           self.sendCommand(item.command, item.stream);
         }
       } else {
+        debug("abort %d unfulfilled commands", self.prevCommandQueue.length);
+        while (self.prevCommandQueue.length > 0) {
+          const item = self.prevCommandQueue.shift();
+          item.command.reject(abortError(item.command));
+        }
         self.prevCommandQueue = null;
       }
     }
