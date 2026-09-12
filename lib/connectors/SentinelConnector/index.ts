@@ -15,6 +15,7 @@ import { NetStream, ProtocolVersion, ReplyMappingMode } from "../../types";
 import Redis from "../../Redis";
 import { RedisOptions } from "../../redis/RedisOptions";
 import { FailoverDetector } from "./FailoverDetector";
+import type { StandaloneConnectionOptions } from "../StandaloneConnector";
 
 const debug = Debug("SentinelConnector");
 
@@ -40,7 +41,7 @@ export interface SentinelConnectionOptions {
    * @default "master"
    */
   role?: "master" | "slave" | undefined;
-  tls?: ConnectionOptions | undefined;
+  tls?: StandaloneConnectionOptions["tls"];
   sentinelUsername?: string | undefined;
   sentinelPassword?: string | undefined;
   sentinels?: Array<Partial<SentinelAddress>> | undefined;

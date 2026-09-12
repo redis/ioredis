@@ -3,13 +3,18 @@ import { connect as createTLSConnection, ConnectionOptions } from "tls";
 import { NetStream } from "../types";
 import { CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import AbstractConnector, { ErrorEmitter } from "./AbstractConnector";
+import type TLSProfiles from "../constants/TLSProfiles";
 
 type TcpOptions = Pick<TcpNetConnectOpts, "port" | "host" | "family">;
 type IpcOptions = Pick<IpcNetConnectOpts, "path">;
+type TLSProfileName = keyof typeof TLSProfiles;
 
 export type StandaloneConnectionOptions = Partial<TcpOptions & IpcOptions> & {
   disconnectTimeout?: number | undefined;
-  tls?: ConnectionOptions | undefined;
+  tls?:
+    | TLSProfileName
+    | (ConnectionOptions & { profile?: TLSProfileName })
+    | undefined;
 };
 
 export default class StandaloneConnector extends AbstractConnector {
