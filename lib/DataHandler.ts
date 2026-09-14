@@ -154,7 +154,7 @@ export default class DataHandler {
       this.redis.condition.subscriber = new SubscriptionSet();
       this.redis.condition.subscriber.add(
         item.command.name,
-        reply[1].toString()
+        reply[1] as string | Buffer
       );
 
       if (!fillSubCommand(item.command, reply[2])) {
@@ -190,7 +190,7 @@ export default class DataHandler {
           this.redis.condition.subscriber = new SubscriptionSet();
         }
 
-        const channel = reply[1].toString();
+        const channel = reply[1] as string | Buffer;
         this.redis.condition.subscriber.add(replyType, channel);
         const item = this.shiftCommand(reply);
         if (!item) {
@@ -212,7 +212,8 @@ export default class DataHandler {
           // `""` is a valid channel name, so both guards test for a missing
           // reply element rather than truthiness — skipping `del()` for it
           // would keep the set non-empty and strand subscriber mode below.
-          const channel = reply[1] == null ? null : reply[1].toString();
+          const channel =
+            reply[1] == null ? null : (reply[1] as string | Buffer);
           if (channel !== null) {
             this.redis.condition.subscriber.del(replyType, channel);
           }
@@ -301,7 +302,7 @@ export default class DataHandler {
       case "ssubscribe":
       case "subscribe":
       case "psubscribe": {
-        const channel = reply[1].toString();
+        const channel = reply[1] as string | Buffer;
         this.redis.condition.subscriber.add(replyType, channel);
         const item = this.shiftCommand(reply);
         if (!item) {
@@ -316,7 +317,7 @@ export default class DataHandler {
       case "unsubscribe":
       case "punsubscribe": {
         // See the matching comment in `returnPush` about the empty channel name.
-        const channel = reply[1] == null ? null : reply[1].toString();
+        const channel = reply[1] == null ? null : (reply[1] as string | Buffer);
         if (channel !== null) {
           this.redis.condition.subscriber.del(replyType, channel);
         }
@@ -400,17 +401,14 @@ export default class DataHandler {
 //     (SUNSUBSCRIBE reports remaining shard channels, and UNSUBSCRIBE /
 //     PUNSUBSCRIBE ignore shard channels), so it reaching zero says nothing
 //     about the other kinds.
-//   - The set is keyed by the utf8 rendering of the channel name, so channel
-//     names that are distinct as bytes but decode alike (e.g. the invalid
-//     sequences `<80>` and `<81>`, which both render as U+FFFD) share one key.
-//     Unsubscribing either one empties that key, so the set can read empty
-//     while the server still holds a same-kind subscription.
+//   - The set only tracks what this connection subscribed to through ioredis,
+//     so it cannot see a subscription the server holds but never acknowledged
+//     to it.
 //
 // Requiring both covers each one's blind spot with the other: the count rules
-// out a same-kind subscription the set collapsed, and the set rules out the
-// kinds the count ignores. A reply carrying no count is not authoritative
-// about anything, so it does not hold the connection in subscriber mode on its
-// own.
+// out a remaining same-kind subscription, and the set rules out the kinds the
+// count ignores. A reply carrying no count is not authoritative about
+// anything, so it does not hold the connection in subscriber mode on its own.
 function leaveSubscriberModeIfDone(
   condition: Condition,
   count: string | Buffer | number

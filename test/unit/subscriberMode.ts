@@ -172,12 +172,10 @@ PROTOCOLS.forEach((protocol, index) => {
       expectSubscriptionStateCleared(redis, protocol);
     });
 
-    // Channel names are binary safe, but the subscription set keys them by
-    // their utf8 rendering, so two distinct names can collapse onto one key:
-    // `<80>` and `<81>` are both invalid utf8 and both render as U+FFFD.
-    // Unsubscribing one empties the set while the server still reports the
-    // other as subscribed, so the set alone cannot decide this transition --
-    // the count in the reply is what says a same-kind subscription remains.
+    // Channel names are binary safe, so the subscription set has to key them
+    // by their bytes: `<80>` and `<81>` are both invalid utf8 and both render
+    // as U+FFFD, so keying by that rendering collapses the two onto one entry
+    // and unsubscribing either one drops both from the set.
     describe("with binary channel names that share a utf8 rendering", () => {
       const first = Buffer.from([0x80]);
       const second = Buffer.from([0x81]);
@@ -221,6 +219,15 @@ PROTOCOLS.forEach((protocol, index) => {
             replyWithBytes(socket, "unsubscribe", first, subscribed);
             return undefined;
           }
+          // Shard channels are counted separately by the server, so the shard
+          // acknowledgements carry their own count and say nothing about the
+          // regular channels that are still subscribed.
+          if (name === "ssubscribe") {
+            return pubSubReply(protocol, "ssubscribe", argv[1], 1);
+          }
+          if (name === "sunsubscribe") {
+            return pubSubReply(protocol, "sunsubscribe", argv[1], 0);
+          }
           return "OK";
         };
       }
@@ -236,6 +243,57 @@ PROTOCOLS.forEach((protocol, index) => {
         if (protocol === 2) {
           expect(redis.mode).to.equal("subscriber");
         }
+      });
+
+      // The count in an acknowledgement only describes its own kind, so a
+      // shard count of 0 says nothing about the two regular channels. If the
+      // set has collapsed them onto one key it already reads empty by then,
+      // and the connection leaves subscriber mode with a channel still live.
+      it("keeps subscriber mode when a shard count of 0 arrives later", async () => {
+        serveBinaryChannels(server);
+        redis = new Redis({ port, protocol });
+        await redis.subscribe(first);
+        await redis.subscribe(second);
+        await redis.unsubscribe(first);
+        await redis.ssubscribe("shard");
+        await redis.sunsubscribe("shard");
+
+        expect(redis.condition.subscriber).to.not.equal(false);
+        if (protocol === 2) {
+          expect(redis.mode).to.equal("subscriber");
+        }
+      });
+
+      it("still delivers messages after a later shard count of 0", (done) => {
+        serveBinaryChannels(server);
+        redis = new Redis({ port, protocol });
+        redis.on("messageBuffer", (channel, message) => {
+          expect(channel).to.eql(second);
+          expect(message.toString()).to.equal("hi");
+          done();
+        });
+        (async () => {
+          await redis.subscribe(first);
+          await redis.subscribe(second);
+          await redis.unsubscribe(first);
+          await redis.ssubscribe("shard");
+          await redis.sunsubscribe("shard");
+          server
+            .getAllClients()[0]
+            .write(rawPubSubReply(protocol, "message", second, "hi"));
+        })();
+      });
+
+      // Both names have to stay individually tracked, or the reconnect path
+      // resubscribes to only one of them.
+      it("tracks both names as separate channels", async () => {
+        serveBinaryChannels(server);
+        redis = new Redis({ port, protocol });
+        await redis.subscribe(first);
+        await redis.subscribe(second);
+
+        const { subscriber } = redis.condition;
+        expect((subscriber as any).channels("subscribe")).to.have.lengthOf(2);
       });
 
       it("still delivers messages on the one that is still subscribed", (done) => {
