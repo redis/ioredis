@@ -207,8 +207,11 @@ export default class DataHandler {
       case "unsubscribe":
       case "punsubscribe": {
         if (this.redis.condition.subscriber) {
-          const channel = reply[1] ? reply[1].toString() : null;
-          if (channel) {
+          // `""` is a valid channel name, so both guards test for a missing
+          // reply element rather than truthiness — skipping `del()` for it
+          // would keep the set non-empty and strand subscriber mode below.
+          const channel = reply[1] == null ? null : reply[1].toString();
+          if (channel !== null) {
             this.redis.condition.subscriber.del(replyType, channel);
           }
 
@@ -319,8 +322,9 @@ export default class DataHandler {
       case "sunsubscribe":
       case "unsubscribe":
       case "punsubscribe": {
-        const channel = reply[1] ? reply[1].toString() : null;
-        if (channel) {
+        // See the matching comment in `returnPush` about the empty channel name.
+        const channel = reply[1] == null ? null : reply[1].toString();
+        if (channel !== null) {
           this.redis.condition.subscriber.del(replyType, channel);
         }
         // See the matching comment in `returnPush`: the count is per channel

@@ -90,5 +90,26 @@ PROTOCOLS.forEach((protocol, index) => {
       expect(redis.condition.subscriber).to.equal(false);
       expect(redis.mode).to.equal("normal");
     });
+
+    // `""` is a legal channel name, and the reply naming it must still be
+    // removed from the subscription set — a truthiness check on the channel
+    // skips the removal and leaves the connection stuck in subscriber mode.
+    it("leaves subscriber mode after unsubscribing an empty channel name", async () => {
+      redis = new Redis({ port, protocol });
+      await redis.subscribe("");
+      await redis.unsubscribe("");
+
+      expect(redis.condition.subscriber).to.equal(false);
+      expect(redis.mode).to.equal("normal");
+    });
+
+    it("leaves subscriber mode after sunsubscribing an empty shard channel name", async () => {
+      redis = new Redis({ port, protocol });
+      await redis.ssubscribe("");
+      await redis.sunsubscribe("");
+
+      expect(redis.condition.subscriber).to.equal(false);
+      expect(redis.mode).to.equal("normal");
+    });
   });
 });
