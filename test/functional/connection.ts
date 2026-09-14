@@ -461,6 +461,30 @@ describe("connection", function () {
         });
       });
     });
+
+    it("should reject unfulfilled commands when disabled", (done) => {
+      const redis = new Redis({ autoResendUnfulfilledCommands: false });
+      redis.once("ready", function () {
+        redis.blpop("l", 0).then(
+          function () {
+            done(new Error("blpop should not have resolved"));
+          },
+          function (err) {
+            expect(err.name).to.eql("AbortError");
+            expect(err.message).to.eql(
+              "Command aborted due to connection close"
+            );
+            redis.disconnect();
+            done();
+          }
+        );
+        // Let the blocking command reach the server, then drop the socket so it
+        // is in flight when the connection closes.
+        setTimeout(function () {
+          redis.stream.destroy();
+        }, 50);
+      });
+    });
   });
 
   describe("sync connection", () => {
