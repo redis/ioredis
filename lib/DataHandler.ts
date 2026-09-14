@@ -206,6 +206,8 @@ export default class DataHandler {
       case "sunsubscribe":
       case "unsubscribe":
       case "punsubscribe": {
+        const count = reply[2] as string | Buffer | number;
+
         if (this.redis.condition.subscriber) {
           // `""` is a valid channel name, so both guards test for a missing
           // reply element rather than truthiness — skipping `del()` for it
@@ -215,17 +217,8 @@ export default class DataHandler {
             this.redis.condition.subscriber.del(replyType, channel);
           }
 
-          // The reply count only covers channels of the same kind as the
-          // command (SUNSUBSCRIBE reports remaining shard channels, and
-          // UNSUBSCRIBE/PUNSUBSCRIBE ignore shard channels), so it reaching
-          // zero does not mean the connection left subscriber mode. Drop the
-          // state only once every kind is empty.
-          if (this.redis.condition.subscriber.isEmpty()) {
-            this.redis.condition.subscriber = false;
-          }
+          leaveSubscriberModeIfDone(this.redis.condition, count);
         }
-
-        const count = reply[2] as string | Buffer | number;
 
         if (this.handleUnsolicitedUnsubscribe(replyType)) {
           return;
@@ -327,12 +320,8 @@ export default class DataHandler {
         if (channel !== null) {
           this.redis.condition.subscriber.del(replyType, channel);
         }
-        // See the matching comment in `returnPush`: the count is per channel
-        // kind, so only an empty set means subscriber mode is over.
-        if (this.redis.condition.subscriber.isEmpty()) {
-          this.redis.condition.subscriber = false;
-        }
         const count = reply[2];
+        leaveSubscriberModeIfDone(this.redis.condition, count);
         if (this.handleUnsolicitedUnsubscribe(replyType)) {
           break;
         }
@@ -400,6 +389,36 @@ export default class DataHandler {
       return null;
     }
     return item;
+  }
+}
+
+// Both the count carried by the reply and the subscription set are partial
+// views of the connection's subscriptions, and neither one alone answers
+// "is this connection still in subscriber mode?":
+//
+//   - The count only covers channels of the same kind as the command
+//     (SUNSUBSCRIBE reports remaining shard channels, and UNSUBSCRIBE /
+//     PUNSUBSCRIBE ignore shard channels), so it reaching zero says nothing
+//     about the other kinds.
+//   - The set is keyed by the utf8 rendering of the channel name, so channel
+//     names that are distinct as bytes but decode alike (e.g. the invalid
+//     sequences `<80>` and `<81>`, which both render as U+FFFD) share one key.
+//     Unsubscribing either one empties that key, so the set can read empty
+//     while the server still holds a same-kind subscription.
+//
+// Requiring both covers each one's blind spot with the other: the count rules
+// out a same-kind subscription the set collapsed, and the set rules out the
+// kinds the count ignores. A reply carrying no count is not authoritative
+// about anything, so it does not hold the connection in subscriber mode on its
+// own.
+function leaveSubscriberModeIfDone(
+  condition: Condition,
+  count: string | Buffer | number
+) {
+  const remaining = Number(count);
+  const subscriber = condition.subscriber as SubscriptionSet;
+  if (subscriber.isEmpty() && !(remaining > 0)) {
+    condition.subscriber = false;
   }
 }
 

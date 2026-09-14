@@ -1,5 +1,9 @@
 import { expect } from "chai";
-import MockServer, { pubSubReply } from "../helpers/mock_server";
+import { Socket } from "net";
+import MockServer, {
+  pubSubReply,
+  rawPubSubReply,
+} from "../helpers/mock_server";
 import Redis from "../../lib/Redis";
 
 // Redis counts shard channels separately from channels and patterns, so the
@@ -121,6 +125,91 @@ PROTOCOLS.forEach((protocol, index) => {
       await redis.sunsubscribe("");
 
       expectSubscriptionStateCleared(redis, protocol);
+    });
+
+    // Channel names are binary safe, but the subscription set keys them by
+    // their utf8 rendering, so two distinct names can collapse onto one key:
+    // `<80>` and `<81>` are both invalid utf8 and both render as U+FFFD.
+    // Unsubscribing one empties the set while the server still reports the
+    // other as subscribed, so the set alone cannot decide this transition --
+    // the count in the reply is what says a same-kind subscription remains.
+    describe("with binary channel names that share a utf8 rendering", () => {
+      const first = Buffer.from([0x80]);
+      const second = Buffer.from([0x81]);
+
+      // Replies naming these channels have to keep the raw bytes, which the
+      // mock server's string-based writer cannot do, so they are written to
+      // the socket directly and the automatic reply is suppressed.
+      function replyWithBytes(
+        socket: Socket,
+        type: string,
+        channel: Buffer,
+        count: number
+      ) {
+        socket.write(rawPubSubReply(protocol, type, channel, count));
+      }
+
+      // Both SUBSCRIBEs are acknowledged with the channel the client asked
+      // for; the server counts them separately, so the second reports 2.
+      // UNSUBSCRIBE of the first then reports 1 remaining.
+      function serveBinaryChannels(server: MockServer) {
+        let subscribed = 0;
+        server.handler = (argv, socket, flags) => {
+          const name = String(argv[0]).toLowerCase();
+          if (name === "info") {
+            return "# Server\r\nredis_version:7.0.0\r\n";
+          }
+          if (name === "subscribe") {
+            subscribed += 1;
+            flags.hang = true;
+            replyWithBytes(
+              socket,
+              "subscribe",
+              subscribed === 1 ? first : second,
+              subscribed
+            );
+            return undefined;
+          }
+          if (name === "unsubscribe") {
+            subscribed -= 1;
+            flags.hang = true;
+            replyWithBytes(socket, "unsubscribe", first, subscribed);
+            return undefined;
+          }
+          return "OK";
+        };
+      }
+
+      it("keeps subscriber mode while the other one is still subscribed", async () => {
+        serveBinaryChannels(server);
+        redis = new Redis({ port, protocol });
+        await redis.subscribe(first);
+        await redis.subscribe(second);
+        await redis.unsubscribe(first);
+
+        expect(redis.condition.subscriber).to.not.equal(false);
+        if (protocol === 2) {
+          expect(redis.mode).to.equal("subscriber");
+        }
+      });
+
+      it("still delivers messages on the one that is still subscribed", (done) => {
+        serveBinaryChannels(server);
+        redis = new Redis({ port, protocol });
+        redis.on("messageBuffer", (channel, message) => {
+          expect(channel).to.eql(second);
+          expect(message.toString()).to.equal("hi");
+          done();
+        });
+        (async () => {
+          await redis.subscribe(first);
+          await redis.subscribe(second);
+          await redis.unsubscribe(first);
+          server
+            .getAllClients()[0]
+            .write(rawPubSubReply(protocol, "message", second, "hi"));
+        })();
+      });
     });
   });
 });
