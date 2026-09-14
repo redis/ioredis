@@ -195,5 +195,154 @@ PROTOCOLS.forEach((protocol, index) => {
       redis.disconnect();
       await server.disconnectPromise();
     });
+
+    it("rejects every stashed command, not just the first", async () => {
+      // `flushQueue` drains the stash in a loop, so a client that dropped
+      // several in-flight commands must settle all of them.
+      const server = serverReadyOnce(basePort + 4, () => {});
+      const redis = new Redis({
+        port: basePort + 4,
+        protocol,
+        lazyConnect: true,
+        retryStrategy: () => 50,
+      });
+      redis.on("error", () => {});
+      await redis.connect();
+
+      const pending = ["a", "b", "c"].map((key) =>
+        track(redis.get(key) as Promise<unknown>)
+      );
+      await waitFor(
+        () => redis.commandQueue.length === 3,
+        "three GETs to be in flight"
+      );
+      redis.stream.destroy();
+
+      await waitFor(
+        () => redis.status === "connect",
+        "the client to reconnect"
+      );
+      redis.disconnect();
+      await waitFor(() => redis.status === "end", "the client to end");
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      expect(pending.map((state) => state.settlement)).to.eql([
+        "rejected: Connection is closed.",
+        "rejected: Connection is closed.",
+        "rejected: Connection is closed.",
+      ]);
+
+      await server.disconnectPromise();
+    });
+
+    it("rejects them when the reconnect hits a fatal protocol error", async () => {
+      // `returnFatalError` flushes with `{ offlineQueue: false }`, which is the
+      // other call site that reaches the stash, and it does so while the client
+      // is still reconnecting.
+      let connections = 0;
+      const server = new MockServer(basePort + 5, (argv, socket, flags) => {
+        if (connections >= 2) {
+          return MockServer.raw("@bogus\r\n");
+        }
+        const name = String(argv[0]).toLowerCase();
+        if (name === "info") {
+          return "# Server\r\nredis_version:7.0.0\r\n";
+        }
+        if (name === "get") {
+          flags.hang = true;
+          return;
+        }
+        return "OK";
+      });
+      server.on("connect", () => connections++);
+
+      const redis = new Redis({
+        port: basePort + 5,
+        protocol,
+        lazyConnect: true,
+        retryStrategy: () => 50,
+      });
+      redis.on("error", () => {});
+      await redis.connect();
+
+      const pending = track(redis.get("foo") as Promise<unknown>);
+      await waitFor(() => redis.commandQueue.length > 0, "GET to be in flight");
+      redis.stream.destroy();
+
+      await waitFor(
+        () => pending.settlement !== "pending",
+        "the stashed command to settle"
+      );
+
+      expect(pending.settlement).to.match(/^rejected: /);
+
+      redis.disconnect();
+      await server.disconnectPromise();
+    });
+
+    it("rejects a command stashed after an earlier resend emptied the stash", async () => {
+      // The resend branch of the ready handler leaves `prevCommandQueue` set to
+      // an empty deque rather than null, so the second drop re-stashes onto a
+      // stash the flush path has already seen once.
+      let connections = 0;
+      const server = new MockServer(basePort + 6, (argv, socket, flags) => {
+        // The third connection never answers, so the second reconnect cannot
+        // reach "ready" and the ready handler cannot claim the stash again.
+        if (connections >= 3) {
+          flags.hang = true;
+          return;
+        }
+        const name = String(argv[0]).toLowerCase();
+        if (name === "info") {
+          return "# Server\r\nredis_version:7.0.0\r\n";
+        }
+        if (name === "get") {
+          if (connections === 1) {
+            flags.hang = true;
+            return;
+          }
+          return "bar";
+        }
+        return "OK";
+      });
+      server.on("connect", () => connections++);
+
+      const redis = new Redis({
+        port: basePort + 6,
+        protocol,
+        lazyConnect: true,
+        retryStrategy: () => 50,
+      });
+      redis.on("error", () => {});
+      await redis.connect();
+
+      const resent = track(redis.get("foo") as Promise<unknown>);
+      await waitFor(() => redis.commandQueue.length > 0, "GET to be in flight");
+      redis.stream.destroy();
+      await waitFor(
+        () => resent.settlement !== "pending",
+        "the resent command to settle"
+      );
+      expect(resent.settlement).to.equal("resolved: bar");
+
+      const pending = track(redis.get("foo") as Promise<unknown>);
+      await waitFor(
+        () => redis.commandQueue.length > 0,
+        "the second GET to be in flight"
+      );
+      redis.stream.destroy();
+
+      await waitFor(
+        () => redis.status === "connect",
+        "the client to reconnect"
+      );
+      redis.disconnect();
+      await waitFor(() => redis.status === "end", "the client to end");
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      expect(pending.settlement).to.equal("rejected: Connection is closed.");
+
+      await server.disconnectPromise();
+    });
   });
 });
