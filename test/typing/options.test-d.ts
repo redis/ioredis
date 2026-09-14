@@ -1,4 +1,4 @@
-import { expectAssignable, expectType } from "tsd";
+import { expectAssignable, expectError, expectType } from "tsd";
 import {
   Redis,
   Cluster,
@@ -33,6 +33,31 @@ expectType<Redis>(new Redis("/tmp/redis.sock", { password: "password" }));
 // TLS
 expectType<Redis>(new Redis({ tls: {} }));
 expectType<Redis>(new Redis({ tls: { ca: "myca" } }));
+for (const profile of ["RedisCloudFixed", "RedisCloudFlexible"] as const) {
+  expectType<Redis>(new Redis({ tls: profile }));
+  expectType<Redis>(
+    new Redis({ tls: { profile, ca: "myca", servername: "localhost" } })
+  );
+  expectType<Redis>(
+    new Redis({
+      sentinels: [{ host: "localhost", port: 16379 }],
+      name: "mymaster",
+      tls: profile,
+    })
+  );
+  expectType<Cluster>(
+    new Cluster([30001, 30002], { redisOptions: { tls: profile } })
+  );
+  expectType<Cluster>(
+    new Cluster([30001, 30002], {
+      redisOptions: { tls: { profile, servername: "localhost" } },
+    })
+  );
+}
+expectError(new Redis({ tls: "unknown-profile" }));
+expectError(new Redis({ tls: { profile: "unknown-profile" } }));
+expectError(new Redis({ tls: { profile: 123 } }));
+expectError(new Redis({ tls: 123 }));
 
 // Sentinels
 expectType<Redis>(
