@@ -69,7 +69,14 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
     commands.push({
       kind: "readonly",
       send: () => self.readonly(),
-      errorHandler: noop,
+      // A connection that failed to enter readonly mode must not be exposed as
+      // ready. Cluster clients use this flag to route reads to replicas; if the
+      // command fails during a failover (for example while Redis is loading),
+      // keeping the connection alive makes it look like a healthy replica and
+      // leads to repeated MOVED errors.
+      errorHandler: (err) => {
+        throw err;
+      },
     });
   }
 
