@@ -127,6 +127,51 @@ PROTOCOLS.forEach((protocol, index) => {
       expectSubscriptionStateCleared(redis, protocol);
     });
 
+    // Channel names are chosen by the application, so they can collide with
+    // the names inherited from `Object.prototype`. `__proto__` in particular
+    // is never stored as an own key on a plain object, so the subscription
+    // set would report itself empty while the channel is still subscribed.
+    it("keeps a channel named __proto__ subscribed after sunsubscribe", async () => {
+      redis = new Redis({ port, protocol });
+      await redis.subscribe("__proto__");
+      await redis.ssubscribe("shard");
+      await redis.sunsubscribe("shard");
+
+      const { subscriber } = redis.condition;
+      expect(subscriber).to.not.equal(false);
+      expect((subscriber as any).channels("subscribe")).to.eql(["__proto__"]);
+      expect((subscriber as any).channels("ssubscribe")).to.eql([]);
+    });
+
+    it("delivers messages on a channel named __proto__ after sunsubscribe", (done) => {
+      redis = new Redis({ port, protocol });
+      redis.on("message", (channel, message) => {
+        expect(channel).to.eql("__proto__");
+        expect(message).to.eql("hi");
+        done();
+      });
+      (async () => {
+        await redis.subscribe("__proto__");
+        await redis.ssubscribe("shard");
+        await redis.sunsubscribe("shard");
+        server.broadcast(pubSubReply(protocol, "message", "__proto__", "hi"));
+      })();
+    });
+
+    // The removal has to reach the stored key as well: the channel is tracked
+    // while subscribed, and unsubscribing it empties the set and leaves the
+    // connection out of subscriber mode.
+    it("tracks and then clears a subscription to __proto__", async () => {
+      redis = new Redis({ port, protocol });
+      await redis.subscribe("__proto__");
+      expect((redis.condition.subscriber as any).channels("subscribe")).to.eql([
+        "__proto__",
+      ]);
+
+      await redis.unsubscribe("__proto__");
+      expectSubscriptionStateCleared(redis, protocol);
+    });
+
     // Channel names are binary safe, but the subscription set keys them by
     // their utf8 rendering, so two distinct names can collapse onto one key:
     // `<80>` and `<81>` are both invalid utf8 and both render as U+FFFD.
