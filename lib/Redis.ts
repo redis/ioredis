@@ -271,16 +271,36 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       };
 
       const _this = this;
+      const connectionEpoch = _this.connectionEpoch;
       asCallback(
         this.connector.connect(function (type, err) {
           _this.silentEmit(type, err);
         }) as Promise<NetStream>,
         function (err: Error | null, stream?: NetStream) {
+          const isStaleConnection =
+            _this.connectionEpoch !== connectionEpoch ||
+            _this.status !== "connecting";
+          if (isStaleConnection) {
+            if (stream && !stream.destroyed) {
+              stream.destroy();
+            }
+            if (err) {
+              reject(err);
+            } else {
+              reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
+            }
+            return;
+          }
           if (err) {
             _this.flushQueue(err);
             _this.silentEmit("error", err);
             reject(err);
-            _this.setStatus("end");
+            // A synchronous disconnect() may have already ended the
+            // client while the connection attempt was still pending;
+            // avoid emitting a second "end" event in that case.
+            if (_this.status !== "end") {
+              _this.setStatus("end");
+            }
             return;
           }
           let CONNECT_EVENT = options.tls ? "secureConnect" : "connect";
@@ -393,6 +413,21 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       eventHandler.closeHandler(this)();
     } else {
       this.connector.disconnect();
+      // When disconnecting before a stream exists, while a previous
+      // (already closed) stream is still referenced during a retry, or
+      // while waiting to reconnect, no stream event will ever fire to
+      // flush the pending queues. Commands stranded in the offline queue
+      // would keep their armed commandTimeout timers, which later reject
+      // with "Command timed out" even though the commands were never sent.
+      if (
+        !reconnect &&
+        this.status !== "end" &&
+        (!this.stream ||
+          this.stream.destroyed ||
+          this.status === "reconnecting")
+      ) {
+        eventHandler.closeHandler(this)();
+      }
     }
   }
 
