@@ -293,6 +293,56 @@ PROTOCOLS.forEach((protocol, index) => {
       await server.disconnectPromise();
     });
 
+    it("rejects them when the user disconnects after a fatal protocol error", async () => {
+      // The fatal flush opts out of settling the stash, but that opt-out is an
+      // argument to one `flushQueue` call rather than client state. The manual
+      // disconnect that follows reaches `close()`, which flushes with the
+      // defaults, so the stash must still be rejected instead of inheriting the
+      // earlier opt-out and staying pending forever.
+      let connections = 0;
+      const server = new MockServer(basePort + 8, (argv, socket, flags) => {
+        // The attempt the fatal recovery schedules never answers, so the ready
+        // handler cannot claim the stash and only the flush path is left.
+        if (connections >= 3) {
+          flags.hang = true;
+          return;
+        }
+        if (connections === 2) {
+          return MockServer.raw("@bogus\r\n");
+        }
+        const name = String(argv[0]).toLowerCase();
+        if (name === "info") {
+          return "# Server\r\nredis_version:7.0.0\r\n";
+        }
+        if (name === "get") {
+          flags.hang = true;
+          return;
+        }
+        return "OK";
+      });
+      server.on("connect", () => connections++);
+
+      const { redis, pending } = await readyClientWithInFlightCommand(
+        basePort + 8
+      );
+
+      // The fatal error has been through `recoverFromFatalError` by the time
+      // the third connection is up, so the opt-out flush has already run.
+      await waitFor(
+        () => connections >= 3 && redis.status === "connect",
+        "the reconnect after the fatal error"
+      );
+      expect(pending.settlement).to.equal("pending");
+
+      redis.disconnect();
+      await waitFor(() => redis.status === "end", "the client to end");
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      expect(pending.settlement).to.equal("rejected: Connection is closed.");
+
+      await server.disconnectPromise();
+    });
+
     it("rejects them when a fatal protocol error is followed by the client ending", async () => {
       // Same fatal flush as above, but the retry strategy gives up on the
       // attempt it schedules, so there is no resend left and the close flush
