@@ -8,6 +8,20 @@ import Redis from "../../lib/Redis";
 // of the other kinds that are still active on the connection.
 const PROTOCOLS = [3, 2] as const;
 
+// `Redis#mode` only reports the subscriber state under RESP2. With RESP3 push
+// messages share the connection, so it reads `"normal"` even while subscribed
+// and asserting on it would pass whether or not the subscription state was
+// cleaned up. `condition.subscriber` is the check that discriminates on both.
+function expectSubscriptionStateCleared(
+  redis: Redis,
+  protocol: typeof PROTOCOLS[number]
+) {
+  expect(redis.condition.subscriber).to.equal(false);
+  if (protocol === 2) {
+    expect(redis.mode).to.equal("normal");
+  }
+}
+
 PROTOCOLS.forEach((protocol, index) => {
   describe(`subscriber mode across channel kinds (RESP${protocol})`, () => {
     const port = 17940 + index;
@@ -80,36 +94,33 @@ PROTOCOLS.forEach((protocol, index) => {
       expect((subscriber as any).channels("subscribe")).to.eql([]);
     });
 
-    it("leaves subscriber mode once every kind is unsubscribed", async () => {
+    it("clears the subscription state once every kind is unsubscribed", async () => {
       redis = new Redis({ port, protocol });
       await redis.subscribe("regular");
       await redis.ssubscribe("shard");
       await redis.unsubscribe("regular");
       await redis.sunsubscribe("shard");
 
-      expect(redis.condition.subscriber).to.equal(false);
-      expect(redis.mode).to.equal("normal");
+      expectSubscriptionStateCleared(redis, protocol);
     });
 
     // `""` is a legal channel name, and the reply naming it must still be
     // removed from the subscription set — a truthiness check on the channel
     // skips the removal and leaves the connection stuck in subscriber mode.
-    it("leaves subscriber mode after unsubscribing an empty channel name", async () => {
+    it("clears the subscription state after unsubscribing an empty channel name", async () => {
       redis = new Redis({ port, protocol });
       await redis.subscribe("");
       await redis.unsubscribe("");
 
-      expect(redis.condition.subscriber).to.equal(false);
-      expect(redis.mode).to.equal("normal");
+      expectSubscriptionStateCleared(redis, protocol);
     });
 
-    it("leaves subscriber mode after sunsubscribing an empty shard channel name", async () => {
+    it("clears the subscription state after sunsubscribing an empty shard channel name", async () => {
       redis = new Redis({ port, protocol });
       await redis.ssubscribe("");
       await redis.sunsubscribe("");
 
-      expect(redis.condition.subscriber).to.equal(false);
-      expect(redis.mode).to.equal("normal");
+      expectSubscriptionStateCleared(redis, protocol);
     });
   });
 });
