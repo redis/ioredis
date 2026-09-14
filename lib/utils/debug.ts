@@ -62,12 +62,24 @@ export default function genDebugFunction(
       return; // no-op
     }
 
+    let sanitizeString = false;
     // we skip the first arg because that is the message
     for (let i = 1; i < args.length; i++) {
-      const str = getStringValue(args[i]);
-      if (typeof str === "string" && str.length > MAX_ARGUMENT_LENGTH) {
-        args[i] = genRedactedString(str, MAX_ARGUMENT_LENGTH);
-      }
+        const str = getStringValue(args[i]);
+        if(sanitizeString) {
+            // The previous array index indicates this current index
+            // needs to be removed from the logs.
+            args[i] = '***********';
+            sanitizeString = false;
+            continue;
+        }
+        if(typeof str === "string" && str.toLowerCase() === 'auth') {
+            // Expect the next array index will contain 
+            // sensitive data that should not be in plaintext
+            sanitizeString = true;
+        } else if (typeof str === "string" && str.length > MAX_ARGUMENT_LENGTH) {
+            args[i] = genRedactedString(str, MAX_ARGUMENT_LENGTH);
+        }
     }
 
     return fn.apply(null, args);
