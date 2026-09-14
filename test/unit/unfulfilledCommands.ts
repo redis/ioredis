@@ -49,7 +49,7 @@ PROTOCOLS.forEach((protocol, index) => {
     function track(promise: Promise<unknown>) {
       const state = { settlement: "pending" };
       promise.then(
-        () => (state.settlement = "resolved"),
+        (value) => (state.settlement = `resolved: ${value}`),
         (err: Error) => (state.settlement = `rejected: ${err.message}`)
       );
       return state;
@@ -146,6 +146,51 @@ PROTOCOLS.forEach((protocol, index) => {
         "rejected: Reached the max retries per request limit (which is 1). " +
           'Refer to "maxRetriesPerRequest" option for details.'
       );
+
+      redis.disconnect();
+      await server.disconnectPromise();
+    });
+
+    it("(control) still resends them when the reconnect succeeds", async () => {
+      // The stash must only be settled by the flush path when the ready
+      // handler can no longer claim it, so a plain successful reconnect keeps
+      // resending. Passes with and without the fix.
+      let connections = 0;
+      const server = new MockServer(basePort + 3, (argv, socket, flags) => {
+        const name = String(argv[0]).toLowerCase();
+        if (name === "info") {
+          return "# Server\r\nredis_version:7.0.0\r\n";
+        }
+        if (name === "get") {
+          if (connections < 2) {
+            flags.hang = true;
+            return;
+          }
+          return "bar";
+        }
+        return "OK";
+      });
+      server.on("connect", () => connections++);
+
+      const redis = new Redis({
+        port: basePort + 3,
+        protocol,
+        lazyConnect: true,
+        retryStrategy: () => 50,
+      });
+      redis.on("error", () => {});
+      await redis.connect();
+
+      const pending = track(redis.get("foo") as Promise<unknown>);
+      await waitFor(() => redis.commandQueue.length > 0, "GET to be in flight");
+      redis.stream.destroy();
+
+      await waitFor(
+        () => pending.settlement !== "pending",
+        "the resent command to settle"
+      );
+
+      expect(pending.settlement).to.equal("resolved: bar");
 
       redis.disconnect();
       await server.disconnectPromise();
