@@ -127,6 +127,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
   private connector: AbstractConnector;
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private offlineQueue: Deque;
+  private prevCommandQueue: Deque<CommandItem> | null = null;
   private connectionEpoch = 0;
   private retryAttempts = 0;
   private manuallyClosing = false;
@@ -1033,6 +1034,17 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
         while ((item = this.commandQueue.shift())) {
           item.command.reject(error);
         }
+      }
+
+      // Commands that were in flight when a ready connection dropped are
+      // stashed in `prevCommandQueue`, and only the ready handler drains it.
+      // A reconnect replaces `commandQueue`, so a client that ends before
+      // becoming ready again has no other chance to settle them.
+      if (this.prevCommandQueue) {
+        while ((item = this.prevCommandQueue.shift())) {
+          item.command.reject(error);
+        }
+        this.prevCommandQueue = null;
       }
     }
   }
