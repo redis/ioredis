@@ -211,12 +211,18 @@ export default class DataHandler {
           if (channel) {
             this.redis.condition.subscriber.del(replyType, channel);
           }
+
+          // The reply count only covers channels of the same kind as the
+          // command (SUNSUBSCRIBE reports remaining shard channels, and
+          // UNSUBSCRIBE/PUNSUBSCRIBE ignore shard channels), so it reaching
+          // zero does not mean the connection left subscriber mode. Drop the
+          // state only once every kind is empty.
+          if (this.redis.condition.subscriber.isEmpty()) {
+            this.redis.condition.subscriber = false;
+          }
         }
 
         const count = reply[2] as string | Buffer | number;
-        if (Number(count) === 0) {
-          this.redis.condition.subscriber = false;
-        }
 
         if (this.handleUnsolicitedUnsubscribe(replyType)) {
           return;
@@ -317,10 +323,12 @@ export default class DataHandler {
         if (channel) {
           this.redis.condition.subscriber.del(replyType, channel);
         }
-        const count = reply[2];
-        if (Number(count) === 0) {
+        // See the matching comment in `returnPush`: the count is per channel
+        // kind, so only an empty set means subscriber mode is over.
+        if (this.redis.condition.subscriber.isEmpty()) {
           this.redis.condition.subscriber = false;
         }
+        const count = reply[2];
         if (this.handleUnsolicitedUnsubscribe(replyType)) {
           break;
         }
