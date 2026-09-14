@@ -819,7 +819,10 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     err: Error,
     options: FlushQueueOptions
   ) {
-    this.flushQueue(err, options);
+    // `disconnect(true)` below keeps reconnecting, so a later attempt can still
+    // reach "ready" and resend the stashed commands. Rejecting them here would
+    // abandon them after a single failed attempt.
+    this.flushQueue(err, { ...options, prevCommandQueue: false });
     this.silentEmit("error", err);
     this.disconnect(true);
   }
@@ -1016,6 +1019,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     options = defaults({}, options, {
       offlineQueue: true,
       commandQueue: true,
+      prevCommandQueue: true,
     });
 
     let item;
@@ -1040,7 +1044,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       // stashed in `prevCommandQueue`, and only the ready handler drains it.
       // A reconnect replaces `commandQueue`, so a client that ends before
       // becoming ready again has no other chance to settle them.
-      if (this.prevCommandQueue) {
+      if (options.prevCommandQueue && this.prevCommandQueue) {
         while ((item = this.prevCommandQueue.shift())) {
           item.command.reject(error);
         }

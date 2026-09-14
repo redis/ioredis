@@ -235,13 +235,20 @@ PROTOCOLS.forEach((protocol, index) => {
       await server.disconnectPromise();
     });
 
-    it("rejects them when the reconnect hits a fatal protocol error", async () => {
-      // `returnFatalError` flushes with `{ offlineQueue: false }`, which is the
-      // other call site that reaches the stash, and it does so while the client
-      // is still reconnecting.
+    // A control for the flush change as a whole: the stash was never drained
+    // before this PR, so it also passes without it. It discriminates the
+    // `prevCommandQueue: false` opt-out, without which it fails.
+    it("(control) keeps them across a fatal protocol error so a later reconnect can resend them", async () => {
+      // `returnFatalError` flushes with `{ offlineQueue: false }` and then
+      // calls `disconnect(true)`, which reconnects rather than ending the
+      // client. That flush must therefore leave the stash for the ready
+      // handler, or one unparseable reply discards commands the next attempt
+      // would have resent.
       let connections = 0;
       const server = new MockServer(basePort + 5, (argv, socket, flags) => {
-        if (connections >= 2) {
+        if (connections === 2) {
+          // Garbage the decoder cannot parse, which is what makes the error
+          // fatal rather than a normal error reply.
           return MockServer.raw("@bogus\r\n");
         }
         const name = String(argv[0]).toLowerCase();
@@ -249,8 +256,11 @@ PROTOCOLS.forEach((protocol, index) => {
           return "# Server\r\nredis_version:7.0.0\r\n";
         }
         if (name === "get") {
-          flags.hang = true;
-          return;
+          if (connections === 1) {
+            flags.hang = true;
+            return;
+          }
+          return "bar";
         }
         return "OK";
       });
@@ -274,9 +284,57 @@ PROTOCOLS.forEach((protocol, index) => {
         "the stashed command to settle"
       );
 
-      expect(pending.settlement).to.match(/^rejected: /);
+      // The first connection never answers GET and the second only speaks
+      // garbage, so this reply can only come from the stash surviving the
+      // fatal flush and being resent on the third connection.
+      expect(pending.settlement).to.equal("resolved: bar");
 
       redis.disconnect();
+      await server.disconnectPromise();
+    });
+
+    it("rejects them when a fatal protocol error is followed by the client ending", async () => {
+      // Same fatal flush as above, but the retry strategy gives up on the
+      // attempt it schedules, so there is no resend left and the close flush
+      // is what has to settle the stash.
+      let connections = 0;
+      const server = new MockServer(basePort + 7, (argv, socket, flags) => {
+        if (connections >= 2) {
+          return MockServer.raw("@bogus\r\n");
+        }
+        const name = String(argv[0]).toLowerCase();
+        if (name === "info") {
+          return "# Server\r\nredis_version:7.0.0\r\n";
+        }
+        if (name === "get") {
+          flags.hang = true;
+          return;
+        }
+        return "OK";
+      });
+      server.on("connect", () => connections++);
+
+      const redis = new Redis({
+        port: basePort + 7,
+        protocol,
+        lazyConnect: true,
+        retryStrategy: () => (attempts++ === 0 ? 50 : null),
+      });
+      redis.on("error", () => {});
+      await redis.connect();
+
+      const pending = track(redis.get("foo") as Promise<unknown>);
+      await waitFor(() => redis.commandQueue.length > 0, "GET to be in flight");
+      redis.stream.destroy();
+
+      await waitFor(() => redis.status === "end", "the client to end");
+      await waitFor(
+        () => pending.settlement !== "pending",
+        "the stashed command to settle"
+      );
+
+      expect(pending.settlement).to.equal("rejected: Connection is closed.");
+
       await server.disconnectPromise();
     });
 

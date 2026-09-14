@@ -37,6 +37,10 @@ export interface Condition {
 export type FlushQueueOptions = {
   offlineQueue?: boolean;
   commandQueue?: boolean;
+  // Commands stashed when a ready connection dropped. Only a flush the client
+  // cannot come back from settles them; a flush that is followed by another
+  // reconnect attempt leaves them for the ready handler to resend.
+  prevCommandQueue?: boolean;
 };
 
 export interface DataHandledable extends EventEmitter {
