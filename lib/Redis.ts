@@ -140,6 +140,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
   commandQueue: Deque<CommandItem>;
 
   private connector: AbstractConnector;
+  private dataHandler: DataHandler | undefined;
   private maintenanceManager: MaintenanceManager | null = null;
   // Set when a Smart Client Handoff replaces the connection while a WATCH is
   // active on it. The server-side watch set dies with the old connection, so
@@ -1049,7 +1050,8 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       this.mode !== "normal" ||
       this.commandQueue.length > 0 ||
       this.offlineQueue.length > 0 ||
-      !this.condition
+      !this.condition ||
+      !this.dataHandler
     ) {
       throw new Error(
         "Only a ready and idle candidate connection can be detached"
@@ -1060,6 +1062,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       stream: this.stream,
       connector: this.connector,
       condition: this.condition,
+      dataHandler: this.dataHandler,
     };
 
     // Strip everything this client registered on the socket so no callback
@@ -1076,6 +1079,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     // end it so it rejects any further use.
     this.stream = undefined as unknown as NetStream;
     this.connector = undefined as unknown as AbstractConnector;
+    this.dataHandler = undefined;
     this.manuallyClosing = true;
     this.setStatus("end");
 
@@ -1150,13 +1154,11 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     // the new connection before use.
     getHimportBinding(this)?.coordinator.beginSession(this);
 
-    new DataHandler(this, {
-      stringNumbers: this.options.stringNumbers ?? false,
-      replyMapping: this.condition.replyMapping,
-      onMaintenanceNotification: this.maintenanceManager?.handle,
-    });
+    // Preserve the candidate's decoder continuation alongside its socket.
+    this.dataHandler = transport.dataHandler;
     transport.stream.once("error", eventHandler.errorHandler(this));
     transport.stream.once("close", eventHandler.closeHandler(this));
+    this.dataHandler.rebind(this, this.maintenanceManager?.handle);
   }
 
   /**

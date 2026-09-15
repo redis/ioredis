@@ -81,12 +81,12 @@ interface ParserOptions {
 }
 
 export default class DataHandler {
-  private readonly onMaintenanceNotification?: (
+  private onMaintenanceNotification?: (
     notification: MaintenanceNotification
   ) => void | Promise<void>;
+  private readonly onData: (data: Buffer) => void;
 
   constructor(private redis: DataHandledable, parserOptions: ParserOptions) {
-    this.onMaintenanceNotification = parserOptions.onMaintenanceNotification;
     // Parser options can't change over the lifetime of a connection, so the
     // mapping is resolved once instead of per reply.
     const typeMapping = getParserTypeMapping(parserOptions);
@@ -103,14 +103,29 @@ export default class DataHandler {
       },
     });
 
-    // prependListener ensures the parser receives and processes data before socket timeout checks are performed
-    redis.stream.prependListener("data", (data) => {
+    this.onData = (data) => {
       try {
         decoder.write(data);
       } catch (err) {
         this.returnFatalError(err as Error);
       }
-    });
+    };
+    this.rebind(redis, parserOptions.onMaintenanceNotification);
+  }
+
+  /**
+   * Attaches to a new owner after the previous stream listeners were removed.
+   * Keep the decoder and its callbacks intact: an unfinished frame may have
+   * captured a callback that must dispatch through this handler's new owner.
+   */
+  rebind(
+    redis: DataHandledable,
+    onMaintenanceNotification: ParserOptions["onMaintenanceNotification"]
+  ): void {
+    this.redis = redis;
+    this.onMaintenanceNotification = onMaintenanceNotification;
+    // prependListener ensures the parser receives and processes data before socket timeout checks are performed
+    redis.stream.prependListener("data", this.onData);
     // prependListener() doesn't enable flowing mode automatically - we need to resume the stream manually
     redis.stream.resume();
   }

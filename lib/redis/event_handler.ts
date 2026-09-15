@@ -170,12 +170,8 @@ export function connectHandler(self) {
       self.condition.handshake = true;
       self.setStatus("connect");
 
-      /*
-        No need to keep the reference of DataHandler here
-        because we don't need to do the cleanup.
-        `Stream#end()` will remove all listeners for us.
-      */
-      new DataHandler(self, {
+      // The handler must travel with the socket during transport adoption.
+      self.dataHandler = new DataHandler(self, {
         stringNumbers: self.options.stringNumbers,
         replyMapping: self.condition.replyMapping,
         onMaintenanceNotification: self.maintenanceManager?.handle,
