@@ -70,6 +70,103 @@ describe("transport adoption", () => {
     redis.disconnect();
   });
 
+  it("preserves a partial maintenance push across transport adoption", async () => {
+    const shardIds = ["shard-a", "shard-b"];
+    const payload = JSON.stringify(shardIds);
+    const frame = Buffer.from(
+      `>4\r\n$9\r\nMIGRATING\r\n:17\r\n:30\r\n$${Buffer.byteLength(
+        payload
+      )}\r\n${payload}\r\n`
+    );
+    // Start the suffix inside a bulk string, where 'h' is not a RESP type.
+    const splitAt = frame.indexOf("shard-b") + 1;
+    const prefix = frame.subarray(0, splitAt);
+    const suffix = frame.subarray(splitAt);
+
+    createIdentityServer(PORT_A, "A");
+    new MockServer(PORT_B, (argv) => {
+      if (argv[0] === "get") {
+        return MockServer.raw(
+          Buffer.concat([suffix, Buffer.from("$1\r\nB\r\n")])
+        );
+      }
+    });
+
+    const redis = new Redis({
+      port: PORT_A,
+      protocol: 3,
+      maintNotifications: "enabled",
+      lazyConnect: true,
+      retryStrategy: null,
+      commandTimeout: 1000,
+    });
+    const candidate = redis.duplicate({ port: PORT_B });
+    const manager = (redis as any).maintenanceManager as MaintenanceManager;
+    const candidateManager = (candidate as any)
+      .maintenanceManager as MaintenanceManager;
+    // DataHandler captures these callbacks during connect, so spy first.
+    const handled = sinon.spy(manager, "handle");
+    const candidateHandled = sinon.spy(candidateManager, "handle");
+    const errors = sinon.spy();
+    const candidateErrors = sinon.spy();
+    const closed = sinon.spy();
+    const reconnecting = sinon.spy();
+    redis.on("error", errors);
+    redis.on("close", closed);
+    redis.on("reconnecting", reconnecting);
+    candidate.on("error", candidateErrors);
+    let candidateStream: Redis["stream"];
+
+    try {
+      await redis.connect();
+      await candidate.connect();
+      expect(await redis.get("who")).to.eql("A");
+      candidateStream = candidate.stream;
+
+      // Deliver an exact chunk synchronously: TCP writes may be coalesced.
+      // The candidate decoder consumes the prefix before we detach it.
+      candidateStream.emit("data", prefix);
+      expect(handled.called).to.eql(false);
+      expect(candidateHandled.called).to.eql(false);
+      expect(candidateErrors.called).to.eql(false);
+      expect(candidate.status).to.eql("ready");
+      expect(candidate.commandQueue.length).to.eql(0);
+
+      const transport = (candidate as any).detachReadyTransport();
+      (redis as any).adoptTransport(transport, {
+        host: "localhost",
+        port: PORT_B,
+      });
+
+      // B completes the push before replying to this queued command.
+      expect(await redis.get("who")).to.eql("B");
+      expect(
+        handled.calledOnceWithExactly({
+          type: "MIGRATING",
+          sequenceNumber: 17,
+          timeSeconds: 30,
+          shardIds,
+        })
+      ).to.eql(true);
+      expect(candidateHandled.called).to.eql(false);
+      expect(redis.commandQueue.length).to.eql(0);
+      expect(redis.stream).to.equal(candidateStream);
+      expect(candidateStream.destroyed).to.eql(false);
+      expect(redis.status).to.eql("ready");
+      expect(errors.called).to.eql(false);
+      expect(closed.called).to.eql(false);
+      expect(reconnecting.called).to.eql(false);
+    } finally {
+      redis.disconnect();
+      if (candidate.status !== "end") {
+        candidate.disconnect();
+      }
+      candidateStream?.destroy();
+      handled.restore();
+      candidateHandled.restore();
+    }
+  });
+
   it("reconnects to the replacement endpoint after adoption", async () => {
     const a = createIdentityServer(PORT_A, "A");
     createIdentityServer(PORT_B, "B");
