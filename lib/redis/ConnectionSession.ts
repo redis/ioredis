@@ -1,4 +1,5 @@
-import { Condition } from "../DataHandler";
+import type DataHandler from "../DataHandler";
+import type { Condition } from "../DataHandler";
 import AbstractConnector from "../connectors/AbstractConnector";
 import { NetStream } from "../types";
 
@@ -14,12 +15,14 @@ export interface HandoffEndpoint {
  * A fully handshaken connection detached from the temporary client that
  * established it, ready to be adopted by the original client. Carries
  * everything that defines the physical connection: the socket, the connector
- * that can re-establish it, and the negotiated connection state.
+ * that can re-establish it, the negotiated connection state, and the handler
+ * retaining any partially decoded RESP frame.
  */
 export interface DetachedTransport {
   stream: NetStream;
   connector: AbstractConnector;
   condition: Condition;
+  dataHandler: DataHandler;
 }
 
 /**
