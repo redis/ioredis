@@ -3,6 +3,13 @@ import { CommandNameFlags } from "./Command";
 type AddSet = CommandNameFlags["ENTER_SUBSCRIBER_MODE"][number];
 type DelSet = CommandNameFlags["EXIT_SUBSCRIBER_MODE"][number];
 
+// The channel name is read out of a reply, and a reply is not guaranteed to be
+// the array a subscribe acknowledgement normally is: a server or proxy that
+// answers `SUBSCRIBE` with a simple string leaves the caller indexing a Buffer,
+// which yields a byte. Such a value has no bytes of its own to preserve, so it
+// is keyed by its string form rather than rejected.
+export type ChannelName = string | Buffer | number;
+
 // Channel names are binary safe, so they are keyed by their bytes rather than
 // by their utf8 rendering: names that are distinct as bytes can render alike
 // (e.g. the invalid sequences `<80>` and `<81>`, which both decode to U+FFFD),
@@ -11,14 +18,14 @@ type DelSet = CommandNameFlags["EXIT_SUBSCRIBER_MODE"][number];
 // keeps the utf8 rendering, which is what `channels()` hands back.
 type ChannelSet = Map<string, string>;
 
-function channelKey(channel: string | Buffer): string {
-  return (Buffer.isBuffer(channel) ? channel : Buffer.from(channel)).toString(
-    "latin1"
-  );
+function channelKey(channel: ChannelName): string {
+  return (
+    Buffer.isBuffer(channel) ? channel : Buffer.from(String(channel))
+  ).toString("latin1");
 }
 
-function channelName(channel: string | Buffer): string {
-  return Buffer.isBuffer(channel) ? channel.toString() : channel;
+function channelName(channel: ChannelName): string {
+  return Buffer.isBuffer(channel) ? channel.toString() : String(channel);
 }
 
 /**
@@ -31,11 +38,11 @@ export default class SubscriptionSet {
     ssubscribe: new Map(),
   };
 
-  add(set: AddSet, channel: string | Buffer) {
+  add(set: AddSet, channel: ChannelName) {
     this.set[mapSet(set)].set(channelKey(channel), channelName(channel));
   }
 
-  del(set: DelSet, channel: string | Buffer) {
+  del(set: DelSet, channel: ChannelName) {
     this.set[mapSet(set)].delete(channelKey(channel));
   }
 

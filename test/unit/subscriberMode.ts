@@ -172,6 +172,30 @@ PROTOCOLS.forEach((protocol, index) => {
       expectSubscriptionStateCleared(redis, protocol);
     });
 
+    // A server or proxy that answers SUBSCRIBE with a plain `+OK` instead of
+    // the usual three-element acknowledgement leaves `reply[1]` as one byte of
+    // that string rather than a channel name. Tracking that byte is harmless,
+    // but it must not throw: the subscription set runs inside the decoder's
+    // reply dispatch, so an exception there escapes as an uncaught error and
+    // the command it came from is never settled.
+    it("tracks a subscribe acknowledgement that is not an array", async () => {
+      server.handler = (argv) => {
+        const name = String(argv[0]).toLowerCase();
+        if (name === "info") {
+          return "# Server\r\nredis_version:7.0.0\r\n";
+        }
+        return "OK";
+      };
+      redis = new Redis({ port, protocol });
+      await redis.subscribe("regular");
+
+      const { subscriber } = redis.condition;
+      expect(subscriber).to.not.equal(false);
+      // `"OK"[1]` decodes to the byte 0x4b, so the set records its decimal
+      // rendering, as it did before channel names were keyed by their bytes.
+      expect((subscriber as any).channels("subscribe")).to.eql(["75"]);
+    });
+
     // Channel names are binary safe, so the subscription set has to key them
     // by their bytes: `<80>` and `<81>` are both invalid utf8 and both render
     // as U+FFFD, so keying by that rendering collapses the two onto one entry

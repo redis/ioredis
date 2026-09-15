@@ -9,7 +9,7 @@ import Deque = require("denque");
 import { EventEmitter } from "events";
 import Command from "./Command";
 import { Debug } from "./utils";
-import SubscriptionSet from "./SubscriptionSet";
+import SubscriptionSet, { ChannelName } from "./SubscriptionSet";
 import { Decoder, RESP_TYPES } from "./resp/decoder";
 import { TypeMapping } from "./resp/types";
 
@@ -154,7 +154,7 @@ export default class DataHandler {
       this.redis.condition.subscriber = new SubscriptionSet();
       this.redis.condition.subscriber.add(
         item.command.name,
-        reply[1] as string | Buffer
+        reply[1] as ChannelName
       );
 
       if (!fillSubCommand(item.command, reply[2])) {
@@ -190,7 +190,7 @@ export default class DataHandler {
           this.redis.condition.subscriber = new SubscriptionSet();
         }
 
-        const channel = reply[1] as string | Buffer;
+        const channel = reply[1] as ChannelName;
         this.redis.condition.subscriber.add(replyType, channel);
         const item = this.shiftCommand(reply);
         if (!item) {
@@ -212,8 +212,7 @@ export default class DataHandler {
           // `""` is a valid channel name, so both guards test for a missing
           // reply element rather than truthiness — skipping `del()` for it
           // would keep the set non-empty and strand subscriber mode below.
-          const channel =
-            reply[1] == null ? null : (reply[1] as string | Buffer);
+          const channel = reply[1] == null ? null : (reply[1] as ChannelName);
           if (channel !== null) {
             this.redis.condition.subscriber.del(replyType, channel);
           }
@@ -302,7 +301,7 @@ export default class DataHandler {
       case "ssubscribe":
       case "subscribe":
       case "psubscribe": {
-        const channel = reply[1] as string | Buffer;
+        const channel = reply[1] as ChannelName;
         this.redis.condition.subscriber.add(replyType, channel);
         const item = this.shiftCommand(reply);
         if (!item) {
@@ -317,7 +316,7 @@ export default class DataHandler {
       case "unsubscribe":
       case "punsubscribe": {
         // See the matching comment in `returnPush` about the empty channel name.
-        const channel = reply[1] == null ? null : (reply[1] as string | Buffer);
+        const channel = reply[1] == null ? null : (reply[1] as ChannelName);
         if (channel !== null) {
           this.redis.condition.subscriber.del(replyType, channel);
         }
