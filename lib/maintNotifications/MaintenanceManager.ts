@@ -9,7 +9,6 @@ import {
   SocketTimeoutDuringMaintenanceError,
 } from "../errors";
 import type {
-  DetachedTransport,
   HandoffCandidate,
   HandoffEndpoint,
 } from "../redis/ConnectionSession";
@@ -43,30 +42,25 @@ export interface TimeoutPolicy {
   createTimeoutError: () => Error;
 }
 
-/**
- * The mechanisms the manager drives on the client. Kept structural so the
- * manager stays independent of the Redis class and trivially testable.
- */
-export interface MaintenanceClient {
-  options: {
-    commandTimeout?: number;
-    socketTimeout?: number;
-    maintRelaxedCommandTimeout?: number;
-    maintRelaxedSocketTimeout?: number;
-  };
-  extendPendingCommandTimeouts(
-    timeout: number,
-    createTimeoutError: () => Error
-  ): void;
+export interface MaintenanceTimeoutOptions {
+  commandTimeout?: number;
+  socketTimeout?: number;
+  maintRelaxedCommandTimeout?: number;
+  maintRelaxedSocketTimeout?: number;
+}
+
+/** Connection operations supplied by Redis without exposing its mutable state. */
+export interface MaintenanceConnection {
+  readonly options: MaintenanceTimeoutOptions;
+  extendPendingCommandTimeouts(policy: TimeoutPolicy): void;
   rearmSocketTimeout(): void;
   flushOfflineQueue(): void;
-  canHandoffConnection(): boolean;
+  canHandoff(): boolean;
   getConfiguredEndpoint(): HandoffEndpoint | null;
-  createCandidateConnection(
-    endpoint: HandoffEndpoint
-  ): Promise<HandoffCandidate>;
-  adoptTransport(transport: DetachedTransport, endpoint: HandoffEndpoint): void;
-  waitForCommandQueueToDrain(): Promise<void>;
+  createCandidate(endpoint: HandoffEndpoint): Promise<HandoffCandidate>;
+  waitForDrain(): Promise<void>;
+  /** Validate and transfer ownership before disposing the old connection. */
+  commitHandoff(candidate: HandoffCandidate, endpoint: HandoffEndpoint): void;
 }
 
 /**
@@ -83,7 +77,7 @@ export default class MaintenanceManager {
   // Scheduled handoff to the configured endpoint for an endpointless MOVING.
   private movingReconnectTimer: NodeJS.Timeout | null = null;
 
-  constructor(private readonly client: MaintenanceClient) {}
+  constructor(private readonly connection: MaintenanceConnection) {}
 
   handle = (notification: MaintenanceNotification): void => {
     debug("received notification %o", notification);
@@ -120,8 +114,8 @@ export default class MaintenanceManager {
     }
 
     const timeout = Math.max(
-      this.client.options.commandTimeout ?? 0,
-      this.client.options.maintRelaxedCommandTimeout ?? 0
+      this.connection.options.commandTimeout ?? 0,
+      this.connection.options.maintRelaxedCommandTimeout ?? 0
     );
     if (timeout <= 0) {
       return null;
@@ -144,8 +138,8 @@ export default class MaintenanceManager {
     }
 
     const timeout = Math.max(
-      this.client.options.socketTimeout ?? 0,
-      this.client.options.maintRelaxedSocketTimeout ?? 0
+      this.connection.options.socketTimeout ?? 0,
+      this.connection.options.maintRelaxedSocketTimeout ?? 0
     );
     if (timeout <= 0) {
       return null;
@@ -187,7 +181,7 @@ export default class MaintenanceManager {
 
     debug("resume writes after connection handoff");
     this.writePause = null;
-    this.client.flushOfflineQueue();
+    this.connection.flushOfflineQueue();
   }
 
   isWritePaused(): boolean {
@@ -205,6 +199,17 @@ export default class MaintenanceManager {
     this.windows.clear();
     this.clearMovingReconnectTimer();
     this.writePause = null;
+  }
+
+  /**
+   * Ends maintenance after a connection loss and reports whether its WATCH
+   * was lost during maintenance. Redis records that result on the client so
+   * a later transaction cannot silently proceed without its optimistic lock.
+   */
+  handleConnectionClose(watching: boolean): boolean {
+    const watchInvalidated = watching && this.isMaintenanceActive();
+    this.reset();
+    return watchInvalidated;
   }
 
   /**
@@ -271,7 +276,7 @@ export default class MaintenanceManager {
       debug("a handoff is already in progress; ignoring MOVING");
       return;
     }
-    if (!this.client.canHandoffConnection()) {
+    if (!this.connection.canHandoff()) {
       debug(
         "connection does not support a handoff; relying on ordinary reconnect"
       );
@@ -302,13 +307,13 @@ export default class MaintenanceManager {
         debug("a handoff is already in progress; skipping the scheduled one");
         return;
       }
-      if (!this.client.canHandoffConnection()) {
+      if (!this.connection.canHandoff()) {
         debug(
           "connection does not support a handoff; relying on the server-side disconnect"
         );
         return;
       }
-      const endpoint = this.client.getConfiguredEndpoint();
+      const endpoint = this.connection.getConfiguredEndpoint();
       if (!endpoint) {
         debug(
           "no configured endpoint to hand off to; relying on the server-side disconnect"
@@ -353,14 +358,11 @@ export default class MaintenanceManager {
       endpoint.port,
       graceMs
     );
-    const candidatePromise = this.client.createCandidateConnection(endpoint);
+    const candidatePromise = this.connection.createCandidate(endpoint);
 
     try {
       const [candidate] = await this.withGraceDeadline(
-        Promise.all([
-          candidatePromise,
-          this.client.waitForCommandQueueToDrain(),
-        ]),
+        Promise.all([candidatePromise, this.connection.waitForDrain()]),
         graceMs
       );
 
@@ -373,8 +375,7 @@ export default class MaintenanceManager {
 
       // Throws if the candidate connection died while the old connection
       // was draining, so a dead transport is never adopted.
-      const transport = candidate.detachTransport();
-      this.client.adoptTransport(transport, endpoint);
+      this.connection.commitHandoff(candidate, endpoint);
       // Relaxed timeouts return to normal as soon as the handoff completes.
       this.closeWindow(MaintenanceNotificationType.MOVING);
       this.resumeWrites(token);
@@ -428,14 +429,14 @@ export default class MaintenanceManager {
   private relaxTimeouts(): void {
     try {
       const policy = this.commandTimeoutPolicy();
-      if (policy && typeof this.client.options.commandTimeout === "number") {
-        this.client.extendPendingCommandTimeouts(
-          policy.timeout,
-          policy.createTimeoutError
-        );
+      if (
+        policy &&
+        typeof this.connection.options.commandTimeout === "number"
+      ) {
+        this.connection.extendPendingCommandTimeouts(policy);
       }
 
-      this.client.rearmSocketTimeout();
+      this.connection.rearmSocketTimeout();
     } catch (err) {
       debug("failed to relax timeouts: %s", err);
     }
@@ -449,7 +450,7 @@ export default class MaintenanceManager {
   private restoreSocketTimeout(): void {
     debug("all windows closed; restoring normal socket timeout");
     try {
-      this.client.rearmSocketTimeout();
+      this.connection.rearmSocketTimeout();
     } catch (err) {
       debug("failed to restore socket timeout: %s", err);
     }

@@ -39,6 +39,27 @@ interface TimeoutMeasurement {
   duration: number;
 }
 
+/** Releases a blocking list pop and waits for its reply to drain. */
+const releaseBlockingCommand = async (client: Redis, key: string) => {
+  const unblocker = client.duplicate({
+    maintNotifications: "disabled",
+    connectionName: "timeout-unblocker",
+    commandTimeout: 5_000,
+    retryStrategy: () => undefined,
+  });
+  unblocker.on("error", () => {});
+
+  try {
+    await waitClientReady(unblocker);
+    await unblocker.lpush(key, "release");
+    await waitForAssertion(() => {
+      assert.strictEqual(client.commandQueue.length, 0);
+    }, 5_000);
+  } finally {
+    unblocker.disconnect();
+  }
+};
+
 /**
  * Issues a command that the server never answers (BLPOP with an infinite
  * server-side timeout), so the duration measures the client-side command
@@ -166,26 +187,6 @@ describe("Timeout Relaxation During Maintenance E2E", function () {
       const tracked = await createTimeoutTestClient(databaseConfig);
       const { client } = tracked;
 
-      const releaseBlockingCommand = async (key: string) => {
-        const unblocker = client.duplicate({
-          maintNotifications: "disabled",
-          connectionName: "timeout-unblocker",
-          commandTimeout: 5_000,
-          retryStrategy: () => undefined,
-        });
-        unblocker.on("error", () => {});
-
-        try {
-          await waitClientReady(unblocker);
-          await unblocker.lpush(key, "release");
-          await waitForAssertion(() => {
-            assert.strictEqual((client as any).commandQueue.length, 0);
-          }, 5_000);
-        } finally {
-          unblocker.disconnect();
-        }
-      };
-
       const measurements: Record<string, TimeoutMeasurement> = {};
       const measurementTasks: Record<string, Promise<void>> = {};
       const onNotification = (message: unknown) => {
@@ -199,7 +200,7 @@ describe("Timeout Relaxation During Maintenance E2E", function () {
               const key = `during-${type}`;
               try {
                 measurements[type] = await measureCommandTimeout(client, key);
-                await releaseBlockingCommand(key);
+                await releaseBlockingCommand(client, key);
                 resolve();
               } catch (err) {
                 reject(err);
@@ -216,7 +217,7 @@ describe("Timeout Relaxation During Maintenance E2E", function () {
         // Release the server-side blocking command after its client-side
         // timeout so it cannot prevent the later handoff from draining.
         assertNormalTimeout(await measureCommandTimeout(client, "baseline"));
-        await releaseBlockingCommand("baseline");
+        await releaseBlockingCommand(client, "baseline");
 
         const runningEffect = await startEffect();
         await runningEffect.waitForCompletion();
@@ -356,4 +357,148 @@ describe("Timeout Relaxation During Maintenance E2E", function () {
       }
     );
   }
+
+  effectRunner.it(
+    "relaxes the command timeout on FAILING_OVER",
+    "data_movement_no_conn_drop",
+    async ({ databaseConfig, startEffect }) => {
+      const tracked = await createTimeoutTestClient(databaseConfig);
+      const { client } = tracked;
+      let measurementTask: Promise<TimeoutMeasurement> | undefined;
+      const received: string[] = [];
+      const onNotification = (message: unknown) => {
+        const { type } = message as MaintenanceNotification;
+        received.push(type);
+        if (type === "FAILING_OVER" && !measurementTask) {
+          // Diagnostics run before MaintenanceManager handles the push.
+          measurementTask = new Promise<void>((resolve) =>
+            setImmediate(resolve)
+          ).then(() => measureCommandTimeout(client, "during-failover"));
+          void measurementTask.catch(() => {});
+        }
+      };
+      diagnostics_channel.subscribe(MAINTENANCE_CHANNEL, onNotification);
+
+      try {
+        assertNormalTimeout(
+          await measureCommandTimeout(client, "baseline-failover")
+        );
+        await releaseBlockingCommand(client, "baseline-failover");
+
+        const runningEffect = await startEffect();
+        await waitForAssertion(() => {
+          assert.isDefined(
+            measurementTask,
+            "The client should receive FAILING_OVER"
+          );
+        }, 30_000);
+        assertRelaxedTimeout(await measurementTask!);
+        await runningEffect.waitForCompletion();
+
+        await waitForAssertion(() => {
+          assert.include(received, "FAILED_OVER");
+        }, 30_000);
+        await releaseBlockingCommand(client, "during-failover");
+        assertSeamlessConnection(tracked);
+      } finally {
+        diagnostics_channel.unsubscribe(MAINTENANCE_CHANNEL, onNotification);
+        tracked.stopTracking();
+        client.disconnect();
+        await measurementTask;
+      }
+    },
+    { trigger: "failover" }
+  );
+
+  effectRunner.it(
+    "restores the normal command timeout after MIGRATED",
+    "data_movement_no_conn_drop",
+    async ({ databaseConfig, startEffect }) => {
+      const tracked = await createTimeoutTestClient(databaseConfig);
+      const { client } = tracked;
+      const received: string[] = [];
+      let measurementTask: Promise<TimeoutMeasurement> | undefined;
+      const onNotification = (message: unknown) => {
+        const { type } = message as MaintenanceNotification;
+        received.push(type);
+        if (type === "MIGRATED" && !measurementTask) {
+          // Let the manager handle the end push, then measure immediately.
+          // Waiting for action completion could hide a missed restoration
+          // behind the maintenance window's safety cap.
+          measurementTask = new Promise<void>((resolve) =>
+            setImmediate(resolve)
+          ).then(() => measureCommandTimeout(client, "after-migrate"));
+          void measurementTask.catch(() => {});
+        }
+      };
+      diagnostics_channel.subscribe(MAINTENANCE_CHANNEL, onNotification);
+
+      try {
+        const runningEffect = await startEffect();
+        await waitForAssertion(() => {
+          assert.include(received, "MIGRATING");
+          assert.isDefined(
+            measurementTask,
+            "The client should receive MIGRATED"
+          );
+        }, 240_000);
+        assertNormalTimeout(await measurementTask!);
+        await runningEffect.waitForCompletion();
+        await releaseBlockingCommand(client, "after-migrate");
+        assertSeamlessConnection(tracked);
+      } finally {
+        diagnostics_channel.unsubscribe(MAINTENANCE_CHANNEL, onNotification);
+        tracked.stopTracking();
+        client.disconnect();
+        await measurementTask;
+      }
+    },
+    { trigger: "migrate" }
+  );
+
+  effectRunner.it(
+    "restores the normal command timeout after FAILED_OVER",
+    "data_movement_no_conn_drop",
+    async ({ databaseConfig, startEffect }) => {
+      const tracked = await createTimeoutTestClient(databaseConfig);
+      const { client } = tracked;
+      const received: string[] = [];
+      let measurementTask: Promise<TimeoutMeasurement> | undefined;
+      const onNotification = (message: unknown) => {
+        const { type } = message as MaintenanceNotification;
+        received.push(type);
+        if (type === "FAILED_OVER" && !measurementTask) {
+          // Let the manager handle the end push, then measure immediately.
+          // Waiting for action completion could hide a missed restoration
+          // behind the maintenance window's safety cap.
+          measurementTask = new Promise<void>((resolve) =>
+            setImmediate(resolve)
+          ).then(() => measureCommandTimeout(client, "after-failover"));
+          void measurementTask.catch(() => {});
+        }
+      };
+      diagnostics_channel.subscribe(MAINTENANCE_CHANNEL, onNotification);
+
+      try {
+        const runningEffect = await startEffect();
+        await waitForAssertion(() => {
+          assert.include(received, "FAILING_OVER");
+          assert.isDefined(
+            measurementTask,
+            "The client should receive FAILED_OVER"
+          );
+        }, 240_000);
+        assertNormalTimeout(await measurementTask!);
+        await runningEffect.waitForCompletion();
+        await releaseBlockingCommand(client, "after-failover");
+        assertSeamlessConnection(tracked);
+      } finally {
+        diagnostics_channel.unsubscribe(MAINTENANCE_CHANNEL, onNotification);
+        tracked.stopTracking();
+        client.disconnect();
+        await measurementTask;
+      }
+    },
+    { trigger: "failover" }
+  );
 });

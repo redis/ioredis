@@ -10,6 +10,27 @@ const ready = (redis: Redis) =>
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe("handoff write gate", () => {
+  for (const enableReadyCheck of [true, false]) {
+    it(`flushes commands queued before connect with maintenance disabled and ready check ${enableReadyCheck}`, async () => {
+      new MockServer(PORT, (argv) => {
+        if (argv[0] === "get") {
+          return "ready";
+        }
+      });
+      const redis = new Redis({
+        port: PORT,
+        lazyConnect: true,
+        maintNotifications: "disabled",
+        enableReadyCheck,
+      });
+      try {
+        expect(await redis.get("queued-before-connect")).to.eql("ready");
+      } finally {
+        redis.disconnect();
+      }
+    });
+  }
+
   it("queues commands while writes are paused and replays them on resume", async () => {
     const received: string[] = [];
     new MockServer(PORT, (argv) => {
@@ -227,11 +248,15 @@ describe("handoff write gate", () => {
     await ready(redis);
 
     // Resolves immediately when nothing is in flight.
-    await (redis as any).waitForCommandQueueToDrain();
+    await (
+      redis as unknown as { waitForCommandQueueToDrain(): Promise<void> }
+    ).waitForCommandQueueToDrain();
 
     const pending = redis.get("foo").catch(() => {});
     let drained = false;
-    const drain = (redis as any)
+    const drain = (
+      redis as unknown as { waitForCommandQueueToDrain(): Promise<void> }
+    )
       .waitForCommandQueueToDrain()
       .then(() => (drained = true));
 
@@ -261,10 +286,14 @@ describe("handoff write gate", () => {
     await ready(redis);
 
     redis.get("foo").catch(() => {});
-    const drain = (redis as any).waitForCommandQueueToDrain().then(
-      () => null,
-      (e: Error) => e
-    );
+    const drain = (
+      redis as unknown as { waitForCommandQueueToDrain(): Promise<void> }
+    )
+      .waitForCommandQueueToDrain()
+      .then(
+        () => null,
+        (e: Error) => e
+      );
 
     socket.destroy();
     const err = await drain;

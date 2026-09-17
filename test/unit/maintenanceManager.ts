@@ -1,6 +1,9 @@
+import Redis from "../../lib/Redis";
 import { expect } from "chai";
 import * as sinon from "sinon";
 import MaintenanceManager, {
+  type MaintenanceConnection,
+  type MaintenanceTimeoutOptions,
   FAILING_OVER_WINDOW_CAP_MS,
   MIGRATING_WINDOW_CAP_MS,
   MOVING_WINDOW_MARGIN_MS,
@@ -24,31 +27,31 @@ const createCandidateMock = () => {
 };
 
 const createClientMock = () => ({
-  options: {} as Record<string, number | undefined>,
+  options: {} as MaintenanceTimeoutOptions,
   extendPendingCommandTimeouts: sinon.spy(),
-  rearmSocketTimeout: sinon.spy(),
+  rearmSocketTimeout: sinon.stub(),
   flushOfflineQueue: sinon.spy(),
-  canHandoffConnection: sinon.stub().returns(true),
+  canHandoff: sinon.stub().returns(true),
   getConfiguredEndpoint: sinon
     .stub()
     .returns({ host: "configured.example", port: 6379 }),
-  createCandidateConnection: sinon.stub().resolves(createCandidateMock()),
-  adoptTransport: sinon.spy(),
-  waitForCommandQueueToDrain: sinon.stub().resolves(),
+  createCandidate: sinon.stub().resolves(createCandidateMock()),
+  waitForDrain: sinon.stub().resolves(),
+  commitHandoff: sinon.stub(),
 });
 
 describe("MaintenanceManager", () => {
   let clock: sinon.SinonFakeTimers;
   let client: ReturnType<typeof createClientMock>;
   let manager: MaintenanceManager;
-
   beforeEach(() => {
     clock = sinon.useFakeTimers();
     client = createClientMock();
-    manager = new MaintenanceManager(client as any);
+    manager = new MaintenanceManager(client);
   });
 
   afterEach(() => {
+    sinon.restore();
     clock.restore();
   });
 
@@ -121,13 +124,13 @@ describe("MaintenanceManager", () => {
   });
 
   it("expires a MOVING window shortly after its grace period", () => {
-    client.canHandoffConnection.returns(false);
+    client.canHandoff.returns(false);
     manager.handle(
       notification({
         type: "MOVING",
         timeSeconds: 15,
         endpoint: { host: "10.0.0.1", port: 6379 },
-      })
+      }),
     );
 
     clock.tick(15 * 1000 + MOVING_WINDOW_MARGIN_MS - 1);
@@ -141,7 +144,7 @@ describe("MaintenanceManager", () => {
     manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
     manager.handle(notification({ type: "FAILING_OVER", timeSeconds: 10 }));
     manager.handle(
-      notification({ type: "MOVING", timeSeconds: 15, endpoint: null })
+      notification({ type: "MOVING", timeSeconds: 15, endpoint: null }),
     );
 
     manager.reset();
@@ -171,21 +174,35 @@ describe("MaintenanceManager", () => {
   it("extends pending command deadlines when commandTimeout is configured", () => {
     client.options.commandTimeout = 100;
     client.options.maintRelaxedCommandTimeout = 5000;
-
     manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
 
     expect(client.extendPendingCommandTimeouts.calledOnce).to.equal(true);
-    expect(client.extendPendingCommandTimeouts.firstCall.args[0]).to.equal(
-      5000
+    const policy = client.extendPendingCommandTimeouts.firstCall.args[0];
+    expect(policy.timeout).to.equal(5000);
+    expect(policy.createTimeoutError().name).to.equal(
+      "CommandTimeoutDuringMaintenanceError",
     );
   });
 
   it("does not extend deadlines without a configured commandTimeout", () => {
     client.options.maintRelaxedCommandTimeout = 5000;
-
     manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
-
     expect(client.extendPendingCommandTimeouts.called).to.equal(false);
+  });
+
+  it("reports a lost WATCH and clears maintenance on connection close", () => {
+    manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
+    manager.pauseWrites();
+    expect(manager.handleConnectionClose(true)).to.equal(true);
+    expect(manager.isMaintenanceActive()).to.equal(false);
+    expect(manager.isWritePaused()).to.equal(false);
+    expect(manager.handleConnectionClose(true)).to.equal(false);
+  });
+
+  it("does not invalidate WATCH when the closed connection was not watching", () => {
+    manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
+    expect(manager.handleConnectionClose(false)).to.equal(false);
+    expect(manager.isMaintenanceActive()).to.equal(false);
   });
 
   it("restores the socket timeout when the last window closes", () => {
@@ -215,7 +232,7 @@ describe("MaintenanceManager", () => {
   });
 
   it("survives a throwing client while relaxing timeouts", () => {
-    client.rearmSocketTimeout = sinon.stub().throws(new Error("boom"));
+    client.rearmSocketTimeout.throws(new Error("boom"));
 
     manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
 
@@ -236,10 +253,10 @@ describe("MaintenanceManager", () => {
     expect(manager.commandTimeoutPolicy()?.timeout).to.equal(5000);
     expect(manager.socketTimeoutPolicy()?.timeout).to.equal(6000);
     expect(manager.commandTimeoutPolicy()?.createTimeoutError().name).to.equal(
-      "CommandTimeoutDuringMaintenanceError"
+      "CommandTimeoutDuringMaintenanceError",
     );
     expect(manager.socketTimeoutPolicy()?.createTimeoutError().name).to.equal(
-      "SocketTimeoutDuringMaintenanceError"
+      "SocketTimeoutDuringMaintenanceError",
     );
 
     manager.handle(notification({ type: "MIGRATED" }));
@@ -263,7 +280,7 @@ describe("MaintenanceManager", () => {
     const token = manager.pauseWrites();
     expect(manager.isWritePaused()).to.equal(true);
     expect(() => manager.pauseWrites()).to.throw(
-      "A connection handoff is already in progress"
+      "A connection handoff is already in progress",
     );
 
     manager.resumeWrites(Symbol("stale"));
@@ -295,7 +312,7 @@ describe("MaintenanceManager", () => {
 
     it("pauses, adopts, and resumes on a successful handoff", async () => {
       const candidate = createCandidateMock();
-      client.createCandidateConnection.resolves(candidate);
+      client.createCandidate.resolves(candidate);
 
       manager.handle(moving());
       expect(manager.isWritePaused()).to.equal(true);
@@ -303,10 +320,11 @@ describe("MaintenanceManager", () => {
       await clock.tickAsync(0);
 
       expect(
-        client.adoptTransport.calledOnceWithExactly(
-          candidate.transport,
-          endpoint
-        )
+        client.commitHandoff.calledOnceWithExactly(candidate, endpoint),
+      ).to.equal(true);
+      expect(candidate.detachTransport.called).to.equal(false);
+      expect(
+        client.commitHandoff.calledBefore(client.flushOfflineQueue),
       ).to.equal(true);
       expect(manager.isWritePaused()).to.equal(false);
       expect(client.flushOfflineQueue.calledOnce).to.equal(true);
@@ -316,44 +334,58 @@ describe("MaintenanceManager", () => {
 
     it("adopts only after the command queue drains", async () => {
       let resolveDrain: () => void;
-      client.waitForCommandQueueToDrain.returns(
-        new Promise<void>((resolve) => (resolveDrain = resolve))
+      client.waitForDrain.returns(
+        new Promise<void>((resolve) => (resolveDrain = resolve)),
       );
 
       manager.handle(moving());
       await clock.tickAsync(0);
-      expect(client.adoptTransport.called).to.equal(false);
+      expect(client.commitHandoff.called).to.equal(false);
 
       resolveDrain!();
       await clock.tickAsync(0);
-      expect(client.adoptTransport.calledOnce).to.equal(true);
+      expect(client.commitHandoff.calledOnce).to.equal(true);
     });
 
     it("rolls back to the old connection when the candidate fails", async () => {
-      client.createCandidateConnection.rejects(new Error("connect failed"));
+      client.createCandidate.rejects(new Error("connect failed"));
 
       manager.handle(moving());
       await clock.tickAsync(0);
 
-      expect(client.adoptTransport.called).to.equal(false);
+      expect(client.commitHandoff.called).to.equal(false);
       expect(manager.isWritePaused()).to.equal(false);
       expect(client.flushOfflineQueue.calledOnce).to.equal(true);
       // The relaxation window stays open; the server may still disconnect.
       expect(manager.isMaintenanceActive()).to.equal(true);
     });
 
+    it("disposes the owned candidate and resumes writes when commit is rejected", async () => {
+      const candidate = createCandidateMock();
+      client.createCandidate.resolves(candidate);
+      client.commitHandoff.throws(new Error("Cannot adopt a transport"));
+      manager.handle(moving());
+      await clock.tickAsync(0);
+
+      expect(candidate.dispose.calledOnce).to.equal(true);
+      expect(candidate.detachTransport.called).to.equal(false);
+      expect(client.flushOfflineQueue.calledOnce).to.equal(true);
+      expect(manager.isWritePaused()).to.equal(false);
+      expect(manager.isMaintenanceActive()).to.equal(true);
+    });
+
     it("abandons the handoff at the grace deadline and disposes a late candidate", async () => {
       const candidate = createCandidateMock();
       let resolveCandidate: (candidate: unknown) => void;
-      client.createCandidateConnection.returns(
-        new Promise((resolve) => (resolveCandidate = resolve))
+      client.createCandidate.returns(
+        new Promise((resolve) => (resolveCandidate = resolve)),
       );
 
       manager.handle(moving());
       await clock.tickAsync(15_000);
 
       expect(manager.isWritePaused()).to.equal(false);
-      expect(client.adoptTransport.called).to.equal(false);
+      expect(client.commitHandoff.called).to.equal(false);
 
       resolveCandidate!(candidate);
       await clock.tickAsync(0);
@@ -362,30 +394,27 @@ describe("MaintenanceManager", () => {
 
     it("hands off to the configured endpoint at half grace when MOVING has no endpoint", async () => {
       const candidate = createCandidateMock();
-      client.createCandidateConnection.resolves(candidate);
+      client.createCandidate.resolves(candidate);
       const configured = { host: "configured.example", port: 6379 };
       client.getConfiguredEndpoint.returns(configured);
 
       manager.handle(moving(null));
       // Nothing happens immediately; the window is open.
       await clock.tickAsync(0);
-      expect(client.createCandidateConnection.called).to.equal(false);
+      expect(client.createCandidate.called).to.equal(false);
       expect(manager.isMaintenanceActive()).to.equal(true);
 
       await clock.tickAsync(7_499);
-      expect(client.createCandidateConnection.called).to.equal(false);
+      expect(client.createCandidate.called).to.equal(false);
 
       await clock.tickAsync(1);
-      expect(
-        client.createCandidateConnection.calledOnceWithExactly(configured)
-      ).to.equal(true);
+      expect(client.createCandidate.calledOnceWithExactly(configured)).to.equal(
+        true,
+      );
 
       await clock.tickAsync(0);
       expect(
-        client.adoptTransport.calledOnceWithExactly(
-          candidate.transport,
-          configured
-        )
+        client.commitHandoff.calledOnceWithExactly(candidate, configured),
       ).to.equal(true);
       expect(manager.isMaintenanceActive()).to.equal(false);
       expect(manager.isWritePaused()).to.equal(false);
@@ -397,7 +426,7 @@ describe("MaintenanceManager", () => {
       manager.reset();
       await clock.tickAsync(60_000);
 
-      expect(client.createCandidateConnection.called).to.equal(false);
+      expect(client.createCandidate.called).to.equal(false);
     });
 
     it("supersedes the scheduled endpointless handoff with a newer MOVING", async () => {
@@ -405,24 +434,31 @@ describe("MaintenanceManager", () => {
       manager.handle(moving());
       await clock.tickAsync(0);
 
-      expect(
-        client.createCandidateConnection.calledOnceWithExactly(endpoint)
-      ).to.equal(true);
+      expect(client.createCandidate.calledOnceWithExactly(endpoint)).to.equal(
+        true,
+      );
 
       // The half-grace timer never fires a second handoff.
       await clock.tickAsync(60_000);
-      expect(client.createCandidateConnection.calledOnce).to.equal(true);
+      expect(client.createCandidate.calledOnce).to.equal(true);
     });
 
     it("skips the scheduled endpointless handoff when the connection shape does not allow it", async () => {
-      client.canHandoffConnection.returns(false);
+      client.canHandoff.returns(false);
 
       manager.handle(moving(null));
       await clock.tickAsync(10_000);
 
-      expect(client.createCandidateConnection.called).to.equal(false);
+      expect(client.createCandidate.called).to.equal(false);
       // The window stays open; the server-side disconnect is the backstop.
       expect(manager.isMaintenanceActive()).to.equal(true);
+    });
+
+    it("checks current handoff eligibility when the delayed handoff starts", async () => {
+      manager.handle(moving(null));
+      client.canHandoff.returns(false);
+      await clock.tickAsync(10_000);
+      expect(client.createCandidate.called).to.equal(false);
     });
 
     it("skips the scheduled endpointless handoff without a configured endpoint", async () => {
@@ -431,25 +467,25 @@ describe("MaintenanceManager", () => {
       manager.handle(moving(null));
       await clock.tickAsync(10_000);
 
-      expect(client.createCandidateConnection.called).to.equal(false);
+      expect(client.createCandidate.called).to.equal(false);
       expect(manager.isMaintenanceActive()).to.equal(true);
     });
 
     it("skips the handoff when the connection shape does not allow it", async () => {
-      client.canHandoffConnection.returns(false);
+      client.canHandoff.returns(false);
 
       manager.handle(moving());
       await clock.tickAsync(0);
 
-      expect(client.createCandidateConnection.called).to.equal(false);
+      expect(client.createCandidate.called).to.equal(false);
       expect(manager.isWritePaused()).to.equal(false);
     });
 
     it("discards the candidate when the connection drops mid-handoff", async () => {
       const candidate = createCandidateMock();
       let resolveCandidate: (candidate: unknown) => void;
-      client.createCandidateConnection.returns(
-        new Promise((resolve) => (resolveCandidate = resolve))
+      client.createCandidate.returns(
+        new Promise((resolve) => (resolveCandidate = resolve)),
       );
 
       manager.handle(moving());
@@ -459,19 +495,124 @@ describe("MaintenanceManager", () => {
       resolveCandidate!(candidate);
       await clock.tickAsync(0);
 
-      expect(client.adoptTransport.called).to.equal(false);
+      expect(client.commitHandoff.called).to.equal(false);
       expect(candidate.dispose.calledOnce).to.equal(true);
       expect(manager.isWritePaused()).to.equal(false);
     });
 
     it("ignores MOVING while a handoff is already active", async () => {
-      client.createCandidateConnection.returns(new Promise(() => {}));
+      client.createCandidate.returns(new Promise(() => {}));
 
       manager.handle(moving());
       manager.handle(moving());
       await clock.tickAsync(0);
 
-      expect(client.createCandidateConnection.calledOnce).to.equal(true);
+      expect(client.createCandidate.calledOnce).to.equal(true);
     });
   });
+});
+
+describe("Redis maintenance adapter", () => {
+  const queue = () => {
+    const extendTimeout = sinon.spy();
+    return {
+      length: 0,
+      extendTimeout,
+      toArray: () => [{ command: { extendTimeout } }],
+    };
+  };
+  let clock: sinon.SinonFakeTimers;
+  let redis: Redis;
+  let owner: {
+    maintenanceManager: MaintenanceManager;
+    commandQueue: ReturnType<typeof queue>;
+    offlineQueue: ReturnType<typeof queue>;
+    socketTimeoutTimer: NodeJS.Timeout | undefined;
+    armSocketTimeout(): void;
+    commitHandoff: MaintenanceConnection["commitHandoff"];
+  };
+  let manager: MaintenanceManager;
+
+  beforeEach(() => {
+    clock = sinon.useFakeTimers();
+    redis = new Redis({
+      lazyConnect: true,
+      commandTimeout: 100,
+      maintRelaxedCommandTimeout: 5000,
+    });
+    owner = redis as unknown as typeof owner;
+    manager = owner.maintenanceManager;
+  });
+
+  afterEach(() => {
+    manager.reset();
+    clearTimeout(owner.socketTimeoutTimer);
+    sinon.restore();
+  });
+
+  it("extends both current queues, including replacements after a maintenance window", () => {
+    const written = (owner.commandQueue = queue());
+    const offline = (owner.offlineQueue = queue());
+    manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
+    manager.handle(notification({ type: "MIGRATED" }));
+    const nextWritten = (owner.commandQueue = queue());
+    const nextOffline = (owner.offlineQueue = queue());
+    manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
+
+    for (const pending of [written, offline, nextWritten, nextOffline]) {
+      expect(pending.extendTimeout.calledOnce).to.equal(true);
+      expect(pending.extendTimeout.firstCall.args[0]).to.equal(5000);
+      expect(pending.extendTimeout.firstCall.args[1]().name).to.equal(
+        "CommandTimeoutDuringMaintenanceError",
+      );
+    }
+  });
+
+  it("reads current options when the owner replaces them", () => {
+    redis.options = { ...redis.options, maintRelaxedCommandTimeout: 9000 };
+    manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
+    expect(manager.commandTimeoutPolicy()?.timeout).to.equal(9000);
+  });
+
+  it("does not arm a socket timeout when none is pending", () => {
+    const arm = sinon.spy(owner, "armSocketTimeout");
+    manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
+    manager.handle(notification({ type: "MIGRATED" }));
+    expect(arm.called).to.equal(false);
+  });
+
+  it("rearms the current socket timer after it is replaced", () => {
+    const arm = sinon.stub(owner, "armSocketTimeout").callsFake(() => {
+      expect(owner.socketTimeoutTimer).to.equal(undefined);
+      owner.socketTimeoutTimer = setTimeout(() => {}, 3_600_000);
+    });
+    owner.socketTimeoutTimer = setTimeout(() => {}, 3_600_000);
+    manager.handle(notification({ type: "MIGRATING", timeSeconds: 10 }));
+    clearTimeout(owner.socketTimeoutTimer);
+    const expired = sinon.spy();
+    owner.socketTimeoutTimer = setTimeout(expired, 10);
+    manager.handle(notification({ type: "MIGRATED" }));
+    clock.tick(10);
+    expect(expired.called).to.equal(false);
+    expect(arm.calledTwice).to.equal(true);
+  });
+
+  for (const blockedBy of ["status", "pending replies"] as const) {
+    it(`preserves candidate ownership and the old timer when commit is blocked by ${blockedBy}`, () => {
+      redis.status = blockedBy === "status" ? "close" : "ready";
+      owner.commandQueue = queue();
+      owner.commandQueue.length = blockedBy === "pending replies" ? 1 : 0;
+      const candidate = createCandidateMock();
+      const expired = sinon.spy();
+      const timer = (owner.socketTimeoutTimer = setTimeout(expired, 10));
+      expect(() =>
+        owner.commitHandoff(candidate, { host: "localhost", port: 6380 }),
+      ).to.throw("Cannot adopt a transport");
+      expect(candidate.detachTransport.called).to.equal(false);
+      expect(candidate.dispose.called).to.equal(false);
+      expect(owner.socketTimeoutTimer).to.equal(timer);
+      clock.tick(10);
+      expect(expired.calledOnce).to.equal(true);
+    });
+  }
 });
