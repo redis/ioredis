@@ -19,6 +19,12 @@ import {
 import { createDiagnosticChannel } from "./utils/diagnostics";
 
 const debug = Debug("dataHandler");
+
+/**
+ * Emitted on the client when a reply empties `commandQueue`. A symbol keeps
+ * this internal drain signal from becoming an accidental public event.
+ */
+export const COMMAND_QUEUE_DRAINED = Symbol("ioredis:commandQueueDrained");
 const maintenanceChannel = createDiagnosticChannel<MaintenanceNotification>(
   "ioredis:maintenance"
 );
@@ -449,6 +455,22 @@ export default class DataHandler {
       );
       this.redis.emit("error", error);
       return null;
+    }
+    if (
+      this.redis.commandQueue.length === 0 &&
+      this.redis.listenerCount(COMMAND_QUEUE_DRAINED) > 0
+    ) {
+      // Reply handling may put the shifted command back (partially
+      // acknowledged multi-channel (un)subscribe) or resend it
+      // (reconnectOnError), so only signal the drain once the current
+      // processing turn completes with the queue still empty. The listener
+      // check keeps the hot reply path free of deferred work unless a
+      // drain waiter actually exists.
+      process.nextTick(() => {
+        if (this.redis.commandQueue.length === 0) {
+          this.redis.emit(COMMAND_QUEUE_DRAINED);
+        }
+      });
     }
     return item;
   }

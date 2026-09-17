@@ -3,7 +3,12 @@ import { EventEmitter } from "events";
 import asCallback from "standard-as-callback";
 import Cluster from "./cluster";
 import Command from "./Command";
-import { DataHandledable, FlushQueueOptions, Condition } from "./DataHandler";
+import {
+  COMMAND_QUEUE_DRAINED,
+  DataHandledable,
+  FlushQueueOptions,
+  Condition,
+} from "./DataHandler";
 import { StandaloneConnector } from "./connectors";
 import AbstractConnector from "./connectors/AbstractConnector";
 import SentinelConnector from "./connectors/SentinelConnector";
@@ -49,11 +54,9 @@ import HimportCoordinator, {
   interceptHimportCommand,
   isInternalHimportCommand,
 } from "./himport/HimportCoordinator";
-import MaintenanceManager from "./maintNotifications/MaintenanceManager";
-import {
-  CommandTimeoutDuringMaintenanceError,
-  SocketTimeoutDuringMaintenanceError,
-} from "./errors";
+import MaintenanceManager, {
+  MaintenanceClient,
+} from "./maintNotifications/MaintenanceManager";
 import { cloneHimportFieldsets } from "./himport/HimportCoordinator";
 import Deque = require("denque");
 const debug = Debug("redis");
@@ -184,12 +187,13 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     }
 
     if (this.options.maintNotifications !== "disabled") {
-      this.maintenanceManager = new MaintenanceManager({
-        onMaintenanceStart: () => this.relaxTimeoutsForMaintenance(),
-      });
-      // A dropped connection implicitly ends every window: if maintenance is
-      // still ongoing, the server re-sends the pending notification on the
-      // next connection.
+      this.maintenanceManager = new MaintenanceManager(
+        this as unknown as MaintenanceClient
+      );
+      // A dropped connection implicitly ends every maintenance window and
+      // write pause: if maintenance is still ongoing, the server re-sends
+      // the pending notification on the next connection, and the ordinary
+      // reconnect path replays the offline queue.
       this.on("close", () => this.maintenanceManager?.reset());
     }
 
@@ -537,15 +541,13 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     }
 
     if (typeof this.options.commandTimeout === "number") {
-      if (this.maintenanceManager?.isMaintenanceActive()) {
-        const relaxed = this.getRelaxedCommandTimeout();
-        const createTimeoutError = () =>
-          new CommandTimeoutDuringMaintenanceError(relaxed);
-        command.setTimeout(relaxed, createTimeoutError);
+      const policy = this.maintenanceManager?.commandTimeoutPolicy();
+      if (policy) {
+        command.setTimeout(policy.timeout, policy.createTimeoutError);
         // A command re-entering sendCommand (e.g. resent from
         // prevCommandQueue after a reconnect) already has a running timer,
         // making setTimeout() a no-op; extend its deadline instead.
-        command.extendTimeout(relaxed, createTimeoutError);
+        command.extendTimeout(policy.timeout, policy.createTimeoutError);
       } else {
         command.setTimeout(this.options.commandTimeout);
       }
@@ -564,19 +566,22 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     const blockingTimeout = this.getBlockingTimeoutInMs(command);
 
     let writable =
-      this.status === "ready" ||
-      // During handshake, only internal handshake commands may bypass the queue.
-      (!stream &&
-        this.status === "connect" &&
-        this.condition?.handshake &&
-        (Command.checkFlag("HANDSHAKE_COMMANDS", command.name) ||
-          isInternalHimportCommand(command))) ||
-      // Before ready, loading-safe commands remain writable after handshake.
-      (!stream &&
-        this.status === "connect" &&
-        !this.condition?.handshake &&
-        exists(command.name, { caseInsensitive: true }) &&
-        hasFlag(command.name, "loading", { nameCaseInsensitive: true }));
+      // While writes are paused for a connection handoff, every command is
+      // retained in the offline queue and replayed after the handoff settles.
+      !this.maintenanceManager?.isWritePaused() &&
+      (this.status === "ready" ||
+        // During handshake, only internal handshake commands may bypass the queue.
+        (!stream &&
+          this.status === "connect" &&
+          this.condition?.handshake &&
+          (Command.checkFlag("HANDSHAKE_COMMANDS", command.name) ||
+            isInternalHimportCommand(command))) ||
+        // Before ready, loading-safe commands remain writable after handshake.
+        (!stream &&
+          this.status === "connect" &&
+          !this.condition?.handshake &&
+          exists(command.name, { caseInsensitive: true }) &&
+          hasFlag(command.name, "loading", { nameCaseInsensitive: true })));
     if (!this.stream) {
       writable = false;
     } else if (!this.stream.writable) {
@@ -592,7 +597,9 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       if (!this.options.enableOfflineQueue) {
         command.reject(
           new Error(
-            "Stream isn't writeable and enableOfflineQueue options is false"
+            this.maintenanceManager?.isWritePaused()
+              ? "Command cannot be queued during a connection handoff because enableOfflineQueue is false"
+              : "Stream isn't writeable and enableOfflineQueue options is false"
           )
         );
         return command.promise;
@@ -763,18 +770,13 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
    */
   private armSocketTimeout() {
     const stream = this.stream;
-    const maintenance = this.maintenanceManager?.isMaintenanceActive() ?? false;
-    const timeout = maintenance
-      ? Math.max(
-          this.options.socketTimeout,
-          this.options.maintRelaxedSocketTimeout ?? 0
-        )
-      : this.options.socketTimeout;
+    const policy = this.maintenanceManager?.socketTimeoutPolicy() ?? null;
+    const timeout = policy ? policy.timeout : this.options.socketTimeout;
 
     this.socketTimeoutTimer = setTimeout(() => {
       stream.destroy(
-        maintenance
-          ? new SocketTimeoutDuringMaintenanceError(timeout)
+        policy
+          ? policy.createTimeoutError()
           : new Error(
               `Socket timeout. Expecting data, but didn't receive any in ${timeout}ms.`
             )
@@ -783,39 +785,93 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     }, timeout);
   }
 
-  private getRelaxedCommandTimeout(): number {
-    return Math.max(
-      this.options.commandTimeout ?? 0,
-      this.options.maintRelaxedCommandTimeout ?? 0
-    );
+  /**
+   * Extends the deadline of every pending command (written or still queued)
+   * so none expires earlier than `timeout` from now. Driven by the
+   * maintenance manager when a maintenance window opens.
+   */
+  private extendPendingCommandTimeouts(
+    timeout: number,
+    createTimeoutError: () => Error
+  ): void {
+    for (const item of this.commandQueue.toArray()) {
+      item.command.extendTimeout?.(timeout, createTimeoutError);
+    }
+    for (const item of this.offlineQueue.toArray()) {
+      item.command.extendTimeout?.(timeout, createTimeoutError);
+    }
   }
 
   /**
-   * Invoked when the first maintenance window opens. In-flight commands get
-   * their deadlines extended to the relaxed timeout (never shortened) and a
-   * pending socket timeout is re-armed with the relaxed value. New commands
-   * and future socket arms consult `isMaintenanceActive()` themselves, which
-   * also restores normal policy once the windows close.
+   * Reschedules a pending socket timeout so the next arm picks up the
+   * current timeout policy. Driven by the maintenance manager when a
+   * maintenance window opens.
    */
-  private relaxTimeoutsForMaintenance() {
-    if (typeof this.options.commandTimeout === "number") {
-      const relaxed = this.getRelaxedCommandTimeout();
-      const createTimeoutError = () =>
-        new CommandTimeoutDuringMaintenanceError(relaxed);
-
-      for (const item of this.commandQueue.toArray()) {
-        item.command.extendTimeout?.(relaxed, createTimeoutError);
-      }
-      for (const item of this.offlineQueue.toArray()) {
-        item.command.extendTimeout?.(relaxed, createTimeoutError);
-      }
+  private rearmSocketTimeout(): void {
+    if (this.socketTimeoutTimer === undefined) {
+      return;
     }
 
-    if (this.socketTimeoutTimer !== undefined) {
-      clearTimeout(this.socketTimeoutTimer);
-      this.socketTimeoutTimer = undefined;
-      this.armSocketTimeout();
+    clearTimeout(this.socketTimeoutTimer);
+    this.socketTimeoutTimer = undefined;
+    this.armSocketTimeout();
+  }
+
+  /**
+   * Replays the offline queue through sendCommand. Shared by the ready
+   * handler after a (re)connect and by the maintenance manager after a
+   * handoff write pause is resumed.
+   */
+  private flushOfflineQueue(): void {
+    if (
+      this.maintenanceManager?.isWritePaused() ||
+      this.offlineQueue.length === 0
+    ) {
+      return;
     }
+
+    debug("send %d commands in offline queue", this.offlineQueue.length);
+    const offlineQueue = this.offlineQueue;
+    this.resetOfflineQueue();
+    while (offlineQueue.length > 0) {
+      const item = offlineQueue.shift();
+      if (
+        item.select !== this.condition.select &&
+        item.command.name !== "select"
+      ) {
+        this.select(item.select).catch((err) => this.silentEmit("error", err));
+      }
+      this.sendCommand(item.command, item.stream);
+    }
+  }
+
+  /**
+   * Resolves when every command written to the current connection has
+   * received its reply, or rejects when the connection closes first.
+   */
+  private waitForCommandQueueToDrain(): Promise<void> {
+    if (this.commandQueue.length === 0) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      const onDrained = () => {
+        cleanup();
+        resolve();
+      };
+      const onClose = () => {
+        cleanup();
+        reject(
+          new Error("Connection closed while waiting for the command queue")
+        );
+      };
+      const cleanup = () => {
+        this.removeListener(COMMAND_QUEUE_DRAINED, onDrained);
+        this.removeListener("close", onClose);
+      };
+      this.once(COMMAND_QUEUE_DRAINED, onDrained);
+      this.once("close", onClose);
+    });
   }
 
   scanStream(options?: ScanStreamOptions) {
