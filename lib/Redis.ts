@@ -1132,6 +1132,12 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       );
     }
 
+    // Draining can acknowledge a pending subscription, making the owner
+    // ineligible even though it supported a handoff when MOVING arrived.
+    if (!this.canHandoffConnection()) {
+      throw new Error("Connection no longer supports a handoff");
+    }
+
     const transport = candidate.detachTransport();
     if (this.socketTimeoutTimer !== undefined) {
       clearTimeout(this.socketTimeoutTimer);
