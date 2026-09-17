@@ -2,8 +2,21 @@ import { expect } from "chai";
 import * as sinon from "sinon";
 import Redis from "../../lib/Redis";
 import { WatchError } from "../../lib/errors";
-import type MaintenanceManager from "../../lib/maintNotifications/MaintenanceManager";
+import MaintenanceManager from "../../lib/maintNotifications/MaintenanceManager";
+import type {
+  HandoffCandidate,
+  HandoffEndpoint,
+} from "../../lib/redis/ConnectionSession";
 import MockServer from "../helpers/mock_server";
+
+// Exercise the connection owner's private operations, including its commit guards.
+const handoffFor = (redis: Redis) =>
+  redis as unknown as {
+    createCandidateConnection(
+      endpoint: HandoffEndpoint
+    ): Promise<HandoffCandidate>;
+    commitHandoff(candidate: HandoffCandidate, endpoint: HandoffEndpoint): void;
+  };
 
 const PORT_A = 30003;
 const PORT_B = 30004;
@@ -51,20 +64,28 @@ describe("transport adoption", () => {
     redis.on("close", closed);
     redis.on("reconnecting", reconnecting);
 
-    const candidate = await (redis as any).createCandidateConnection({
+    const originalStream = redis.stream;
+    const owner = redis as unknown as {
+      socketTimeoutTimer: NodeJS.Timeout | undefined;
+    };
+    const expired = sinon.spy();
+    const candidate = await handoffFor(redis).createCandidateConnection({
       host: "localhost",
       port: PORT_B,
     });
-    const transport = candidate.detachTransport();
-    (redis as any).adoptTransport(transport, {
+    owner.socketTimeoutTimer = setTimeout(expired, 20);
+    handoffFor(redis).commitHandoff(candidate, {
       host: "localhost",
       port: PORT_B,
     });
 
+    expect(originalStream.destroyed).to.eql(true);
+    expect(owner.socketTimeoutTimer).to.equal(undefined);
     expect(await redis.get("who")).to.eql("B");
     expect(redis.status).to.eql("ready");
 
-    await wait(10);
+    await wait(30);
+    expect(expired.called).to.eql(false);
     expect(closed.called).to.eql(false);
     expect(reconnecting.called).to.eql(false);
     redis.disconnect();
@@ -101,6 +122,7 @@ describe("transport adoption", () => {
       commandTimeout: 1000,
     });
     const candidate = redis.duplicate({ port: PORT_B });
+    const duplicate = sinon.stub(redis, "duplicate").returns(candidate);
     const manager = (redis as any).maintenanceManager as MaintenanceManager;
     const candidateManager = (candidate as any)
       .maintenanceManager as MaintenanceManager;
@@ -119,7 +141,12 @@ describe("transport adoption", () => {
 
     try {
       await redis.connect();
-      await candidate.connect();
+      const handoffCandidate = await handoffFor(
+        redis
+      ).createCandidateConnection({
+        host: "localhost",
+        port: PORT_B,
+      });
       expect(await redis.get("who")).to.eql("A");
       candidateStream = candidate.stream;
 
@@ -132,8 +159,7 @@ describe("transport adoption", () => {
       expect(candidate.status).to.eql("ready");
       expect(candidate.commandQueue.length).to.eql(0);
 
-      const transport = (candidate as any).detachReadyTransport();
-      (redis as any).adoptTransport(transport, {
+      handoffFor(redis).commitHandoff(handoffCandidate, {
         host: "localhost",
         port: PORT_B,
       });
@@ -162,6 +188,7 @@ describe("transport adoption", () => {
         candidate.disconnect();
       }
       candidateStream?.destroy();
+      duplicate.restore();
       handled.restore();
       candidateHandled.restore();
     }
@@ -175,12 +202,11 @@ describe("transport adoption", () => {
     redis.on("error", () => {});
     await ready(redis);
 
-    const candidate = await (redis as any).createCandidateConnection({
+    const candidate = await handoffFor(redis).createCandidateConnection({
       host: "localhost",
       port: PORT_B,
     });
-    const transport = candidate.detachTransport();
-    (redis as any).adoptTransport(transport, {
+    handoffFor(redis).commitHandoff(candidate, {
       host: "localhost",
       port: PORT_B,
     });
@@ -190,7 +216,7 @@ describe("transport adoption", () => {
 
     // The release gate: losing the adopted connection must reconnect the
     // original client to the replacement endpoint, not the old one.
-    transport.stream.destroy();
+    redis.stream.destroy();
     await ready(redis);
 
     expect(await redis.get("who")).to.eql("B");
@@ -205,25 +231,27 @@ describe("transport adoption", () => {
     const redis = new Redis({ port: PORT_A });
     await ready(redis);
 
-    const candidate = await (redis as any).createCandidateConnection({
-      host: "localhost",
-      port: PORT_B,
-    });
-    const transport = candidate.detachTransport();
-
-    // The candidate stripped everything it registered.
-    expect(transport.stream.listenerCount("data")).to.eql(0);
-    expect(transport.stream.listenerCount("error")).to.eql(0);
-    expect(transport.stream.listenerCount("close")).to.eql(0);
-
-    (redis as any).adoptTransport(transport, {
+    const candidate = await handoffFor(redis).createCandidateConnection({
       host: "localhost",
       port: PORT_B,
     });
 
-    expect(transport.stream.listenerCount("data")).to.eql(1);
-    expect(transport.stream.listenerCount("error")).to.eql(1);
-    expect(transport.stream.listenerCount("close")).to.eql(1);
+    const detach = candidate.detachTransport.bind(candidate);
+    sinon.stub(candidate, "detachTransport").callsFake(() => {
+      const transport = detach();
+      expect(transport.stream.listenerCount("data")).to.eql(0);
+      expect(transport.stream.listenerCount("error")).to.eql(0);
+      expect(transport.stream.listenerCount("close")).to.eql(0);
+      return transport;
+    });
+    handoffFor(redis).commitHandoff(candidate, {
+      host: "localhost",
+      port: PORT_B,
+    });
+
+    expect(redis.stream.listenerCount("data")).to.eql(1);
+    expect(redis.stream.listenerCount("error")).to.eql(1);
+    expect(redis.stream.listenerCount("close")).to.eql(1);
     redis.disconnect();
   });
 
@@ -235,12 +263,11 @@ describe("transport adoption", () => {
     await ready(redis);
     const manager = (redis as any).maintenanceManager as MaintenanceManager;
 
-    const candidate = await (redis as any).createCandidateConnection({
+    const candidate = await handoffFor(redis).createCandidateConnection({
       host: "localhost",
       port: PORT_B,
     });
-    const transport = candidate.detachTransport();
-    (redis as any).adoptTransport(transport, {
+    handoffFor(redis).commitHandoff(candidate, {
       host: "localhost",
       port: PORT_B,
     });
@@ -260,8 +287,11 @@ describe("transport adoption", () => {
     const redis = new Redis({ port: PORT_A });
     await ready(redis);
 
-    const err = await (redis as any)
-      .createCandidateConnection({ host: "localhost", port: PORT_B })
+    const err = await handoffFor(redis)
+      .createCandidateConnection({
+        host: "localhost",
+        port: PORT_B,
+      })
       .then(
         () => null,
         (e: Error) => e
@@ -271,6 +301,41 @@ describe("transport adoption", () => {
     expect(await redis.get("who")).to.eql("A");
     expect(redis.status).to.eql("ready");
     redis.disconnect();
+  });
+
+  it("preserves the old connection when the candidate dies before commit", async () => {
+    createIdentityServer(PORT_A, "A");
+    createIdentityServer(PORT_B, "B");
+    const redis = new Redis({ port: PORT_A });
+    const candidateRedis = redis.duplicate({ port: PORT_B, lazyConnect: true });
+    const duplicate = sinon.stub(redis, "duplicate").returns(candidateRedis);
+    try {
+      await ready(redis);
+      const candidate = await handoffFor(redis).createCandidateConnection({
+        host: "localhost",
+        port: PORT_B,
+      });
+      const originalStream = redis.stream;
+      const originalListeners = originalStream.listeners("close");
+      candidateRedis.disconnect();
+      await waitFor(() => candidateRedis.status === "end");
+
+      expect(() =>
+        handoffFor(redis).commitHandoff(candidate, {
+          host: "localhost",
+          port: PORT_B,
+        })
+      ).to.throw("Only a ready and idle candidate connection can be detached");
+      expect(redis.stream).to.equal(originalStream);
+      expect(originalStream.destroyed).to.eql(false);
+      expect(originalStream.listeners("close")).to.eql(originalListeners);
+      expect(await redis.get("who")).to.eql("A");
+      candidate.dispose();
+    } finally {
+      duplicate.restore();
+      candidateRedis.disconnect();
+      redis.disconnect();
+    }
   });
 
   it("refuses to adopt while commands are awaiting replies", async () => {
@@ -286,24 +351,29 @@ describe("transport adoption", () => {
     const redis = new Redis({ port: PORT_A });
     await ready(redis);
 
-    const candidate = await (redis as any).createCandidateConnection({
+    const candidate = await handoffFor(redis).createCandidateConnection({
       host: "localhost",
       port: PORT_B,
     });
-    const transport = candidate.detachTransport();
 
+    const detach = sinon.spy(candidate, "detachTransport");
+    const originalStream = redis.stream;
     const pending = redis.get("who").catch(() => {});
     expect(() =>
-      (redis as any).adoptTransport(transport, {
+      handoffFor(redis).commitHandoff(candidate, {
         host: "localhost",
         port: PORT_B,
       })
     ).to.throw("Cannot adopt a transport while commands are awaiting replies");
 
+    expect(detach.called).to.eql(false);
+    expect(redis.stream).to.equal(originalStream);
+    expect(originalStream.destroyed).to.eql(false);
+
     // Unblock the in-flight command, then adoption succeeds.
     sockets[0].write("$1\r\nA\r\n");
     await pending;
-    (redis as any).adoptTransport(transport, {
+    handoffFor(redis).commitHandoff(candidate, {
       host: "localhost",
       port: PORT_B,
     });
@@ -332,12 +402,11 @@ describe("transport adoption", () => {
     };
 
     const adopt = async (redis: Redis, port: number) => {
-      const candidate = await (redis as any).createCandidateConnection({
+      const candidate = await handoffFor(redis).createCandidateConnection({
         host: "localhost",
         port,
       });
-      const transport = candidate.detachTransport();
-      (redis as any).adoptTransport(transport, { host: "localhost", port });
+      handoffFor(redis).commitHandoff(candidate, { host: "localhost", port });
     };
 
     it("rejects MULTI/EXEC with WatchError when adoption invalidated a WATCH", async () => {
@@ -647,12 +716,11 @@ describe("transport adoption", () => {
     await ready(redis);
     await redis.himport("SET", "key:1", "fieldset", "1", "2");
 
-    const candidate = await (redis as any).createCandidateConnection({
+    const candidate = await handoffFor(redis).createCandidateConnection({
       host: "localhost",
       port: PORT_B,
     });
-    const transport = candidate.detachTransport();
-    (redis as any).adoptTransport(transport, {
+    handoffFor(redis).commitHandoff(candidate, {
       host: "localhost",
       port: PORT_B,
     });
@@ -664,10 +732,7 @@ describe("transport adoption", () => {
     expect(himportOn(bReceived)).to.have.lengthOf(0);
 
     // A managed pipeline re-prepares the fieldset before sending the SET.
-    await redis
-      .pipeline()
-      .himport("SET", "key:2", "fieldset", "3", "4")
-      .exec();
+    await redis.pipeline().himport("SET", "key:2", "fieldset", "3", "4").exec();
 
     const bHimport = himportOn(bReceived);
     expect(bHimport).to.have.lengthOf(2);
@@ -683,8 +748,11 @@ describe("transport adoption", () => {
       lazyConnect: true,
     });
 
-    const err = await (redis as any)
-      .createCandidateConnection({ host: "localhost", port: PORT_B })
+    const err = await handoffFor(redis)
+      .createCandidateConnection({
+        host: "localhost",
+        port: PORT_B,
+      })
       .then(
         () => null,
         (e: Error) => e

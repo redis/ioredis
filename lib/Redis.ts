@@ -57,7 +57,7 @@ import HimportCoordinator, {
   isInternalHimportCommand,
 } from "./himport/HimportCoordinator";
 import MaintenanceManager, {
-  MaintenanceClient,
+  type TimeoutPolicy,
 } from "./maintNotifications/MaintenanceManager";
 import {
   DetachedTransport,
@@ -201,29 +201,30 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     }
 
     if (this.options.maintNotifications !== "disabled") {
-      this.maintenanceManager = new MaintenanceManager(
-        this as unknown as MaintenanceClient
-      );
-      // A dropped connection implicitly ends every maintenance window and
-      // write pause: if maintenance is still ongoing, the server re-sends
-      // the pending notification on the next connection, and the ordinary
-      // reconnect path replays the offline queue.
+      const redis = this;
+      this.maintenanceManager = new MaintenanceManager({
+        get options() {
+          return redis.options;
+        },
+        extendPendingCommandTimeouts: (policy) =>
+          this.extendPendingCommandTimeouts(policy),
+        rearmSocketTimeout: () => this.rearmSocketTimeout(),
+        flushOfflineQueue: () => this.flushOfflineQueue(),
+        canHandoff: () => this.canHandoffConnection(),
+        getConfiguredEndpoint: () => this.getConfiguredEndpoint(),
+        createCandidate: (endpoint) => this.createCandidateConnection(endpoint),
+        waitForDrain: () => this.waitForCommandQueueToDrain(),
+        commitHandoff: (candidate, endpoint) =>
+          this.commitHandoff(candidate, endpoint),
+      });
       this.on("close", () => {
-        // A connection lost while a maintenance window is open takes an
-        // active WATCH with it — servers drop connections while migrating a
-        // shard, and hard-close at the end of an endpointless MOVING grace
-        // period. Record the loss before the windows reset so the next
-        // transaction aborts instead of executing unguarded.
         if (
-          this.condition?.watching &&
-          this.maintenanceManager?.isMaintenanceActive()
+          this.maintenanceManager.handleConnectionClose(
+            Boolean(this.condition?.watching)
+          )
         ) {
-          debug(
-            "connection loss during maintenance invalidates an active WATCH"
-          );
           this.staleWatch = true;
         }
-        this.maintenanceManager?.reset();
       });
     }
 
@@ -362,7 +363,12 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
           }
 
           if (stream.connecting) {
-            stream.once(CONNECT_EVENT, eventHandler.connectHandler(_this));
+            stream.once(
+              CONNECT_EVENT,
+              eventHandler.connectHandler(_this, () =>
+                _this.flushOfflineQueue()
+              )
+            );
 
             if (options.connectTimeout) {
               /*
@@ -403,7 +409,11 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
             }
             process.nextTick(eventHandler.closeHandler(_this));
           } else {
-            process.nextTick(eventHandler.connectHandler(_this));
+            process.nextTick(
+              eventHandler.connectHandler(_this, () =>
+                _this.flushOfflineQueue()
+              )
+            );
           }
           if (!stream.destroyed) {
             stream.once("error", eventHandler.errorHandler(_this));
@@ -894,10 +904,10 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
    * so none expires earlier than `timeout` from now. Driven by the
    * maintenance manager when a maintenance window opens.
    */
-  private extendPendingCommandTimeouts(
-    timeout: number,
-    createTimeoutError: () => Error
-  ): void {
+  private extendPendingCommandTimeouts({
+    timeout,
+    createTimeoutError,
+  }: TimeoutPolicy): void {
     for (const item of this.commandQueue.toArray()) {
       item.command.extendTimeout?.(timeout, createTimeoutError);
     }
@@ -1087,13 +1097,13 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
   }
 
   /**
-   * Atomically replaces this client's transport with an adopted one. The
-   * command queue must be drained first; the offline queue is retained and
-   * replayed by the caller once writes resume. Future reconnects target the
-   * adopted endpoint through the adopted connector.
+   * Commits a handoff after validating the owner and the ready candidate.
+   * Validation precedes detachment so a rejected handoff leaves the candidate
+   * owned and disposable. Disposal and installation are synchronous; the
+   * offline queue is retained for replay once the caller resumes writes.
    */
-  private adoptTransport(
-    transport: DetachedTransport,
+  private commitHandoff(
+    candidate: HandoffCandidate,
     endpoint: HandoffEndpoint
   ): void {
     if (this.status !== "ready") {
@@ -1107,26 +1117,25 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       );
     }
 
+    const transport = candidate.detachTransport();
+    if (this.socketTimeoutTimer !== undefined) {
+      clearTimeout(this.socketTimeoutTimer);
+      this.socketTimeoutTimer = undefined;
+    }
+    // Silence and dispose the drained old transport. With its listeners
+    // removed, destroying it cannot trigger the reconnect path or deliver
+    // replies to its former owner.
+    this.stream.removeAllListeners("data");
+    this.stream.removeAllListeners("error");
+    this.stream.removeAllListeners("close");
+    this.stream.destroy();
+
     debug(
       "adopt transport %s:%s (epoch %d)",
       endpoint.host,
       endpoint.port,
       this.connectionEpoch + 1
     );
-
-    // Silence and dispose the drained old transport. With its listeners
-    // removed, destroying it cannot trigger the reconnect path.
-    const oldStream = this.stream;
-    if (this.socketTimeoutTimer !== undefined) {
-      clearTimeout(this.socketTimeoutTimer);
-      this.socketTimeoutTimer = undefined;
-    }
-    if (oldStream) {
-      oldStream.removeAllListeners("data");
-      oldStream.removeAllListeners("error");
-      oldStream.removeAllListeners("close");
-      oldStream.destroy();
-    }
 
     // The watch set lives on the connection being replaced; executing a
     // pending MULTI/EXEC on the adopted one would silently drop the

@@ -163,7 +163,7 @@ async function sendHandshake(
   }
 }
 
-export function connectHandler(self) {
+export function connectHandler(self, flushOfflineQueue: () => void) {
   return async function () {
     try {
       self.resetCommandQueue();
@@ -253,7 +253,7 @@ export function connectHandler(self) {
         if (!finishHandshake()) {
           return;
         }
-        return exports.readyHandler(self)();
+        return exports.readyHandler(self, flushOfflineQueue)();
       }
 
       self._readyCheck(function (err: Error | null, info: unknown) {
@@ -266,7 +266,7 @@ export function connectHandler(self) {
           if (!finishHandshake()) {
             return;
           }
-          exports.readyHandler(self)();
+          exports.readyHandler(self, flushOfflineQueue)();
         } else {
           self.disconnect(true);
         }
@@ -450,7 +450,7 @@ export function errorHandler(self) {
   };
 }
 
-export function readyHandler(self) {
+export function readyHandler(self, flushOfflineQueue: () => void) {
   return function () {
     self.setStatus("ready");
     self.retryAttempts = 0;
@@ -542,7 +542,7 @@ export function readyHandler(self) {
       }
     }
 
-    self.flushOfflineQueue();
+    flushOfflineQueue();
 
     if (self.condition.select !== finalSelect) {
       debug("connect to db [%d]", finalSelect);

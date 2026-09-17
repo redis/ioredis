@@ -42,25 +42,37 @@ export class EffectRunner {
    * Defines one mocha test for an effect, titled `<title> [<effect>]`. The
    * body runs once per discovered trigger combination. Each run gets a
    * dedicated database that is deleted after the effect has settled.
+   * An optional trigger selects all configurations for that trigger and
+   * fails the test if discovery does not provide it.
    */
   it(
     title: string,
     effect: TopologyChangeStandaloneEffect,
-    run: (context: EffectTriggerContext) => Promise<void>
+    run: (context: EffectTriggerContext) => Promise<void>,
+    options: { trigger?: string } = {}
   ): void {
-    it(`${title} [${effect}]`, async () => {
-      await this.runEffect(effect, run);
+    const triggerLabel = options.trigger ? `, ${options.trigger}` : "";
+    it(`${title} [${effect}${triggerLabel}]`, async () => {
+      await this.runEffect(effect, run, options.trigger);
     });
   }
 
   private async runEffect(
     effect: TopologyChangeStandaloneEffect,
-    run: (context: EffectTriggerContext) => Promise<void>
+    run: (context: EffectTriggerContext) => Promise<void>,
+    trigger?: string
   ): Promise<void> {
-    const combos = await this.discoverTriggers(effect);
+    const discovered = await this.discoverTriggers(effect);
+    const combos = trigger
+      ? discovered.filter((combo) => combo.trigger === trigger)
+      : discovered;
 
     if (combos.length === 0) {
-      throw new Error(`No triggers discovered for effect: ${effect}`);
+      throw new Error(
+        `No triggers discovered for effect: ${effect}${
+          trigger ? `, trigger: ${trigger}` : ""
+        }`
+      );
     }
 
     for (const combo of combos) {
