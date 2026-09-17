@@ -1,10 +1,12 @@
 import { expect } from "chai";
 import * as sinon from "sinon";
+import { subscribe, unsubscribe } from "node:diagnostics_channel";
 import Redis from "../../lib/Redis";
 import MockServer from "../helpers/mock_server";
 
 const PORT_A = 30005;
 const PORT_B = 30006;
+const PORT_C = 30007;
 const DEAD_PORT = 30099;
 
 const ready = (redis: Redis) =>
@@ -27,6 +29,9 @@ const movingFrame = (timeSeconds: number, endpoint: string) =>
     `>4\r\n$6\r\nMOVING\r\n:1\r\n:${timeSeconds}\r\n$${endpoint.length}\r\n${endpoint}\r\n`
   );
 
+const endpointlessMovingFrame = (timeSeconds: number) =>
+  MockServer.raw(`>4\r\n$6\r\nMOVING\r\n:1\r\n:${timeSeconds}\r\n_\r\n`);
+
 /** A server whose GET replies identify it, so tests can see routing. */
 const createIdentityServer = (port: number, identity: string) => {
   const sockets: any[] = [];
@@ -46,7 +51,7 @@ describe("maintenance handoff", () => {
     const a = createIdentityServer(PORT_A, "A");
     createIdentityServer(PORT_B, "B");
 
-    const redis = new Redis({ port: PORT_A });
+    const redis = new Redis({ port: PORT_A, retryStrategy: null });
     await ready(redis);
     expect(await redis.get("who")).to.eql("A");
 
@@ -68,6 +73,78 @@ describe("maintenance handoff", () => {
     expect(closed.called).to.eql(false);
     expect(reconnecting.called).to.eql(false);
     redis.disconnect();
+  });
+
+  it("returns to the configured endpoint after endpointless MOVING", async () => {
+    const a = createIdentityServer(PORT_A, "A");
+    const b = createIdentityServer(PORT_B, "B");
+
+    const redis = new Redis({ port: PORT_A, retryStrategy: null });
+    await ready(redis);
+
+    a.server.broadcast(movingFrame(2, `localhost:${PORT_B}`));
+    await waitFor(() => b.sockets.length === 1);
+    expect(await redis.get("who")).to.eql("B");
+
+    const connectionsToA = a.sockets.length;
+    const connectionsToB = b.sockets.length;
+    b.server.broadcast(endpointlessMovingFrame(2));
+    await waitFor(
+      () =>
+        a.sockets.length > connectionsToA || b.sockets.length > connectionsToB,
+      1_800
+    );
+
+    expect(await redis.get("who")).to.eql("A");
+    redis.disconnect();
+  });
+
+  it("does not start a nested handoff from a candidate connection", async () => {
+    const aSockets: any[] = [];
+    const a = new MockServer(PORT_A, (argv, _socket, flags) => {
+      if (argv[0] === "get" && argv[1] === "blocked") {
+        flags.hang = true;
+        return;
+      }
+      if (argv[0] === "get") {
+        return "A";
+      }
+    });
+    a.on("connect", (socket) => aSockets.push(socket));
+    const b = createIdentityServer(PORT_B, "B");
+    const c = createIdentityServer(PORT_C, "C");
+
+    const notifications: unknown[] = [];
+    const onNotification = (notification: unknown) => {
+      notifications.push(notification);
+    };
+    subscribe("ioredis:maintenance", onNotification);
+
+    const redis = new Redis({ port: PORT_A, retryStrategy: null });
+    try {
+      await ready(redis);
+
+      // Keep the owner busy so the fully connected candidate cannot be
+      // adopted before it receives its own MOVING notification.
+      const blocked = redis.get("blocked");
+      await wait(10);
+
+      a.broadcast(movingFrame(2, `localhost:${PORT_B}`));
+      await waitFor(() => b.sockets.length === 1);
+
+      b.server.broadcast(movingFrame(1, `localhost:${PORT_C}`));
+      await waitFor(() => notifications.length === 2);
+      await wait(20);
+
+      expect(c.sockets).to.have.lengthOf(0);
+
+      aSockets[0].write("$1\r\nA\r\n");
+      expect(await blocked).to.eql("A");
+      expect(await redis.get("who")).to.eql("B");
+    } finally {
+      unsubscribe("ioredis:maintenance", onNotification);
+      redis.disconnect();
+    }
   });
 
   it("rolls back to the old connection when the endpoint is unreachable", async () => {
