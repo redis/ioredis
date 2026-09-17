@@ -673,6 +673,153 @@ describe("sentinel", () => {
 
     describe("failoverDetector", () => {
       ([2, 3] as const).forEach((protocol) => {
+        it(`should close sentinel subscriptions after quit - RESP ${protocol}`, async () => {
+          const sentinels = [27379, 27380].map(
+            (port) =>
+              new MockServer(port, (argv) => {
+                if (
+                  argv[0] === "sentinel" &&
+                  argv[1] === "get-master-addr-by-name"
+                ) {
+                  return ["127.0.0.1", "17380"];
+                }
+                if (argv[0] === "subscribe") {
+                  return pubSubReply(protocol, "subscribe", "+switch-master");
+                }
+              })
+          );
+          const master = new MockServer(17380, (argv, socket, flags) => {
+            if (argv[0] === "get") {
+              return "bar";
+            }
+            if (argv[0] === "quit") {
+              // Redis acknowledges QUIT and then closes the connection.
+              flags.hang = true;
+              socket.end("+OK\r\n");
+            }
+          });
+          const redis = new Redis({
+            sentinels: [27379, 27380].map((port) => ({
+              host: "127.0.0.1",
+              port,
+            })),
+            failoverDetector: true,
+            name: "master",
+            protocol,
+          });
+
+          try {
+            await Promise.all([
+              once(redis, "ready"),
+              once(redis, "failoverSubscribed"),
+            ]);
+            const subscriptions = sentinels.flatMap((sentinel) =>
+              sentinel.getAllClients()
+            );
+            expect(subscriptions).to.have.length(2);
+            const closed = subscriptions.map((socket) => once(socket, "end"));
+            const ended = once(redis, "end");
+            const pending = redis.get("foo");
+            const quit = redis.quit();
+
+            expect(await pending).to.equal("bar");
+            expect(await quit).to.equal("OK");
+            await ended;
+
+            let timeout: ReturnType<typeof setTimeout>;
+            try {
+              const allClosed = await Promise.race([
+                Promise.all(closed).then(() => true),
+                new Promise<boolean>((resolve) => {
+                  timeout = setTimeout(() => resolve(false), 1000);
+                }),
+              ]);
+              expect(
+                allClosed,
+                "Sentinel subscriptions remain open after quit"
+              ).to.equal(true);
+              for (const sentinel of sentinels) {
+                expect(sentinel.getAllClients()).to.have.length(0);
+              }
+            } finally {
+              clearTimeout(timeout);
+            }
+          } finally {
+            redis.disconnect();
+            await Promise.all([
+              master.disconnectPromise(),
+              ...sentinels.map((sentinel) => sentinel.disconnectPromise()),
+            ]);
+          }
+        });
+      });
+
+      ([2, 3] as const).forEach((protocol) => {
+        it(`should close pending sentinel subscriptions after quit - RESP ${protocol}`, async () => {
+          let subscribed: () => void;
+          const subscribing = new Promise<void>((resolve) => {
+            subscribed = resolve;
+          });
+          let subscription: Socket;
+          const sentinel = new MockServer(27379, (argv, socket, flags) => {
+            if (
+              argv[0] === "sentinel" &&
+              argv[1] === "get-master-addr-by-name"
+            ) {
+              return ["127.0.0.1", "17380"];
+            }
+            if (argv[0] === "subscribe") {
+              // Keep subscribe() pending while the main connection shuts down.
+              flags.hang = true;
+              subscription = socket;
+              subscribed();
+            }
+          });
+          const master = new MockServer(17380, (argv, socket, flags) => {
+            if (argv[0] === "quit") {
+              flags.hang = true;
+              socket.end("+OK\r\n");
+            }
+          });
+          const redis = new Redis({
+            sentinels: [{ host: "127.0.0.1", port: 27379 }],
+            failoverDetector: true,
+            name: "master",
+            protocol,
+          });
+
+          try {
+            await Promise.all([once(redis, "ready"), subscribing]);
+            const closed = once(subscription, "end");
+            const ended = once(redis, "end");
+            expect(await redis.quit()).to.equal("OK");
+            await ended;
+
+            let timeout: ReturnType<typeof setTimeout>;
+            try {
+              const allClosed = await Promise.race([
+                closed.then(() => true),
+                new Promise<boolean>((resolve) => {
+                  timeout = setTimeout(() => resolve(false), 1000);
+                }),
+              ]);
+              expect(
+                allClosed,
+                "Pending Sentinel subscription remains open"
+              ).to.equal(true);
+              expect(sentinel.getAllClients()).to.have.length(0);
+            } finally {
+              clearTimeout(timeout);
+            }
+          } finally {
+            redis.disconnect();
+            await Promise.all([
+              master.disconnectPromise(),
+              sentinel.disconnectPromise(),
+            ]);
+          }
+        });
+
         it(`should connect to new master after +switch-master - RESP ${protocol}`, async () => {
           const sentinel = new MockServer(27379, (argv) => {
             if (
