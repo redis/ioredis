@@ -90,6 +90,9 @@ export default class ConnectionPool extends EventEmitter {
               // before sending commands to the node.
               enableOfflineQueue: true,
               readOnly: readOnly,
+              // Maintenance notifications are currently only supported on
+              // standalone clients.
+              maintNotifications: "disabled" as const,
             },
             node,
             this.redisOptions,

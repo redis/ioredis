@@ -140,8 +140,10 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
   commandQueue: Deque<CommandItem>;
 
   private connector: AbstractConnector;
+  private readonly maintConfiguredEndpoint: HandoffEndpoint | null;
   private dataHandler: DataHandler | undefined;
   private maintenanceManager: MaintenanceManager | null = null;
+  private isMaintHandoffCandidate = false;
   // Set when a Smart Client Handoff replaces the connection while a WATCH is
   // active on it. The server-side watch set dies with the old connection, so
   // the next MULTI/EXEC must abort with WatchError instead of executing
@@ -186,6 +188,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
   constructor(arg1?: unknown, arg2?: unknown, arg3?: unknown) {
     super();
     this.parseOptions(arg1, arg2, arg3);
+    this.maintConfiguredEndpoint = this.resolveMaintConfiguredEndpoint();
 
     EventEmitter.call(this);
 
@@ -962,15 +965,13 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
   /**
    * Whether this connection's shape supports a Smart Client Handoff.
    * Subscriber and monitor connections carry state a fresh candidate would
-   * lose, and a client without a retry strategy manages its own connection
-   * lifecycle (Cluster-owned node clients set retryStrategy to null); all of
-   * those fall back to the ordinary reconnect path.
+   * lose, so they fall back to the ordinary reconnect path.
    */
   private canHandoffConnection(): boolean {
     return (
+      !this.isMaintHandoffCandidate &&
       this.mode === "normal" &&
-      !this.condition?.subscriber &&
-      typeof this.options.retryStrategy === "function"
+      !this.condition?.subscriber
     );
   }
 
@@ -981,6 +982,14 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
    * be established for: socket paths, Sentinel, and custom connectors.
    */
   private getConfiguredEndpoint(): HandoffEndpoint | null {
+    return this.maintConfiguredEndpoint;
+  }
+
+  /**
+   * Captures the standalone TCP endpoint supplied at construction time before
+   * a handoff can replace options.host and options.port with its destination.
+   */
+  private resolveMaintConfiguredEndpoint(): HandoffEndpoint | null {
     if (
       this.options.sentinels ||
       this.options.Connector ||
@@ -1027,6 +1036,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       reconnectOnError: null,
       himportFieldsets: undefined,
     });
+    candidate.isMaintHandoffCandidate = true;
     // A candidate failure is handled through the handoff flow; keep its
     // error events from being reported as unhandled.
     candidate.on("error", noop);
@@ -1074,6 +1084,11 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       condition: this.condition,
       dataHandler: this.dataHandler,
     };
+
+    // The adopted transport will be rebound to its owner's maintenance
+    // manager. Clear timers and write-pause state retained by the temporary
+    // candidate before it gives up ownership.
+    this.maintenanceManager?.reset();
 
     // Strip everything this client registered on the socket so no callback
     // can reach a client that no longer owns the connection.

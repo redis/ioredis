@@ -65,6 +65,9 @@ export default class ShardedSubscriber {
            */
           retryStrategy: null,
           lazyConnect: true,
+          // Maintenance notifications are currently only supported on
+          // standalone clients.
+          maintNotifications: "disabled" as const,
         },
         options,
         redisOptions,
