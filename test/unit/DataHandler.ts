@@ -4,7 +4,7 @@ import { subscribe, unsubscribe } from "node:diagnostics_channel";
 import { EventEmitter } from "events";
 import * as sinon from "sinon";
 import Command from "../../lib/Command";
-import DataHandler from "../../lib/DataHandler";
+import DataHandler, { COMMAND_QUEUE_DRAINED } from "../../lib/DataHandler";
 
 describe("DataHandler", () => {
   it("attaches data handler to stream in correct order | https://github.com/redis/ioredis/issues/1919", () => {
@@ -194,6 +194,29 @@ describe("DataHandler", () => {
     expect(setup.redis.commandQueue.length).to.equal(0);
   });
 
+  it("does not signal a queue drain while a multi-channel subscribe is partially acknowledged", async () => {
+    const setup = setupDataHandler();
+    const drained = sinon.spy();
+    setup.redis.on(COMMAND_QUEUE_DRAINED, drained);
+
+    const command = new Command("subscribe", ["a", "b"], {
+      replyEncoding: "utf8",
+    });
+    setup.redis.commandQueue.push({ command, select: 0 });
+
+    // The first acknowledgement shifts the command, transiently emptying the
+    // queue, and then puts it back because a channel is still unacknowledged.
+    setup.write(">3\r\n$9\r\nsubscribe\r\n$1\r\na\r\n:1\r\n");
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(drained.called).to.be.false;
+    expect(setup.redis.commandQueue.length).to.equal(1);
+
+    setup.write(">3\r\n$9\r\nsubscribe\r\n$1\r\nb\r\n:2\r\n");
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(drained.calledOnce).to.be.true;
+    expect(await command.promise).to.equal(2);
+  });
+
   it("handles RESP3 subscribe acknowledgements as push frames", async () => {
     const setup = setupDataHandler();
     const command = new Command("subscribe", ["channel"], {
@@ -371,9 +394,17 @@ describe("DataHandler", () => {
 
     // The listener exception is rethrown asynchronously as an uncaught
     // exception instead of being swallowed or misreported as a parser error.
-    expect(nextTick.calledOnce).to.be.true;
-    const rethrow = nextTick.firstCall.args[0];
-    expect(rethrow).to.throw(listenerError);
+    // Other deferred work (e.g. the queue-drain check) may also use
+    // process.nextTick, so look for the rethrow among the captured calls.
+    const rethrows = nextTick.getCalls().filter((call) => {
+      try {
+        call.args[0]();
+        return false;
+      } catch (err) {
+        return err === listenerError;
+      }
+    });
+    expect(rethrows).to.have.length(1);
   });
 
   it("ignores empty RESP3 push frames without firing fatal error", () => {

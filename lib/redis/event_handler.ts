@@ -546,23 +546,7 @@ export function readyHandler(self) {
       }
     }
 
-    if (self.offlineQueue.length) {
-      debug("send %d commands in offline queue", self.offlineQueue.length);
-      const offlineQueue = self.offlineQueue;
-      self.resetOfflineQueue();
-      while (offlineQueue.length > 0) {
-        const item = offlineQueue.shift();
-        if (
-          item.select !== self.condition.select &&
-          item.command.name !== "select"
-        ) {
-          self
-            .select(item.select)
-            .catch((err) => self.silentEmit("error", err));
-        }
-        self.sendCommand(item.command, item.stream);
-      }
-    }
+    self.flushOfflineQueue();
 
     if (self.condition.select !== finalSelect) {
       debug("connect to db [%d]", finalSelect);
