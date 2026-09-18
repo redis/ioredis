@@ -142,7 +142,10 @@ export default class DataHandler {
     // command response. Routing it by content would misinterpret replies that
     // merely look like pub/sub messages (e.g. an LRANGE result starting with
     // "message") and desync the command queue.
-    if (this.redis.condition.protocol !== 3 && this.handleSubscriberReply(reply)) {
+    if (
+      this.redis.condition.protocol !== 3 &&
+      this.handleSubscriberReply(reply)
+    ) {
       return;
     }
 
@@ -209,9 +212,8 @@ export default class DataHandler {
         const count = reply[2] as string | Buffer | number;
 
         if (this.redis.condition.subscriber) {
-          // `""` is a valid channel name, so both guards test for a missing
-          // reply element rather than truthiness — skipping `del()` for it
-          // would keep the set non-empty and strand subscriber mode below.
+          // Empty channel names are valid; only a null or undefined reply
+          // element means no channel.
           const channel = reply[1] == null ? null : (reply[1] as ChannelName);
           if (channel !== null) {
             this.redis.condition.subscriber.del(replyType, channel);
@@ -315,7 +317,8 @@ export default class DataHandler {
       case "sunsubscribe":
       case "unsubscribe":
       case "punsubscribe": {
-        // See the matching comment in `returnPush` about the empty channel name.
+        // Empty channel names are valid; only a null or undefined reply
+        // element means no channel.
         const channel = reply[1] == null ? null : (reply[1] as ChannelName);
         if (channel !== null) {
           this.redis.condition.subscriber.del(replyType, channel);
@@ -392,22 +395,14 @@ export default class DataHandler {
   }
 }
 
-// Both the count carried by the reply and the subscription set are partial
-// views of the connection's subscriptions, and neither one alone answers
-// "is this connection still in subscriber mode?":
-//
-//   - The count only covers channels of the same kind as the command
-//     (SUNSUBSCRIBE reports remaining shard channels, and UNSUBSCRIBE /
-//     PUNSUBSCRIBE ignore shard channels), so it reaching zero says nothing
-//     about the other kinds.
-//   - The set only tracks what this connection subscribed to through ioredis,
-//     so it cannot see a subscription the server holds but never acknowledged
-//     to it.
-//
-// Requiring both covers each one's blind spot with the other: the count rules
-// out a remaining same-kind subscription, and the set rules out the kinds the
-// count ignores. A reply carrying no count is not authoritative about
-// anything, so it does not hold the connection in subscriber mode on its own.
+// The count carried by the reply and the subscription set are each a partial
+// view of the connection's subscriptions. Regular channels and patterns share
+// one count and shard channels have their own, so a count of zero says nothing
+// about the other group; the set tracks only what this connection subscribed
+// to through ioredis, so it cannot see a subscription the server holds but
+// never acknowledged. Subscriber mode is left only when both are empty. A
+// reply carrying no count is not authoritative and does not hold the
+// connection in subscriber mode on its own.
 function leaveSubscriberModeIfDone(
   condition: Condition,
   count: string | Buffer | number

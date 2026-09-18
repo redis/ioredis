@@ -1,15 +1,14 @@
 import { expect } from "chai";
-import { Socket } from "net";
 import MockServer, {
   pubSubReply,
   rawPubSubReply,
 } from "../helpers/mock_server";
 import Redis from "../../lib/Redis";
 
-// Redis counts shard channels separately from channels and patterns, so the
-// count carried by an (S)UNSUBSCRIBE reply only describes channels of the same
-// kind. Dropping the subscriber state on that count alone loses subscriptions
-// of the other kinds that are still active on the connection.
+// Redis counts regular channels and patterns together and shard channels
+// separately, so the count carried by an unsubscribe reply describes only its
+// own group. Dropping the subscriber state on that count alone loses
+// subscriptions of the other group that are still active on the connection.
 const PROTOCOLS = [3, 2] as const;
 
 // `Redis#mode` only reports the subscriber state under RESP2. With RESP3 push
@@ -38,15 +37,20 @@ PROTOCOLS.forEach((protocol, index) => {
         if (name === "info") {
           return "# Server\r\nredis_version:7.0.0\r\n";
         }
-        // Each kind reports the remaining count for that kind only.
-        if (name === "subscribe" || name === "ssubscribe") {
+        // Each group reports its own remaining count.
+        if (
+          name === "subscribe" ||
+          name === "ssubscribe" ||
+          name === "psubscribe"
+        ) {
           return pubSubReply(protocol, name, argv[1], 1);
         }
-        if (name === "sunsubscribe") {
-          return pubSubReply(protocol, "sunsubscribe", argv[1], 0);
-        }
-        if (name === "unsubscribe") {
-          return pubSubReply(protocol, "unsubscribe", argv[1], 0);
+        if (
+          name === "sunsubscribe" ||
+          name === "unsubscribe" ||
+          name === "punsubscribe"
+        ) {
+          return pubSubReply(protocol, name, argv[1], 0);
         }
         return "OK";
       });
@@ -83,7 +87,7 @@ PROTOCOLS.forEach((protocol, index) => {
         await redis.ssubscribe("shard");
         await redis.sunsubscribe("shard");
         server.broadcast(pubSubReply(protocol, "message", "regular", "hi"));
-      })();
+      })().catch(done);
     });
 
     it("keeps the shard subscription after unsubscribe", async () => {
@@ -108,9 +112,82 @@ PROTOCOLS.forEach((protocol, index) => {
       expectSubscriptionStateCleared(redis, protocol);
     });
 
-    // `""` is a legal channel name, and the reply naming it must still be
-    // removed from the subscription set — a truthiness check on the channel
-    // skips the removal and leaves the connection stuck in subscriber mode.
+    it("keeps the pattern subscription after sunsubscribe", async () => {
+      redis = new Redis({ port, protocol });
+      await redis.psubscribe("reg*");
+      await redis.ssubscribe("shard");
+      await redis.sunsubscribe("shard");
+
+      const { subscriber } = redis.condition;
+      expect(subscriber).to.not.equal(false);
+      expect((subscriber as any).channels("psubscribe")).to.eql(["reg*"]);
+    });
+
+    it("keeps the shard subscription after punsubscribe", async () => {
+      redis = new Redis({ port, protocol });
+      await redis.ssubscribe("shard");
+      await redis.psubscribe("reg*");
+      await redis.punsubscribe("reg*");
+
+      const { subscriber } = redis.condition;
+      expect(subscriber).to.not.equal(false);
+      expect((subscriber as any).channels("ssubscribe")).to.eql(["shard"]);
+    });
+
+    // Regular channels and patterns share one count: unsubscribing the
+    // channel reports the pattern as remaining, and only the pattern's own
+    // acknowledgement brings that count to zero.
+    it("leaves subscriber mode only when the shared channel and pattern count reaches zero", async () => {
+      let shared = 0;
+      server.handler = (argv) => {
+        const name = String(argv[0]).toLowerCase();
+        if (name === "info") {
+          return "# Server\r\nredis_version:7.0.0\r\n";
+        }
+        if (name === "subscribe" || name === "psubscribe") {
+          shared += 1;
+          return pubSubReply(protocol, name, argv[1], shared);
+        }
+        if (name === "unsubscribe" || name === "punsubscribe") {
+          shared -= 1;
+          return pubSubReply(protocol, name, argv[1], shared);
+        }
+        return "OK";
+      };
+      redis = new Redis({ port, protocol });
+      await redis.subscribe("regular");
+      await redis.psubscribe("reg*");
+      await redis.unsubscribe("regular");
+      expect(redis.condition.subscriber).to.not.equal(false);
+
+      await redis.punsubscribe("reg*");
+      expectSubscriptionStateCleared(redis, protocol);
+    });
+
+    // The set can be empty while the server still counts a subscription this
+    // connection never tracked: the count alone keeps subscriber mode.
+    it("stays in subscriber mode on a positive count with an empty set", async () => {
+      server.handler = (argv) => {
+        const name = String(argv[0]).toLowerCase();
+        if (name === "info") {
+          return "# Server\r\nredis_version:7.0.0\r\n";
+        }
+        if (name === "subscribe") {
+          return pubSubReply(protocol, name, argv[1], 2);
+        }
+        if (name === "unsubscribe") {
+          return pubSubReply(protocol, name, argv[1], 1);
+        }
+        return "OK";
+      };
+      redis = new Redis({ port, protocol });
+      await redis.subscribe("regular");
+      await redis.unsubscribe("regular");
+
+      expect((redis.condition.subscriber as any).isEmpty()).to.equal(true);
+      expect(redis.condition.subscriber).to.not.equal(false);
+    });
+
     it("clears the subscription state after unsubscribing an empty channel name", async () => {
       redis = new Redis({ port, protocol });
       await redis.subscribe("");
@@ -155,7 +232,7 @@ PROTOCOLS.forEach((protocol, index) => {
         await redis.ssubscribe("shard");
         await redis.sunsubscribe("shard");
         server.broadcast(pubSubReply(protocol, "message", "__proto__", "hi"));
-      })();
+      })().catch(done);
     });
 
     // The removal has to reach the stored key as well: the channel is tracked
@@ -174,10 +251,9 @@ PROTOCOLS.forEach((protocol, index) => {
 
     // A server or proxy that answers SUBSCRIBE with a plain `+OK` instead of
     // the usual three-element acknowledgement leaves `reply[1]` as one byte of
-    // that string rather than a channel name. Tracking that byte is harmless,
-    // but it must not throw: the subscription set runs inside the decoder's
-    // reply dispatch, so an exception there escapes as an uncaught error and
-    // the command it came from is never settled.
+    // that string. The subscription set runs inside the decoder's reply
+    // dispatch, so it must not throw on it; it records the byte's decimal
+    // rendering and the command settles.
     it("tracks a subscribe acknowledgement that is not an array", async () => {
       server.handler = (argv) => {
         const name = String(argv[0]).toLowerCase();
@@ -191,8 +267,7 @@ PROTOCOLS.forEach((protocol, index) => {
 
       const { subscriber } = redis.condition;
       expect(subscriber).to.not.equal(false);
-      // `"OK"[1]` decodes to the byte 0x4b, so the set records its decimal
-      // rendering, as it did before channel names were keyed by their bytes.
+      // `"OK"[1]` decodes to the byte 0x4b.
       expect((subscriber as any).channels("subscribe")).to.eql(["75"]);
     });
 
@@ -205,19 +280,10 @@ PROTOCOLS.forEach((protocol, index) => {
       const second = Buffer.from([0x81]);
 
       // Replies naming these channels have to keep the raw bytes, which the
-      // mock server's string-based writer cannot do, so they are written to
-      // the socket directly and the automatic reply is suppressed.
-      function replyWithBytes(
-        socket: Socket,
-        type: string,
-        channel: Buffer,
-        count: number
-      ) {
-        socket.write(rawPubSubReply(protocol, type, channel, count));
-      }
-
-      // Both SUBSCRIBEs are acknowledged with the channel the client asked
-      // for; the server counts them separately, so the second reports 2.
+      // mock server's string-based writer cannot do, so the handler writes
+      // them to the socket itself and hangs the automatic reply. Both
+      // SUBSCRIBEs are acknowledged with the channel the client asked for;
+      // the server counts them separately, so the second reports 2.
       // UNSUBSCRIBE of the first then reports 1 remaining.
       function serveBinaryChannels(server: MockServer) {
         let subscribed = 0;
@@ -229,18 +295,22 @@ PROTOCOLS.forEach((protocol, index) => {
           if (name === "subscribe") {
             subscribed += 1;
             flags.hang = true;
-            replyWithBytes(
-              socket,
-              "subscribe",
-              subscribed === 1 ? first : second,
-              subscribed
+            socket.write(
+              rawPubSubReply(
+                protocol,
+                "subscribe",
+                subscribed === 1 ? first : second,
+                subscribed
+              )
             );
             return undefined;
           }
           if (name === "unsubscribe") {
             subscribed -= 1;
             flags.hang = true;
-            replyWithBytes(socket, "unsubscribe", first, subscribed);
+            socket.write(
+              rawPubSubReply(protocol, "unsubscribe", first, subscribed)
+            );
             return undefined;
           }
           // Shard channels are counted separately by the server, so the shard
@@ -305,11 +375,9 @@ PROTOCOLS.forEach((protocol, index) => {
           server
             .getAllClients()[0]
             .write(rawPubSubReply(protocol, "message", second, "hi"));
-        })();
+        })().catch(done);
       });
 
-      // Both names have to stay individually tracked, or the reconnect path
-      // resubscribes to only one of them.
       it("tracks both names as separate channels", async () => {
         serveBinaryChannels(server);
         redis = new Redis({ port, protocol });
@@ -335,7 +403,7 @@ PROTOCOLS.forEach((protocol, index) => {
           server
             .getAllClients()[0]
             .write(rawPubSubReply(protocol, "message", second, "hi"));
-        })();
+        })().catch(done);
       });
     });
   });
