@@ -28,10 +28,10 @@ export default class ScanStream extends Readable {
     }
 
     const args: string[] = [this._redisCursor];
-    if (this.opt.key) {
+    if (this.opt.key !== undefined) {
       args.unshift(this.opt.key);
     }
-    if (this.opt.match) {
+    if (this.opt.match !== undefined) {
       args.push("MATCH", this.opt.match);
     }
     if (this.opt.type) {
