@@ -391,8 +391,11 @@ export default class SentinelConnector extends AbstractConnector {
       this.failoverDetector.cleanup();
     }
 
-    this.failoverDetector = new FailoverDetector(this, sentinels);
-    await this.failoverDetector.subscribe();
+    const failoverDetector = new FailoverDetector(this, sentinels);
+    this.failoverDetector = failoverDetector;
+    // QUIT closes the stream without calling the connector's disconnect().
+    this.stream.once("close", () => failoverDetector.cleanup());
+    await failoverDetector.subscribe();
 
     // Tests listen to this event
     this.emitter?.emit("failoverSubscribed");
