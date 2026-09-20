@@ -38,6 +38,37 @@ describe("pub/sub", function () {
         done();
       });
     });
+
+    it("should not error when subscribing during connection setup (#2037)", (done) => {
+      const redis = new Redis({ protocol: 2 });
+      redis.on("error", (err) => {
+        done(err);
+      });
+
+      redis.psubscribe("pattern#*", () => {});
+      redis.subscribe("foo", "bar", (err) => {
+        expect(err).to.be.null;
+        expect(redis.mode).to.equal("subscriber");
+        redis.disconnect();
+        done();
+      });
+    });
+
+    it("should not error when subscribing on connect event (#2037)", (done) => {
+      const redis = new Redis({ protocol: 2 });
+      redis.on("error", (err) => {
+        done(err);
+      });
+
+      redis.on("connect", () => {
+        redis.subscribe("foo", (err) => {
+          expect(err).to.be.null;
+          expect(redis.mode).to.equal("subscriber");
+          redis.disconnect();
+          done();
+        });
+      });
+    });
   });
 
   describe("RESP3 subscriber mode", function () {
