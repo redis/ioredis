@@ -183,6 +183,7 @@ export interface ClusterOptions extends CommanderOptions {
         | "enableOfflineQueue"
         | "readOnly"
         | "himportFieldsets"
+        | "maintNotifications"
       >
     | undefined;
 

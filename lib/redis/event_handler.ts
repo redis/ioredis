@@ -9,11 +9,19 @@ import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import { PACKAGE_VERSION } from "../utils/version";
 import DataHandler from "../DataHandler";
 import { getHimportBinding } from "../himport/HimportCoordinator";
+import { getMaintNotificationsHandshakeCommand } from "../maintNotifications";
 
 const debug = Debug("connection");
 
-interface HandshakeCommand {
-  kind: "hello" | "auth" | "select" | "client" | "readonly" | "himport";
+export interface HandshakeCommand {
+  kind:
+    | "hello"
+    | "auth"
+    | "select"
+    | "client"
+    | "maint_notifications"
+    | "readonly"
+    | "himport";
   send: () => Promise<unknown>;
   errorHandler?: (err: Error) => void;
 }
@@ -89,7 +97,7 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
           "LIB-NAME",
           self.options?.clientInfoTag
             ? `ioredis(${self.options.clientInfoTag})`
-            : "ioredis",
+            : "ioredis"
         ),
       errorHandler: noop,
     });
@@ -108,18 +116,23 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
     }
   }
 
+  const maintCommand = getMaintNotificationsHandshakeCommand(self);
+  if (maintCommand) {
+    commands.push(maintCommand);
+  }
+
   return commands;
 }
 
 async function sendHandshake(
   commands: HandshakeCommand[],
-  protocol: number,
+  protocol: number
 ): Promise<void> {
   if (protocol !== 3) {
     await Promise.all(
       commands.map(({ send, errorHandler }) =>
-        errorHandler ? send().catch(errorHandler) : send(),
-      ),
+        errorHandler ? send().catch(errorHandler) : send()
+      )
     );
     return;
   }
@@ -150,21 +163,18 @@ async function sendHandshake(
   }
 }
 
-export function connectHandler(self) {
+export function connectHandler(self, flushOfflineQueue: () => void) {
   return async function () {
     try {
       self.resetCommandQueue();
       self.condition.handshake = true;
       self.setStatus("connect");
 
-      /*
-        No need to keep the reference of DataHandler here
-        because we don't need to do the cleanup.
-        `Stream#end()` will remove all listeners for us.
-      */
-      new DataHandler(self, {
+      // The handler must travel with the socket during transport adoption.
+      self.dataHandler = new DataHandler(self, {
         stringNumbers: self.options.stringNumbers,
         replyMapping: self.condition.replyMapping,
+        onMaintenanceNotification: self.maintenanceManager?.handle,
       });
 
       const { connectionEpoch } = self;
@@ -181,7 +191,10 @@ export function connectHandler(self) {
       };
 
       try {
-        await sendHandshake(getHandshakeCommands(self), self.condition.protocol);
+        await sendHandshake(
+          getHandshakeCommands(self),
+          self.condition.protocol
+        );
       } catch (err) {
         // The connection may have been closed (and possibly already
         // reconnected) while the client setup commands above were still
@@ -206,7 +219,7 @@ export function connectHandler(self) {
         if (self.options.replyMapping === "resp3") {
           console.warn(
             '[WARN] replyMapping "resp3" was requested, but the server does not support RESP3. ' +
-              "Replies will use RESP2-compatible shapes until connected to a server that supports RESP3.",
+              "Replies will use RESP2-compatible shapes until connected to a server that supports RESP3."
           );
         }
 
@@ -217,7 +230,7 @@ export function connectHandler(self) {
         try {
           await sendHandshake(
             getHandshakeCommands(self),
-            self.condition.protocol,
+            self.condition.protocol
           );
         } catch (downgradeErr) {
           if (!isActiveConnect()) {
@@ -240,7 +253,7 @@ export function connectHandler(self) {
         if (!finishHandshake()) {
           return;
         }
-        return exports.readyHandler(self)();
+        return exports.readyHandler(self, flushOfflineQueue)();
       }
 
       self._readyCheck(function (err: Error | null, info: unknown) {
@@ -253,7 +266,7 @@ export function connectHandler(self) {
           if (!finishHandshake()) {
             return;
           }
-          exports.readyHandler(self)();
+          exports.readyHandler(self, flushOfflineQueue)();
         } else {
           self.disconnect(true);
         }
@@ -268,7 +281,7 @@ function handleAuthError(err: Error): void {
   const msg = err.message || "";
   if (msg.indexOf("no password is set") !== -1) {
     console.warn(
-      "[WARN] Redis server does not require a password, but a password was supplied.",
+      "[WARN] Redis server does not require a password, but a password was supplied."
     );
     return;
   }
@@ -276,13 +289,13 @@ function handleAuthError(err: Error): void {
     msg.indexOf("without any password configured for the default user") !== -1
   ) {
     console.warn(
-      "[WARN] This Redis server's `default` user does not require a password, but a password was supplied",
+      "[WARN] This Redis server's `default` user does not require a password, but a password was supplied"
     );
     return;
   }
   if (msg.indexOf("wrong number of arguments for 'auth' command") !== -1) {
     console.warn(
-      `[ERROR] The server returned "wrong number of arguments for 'auth' command". You are probably passing both username and password to Redis version 5 or below. You should only pass the 'password' option for Redis version 5 and under.`,
+      `[ERROR] The server returned "wrong number of arguments for 'auth' command". You are probably passing both username and password to Redis version 5 or below. You should only pass the 'password' option for Redis version 5 and under.`
     );
     return;
   }
@@ -395,7 +408,7 @@ export function closeHandler(self) {
 
     if (typeof retryDelay !== "number") {
       debug(
-        "skip reconnecting because `retryStrategy` doesn't return a number",
+        "skip reconnecting because `retryStrategy` doesn't return a number"
       );
       return close();
     }
@@ -416,7 +429,7 @@ export function closeHandler(self) {
         const remainder = self.retryAttempts % (maxRetriesPerRequest + 1);
         if (remainder === 0) {
           debug(
-            "reach maxRetriesPerRequest limitation, flushing command queue...",
+            "reach maxRetriesPerRequest limitation, flushing command queue..."
           );
           self.flushQueue(new MaxRetriesPerRequestError(maxRetriesPerRequest));
         }
@@ -437,7 +450,7 @@ export function errorHandler(self) {
   };
 }
 
-export function readyHandler(self) {
+export function readyHandler(self, flushOfflineQueue: () => void) {
   return function () {
     self.setStatus("ready");
     self.retryAttempts = 0;
@@ -445,7 +458,7 @@ export function readyHandler(self) {
     if (self.options.monitor) {
       self.call("monitor").then(
         () => self.setStatus("monitoring"),
-        (error: Error) => self.emit("error", error),
+        (error: Error) => self.emit("error", error)
       );
       const { sendCommand } = self;
       self.sendCommand = function (command) {
@@ -453,9 +466,7 @@ export function readyHandler(self) {
           return sendCommand.call(self, command);
         }
         command.reject(
-          new Error(
-            "Connection is in monitoring mode, can't process commands.",
-          ),
+          new Error("Connection is in monitoring mode, can't process commands.")
         );
         return command.promise;
       };
@@ -531,23 +542,7 @@ export function readyHandler(self) {
       }
     }
 
-    if (self.offlineQueue.length) {
-      debug("send %d commands in offline queue", self.offlineQueue.length);
-      const offlineQueue = self.offlineQueue;
-      self.resetOfflineQueue();
-      while (offlineQueue.length > 0) {
-        const item = offlineQueue.shift();
-        if (
-          item.select !== self.condition.select &&
-          item.command.name !== "select"
-        ) {
-          self
-            .select(item.select)
-            .catch((err) => self.silentEmit("error", err));
-        }
-        self.sendCommand(item.command, item.stream);
-      }
-    }
+    flushOfflineQueue();
 
     if (self.condition.select !== finalSelect) {
       debug("connect to db [%d]", finalSelect);

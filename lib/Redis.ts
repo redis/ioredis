@@ -3,7 +3,12 @@ import { EventEmitter } from "events";
 import asCallback from "standard-as-callback";
 import Cluster from "./cluster";
 import Command from "./Command";
-import { DataHandledable, FlushQueueOptions, Condition } from "./DataHandler";
+import DataHandler, {
+  COMMAND_QUEUE_DRAINED,
+  DataHandledable,
+  FlushQueueOptions,
+  Condition,
+} from "./DataHandler";
 import { StandaloneConnector } from "./connectors";
 import AbstractConnector from "./connectors/AbstractConnector";
 import SentinelConnector from "./connectors/SentinelConnector";
@@ -33,6 +38,7 @@ import {
   parseURL,
   resolveTLSProfile,
 } from "./utils";
+import { WatchError } from "./errors";
 import {
   traceCommand,
   traceConnect,
@@ -45,10 +51,19 @@ import Commander from "./utils/Commander";
 import { defaults, noop } from "./utils/lodash";
 import HimportCoordinator, {
   bindHimportCoordinator,
+  getHimportBinding,
   hasHimportCoordinator,
   interceptHimportCommand,
   isInternalHimportCommand,
 } from "./himport/HimportCoordinator";
+import MaintenanceManager, {
+  type TimeoutPolicy,
+} from "./maintNotifications/MaintenanceManager";
+import {
+  DetachedTransport,
+  HandoffCandidate,
+  HandoffEndpoint,
+} from "./redis/ConnectionSession";
 import { cloneHimportFieldsets } from "./himport/HimportCoordinator";
 import Deque = require("denque");
 const debug = Debug("redis");
@@ -125,6 +140,16 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
   commandQueue: Deque<CommandItem>;
 
   private connector: AbstractConnector;
+  private readonly maintConfiguredEndpoint: HandoffEndpoint | null;
+  private dataHandler: DataHandler | undefined;
+  private maintenanceManager: MaintenanceManager | null = null;
+  private isMaintHandoffCandidate = false;
+  // Set when a Smart Client Handoff replaces the connection while a WATCH is
+  // active on it. The server-side watch set dies with the old connection, so
+  // the next MULTI/EXEC must abort with WatchError instead of executing
+  // unguarded. Cleared when a transaction is rejected or when UNWATCH, EXEC,
+  // DISCARD, or RESET resets the watch state.
+  private staleWatch = false;
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private offlineQueue: Deque;
   private connectionEpoch = 0;
@@ -163,6 +188,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
   constructor(arg1?: unknown, arg2?: unknown, arg3?: unknown) {
     super();
     this.parseOptions(arg1, arg2, arg3);
+    this.maintConfiguredEndpoint = this.resolveMaintConfiguredEndpoint();
 
     EventEmitter.call(this);
 
@@ -175,6 +201,34 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
         new HimportCoordinator(this.options.himportFieldsets),
         "standalone"
       );
+    }
+
+    if (this.options.maintNotifications !== "disabled") {
+      const redis = this;
+      this.maintenanceManager = new MaintenanceManager({
+        get options() {
+          return redis.options;
+        },
+        extendPendingCommandTimeouts: (policy) =>
+          this.extendPendingCommandTimeouts(policy),
+        rearmSocketTimeout: () => this.rearmSocketTimeout(),
+        flushOfflineQueue: () => this.flushOfflineQueue(),
+        canHandoff: () => this.canHandoffConnection(),
+        getConfiguredEndpoint: () => this.getConfiguredEndpoint(),
+        createCandidate: (endpoint) => this.createCandidateConnection(endpoint),
+        waitForDrain: () => this.waitForCommandQueueToDrain(),
+        commitHandoff: (candidate, endpoint) =>
+          this.commitHandoff(candidate, endpoint),
+      });
+      this.on("close", () => {
+        if (
+          this.maintenanceManager.handleConnectionClose(
+            Boolean(this.condition?.watching)
+          )
+        ) {
+          this.staleWatch = true;
+        }
+      });
     }
 
     this.resetCommandQueue();
@@ -268,6 +322,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
             ? "resp3"
             : "legacy",
         handshake: false,
+        watching: false,
       };
 
       const _this = this;
@@ -311,7 +366,12 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
           }
 
           if (stream.connecting) {
-            stream.once(CONNECT_EVENT, eventHandler.connectHandler(_this));
+            stream.once(
+              CONNECT_EVENT,
+              eventHandler.connectHandler(_this, () =>
+                _this.flushOfflineQueue()
+              )
+            );
 
             if (options.connectTimeout) {
               /*
@@ -352,7 +412,11 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
             }
             process.nextTick(eventHandler.closeHandler(_this));
           } else {
-            process.nextTick(eventHandler.connectHandler(_this));
+            process.nextTick(
+              eventHandler.connectHandler(_this, () =>
+                _this.flushOfflineQueue()
+              )
+            );
           }
           if (!stream.destroyed) {
             stream.once("error", eventHandler.errorHandler(_this));
@@ -520,21 +584,38 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       return command.promise;
     }
 
+    // A Smart Client Handoff replaced the connection while a WATCH was
+    // active, so the server-side watch set is gone. Reject the transaction
+    // before anything is written — a MULTI batch is rejected as a whole so
+    // the server never sees a partial transaction — and scrub the watch
+    // state so a retried transaction starts fresh.
+    if (this.staleWatch && this.isStaleWatchTransaction(command, stream)) {
+      if (!stream || command.name.toLowerCase() === "exec") {
+        this.scrubStaleWatch();
+      }
+      command.reject(new WatchError());
+      return command.promise;
+    }
+
     if (typeof this.options.commandTimeout === "number") {
-      command.setTimeout(this.options.commandTimeout);
+      const policy = this.maintenanceManager?.commandTimeoutPolicy();
+      if (policy) {
+        command.setTimeout(policy.timeout, policy.createTimeoutError);
+        // A command re-entering sendCommand (e.g. resent from
+        // prevCommandQueue after a reconnect) already has a running timer,
+        // making setTimeout() a no-op; extend its deadline instead.
+        command.extendTimeout(policy.timeout, policy.createTimeoutError);
+      } else {
+        command.setTimeout(this.options.commandTimeout);
+      }
     }
 
     if (
       !stream &&
       this[hasHimportCoordinator] &&
-      interceptHimportCommand(
-        this,
-        command,
-        this.status === "ready",
-        () => {
-          this.sendCommand(command);
-        }
-      )
+      interceptHimportCommand(this, command, this.status === "ready", () => {
+        this.sendCommand(command);
+      })
     ) {
       return command.promise;
     }
@@ -542,19 +623,22 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     const blockingTimeout = this.getBlockingTimeoutInMs(command);
 
     let writable =
-      this.status === "ready" ||
-      // During handshake, only internal handshake commands may bypass the queue.
-      (!stream &&
-        this.status === "connect" &&
-        this.condition?.handshake &&
-        (Command.checkFlag("HANDSHAKE_COMMANDS", command.name) ||
-          isInternalHimportCommand(command))) ||
-      // Before ready, loading-safe commands remain writable after handshake.
-      (!stream &&
-        this.status === "connect" &&
-        !this.condition?.handshake &&
-        exists(command.name, { caseInsensitive: true }) &&
-        hasFlag(command.name, "loading", { nameCaseInsensitive: true }));
+      // While writes are paused for a connection handoff, every command is
+      // retained in the offline queue and replayed after the handoff settles.
+      !this.maintenanceManager?.isWritePaused() &&
+      (this.status === "ready" ||
+        // During handshake, only internal handshake commands may bypass the queue.
+        (!stream &&
+          this.status === "connect" &&
+          this.condition?.handshake &&
+          (Command.checkFlag("HANDSHAKE_COMMANDS", command.name) ||
+            isInternalHimportCommand(command))) ||
+        // Before ready, loading-safe commands remain writable after handshake.
+        (!stream &&
+          this.status === "connect" &&
+          !this.condition?.handshake &&
+          exists(command.name, { caseInsensitive: true }) &&
+          hasFlag(command.name, "loading", { nameCaseInsensitive: true })));
     if (!this.stream) {
       writable = false;
     } else if (!this.stream.writable) {
@@ -570,7 +654,9 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       if (!this.options.enableOfflineQueue) {
         command.reject(
           new Error(
-            "Stream isn't writeable and enableOfflineQueue options is false"
+            this.maintenanceManager?.isWritePaused()
+              ? "Command cannot be queued during a connection handoff because enableOfflineQueue is false"
+              : "Stream isn't writeable and enableOfflineQueue options is false"
           )
         );
         return command.promise;
@@ -636,6 +722,8 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
         select: this.condition.select,
       });
 
+      this.trackWatchState(command);
+
       if (blockingTimeout !== undefined) {
         command.setBlockingTimeout(blockingTimeout);
       }
@@ -674,6 +762,64 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       () => command.promise as Promise<unknown>,
       () => this._buildCommandContext(command)
     );
+  }
+
+  /**
+   * Whether this command belongs to a MULTI/EXEC transaction that must abort
+   * because its WATCH was invalidated by a connection handoff. A pipelined
+   * batch that wraps MULTI is matched command-by-command so the whole batch
+   * is rejected uniformly and nothing reaches the wire; standalone MULTI and
+   * EXEC cover the `multi({ pipeline: false })` flow.
+   */
+  private isStaleWatchTransaction(
+    command: Command,
+    stream?: WriteableStream
+  ): boolean {
+    if (stream) {
+      return "isPipeline" in stream && Boolean(stream.containsMulti);
+    }
+    const name = command.name.toLowerCase();
+    return name === "multi" || name === "exec";
+  }
+
+  /**
+   * Clears an invalidated watch and sends UNWATCH so any watches established
+   * after the handoff are dropped too — a retried transaction starts from a
+   * pristine watch state.
+   */
+  private scrubStaleWatch(): void {
+    this.staleWatch = false;
+    this.unwatch().catch(noop);
+  }
+
+  /**
+   * Mirrors the server-side watch state of the connection a written command
+   * leaves behind, so a handoff can tell whether it invalidates a WATCH.
+   */
+  private trackWatchState(command: Command): void {
+    if (!this.condition) {
+      return;
+    }
+
+    switch (command.name.toLowerCase()) {
+      case "watch":
+        // WATCH queued inside MULTI is rejected by the server and never
+        // establishes a watch; any other WATCH does — including one issued
+        // before MULTI or after an inline EXEC within a pipeline batch.
+        if (!command.inTransaction) {
+          this.condition.watching = true;
+        }
+        break;
+      case "unwatch":
+      case "exec":
+      case "discard":
+      case "reset":
+        // Each of these clears the server-side watch set, which also
+        // resolves a watch invalidated by a handoff.
+        this.condition.watching = false;
+        this.staleWatch = false;
+        break;
+    }
   }
 
   private getBlockingTimeoutInMs(command: Command): number | undefined {
@@ -722,14 +868,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
 
   private setSocketTimeout() {
     const stream = this.stream;
-    this.socketTimeoutTimer = setTimeout(() => {
-      stream.destroy(
-        new Error(
-          `Socket timeout. Expecting data, but didn't receive any in ${this.options.socketTimeout}ms.`
-        )
-      );
-      this.socketTimeoutTimer = undefined;
-    }, this.options.socketTimeout);
+    this.armSocketTimeout();
 
     // this handler must run after the "data" handler in "DataHandler"
     // so that `this.commandQueue.length` will be updated
@@ -738,6 +877,346 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       this.socketTimeoutTimer = undefined;
       if (this.commandQueue.length === 0) return;
       this.setSocketTimeout();
+    });
+  }
+
+  /**
+   * Arms only the timer, deliberately without registering another "data"
+   * listener, so a pending timeout can be rescheduled (e.g. relaxed for
+   * maintenance) without stacking listeners in setSocketTimeout().
+   */
+  private armSocketTimeout() {
+    const stream = this.stream;
+    const policy = this.maintenanceManager?.socketTimeoutPolicy() ?? null;
+    const timeout = policy ? policy.timeout : this.options.socketTimeout;
+
+    this.socketTimeoutTimer = setTimeout(() => {
+      stream.destroy(
+        policy
+          ? policy.createTimeoutError()
+          : new Error(
+              `Socket timeout. Expecting data, but didn't receive any in ${timeout}ms.`
+            )
+      );
+      this.socketTimeoutTimer = undefined;
+    }, timeout);
+  }
+
+  /**
+   * Extends the deadline of every pending command (written or still queued)
+   * so none expires earlier than `timeout` from now. Driven by the
+   * maintenance manager when a maintenance window opens.
+   */
+  private extendPendingCommandTimeouts({
+    timeout,
+    createTimeoutError,
+  }: TimeoutPolicy): void {
+    for (const item of this.commandQueue.toArray()) {
+      item.command.extendTimeout?.(timeout, createTimeoutError);
+    }
+    for (const item of this.offlineQueue.toArray()) {
+      item.command.extendTimeout?.(timeout, createTimeoutError);
+    }
+  }
+
+  /**
+   * Reschedules a pending socket timeout so the next arm picks up the
+   * current timeout policy. Driven by the maintenance manager when a
+   * maintenance window opens or the last one closes.
+   */
+  private rearmSocketTimeout(): void {
+    if (this.socketTimeoutTimer === undefined) {
+      return;
+    }
+
+    clearTimeout(this.socketTimeoutTimer);
+    this.socketTimeoutTimer = undefined;
+    this.armSocketTimeout();
+  }
+
+  /**
+   * Replays the offline queue through sendCommand. Shared by the ready
+   * handler after a (re)connect and by the maintenance manager after a
+   * handoff write pause is resumed.
+   */
+  private flushOfflineQueue(): void {
+    if (
+      this.maintenanceManager?.isWritePaused() ||
+      this.offlineQueue.length === 0
+    ) {
+      return;
+    }
+
+    debug("send %d commands in offline queue", this.offlineQueue.length);
+    const offlineQueue = this.offlineQueue;
+    this.resetOfflineQueue();
+    while (offlineQueue.length > 0) {
+      const item = offlineQueue.shift();
+      if (
+        item.select !== this.condition.select &&
+        item.command.name !== "select"
+      ) {
+        this.select(item.select).catch((err) => this.silentEmit("error", err));
+      }
+      this.sendCommand(item.command, item.stream);
+    }
+  }
+
+  /**
+   * Whether this connection's shape supports a Smart Client Handoff.
+   * Subscriber and monitor connections carry state a fresh candidate would
+   * lose, so they fall back to the ordinary reconnect path.
+   */
+  private canHandoffConnection(): boolean {
+    return (
+      !this.isMaintHandoffCandidate &&
+      this.mode === "normal" &&
+      !this.condition?.subscriber
+    );
+  }
+
+  /**
+   * The endpoint this client is configured against, used as the handoff
+   * target when an endpointless MOVING asks for a reconnect against the
+   * (re-resolved) configured address. Null for connections a handoff cannot
+   * be established for: socket paths, Sentinel, and custom connectors.
+   */
+  private getConfiguredEndpoint(): HandoffEndpoint | null {
+    return this.maintConfiguredEndpoint;
+  }
+
+  /**
+   * Captures the standalone TCP endpoint supplied at construction time before
+   * a handoff can replace options.host and options.port with its destination.
+   */
+  private resolveMaintConfiguredEndpoint(): HandoffEndpoint | null {
+    if (
+      this.options.sentinels ||
+      this.options.Connector ||
+      ("path" in this.options && this.options.path)
+    ) {
+      return null;
+    }
+
+    const { host, port } = this.options;
+    if (typeof host !== "string" || typeof port !== "number") {
+      return null;
+    }
+    return { host, port };
+  }
+
+  /**
+   * Establishes a fully handshaken connection to the given endpoint through
+   * a temporary duplicate client. The temporary client keeps owning (and
+   * monitoring) the socket until `detachTransport()` is called at the
+   * adoption moment, so a failing candidate can never raise an unhandled
+   * error event. The temporary client never reconnects on its own.
+   */
+  private async createCandidateConnection(
+    endpoint: HandoffEndpoint
+  ): Promise<HandoffCandidate> {
+    if (
+      this.options.sentinels ||
+      this.options.Connector ||
+      ("path" in this.options && this.options.path)
+    ) {
+      throw new Error(
+        "Connection handoff is only supported for standalone TCP connections"
+      );
+    }
+
+    const candidate = this.duplicate({
+      host: endpoint.host,
+      port: endpoint.port,
+      // The candidate must land on the database the connection actually
+      // uses, which a runtime SELECT may have changed from options.db.
+      db: this.condition?.select ?? this.options.db,
+      lazyConnect: true,
+      retryStrategy: null,
+      reconnectOnError: null,
+      himportFieldsets: undefined,
+    });
+    candidate.isMaintHandoffCandidate = true;
+    // A candidate failure is handled through the handoff flow; keep its
+    // error events from being reported as unhandled.
+    candidate.on("error", noop);
+
+    try {
+      await candidate.connect();
+    } catch (err) {
+      candidate.disconnect();
+      throw err;
+    }
+
+    return {
+      detachTransport: () => candidate.detachReadyTransport(),
+      dispose: () => {
+        if (candidate.status !== "end") {
+          candidate.disconnect();
+        }
+      },
+    };
+  }
+
+  /**
+   * Detaches this client's transport so another client can adopt it. Only a
+   * ready, idle connection in normal mode can be detached; afterwards this
+   * client is permanently ended and every listener it registered on the
+   * stream is removed.
+   */
+  private detachReadyTransport(): DetachedTransport {
+    if (
+      this.status !== "ready" ||
+      this.mode !== "normal" ||
+      this.commandQueue.length > 0 ||
+      this.offlineQueue.length > 0 ||
+      !this.condition ||
+      !this.dataHandler
+    ) {
+      throw new Error(
+        "Only a ready and idle candidate connection can be detached"
+      );
+    }
+
+    const transport: DetachedTransport = {
+      stream: this.stream,
+      connector: this.connector,
+      condition: this.condition,
+      dataHandler: this.dataHandler,
+    };
+
+    // The adopted transport will be rebound to its owner's maintenance
+    // manager. Clear timers and write-pause state retained by the temporary
+    // candidate before it gives up ownership.
+    this.maintenanceManager?.reset();
+
+    // Strip everything this client registered on the socket so no callback
+    // can reach a client that no longer owns the connection.
+    transport.stream.removeAllListeners("data");
+    transport.stream.removeAllListeners("error");
+    transport.stream.removeAllListeners("close");
+    if (this.socketTimeoutTimer !== undefined) {
+      clearTimeout(this.socketTimeoutTimer);
+      this.socketTimeoutTimer = undefined;
+    }
+
+    // Sever ownership so disposing this client cannot touch the socket, and
+    // end it so it rejects any further use.
+    this.stream = undefined as unknown as NetStream;
+    this.connector = undefined as unknown as AbstractConnector;
+    this.dataHandler = undefined;
+    this.manuallyClosing = true;
+    this.setStatus("end");
+
+    return transport;
+  }
+
+  /**
+   * Commits a handoff after validating the owner and the ready candidate.
+   * Validation precedes detachment so a rejected handoff leaves the candidate
+   * owned and disposable. Disposal and installation are synchronous; the
+   * offline queue is retained for replay once the caller resumes writes.
+   */
+  private commitHandoff(
+    candidate: HandoffCandidate,
+    endpoint: HandoffEndpoint
+  ): void {
+    if (this.status !== "ready") {
+      throw new Error(
+        `Cannot adopt a transport while the connection is "${this.status}"`
+      );
+    }
+    if (this.commandQueue.length > 0) {
+      throw new Error(
+        "Cannot adopt a transport while commands are awaiting replies"
+      );
+    }
+
+    // Draining can acknowledge a pending subscription, making the owner
+    // ineligible even though it supported a handoff when MOVING arrived.
+    if (!this.canHandoffConnection()) {
+      throw new Error("Connection no longer supports a handoff");
+    }
+
+    const transport = candidate.detachTransport();
+    if (this.socketTimeoutTimer !== undefined) {
+      clearTimeout(this.socketTimeoutTimer);
+      this.socketTimeoutTimer = undefined;
+    }
+    // Silence and dispose the drained old transport. With its listeners
+    // removed, destroying it cannot trigger the reconnect path or deliver
+    // replies to its former owner.
+    this.stream.removeAllListeners("data");
+    this.stream.removeAllListeners("error");
+    this.stream.removeAllListeners("close");
+    this.stream.destroy();
+
+    debug(
+      "adopt transport %s:%s (epoch %d)",
+      endpoint.host,
+      endpoint.port,
+      this.connectionEpoch + 1
+    );
+
+    // The watch set lives on the connection being replaced; executing a
+    // pending MULTI/EXEC on the adopted one would silently drop the
+    // optimistic lock. Remember the loss so the next transaction aborts.
+    if (this.condition?.watching) {
+      debug("adopting a transport invalidates an active WATCH");
+      this.staleWatch = true;
+    }
+
+    this.stream = transport.stream;
+    this.connector = transport.connector;
+    this.condition = transport.condition;
+    if ("host" in this.options) {
+      this.options.host = endpoint.host;
+      this.options.port = endpoint.port;
+    }
+
+    // Invalidate stale asynchronous callbacks bound to the old connection.
+    this.connectionEpoch += 1;
+
+    // HIMPORT PREPARE state is scoped to the server-side session, and the
+    // adopted connection has never seen one (the candidate is created
+    // without fieldsets). Start a fresh coordinator session — exactly what
+    // a reconnect does — so managed commands re-prepare their fieldsets on
+    // the new connection before use.
+    getHimportBinding(this)?.coordinator.beginSession(this);
+
+    // Preserve the candidate's decoder continuation alongside its socket.
+    this.dataHandler = transport.dataHandler;
+    transport.stream.once("error", eventHandler.errorHandler(this));
+    transport.stream.once("close", eventHandler.closeHandler(this));
+    this.dataHandler.rebind(this, this.maintenanceManager?.handle);
+  }
+
+  /**
+   * Resolves when every command written to the current connection has
+   * received its reply, or rejects when the connection closes first.
+   */
+  private waitForCommandQueueToDrain(): Promise<void> {
+    if (this.commandQueue.length === 0) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      const onDrained = () => {
+        cleanup();
+        resolve();
+      };
+      const onClose = () => {
+        cleanup();
+        reject(
+          new Error("Connection closed while waiting for the command queue")
+        );
+      };
+      const cleanup = () => {
+        this.removeListener(COMMAND_QUEUE_DRAINED, onDrained);
+        this.removeListener("close", onClose);
+      };
+      this.once(COMMAND_QUEUE_DRAINED, onDrained);
+      this.once("close", onClose);
     });
   }
 
