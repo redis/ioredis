@@ -251,6 +251,10 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
         return;
       }
 
+      if (this.status === "end") {
+        this.retryAttempts = 0;
+      }
+
       this.connectionEpoch += 1;
       this.setStatus("connecting");
 
