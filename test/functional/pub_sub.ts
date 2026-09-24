@@ -38,6 +38,49 @@ describe("pub/sub", function () {
         done();
       });
     });
+
+    it("should not error and reach ready when subscribing during connection setup (#2037)", (done) => {
+      const redis = new Redis({ protocol: 2 });
+      redis.on("error", (err) => {
+        done(err);
+      });
+
+      let isReady = false;
+      redis.psubscribe("pattern#*", () => {});
+      redis.subscribe("foo", "bar", (err) => {
+        expect(err).to.be.null;
+        expect(isReady).to.be.true;
+        expect(redis.mode).to.equal("subscriber");
+        redis.disconnect();
+        done();
+      });
+
+      redis.on("ready", () => {
+        isReady = true;
+      });
+    });
+
+    it("should not error and reach ready when subscribing on connect event (#2037)", (done) => {
+      const redis = new Redis({ protocol: 2 });
+      redis.on("error", (err) => {
+        done(err);
+      });
+
+      let isReady = false;
+      redis.on("connect", () => {
+        redis.subscribe("foo", (err) => {
+          expect(err).to.be.null;
+          expect(isReady).to.be.true;
+          expect(redis.mode).to.equal("subscriber");
+          redis.disconnect();
+          done();
+        });
+      });
+
+      redis.on("ready", () => {
+        isReady = true;
+      });
+    });
   });
 
   describe("RESP3 subscriber mode", function () {
