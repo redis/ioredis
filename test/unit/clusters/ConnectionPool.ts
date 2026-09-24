@@ -134,4 +134,27 @@ describe("ConnectionPool", () => {
       expect(pool.getNodes().length).to.eql(0);
     });
   });
+
+  describe("role changes", () => {
+    [
+      { fromReadOnly: false, toReadOnly: true, command: "readonly" },
+      { fromReadOnly: true, toReadOnly: false, command: "readwrite" },
+    ].forEach(({ fromReadOnly, toReadOnly, command }) => {
+      it(`disconnects a node when ${command} fails`, async () => {
+        const pool = new ConnectionPool({});
+        const redis = pool.findOrCreate(
+          { host: "127.0.0.1", port: 30001 },
+          fromReadOnly
+        );
+        const disconnect = sinon.stub(redis, "disconnect");
+        sinon.stub(redis, command).rejects(new Error("LOADING"));
+
+        pool.findOrCreate({ host: "127.0.0.1", port: 30001 }, toReadOnly);
+        await new Promise((resolve) => setImmediate(resolve));
+
+        expect(disconnect.calledOnceWithExactly(true)).to.eql(true);
+        sinon.restore();
+      });
+    });
+  });
 });

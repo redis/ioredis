@@ -355,6 +355,29 @@ describe("connection", function () {
   });
 
   describe("readOnly", function () {
+    it("should retry a failed readonly handshake before becoming ready", (done) => {
+      let readonlyAttempts = 0;
+      const node = new MockServer(30001, (argv) => {
+        if (argv[0] === "readonly" && ++readonlyAttempts === 1) {
+          return new Error("LOADING Redis is loading the dataset in memory");
+        }
+        return "OK";
+      });
+      const redis = new Redis({
+        port: 30001,
+        readOnly: true,
+        enableReadyCheck: false,
+        retryStrategy: () => 0,
+      });
+
+      redis.on("error", () => {});
+      redis.once("ready", () => {
+        expect(readonlyAttempts).to.eql(2);
+        redis.disconnect();
+        node.disconnect(done);
+      });
+    });
+
     it("should send readonly command exactly once before other commands", (done) => {
       let readonlyCount = 0;
       const redis = new Redis({
