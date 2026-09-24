@@ -291,6 +291,10 @@ class Cluster<
         return;
       }
 
+      if (this.status === "end") {
+        this.retryAttempts = 0;
+      }
+
       const epoch = ++this.connectionEpoch;
       this.setStatus("connecting");
 

@@ -42,6 +42,31 @@ describe("cluster:connect", () => {
     });
   });
 
+  it("should reset retry times when connect() is called after giving up", (done) => {
+    const timesSeen: number[] = [];
+
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      clusterRetryStrategy(times) {
+        timesSeen.push(times);
+        return times > 2 ? null : 0;
+      },
+    });
+
+    let endCount = 0;
+    cluster.on("end", () => {
+      endCount++;
+
+      if (endCount === 1) {
+        cluster.connect().catch(() => {});
+        return;
+      }
+
+      expect(timesSeen).to.eql([1, 2, 3, 1, 2, 3]);
+      cluster.disconnect();
+      done();
+    });
+  });
+
   it("should invoke clusterRetryStrategy when none nodes are ready", (done) => {
     const argvHandler = function (argv) {
       if (argv[0] === "cluster") {

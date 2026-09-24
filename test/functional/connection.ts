@@ -276,6 +276,32 @@ describe("connection", function () {
       });
     });
 
+    it("should reset retry times when connect() is called after giving up", (done) => {
+      const timesSeen: number[] = [];
+
+      const redis = new Redis({
+        port: 1,
+        retryStrategy(times) {
+          timesSeen.push(times);
+          return times > 2 ? null : 0;
+        },
+      });
+
+      let endCount = 0;
+      redis.on("end", () => {
+        endCount++;
+
+        if (endCount === 1) {
+          redis.connect().catch(() => {});
+          return;
+        }
+
+        expect(timesSeen).to.eql([1, 2, 3, 1, 2, 3]);
+        redis.disconnect();
+        done();
+      });
+    });
+
     it("should skip reconnecting when retryStrategy doesn't return a number", (done) => {
       var redis = new Redis({
         port: 1,
