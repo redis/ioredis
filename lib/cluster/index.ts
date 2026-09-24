@@ -1457,7 +1457,80 @@ class Cluster<
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface Cluster<ReplyMapping extends "legacy" | "resp3" = "legacy">
-  extends EventEmitter {}
+  extends EventEmitter {
+  on(event: "message", cb: (channel: string, message: string) => void): this;
+  once(event: "message", cb: (channel: string, message: string) => void): this;
+
+  on(
+    event: "messageBuffer",
+    cb: (channel: Buffer, message: Buffer) => void
+  ): this;
+  once(
+    event: "messageBuffer",
+    cb: (channel: Buffer, message: Buffer) => void
+  ): this;
+
+  on(
+    event: "pmessage",
+    cb: (pattern: string, channel: string, message: string) => void
+  ): this;
+  once(
+    event: "pmessage",
+    cb: (pattern: string, channel: string, message: string) => void
+  ): this;
+
+  on(
+    event: "pmessageBuffer",
+    cb: (pattern: string, channel: Buffer, message: Buffer) => void
+  ): this;
+  once(
+    event: "pmessageBuffer",
+    cb: (pattern: string, channel: Buffer, message: Buffer) => void
+  ): this;
+
+  on(event: "smessage", cb: (channel: string, message: string) => void): this;
+  once(event: "smessage", cb: (channel: string, message: string) => void): this;
+
+  on(
+    event: "smessageBuffer",
+    cb: (channel: Buffer, message: Buffer) => void
+  ): this;
+  once(
+    event: "smessageBuffer",
+    cb: (channel: Buffer, message: Buffer) => void
+  ): this;
+
+  on(event: "error", cb: (error: Error) => void): this;
+  once(event: "error", cb: (error: Error) => void): this;
+
+  on(event: "+node", cb: (node: Redis) => void): this;
+  once(event: "+node", cb: (node: Redis) => void): this;
+
+  on(event: "-node", cb: (node: Redis, nodeKey?: string) => void): this;
+  once(event: "-node", cb: (node: Redis, nodeKey?: string) => void): this;
+
+  on(event: "node error", cb: (error: Error, nodeKey: string) => void): this;
+  once(event: "node error", cb: (error: Error, nodeKey: string) => void): this;
+
+  on(event: "nodeError", cb: (error: Error, nodeKey: string) => void): this;
+  once(event: "nodeError", cb: (error: Error, nodeKey: string) => void): this;
+
+  on(
+    event: "+subscriber" | "-subscriber" | "subscribersReady" | "refresh",
+    cb: () => void
+  ): this;
+  once(
+    event: "+subscriber" | "-subscriber" | "subscribersReady" | "refresh",
+    cb: () => void
+  ): this;
+
+  on(event: ClusterStatus, cb: () => void): this;
+  once(event: ClusterStatus, cb: () => void): this;
+
+  // base method of EventEmitter
+  on(event: string | symbol, listener: (...args: any[]) => void): this;
+  once(event: string | symbol, listener: (...args: any[]) => void): this;
+}
 applyMixin(Cluster, EventEmitter);
 
 addTransactionSupport(Cluster.prototype);
