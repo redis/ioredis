@@ -67,15 +67,15 @@ export type VsimReply<
   Context extends ClientContext,
 > = Extract<T[number], "WITHATTRIBS"> extends never
   ? Extract<T[number], "WITHSCORES"> extends never
-    ? V[]
-    : RespShape<Resp2<V[]>, Resp3<Resp3Map<Resp3Double<V>>>, Context>
+  ? V[]
+  : RespShape<Resp2<V[]>, Resp3<Resp3Map<Resp3Double<V>>>, Context>
   : Extract<T[number], "WITHSCORES"> extends never
-    ? RespShape<Resp2<V[]>, Resp3<Resp3Map<V | null>>, Context>
-    : RespShape<
-        Resp2<V[]>,
-        Resp3<Resp3Map<[score: Resp3Double<V>, attributes: V | null]>>,
-        Context
-      >;
+  ? RespShape<Resp2<V[]>, Resp3<Resp3Map<V | null>>, Context>
+  : RespShape<
+    Resp2<V[]>,
+    Resp3<Resp3Map<[score: Resp3Double<V>, attributes: V | null]>>,
+    Context
+  >;
 
 interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   /**
@@ -128,7 +128,7 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
     ...args: [command: string, ...args: (string | Buffer | number)[]]
   ): Result<unknown, Context>;
 
-  
+
   /**
    * Lists the ACL categories, or the commands inside a category.
    * - _group_: server
@@ -563,6 +563,42 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   bitpos(key: RedisKey, bit: number | string, start: number | string, end: number | string, callback?: Callback<number>): Result<number, Context>;
 
   /**
+   * Removes protection flags from a key.
+   * - _group_: generic
+   * - _complexity_: O(1)
+   * - _since_: 8.12.0
+   */
+  bless(subcommand: 'CLEAR', key: RedisKey, noEvict: 'NO-EVICT', callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Returns the active protection flags of a key.
+   * - _group_: generic
+   * - _complexity_: O(1).
+   * - _since_: 8.12.0
+   */
+  bless(subcommand: 'GET', key: RedisKey, callback?: Callback<string[]>): Result<string[], Context>;
+  blessBuffer(subcommand: 'GET', key: RedisKey, callback?: Callback<Buffer[]>): Result<Buffer[], Context>;
+
+  /**
+   * Incrementally iterates the blessed keys of the current database that carry the given flag.
+   * - _group_: generic
+   * - _complexity_: O(1) for every call. O(N) for a complete iteration, where N is the number of blessed keys.
+   * - _since_: 8.12.0
+   */
+  bless(subcommand: 'SCAN', cursor: number | string, noEvict: 'NO-EVICT', countToken: 'COUNT', count: number | string, callback?: Callback<[cursor: string, elements: string[]]>): Result<[cursor: string, elements: string[]], Context>;
+  blessBuffer(subcommand: 'SCAN', cursor: number | string, noEvict: 'NO-EVICT', countToken: 'COUNT', count: number | string, callback?: Callback<[cursor: Buffer, elements: Buffer[]]>): Result<[cursor: Buffer, elements: Buffer[]], Context>;
+  bless(subcommand: 'SCAN', cursor: number | string, noEvict: 'NO-EVICT', callback?: Callback<[cursor: string, elements: string[]]>): Result<[cursor: string, elements: string[]], Context>;
+  blessBuffer(subcommand: 'SCAN', cursor: number | string, noEvict: 'NO-EVICT', callback?: Callback<[cursor: Buffer, elements: Buffer[]]>): Result<[cursor: Buffer, elements: Buffer[]], Context>;
+
+  /**
+   * Adds protection flags to a key against memory pressure.
+   * - _group_: generic
+   * - _complexity_: O(1)
+   * - _since_: 8.12.0
+   */
+  bless(subcommand: 'SET', key: RedisKey, noEvict: 'NO-EVICT', callback?: Callback<number>): Result<number, Context>;
+
+  /**
    * Pops an element from a list, pushes it to another list and returns it. Blocks until an element is available otherwise. Deletes the list if the last element was moved.
    * - _group_: list
    * - _complexity_: O(1)
@@ -576,6 +612,7 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   blmoveBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', left: 'LEFT', timeout: number | string, callback?: Callback<Buffer | null>): Result<Buffer | null, Context>;
   blmove(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', timeout: number | string, callback?: Callback<string | null>): Result<string | null, Context>;
   blmoveBuffer(source: RedisKey, destination: RedisKey, right: 'RIGHT', right1: 'RIGHT', timeout: number | string, callback?: Callback<Buffer | null>): Result<Buffer | null, Context>;
+
   /**
    * Moves up to (or exactly) a number of elements from one list to another and returns them. Blocks until the elements are available otherwise. Deletes the source list if it becomes empty.
    * - _group_: list
