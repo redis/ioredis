@@ -166,12 +166,17 @@ export function executeWithAutoPipelining(
   }
 
   // If we have slot information, we can improve routing by grouping slots served by the same subset of nodes
-  const prefix = client.options.keyPrefix || "";
-  let slotKey = client.isCluster
-    ? client.slots[
-        calculateSlot(`${prefix}${getFirstKeyForCommand(commandName, args)}`)
-      ].join(",")
-    : "main";
+  let slotKey = "main";
+  if (client.isCluster) {
+    const prefix = client.options.keyPrefix || "";
+    const key = getFirstKeyForCommand(commandName, args);
+    // Hash Buffer keys by their bytes, as Command#getSlot does; decoding
+    // them as UTF-8 can change the slot.
+    const slot = Buffer.isBuffer(key)
+      ? calculateSlot(Buffer.concat([Buffer.from(prefix), key]))
+      : calculateSlot(`${prefix}${key}`);
+    slotKey = client.slots[slot].join(",");
+  }
 
   // When scaleReads is enabled, separate read and write commands into different pipelines
   // so they can be routed to replicas and masters respectively
