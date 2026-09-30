@@ -36,6 +36,14 @@ describe("autoPipelining for cluster", () => {
         return 1;
       }
 
+      if (argv[0] === "mset" && argv[1] === "foo2") {
+        return "OK";
+      }
+
+      if (argv[0] === "msetnx" && argv[1] === "foo2") {
+        return 1;
+      }
+
       if (argv[0] === "get" && argv[1] === "foo6") {
         return "bar6";
       }
@@ -73,6 +81,14 @@ describe("autoPipelining for cluster", () => {
       }
 
       if (argv[0] === "msetex" && argv[1] === "1" && argv[2] === "foo1") {
+        return 1;
+      }
+
+      if (argv[0] === "mset" && argv[1] === "foo1") {
+        return "OK";
+      }
+
+      if (argv[0] === "msetnx" && argv[1] === "foo1") {
         return 1;
       }
 
@@ -251,6 +267,25 @@ describe("autoPipelining for cluster", () => {
     ]);
 
     expect(result).to.eql([1, 1]);
+
+    cluster.disconnect();
+  });
+
+  it("should bucket MSET and MSETNX with an object or Map by their first key", async () => {
+    const cluster = new Cluster(hosts, { enableAutoPipelining: true });
+    await new Promise((resolve) => cluster.once("connect", resolve));
+
+    const result = await Promise.all([
+      cluster.get("foo1"),
+      cluster.mset({ foo1: "bar1" }),
+      cluster.mset({ foo2: "bar2" }),
+      cluster.mset(new Map([["foo1", "bar1"]])),
+      cluster.mset(new Map([["foo2", "bar2"]])),
+      cluster.msetnx({ foo1: "bar1" }),
+      cluster.msetnx(new Map([["foo2", "bar2"]])),
+    ]);
+
+    expect(result).to.eql(["bar1", "OK", "OK", "OK", "OK", 1, 1]);
 
     cluster.disconnect();
   });

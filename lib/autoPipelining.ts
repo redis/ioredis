@@ -127,7 +127,16 @@ function getFirstKeyForCommand(
     });
 
     if (keyIndexes.length) {
-      return flattenedArgs[keyIndexes[0]];
+      const key: unknown = flattenedArgs[keyIndexes[0]];
+      // mset/msetnx accept a single object or Map, which Command expands
+      // into key/value pairs, so route by its first key.
+      if (key instanceof Map) {
+        return key.keys().next().value;
+      }
+      if (typeof key === "object" && key !== null && !Buffer.isBuffer(key)) {
+        return Object.keys(key)[0];
+      }
+      return key as string | Buffer | number;
     }
   }
 
