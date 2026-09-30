@@ -48,6 +48,11 @@ describe("autoPipelining for cluster", () => {
         return "bar6";
       }
 
+      // Buffer.from([0xfe]) hashes to slot 3793.
+      if (argv[0] === "get" && argv[1] === "\ufffd") {
+        return "binary-fe";
+      }
+
       if (argv[0] === "get" && argv[1] === "baz:foo10") {
         return "bar10";
       }
@@ -64,6 +69,11 @@ describe("autoPipelining for cluster", () => {
 
       if (argv[0] === "get" && argv[1] === "foo4") {
         return "bar4";
+      }
+
+      // Buffer.from([0xff]) hashes to slot 7920.
+      if (argv[0] === "get" && argv[1] === "\ufffd") {
+        return "binary-ff";
       }
     });
 
@@ -320,6 +330,22 @@ describe("autoPipelining for cluster", () => {
     expect(
       await Promise.all([cluster.get(["foo1"]), cluster.get(["foo10"])])
     ).to.eql(["bar1", "bar10"]);
+
+    cluster.disconnect();
+  });
+
+  it("should bucket binary Buffer keys by their raw bytes", async () => {
+    const cluster = new Cluster(hosts, { enableAutoPipelining: true });
+    await new Promise((resolve) => cluster.once("connect", resolve));
+
+    // Both keys decode to "\ufffd" as UTF-8 strings, but their bytes hash to
+    // slots served by different nodes.
+    expect(
+      await Promise.all([
+        cluster.get(Buffer.from([0xff])),
+        cluster.get(Buffer.from([0xfe])),
+      ])
+    ).to.eql(["binary-ff", "binary-fe"]);
 
     cluster.disconnect();
   });
