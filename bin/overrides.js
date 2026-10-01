@@ -14,6 +14,13 @@ module.exports = {
       "$1Buffer(key: RedisKey, callback?: Callback<Record<string, Buffer>>): Result<Record<string, Buffer>, Context>",
     ],
   },
+  hmget: {
+    overwrite: false,
+    defs: [
+      "$1(key: RedisKey, fields: (string | Buffer)[], callback?: Callback<(string | null)[]>): Result<(string | null)[], Context>",
+      "$1Buffer(key: RedisKey, fields: (string | Buffer)[], callback?: Callback<(Buffer | null)[]>): Result<(Buffer | null)[], Context>",
+    ],
+  },
   mset: msetOverrides,
   msetnx: msetOverrides,
   hset: {
@@ -28,6 +35,27 @@ module.exports = {
     defs: [
       "$1(key: RedisKey, object: object, callback?: Callback<'OK'>): Result<'OK', Context>",
       "$1(key: RedisKey, map: Map<string | Buffer | number, string | Buffer | number>, callback?: Callback<'OK'>): Result<'OK', Context>",
+    ],
+  },
+  argrep: {
+    overwrite: true,
+    defs: [
+      "$1(key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, callback: Callback<number[]>): Result<number[], Context>;",
+      "$1(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: RedisValue[], callback: Callback<number[] | Array<[index: number, value: string]>>]): Result<number[] | Array<[index: number, value: string]>, Context>;",
+      "$1<T extends RedisValue[]>(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: T]): Result<'WITHVALUES' extends T[number] ? Array<[index: number, value: string]> : number[], Context>;",
+      "$1Buffer(key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, callback: Callback<number[]>): Result<number[], Context>;",
+      "$1Buffer(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: RedisValue[], callback: Callback<number[] | Array<[index: number, value: Buffer]>>]): Result<number[] | Array<[index: number, value: Buffer]>, Context>;",
+      "$1Buffer<T extends RedisValue[]>(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: T]): Result<'WITHVALUES' extends T[number] ? Array<[index: number, value: Buffer]> : number[], Context>;",
+    ],
+  },
+  vsim: {
+    overwrite: true,
+    // Return shape lives in `VsimReply` (bin/template.ts) so it stays readable.
+    defs: [
+      "$1<T extends RedisValue[]>(...args: [key: RedisKey, ...args: T, callback: Callback<VsimReply<T, string, Context>>]): Result<VsimReply<T, string, Context>, Context>;",
+      "$1Buffer<T extends RedisValue[]>(...args: [key: RedisKey, ...args: T, callback: Callback<VsimReply<T, Buffer, Context>>]): Result<VsimReply<T, Buffer, Context>, Context>;",
+      "$1<T extends RedisValue[]>(...args: [key: RedisKey, ...args: T]): Result<VsimReply<T, string, Context>, Context>;",
+      "$1Buffer<T extends RedisValue[]>(...args: [key: RedisKey, ...args: T]): Result<VsimReply<T, Buffer, Context>, Context>;",
     ],
   },
   exec: {

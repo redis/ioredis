@@ -81,7 +81,7 @@ describe("select", function () {
       });
     };
     redis.on("connect", function () {
-      redis.subscribe("anychannel");
+      redis.info();
     });
   });
 });

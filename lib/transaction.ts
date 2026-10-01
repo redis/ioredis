@@ -3,13 +3,14 @@ import asCallback from "standard-as-callback";
 import Pipeline from "./Pipeline";
 import { Callback } from "./types";
 import { ChainableCommander } from "./utils/RedisCommander";
+import { traceBatch } from "./tracing";
 
-export interface Transaction {
-  pipeline(commands?: unknown[][]): ChainableCommander;
+export interface Transaction<Mapping extends "resp2" | "resp3" = "resp2"> {
+  pipeline(commands?: unknown[][]): ChainableCommander<Mapping>;
   multi(options: { pipeline: false }): Promise<"OK">;
-  multi(): ChainableCommander;
-  multi(options: { pipeline: true }): ChainableCommander;
-  multi(commands?: unknown[][]): ChainableCommander;
+  multi(): ChainableCommander<Mapping>;
+  multi(options: { pipeline: true }): ChainableCommander<Mapping>;
+  multi(commands?: unknown[][]): ChainableCommander<Mapping>;
 }
 
 export function addTransactionSupport(redis) {
@@ -65,9 +66,12 @@ export function addTransactionSupport(redis) {
       if (this.nodeifiedPromise) {
         return exec.call(pipeline);
       }
-      const promise = exec.call(pipeline);
-      return asCallback(
-        promise.then(function (result: any[]): any[] | null {
+
+      // Count only user commands (exclude MULTI/EXEC wrappers).
+      const batchSize = Math.max(pipeline.length - 2, 0);
+
+      const execAndUnwrap = () =>
+        exec.call(pipeline).then(function (result: any[]): any[] | null {
           const execResult = result[result.length - 1];
           if (typeof execResult === "undefined") {
             throw new Error(
@@ -84,9 +88,17 @@ export function addTransactionSupport(redis) {
             throw execResult[0];
           }
           return wrapMultiResult(execResult[1]);
-        }),
-        callback
-      );
+        });
+
+      // Trace MULTI as a single batch operation on ioredis:batch.
+      const promise =
+        "_buildBatchContext" in this.redis
+          ? traceBatch(execAndUnwrap, () =>
+              (this.redis as any)._buildBatchContext(batchSize)
+            )
+          : execAndUnwrap();
+
+      return asCallback(promise, callback);
     };
 
     // @ts-expect-error

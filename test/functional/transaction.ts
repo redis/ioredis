@@ -1,6 +1,7 @@
 import Redis from "../../lib/Redis";
 import { expect } from "chai";
 import Command from "../../lib/Command";
+import { isReCluster } from "../helpers/re-config";
 
 describe("transaction", () => {
   it("should works like pipeline by default", (done) => {
@@ -209,7 +210,12 @@ describe("transaction", () => {
   });
 
   describe("#exec", () => {
-    it("should batch all commands before ready event", (done) => {
+    it("should batch all commands before ready event", function (done) {
+      // Uses CONFIG GET inside MULTI; managed Redis Enterprise restricts CONFIG for
+      // the default user, so the queued command aborts the transaction (EXECABORT).
+      if (isReCluster()) {
+        return this.skip();
+      }
       const redis = new Redis();
       redis.on("connect", () => {
         redis

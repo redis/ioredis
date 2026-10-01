@@ -1,6 +1,7 @@
 import { isArguments, noop } from "./utils/lodash";
-import * as calculateSlot from "cluster-key-slot";
+import * as calculateSlot from "./utils/calculateSlot";
 import asCallback from "standard-as-callback";
+import { exists, getKeyIndexes, hasFlag } from "@ioredis/commands";
 import { ArgumentType } from "./Command";
 
 export const kExec = Symbol("exec");
@@ -18,6 +19,10 @@ export const notAllowedAutoPipelineCommands = [
   "unsubscribe",
   "unpsubscribe",
   "select",
+  "client",
+  "hello",
+  "readonly",
+  "himport",
 ];
 
 function executeAutoPipeline(client, slotKey: string) {
@@ -111,6 +116,33 @@ export function getFirstValueInFlattenedArray(
   return undefined;
 }
 
+function getFirstKeyForCommand(
+  commandName: string,
+  args: ArgumentType[]
+): string | Buffer | number | null | undefined {
+  if (exists(commandName, { caseInsensitive: true })) {
+    const flattenedArgs = args.flat() as (string | Buffer | number)[];
+    const keyIndexes = getKeyIndexes(commandName, flattenedArgs, {
+      nameCaseInsensitive: true,
+    });
+
+    if (keyIndexes.length) {
+      const key: unknown = flattenedArgs[keyIndexes[0]];
+      // mset/msetnx accept a single object or Map, which Command expands
+      // into key/value pairs, so route by its first key.
+      if (key instanceof Map) {
+        return key.keys().next().value;
+      }
+      if (typeof key === "object" && key !== null && !Buffer.isBuffer(key)) {
+        return Object.keys(key)[0];
+      }
+      return key as string | Buffer | number;
+    }
+  }
+
+  return getFirstValueInFlattenedArray(args);
+}
+
 export function executeWithAutoPipelining(
   client,
   functionName: string,
@@ -143,14 +175,24 @@ export function executeWithAutoPipelining(
   }
 
   // If we have slot information, we can improve routing by grouping slots served by the same subset of nodes
-  // Note that the first value in args may be a (possibly empty) array.
-  // ioredis will only flatten one level of the array, in the Command constructor.
-  const prefix = client.options.keyPrefix || "";
-  const slotKey = client.isCluster
-    ? client.slots[
-        calculateSlot(`${prefix}${getFirstValueInFlattenedArray(args)}`)
-      ].join(",")
-    : "main";
+  let slotKey = "main";
+  if (client.isCluster) {
+    const prefix = client.options.keyPrefix || "";
+    const key = getFirstKeyForCommand(commandName, args);
+    // Hash Buffer keys by their bytes, as Command#getSlot does; decoding
+    // them as UTF-8 can change the slot.
+    const slot = Buffer.isBuffer(key)
+      ? calculateSlot(Buffer.concat([Buffer.from(prefix), key]))
+      : calculateSlot(`${prefix}${key}`);
+    slotKey = client.slots[slot].join(",");
+  }
+
+  // When scaleReads is enabled, separate read and write commands into different pipelines
+  // so they can be routed to replicas and masters respectively
+  if (client.isCluster && client.options.scaleReads !== "master") {
+    const isReadOnly = exists(commandName) && hasFlag(commandName, "readonly");
+    slotKey += isReadOnly ? ":read" : ":write";
+  }
 
   if (!client._autoPipelines.has(slotKey)) {
     const pipeline = client.pipeline();
@@ -177,6 +219,20 @@ export function executeWithAutoPipelining(
 
   // Create the promise which will execute the command in the pipeline.
   const autoPipelinePromise = new Promise(function (resolve, reject) {
+    if (functionName === "call") {
+      args.unshift(commandName);
+    }
+
+    // A command can be defined or redefined after this pipeline was created.
+    const isDynamicCommand =
+      Object.prototype.hasOwnProperty.call(client.scriptsSet, commandName) ||
+      client.addedBuiltinSet.has(commandName);
+    const command = isDynamicCommand
+      ? client[functionName]
+      : pipeline[functionName];
+    command.call(pipeline, ...args);
+
+    // An enqueue failure must not leave a callback without a matching result.
     pipeline[kCallbacks].push(function (err: Error | null, value: any) {
       if (err) {
         reject(err);
@@ -185,12 +241,6 @@ export function executeWithAutoPipelining(
 
       resolve(value);
     });
-
-    if (functionName === "call") {
-      args.unshift(commandName);
-    }
-
-    pipeline[functionName](...args);
   });
 
   return asCallback(autoPipelinePromise, callback);

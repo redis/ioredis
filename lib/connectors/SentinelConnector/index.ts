@@ -11,23 +11,24 @@ import { connect as createTLSConnection, ConnectionOptions } from "tls";
 import SentinelIterator from "./SentinelIterator";
 import { RedisClient, SentinelAddress, Sentinel } from "./types";
 import AbstractConnector, { ErrorEmitter } from "../AbstractConnector";
-import { NetStream } from "../../types";
+import { NetStream, ProtocolVersion, ReplyMappingMode } from "../../types";
 import Redis from "../../Redis";
 import { RedisOptions } from "../../redis/RedisOptions";
 import { FailoverDetector } from "./FailoverDetector";
+import type { StandaloneConnectionOptions } from "../StandaloneConnector";
 
 const debug = Debug("SentinelConnector");
 
 interface AddressFromResponse {
   port: string;
   ip: string;
-  flags?: string;
+  flags?: string | undefined;
 }
 
 type PreferredSlaves =
   | ((slaves: AddressFromResponse[]) => AddressFromResponse | null)
-  | Array<{ port: string; ip: string; prio?: number }>
-  | { port: string; ip: string; prio?: number };
+  | Array<{ port: string; ip: string; prio?: number | undefined }>
+  | { port: string; ip: string; prio?: number | undefined };
 
 export { SentinelAddress, SentinelIterator };
 
@@ -35,30 +36,38 @@ export interface SentinelConnectionOptions {
   /**
    * Master group name of the Sentinel
    */
-  name?: string;
+  name?: string | undefined;
   /**
    * @default "master"
    */
-  role?: "master" | "slave";
-  tls?: ConnectionOptions;
-  sentinelUsername?: string;
-  sentinelPassword?: string;
-  sentinels?: Array<Partial<SentinelAddress>>;
-  sentinelRetryStrategy?: (retryAttempts: number) => number | void | null;
-  sentinelReconnectStrategy?: (retryAttempts: number) => number | void | null;
-  preferredSlaves?: PreferredSlaves;
-  connectTimeout?: number;
-  disconnectTimeout?: number;
-  sentinelCommandTimeout?: number;
-  enableTLSForSentinelMode?: boolean;
-  sentinelTLS?: ConnectionOptions;
-  natMap?: NatMap;
-  updateSentinels?: boolean;
+  role?: "master" | "slave" | undefined;
+  tls?: StandaloneConnectionOptions["tls"];
+  sentinelUsername?: string | undefined;
+  sentinelPassword?: string | undefined;
+  sentinels?: Array<Partial<SentinelAddress>> | undefined;
+  path?: string | undefined;
+  family?: number | undefined;
+  sentinelRetryStrategy?:
+    | ((retryAttempts: number) => number | void | null)
+    | undefined;
+  sentinelReconnectStrategy?:
+    | ((retryAttempts: number) => number | void | null)
+    | undefined;
+  preferredSlaves?: PreferredSlaves | undefined;
+  connectTimeout?: number | undefined;
+  disconnectTimeout?: number | undefined;
+  sentinelCommandTimeout?: number | undefined;
+  enableTLSForSentinelMode?: boolean | undefined;
+  sentinelTLS?: ConnectionOptions | undefined;
+  natMap?: NatMap | undefined;
+  updateSentinels?: boolean | undefined;
   /**
    * @default 10
    */
-  sentinelMaxConnections?: number;
-  failoverDetector?: boolean;
+  sentinelMaxConnections?: number | undefined;
+  failoverDetector?: boolean | undefined;
+  protocol?: ProtocolVersion | undefined;
+  replyMapping?: ReplyMappingMode | undefined;
 }
 
 export default class SentinelConnector extends AbstractConnector {
@@ -169,7 +178,10 @@ export default class SentinelConnector extends AbstractConnector {
         if (this.options.enableTLSForSentinelMode && this.options.tls) {
           Object.assign(resolved, this.options.tls);
           this.stream = createTLSConnection(resolved);
-          this.stream.once("secureConnect", this.initFailoverDetector.bind(this));
+          this.stream.once(
+            "secureConnect",
+            this.initFailoverDetector.bind(this)
+          );
         } else {
           this.stream = createConnection(resolved);
           this.stream.once("connect", this.initFailoverDetector.bind(this));
@@ -285,7 +297,7 @@ export default class SentinelConnector extends AbstractConnector {
     const key = `${item.host}:${item.port}`;
 
     let result = item;
-    if(typeof this.options.natMap === "function") {
+    if (typeof this.options.natMap === "function") {
       result = this.options.natMap(key) || item;
     } else if (typeof this.options.natMap === "object") {
       result = this.options.natMap[key] || item;
@@ -305,14 +317,14 @@ export default class SentinelConnector extends AbstractConnector {
       password: this.options.sentinelPassword || null,
       family:
         endpoint.family ||
-        // @ts-expect-error
         ("path" in this.options && this.options.path
           ? undefined
-          : // @ts-expect-error
-            this.options.family),
+          : this.options.family),
       tls: this.options.sentinelTLS,
       retryStrategy: null,
       enableReadyCheck: false,
+      protocol: this.options.protocol,
+      replyMapping: "legacy",
       connectTimeout: this.options.connectTimeout,
       commandTimeout: this.options.sentinelCommandTimeout,
       ...options,
@@ -360,6 +372,8 @@ export default class SentinelConnector extends AbstractConnector {
       const client = this.connectToSentinel(value, {
         lazyConnect: true,
         retryStrategy: this.options.sentinelReconnectStrategy,
+        protocol: this.options.protocol,
+        replyMapping: "legacy",
       });
 
       client.on("reconnecting", () => {
@@ -377,8 +391,11 @@ export default class SentinelConnector extends AbstractConnector {
       this.failoverDetector.cleanup();
     }
 
-    this.failoverDetector = new FailoverDetector(this, sentinels);
-    await this.failoverDetector.subscribe();
+    const failoverDetector = new FailoverDetector(this, sentinels);
+    this.failoverDetector = failoverDetector;
+    // QUIT closes the stream without calling the connector's disconnect().
+    this.stream.once("close", () => failoverDetector.cleanup());
+    await failoverDetector.subscribe();
 
     // Tests listen to this event
     this.emitter?.emit("failoverSubscribed");
@@ -398,24 +415,20 @@ function selectPreferredSentinel(
     selectedSlave = preferredSlaves(availableSlaves);
   } else if (preferredSlaves !== null && typeof preferredSlaves === "object") {
     const preferredSlavesArray = Array.isArray(preferredSlaves)
-      ? preferredSlaves
+      ? [...preferredSlaves]
       : [preferredSlaves];
 
     // sort by priority
     preferredSlavesArray.sort((a, b) => {
       // default the priority to 1
-      if (!a.prio) {
-        a.prio = 1;
-      }
-      if (!b.prio) {
-        b.prio = 1;
-      }
+      const aPrio = a.prio ?? 1;
+      const bPrio = b.prio ?? 1;
 
       // lowest priority first
-      if (a.prio < b.prio) {
+      if (aPrio < bPrio) {
         return -1;
       }
-      if (a.prio > b.prio) {
+      if (aPrio > bPrio) {
         return 1;
       }
       return 0;

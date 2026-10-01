@@ -42,6 +42,31 @@ describe("cluster:connect", () => {
     });
   });
 
+  it("should reset retry times when connect() is called after giving up", (done) => {
+    const timesSeen: number[] = [];
+
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      clusterRetryStrategy(times) {
+        timesSeen.push(times);
+        return times > 2 ? null : 0;
+      },
+    });
+
+    let endCount = 0;
+    cluster.on("end", () => {
+      endCount++;
+
+      if (endCount === 1) {
+        cluster.connect().catch(() => {});
+        return;
+      }
+
+      expect(timesSeen).to.eql([1, 2, 3, 1, 2, 3]);
+      cluster.disconnect();
+      done();
+    });
+  });
+
   it("should invoke clusterRetryStrategy when none nodes are ready", (done) => {
     const argvHandler = function (argv) {
       if (argv[0] === "cluster") {
@@ -293,7 +318,7 @@ describe("cluster:connect", () => {
     }
   });
 
-  it("should using the specified password", (done) => {
+  it("should using the specified password - RESP 2", (done) => {
     let cluster;
     const slotTable = [
       [0, 5460, ["127.0.0.1", 30001]],
@@ -326,7 +351,44 @@ describe("cluster:connect", () => {
         { host: "127.0.0.1", port: "30001", password: "other password" },
         { host: "127.0.0.1", port: "30002", password: null },
       ],
-      { redisOptions: { lazyConnect: false, password: "default password" } }
+      { redisOptions: { lazyConnect: false, password: "default password", protocol: 2 } },
+    );
+  });
+
+  it("should using the specified password - RESP 3", (done) => {
+    let cluster;
+    const slotTable = [
+      [0, 5460, ["127.0.0.1", 30001]],
+      [5461, 10922, ["127.0.0.1", 30002]],
+      [10923, 16383, ["127.0.0.1", 30003]],
+    ];
+    const argvHandler = function (port, argv) {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+      if (argv[0] === "hello") {
+        const password = argv[4];
+        if (port === 30001) {
+          expect(password).to.eql("other password");
+        } else if (port === 30002 && password) {
+          throw new Error("30002 got password");
+        } else if (port === 30003) {
+          expect(password).to.eql("default password");
+          cluster.disconnect();
+          done();
+        }
+      }
+    };
+    new MockServer(30001, argvHandler.bind(null, 30001));
+    new MockServer(30002, argvHandler.bind(null, 30002));
+    new MockServer(30003, argvHandler.bind(null, 30003));
+
+    cluster = new Cluster(
+      [
+        { host: "127.0.0.1", port: "30001", password: "other password" },
+        { host: "127.0.0.1", port: "30002", password: null },
+      ],
+      { redisOptions: { lazyConnect: false, password: "default password", protocol: 3 } },
     );
   });
 

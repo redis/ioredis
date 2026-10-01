@@ -1,4 +1,4 @@
-import * as calculateSlot from "cluster-key-slot";
+import * as calculateSlot from "../../../lib/utils/calculateSlot";
 import MockServer from "../../helpers/mock_server";
 import { expect } from "chai";
 import { Cluster } from "../../../lib";
@@ -106,6 +106,51 @@ describe("cluster:pipeline", () => {
         cluster.disconnect();
         done();
       });
+  });
+
+  it("should time out when a MOVED pipeline retry stops responding", async () => {
+    const slotTable = [
+      [0, 12181, ["127.0.0.1", 30001]],
+      [12182, 16383, ["127.0.0.1", 30002]],
+    ];
+    new MockServer(30001, (argv, _socket, flags) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+      if (argv[0] === "get" && argv[1] === "foo") {
+        flags.hang = true;
+      }
+    });
+    new MockServer(30002, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+      if (argv[0] === "get" && argv[1] === "foo") {
+        return new Error("MOVED " + calculateSlot("foo") + " 127.0.0.1:30001");
+      }
+    });
+
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      redisOptions: {
+        commandTimeout: 50,
+      },
+    });
+
+    try {
+      const result = await Promise.race([
+        cluster.pipeline().get("foo").exec(),
+        new Promise<never>((_resolve, reject) => {
+          setTimeout(
+            () => reject(new Error("Pipeline retry did not time out")),
+            500
+          );
+        }),
+      ]);
+
+      expect(result[0][0]?.message).to.equal("Command timed out");
+    } finally {
+      cluster.disconnect();
+    }
   });
 
   it("should auto redirect commands on ASK", (done) => {
@@ -260,5 +305,61 @@ describe("cluster:pipeline", () => {
         cluster.disconnect();
         done();
       });
+  });
+
+  it("should not throw 'All keys in the pipeline should belong to the same slots allocation group' when replica returned MOVED error", (done) => {
+    let moved = false;
+    const slotTable = [
+      [0, 12181, ["127.0.0.1", 30001], ["127.0.0.1", 30003]],
+      [12182, 16383, ["127.0.0.1", 30002]],
+    ];
+    new MockServer(30001, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+      if (argv[0] === "get" && argv[1] === "bar") {
+        return "bar2";
+      }
+    });
+    new MockServer(30002, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+    });
+    new MockServer(30003, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+      if (argv[0] === "get" && argv[1] === "bar") {
+        if (!moved) {
+          moved = true;
+          return new Error("MOVED " + calculateSlot("bar") + " 127.0.0.1:30001");
+        }
+        return "bar2";
+      }
+      if (argv[0] === "get" && argv[1] === "baz") {
+        return "baz2";
+      }
+      if (argv[0] === "get" && argv[1] === "bag") {
+        return "bag2";
+      }
+    });
+
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      scaleReads: "slave",
+    });
+    cluster.on('ready', () => {
+      /** moved for bar is thrown, slots map updated, command is retried */
+      cluster.pipeline()
+        .get('bar') // slot 5061
+        .get('bag') // slot 4433
+        .get('baz') // slot 4813
+        .exec((err, res) => {
+          expect(err).to.eql(null);
+          expect(res).to.have.lengthOf(3);
+          cluster.disconnect();
+          done();
+      });
+    });
   });
 });

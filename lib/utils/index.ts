@@ -1,12 +1,12 @@
-import { parse as urllibParse } from "url";
-import { defaults, noop } from "./lodash";
-import { Callback } from "../types";
+import { defaults, isArguments, noop } from "./lodash";
+import { Callback, ProtocolVersion } from "../types";
 import Debug from "./debug";
 
 import TLSProfiles from "../constants/TLSProfiles";
 
 /**
- * Convert a buffer to string, supports buffer array
+ * Convert a buffer to string, supports buffer array and plain objects
+ * (RESP3 map replies decoded with `replyMapping: "resp3"`)
  *
  * @example
  * ```js
@@ -30,7 +30,44 @@ export function convertBufferToString(value: any, encoding?: BufferEncoding) {
     }
     return res;
   }
+  if (isPlainObject(value)) {
+    const keys = Object.keys(value);
+    const res: Record<string, unknown> = {};
+    for (const element of keys) {
+      const item = value[element];
+      const converted =
+        item instanceof Buffer && encoding === "utf8"
+          ? item.toString()
+          : convertBufferToString(item, encoding);
+      // Guard "__proto__"/"constructor" via defineProperty, where a bare
+      // assignment would tamper with the object. Issue #1267. Normal keys take
+      // the fast plain-assignment path.
+      if (element === "__proto__" || element === "constructor") {
+        Object.defineProperty(res, element, {
+          value: converted,
+          configurable: true,
+          enumerable: true,
+          writable: true,
+        });
+      } else {
+        res[element] = converted;
+      }
+    }
+    return res;
+  }
   return value;
+}
+
+/**
+ * Matches only the plain objects produced by RESP3 map replies, so other
+ * object types (class instances etc.) pass through reply conversion untouched.
+ */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
 }
 
 /**
@@ -168,6 +205,13 @@ export function toArg(arg: any): string {
   if (arg === null || typeof arg === "undefined") {
     return "";
   }
+  if (
+    typeof arg === "number" &&
+    Number.isInteger(arg) &&
+    !Number.isSafeInteger(arg)
+  ) {
+    return BigInt(arg).toString();
+  }
   return String(arg);
 }
 
@@ -208,23 +252,64 @@ export function parseURL(url: string): Record<string, unknown> {
   if (isInt(url)) {
     return { port: url };
   }
-  let parsed = urllibParse(url, true, true);
+  // Re-assert string type: isInt's type guard (value is string) incorrectly
+  // narrows url to 'never' in the false branch since url is already string.
+  const rawUrl: string = url;
 
-  if (!parsed.slashes && url[0] !== "/") {
-    url = "//" + url;
-    parsed = urllibParse(url, true, true);
+  // Determine if the URL has a known protocol (redis:// or rediss://)
+  const hasProtocol = /^rediss?:\/\//i.test(rawUrl);
+  const isProtocolRelative = rawUrl.startsWith("//");
+  // TODO(next major): Consider rejecting protocol-relative Redis URLs early and
+  // requiring explicit redis:// or rediss:// schemes instead. Keep them working
+  // in 5.x for backward compatibility.
+
+  // Unix socket paths (starting with "/") are not valid URLs — handle separately.
+  // Preserve query params (e.g., /tmp/redis.sock?db=2)
+  if (rawUrl[0] === "/" && !isProtocolRelative) {
+    const qIdx = rawUrl.indexOf("?");
+    const result: Record<string, unknown> = {
+      path: qIdx === -1 ? rawUrl : rawUrl.slice(0, qIdx),
+    };
+    if (qIdx !== -1) {
+      const options: Record<string, string | number> = {};
+      const params = new URLSearchParams(rawUrl.slice(qIdx + 1));
+      params.forEach((value, key) => {
+        options[key] = parseURLQueryItem(key, value);
+      });
+      defaults(result, options);
+    }
+    return result;
   }
 
-  const options = parsed.query || {};
+  let parsed: URL;
+  if (hasProtocol) {
+    parsed = new URL(rawUrl);
+  } else if (isProtocolRelative) {
+    parsed = new URL("redis:" + rawUrl);
+  } else {
+    // Prepend a dummy protocol so new URL() can parse "host:port?query" correctly
+    parsed = new URL("redis://" + rawUrl);
+  }
+
+  // Convert searchParams to a plain object (equivalent to url.parse(url, true).query)
+  const options: Record<string, string | number> = {};
+  parsed.searchParams.forEach((value, key) => {
+    options[key] = parseURLQueryItem(key, value);
+  });
 
   const result: any = {};
-  if (parsed.auth) {
-    const index = parsed.auth.indexOf(":");
-    result.username = index === -1 ? parsed.auth : parsed.auth.slice(0, index);
-    result.password = index === -1 ? "" : parsed.auth.slice(index + 1);
+
+  // Extract auth — WHATWG URL percent-encodes special chars, so decode them.
+  // Check both username AND password: redis://:password@host has empty username but valid password.
+  if (parsed.username || parsed.password) {
+    result.username = decodeURIComponent(parsed.username);
+    result.password = decodeURIComponent(parsed.password);
   }
-  if (parsed.pathname) {
-    if (parsed.protocol === "redis:" || parsed.protocol === "rediss:") {
+
+  if (parsed.pathname && parsed.pathname !== "/") {
+    if (hasProtocol || isProtocolRelative) {
+      // For redis://, rediss://, and protocol-relative URLs, the path after /
+      // is the db number
       if (parsed.pathname.length > 1) {
         result.db = parsed.pathname.slice(1);
       }
@@ -232,21 +317,29 @@ export function parseURL(url: string): Record<string, unknown> {
       result.path = parsed.pathname;
     }
   }
-  if (parsed.host) {
-    result.host = parsed.hostname;
+
+  if (parsed.hostname) {
+    // WHATWG URL keeps brackets around IPv6 addresses (e.g., "[::1]").
+    // Strip them to match the old url.parse() behavior.
+    result.host = parsed.hostname.replace(/^\[|\]$/g, "");
   }
   if (parsed.port) {
     result.port = parsed.port;
   }
-  if (typeof options.family === "string") {
-    const intFamily = Number.parseInt(options.family, 10);
-    if (!Number.isNaN(intFamily)) {
-      result.family = intFamily;
-    }
-  }
+
   defaults(result, options);
 
   return result;
+}
+
+function parseURLQueryItem(key: string, value: string): string | number {
+  if (key === "family") {
+    const intFamily = Number.parseInt(value, 10);
+    if (!Number.isNaN(intFamily)) {
+      return intFamily;
+    }
+  }
+  return value;
 }
 
 interface TLSOptions {
@@ -311,6 +404,20 @@ export function shuffle<T>(array: T[]): T[] {
  */
 export const CONNECTION_CLOSED_ERROR_MSG = "Connection is closed.";
 
+/**
+ * Whether a connection is restricted to subscriber commands.
+ * Only RESP2 has a restricted subscriber mode; with RESP3 (HELLO 3),
+ * regular commands remain allowed while subscribed.
+ */
+export function isResp2SubscriberMode(
+  condition:
+    | { subscriber: false | object; protocol: ProtocolVersion }
+    | null
+    | undefined
+): boolean {
+  return Boolean(condition?.subscriber) && condition?.protocol !== 3;
+}
+
 export function zipMap<K, V>(keys: K[], values: V[]): Map<K, V> {
   const map = new Map<K, V>();
   keys.forEach((key, index) => {
@@ -319,4 +426,4 @@ export function zipMap<K, V>(keys: K[], values: V[]): Map<K, V> {
   return map;
 }
 
-export { Debug, defaults, noop };
+export { Debug, defaults, isArguments, noop };

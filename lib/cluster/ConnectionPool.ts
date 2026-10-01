@@ -1,11 +1,18 @@
 import { EventEmitter } from "events";
 import { sample, Debug, noop, defaults } from "../utils";
 import { RedisOptions, getNodeKey, NodeKey, NodeRole } from "./util";
+import { ClusterOptions, ClusterNodeRetryStrategy } from "./ClusterOptions";
 import Redis from "../Redis";
 
 const debug = Debug("cluster:connectionPool");
 
 type NODE_TYPE = "all" | "master" | "slave";
+
+export interface ConnectionPoolHooks {
+  onCreate?: (redis: Redis, readOnly: boolean) => void;
+  onRoleChange?: (redis: Redis, key: NodeKey, readOnly: boolean) => void;
+  onRemove?: (redis: Redis) => void;
+}
 
 export default class ConnectionPool extends EventEmitter {
   // master + slave = all
@@ -17,7 +24,11 @@ export default class ConnectionPool extends EventEmitter {
 
   private specifiedOptions: { [key: string]: any } = {};
 
-  constructor(private redisOptions) {
+  constructor(
+    private redisOptions: NonNullable<ClusterOptions["redisOptions"]>,
+    private clusterNodeRetryStrategy: ClusterNodeRetryStrategy = null,
+    private hooks: ConnectionPoolHooks = {}
+  ) {
     super();
   }
 
@@ -65,10 +76,15 @@ export default class ConnectionPool extends EventEmitter {
     const redis = new Redis(
         defaults(
             {
-              // Never try to reconnect when a node is lose,
-              // instead, waiting for a `MOVED` error and
-              // fetch the slots again.
-              retryStrategy: null,
+              // By default, never try to reconnect when a node is lost,
+              // instead, waiting for a `MOVED` error and fetching slots again.
+              // When `clusterNodeRetryStrategy` is set, use it to allow
+              // reconnection (e.g. for replica nodes that restart without
+              // any slot changes).
+              retryStrategy:
+                typeof this.clusterNodeRetryStrategy === "function"
+                  ? this.clusterNodeRetryStrategy
+                  : null,
               // Offline queue should be enabled so that
               // we don't need to wait for the `ready` event
               // before sending commands to the node.
@@ -81,6 +97,7 @@ export default class ConnectionPool extends EventEmitter {
         )
     );
 
+    this.hooks.onCreate?.(redis, readOnly);
     return redis
   }
 
@@ -112,6 +129,7 @@ export default class ConnectionPool extends EventEmitter {
           delete this.nodes.slave[key];
           this.nodes.master[key] = redis;
         }
+        this.hooks.onRoleChange?.(redis, key, readOnly);
       }
     } else {
       debug("Connecting to %s as %s", key, readOnly ? "slave" : "master");
@@ -120,6 +138,10 @@ export default class ConnectionPool extends EventEmitter {
       this.nodes[readOnly ? "slave" : "master"][key] = redis;
 
       redis.once("end", () => {
+        if (this.nodes.all[key] && this.nodes.all[key] !== redis) {
+          // The node was recreated (see `recreate`); leave the new one alone.
+          return;
+        }
         this.removeNode(key);
         this.emit("-node", redis, key);
         if (!Object.keys(this.nodes.all).length) {
@@ -129,11 +151,35 @@ export default class ConnectionPool extends EventEmitter {
 
       this.emit("+node", redis, key);
 
-      redis.on("error", function (error) {
+      redis.on("error", (error) => {
         this.emit("nodeError", error, key);
       });
     }
 
+    return redis;
+  }
+
+  /**
+   * Replace the connection to the node with a fresh one. Used when the
+   * existing connection is known to be stale, e.g. after a MOVED redirect
+   * that points back at the node it came from.
+   */
+  recreate(node: RedisOptions, readOnly = false): Redis {
+    const key = getNodeKey(node);
+    const existing = this.nodes.all[key];
+    if (existing) {
+      debug("Recreating connection to %s", key);
+      // Remove before disconnecting so the "end" event of the stale
+      // instance doesn't tear down the replacement.
+      this.removeNode(key);
+      existing.disconnect();
+    }
+    const redis = this.findOrCreate(node, readOnly);
+    if (existing) {
+      // Emit after the replacement is in place so listeners (e.g.
+      // ClusterSubscriber) never observe the pool without the node.
+      this.emit("-node", existing, key);
+    }
     return redis;
   }
 
@@ -174,6 +220,7 @@ export default class ConnectionPool extends EventEmitter {
     const { nodes } = this;
     if (nodes.all[key]) {
       debug("Remove %s from the pool", key);
+      this.hooks.onRemove?.(nodes.all[key]);
       delete nodes.all[key];
     }
     delete nodes.master[key];

@@ -19,6 +19,9 @@ import {
   Callback,
   CommandItem,
   NetStream,
+  ProtocolVersion,
+  ReplyMappingFromOptions,
+  ReplyMappingMode,
   ScanStreamOptions,
   WriteableStream,
 } from "./types";
@@ -26,16 +29,31 @@ import {
   CONNECTION_CLOSED_ERROR_MSG,
   Debug,
   isInt,
+  isResp2SubscriberMode,
   parseURL,
   resolveTLSProfile,
 } from "./utils";
+import {
+  traceCommand,
+  traceConnect,
+  sanitizeArgs,
+  type CommandTraceContext,
+  type BatchOperationContext,
+} from "./tracing";
 import applyMixin from "./utils/applyMixin";
 import Commander from "./utils/Commander";
 import { defaults, noop } from "./utils/lodash";
+import HimportCoordinator, {
+  bindHimportCoordinator,
+  hasHimportCoordinator,
+  interceptHimportCommand,
+  isInternalHimportCommand,
+} from "./himport/HimportCoordinator";
+import { cloneHimportFieldsets } from "./himport/HimportCoordinator";
 import Deque = require("denque");
 const debug = Debug("redis");
 
-type RedisStatus =
+export type RedisStatus =
   | "wait"
   | "reconnecting"
   | "connecting"
@@ -61,7 +79,13 @@ type RedisStatus =
  * }
  * ```
  */
-class Redis extends Commander implements DataHandledable {
+class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
+  extends Commander<{
+    type: "default";
+    mapping: ReplyMapping extends "resp3" ? "resp3" : "resp2";
+  }>
+  implements DataHandledable
+{
   static Cluster = Cluster;
   static Command = Command;
   /**
@@ -107,16 +131,32 @@ class Redis extends Commander implements DataHandledable {
   private retryAttempts = 0;
   private manuallyClosing = false;
   private socketTimeoutTimer: NodeJS.Timeout | undefined;
+  private [hasHimportCoordinator] = false;
 
   // Prepare autopipelines structures
   private _autoPipelines = new Map();
   private _runningAutoPipelines = new Set();
 
-  constructor(port: number, host: string, options: RedisOptions);
-  constructor(path: string, options: RedisOptions);
-  constructor(port: number, options: RedisOptions);
+  // The `replyMapping` intersection on the options-bearing overloads lets the
+  // `ReplyMapping` class type parameter be inferred from the literal passed at
+  // construction time (e.g. `new Redis({ protocol: 3, replyMapping: "resp3" })`),
+  // which in turn selects the RESP3 return shapes via `Resp3<...>`. Omitting it
+  // (or passing "legacy") keeps the default RESP2 shapes.
+  constructor(
+    port: number,
+    host: string,
+    options: RedisOptions & { replyMapping?: ReplyMapping }
+  );
+  constructor(
+    path: string,
+    options: RedisOptions & { replyMapping?: ReplyMapping }
+  );
+  constructor(
+    port: number,
+    options: RedisOptions & { replyMapping?: ReplyMapping }
+  );
   constructor(port: number, host: string);
-  constructor(options: RedisOptions);
+  constructor(options: RedisOptions & { replyMapping?: ReplyMapping });
   constructor(port: number);
   constructor(path: string);
   constructor();
@@ -125,6 +165,17 @@ class Redis extends Commander implements DataHandledable {
     this.parseOptions(arg1, arg2, arg3);
 
     EventEmitter.call(this);
+
+    this.options.himportFieldsets = cloneHimportFieldsets(
+      this.options.himportFieldsets
+    );
+    if (this.options.himportFieldsets?.length) {
+      bindHimportCoordinator(
+        this,
+        new HimportCoordinator(this.options.himportFieldsets),
+        "standalone"
+      );
+    }
 
     this.resetCommandQueue();
     this.resetOfflineQueue();
@@ -174,7 +225,23 @@ class Redis extends Commander implements DataHandledable {
    * if the connection fails, times out, or if Redis is already connecting/connected.
    */
   connect(callback?: Callback<void>): Promise<void> {
-    const promise = new Promise<void>((resolve, reject) => {
+    const promise = traceConnect(
+      () => this._connect(),
+      () => {
+        const { address, port } = this._getServerAddress();
+        return {
+          serverAddress: address,
+          serverPort: port,
+          connectionEpoch: this.connectionEpoch,
+        };
+      }
+    );
+
+    return asCallback(promise, callback);
+  }
+
+  private _connect(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
       if (
         this.status === "connecting" ||
         this.status === "connect" ||
@@ -182,6 +249,10 @@ class Redis extends Commander implements DataHandledable {
       ) {
         reject(new Error("Redis is already connecting/connected"));
         return;
+      }
+
+      if (this.status === "end") {
+        this.retryAttempts = 0;
       }
 
       this.connectionEpoch += 1;
@@ -195,6 +266,12 @@ class Redis extends Commander implements DataHandledable {
           ? [options.username, options.password]
           : options.password,
         subscriber: false,
+        protocol: options.protocol as ProtocolVersion,
+        replyMapping:
+          options.protocol === 3 && options.replyMapping === "resp3"
+            ? "resp3"
+            : "legacy",
+        handshake: false,
       };
 
       const _this = this;
@@ -299,8 +376,6 @@ class Redis extends Commander implements DataHandledable {
         }
       );
     });
-
-    return asCallback(promise, callback);
   }
 
   /**
@@ -343,8 +418,13 @@ class Redis extends Commander implements DataHandledable {
    * var anotherRedis = redis.duplicate();
    * ```
    */
-  duplicate(override?: Partial<RedisOptions>) {
-    return new Redis({ ...this.options, ...override });
+  duplicate<Override extends Partial<RedisOptions> | undefined = undefined>(
+    override?: Override
+  ): Redis<ReplyMappingFromOptions<ReplyMapping, Override>> {
+    return new Redis({
+      ...this.options,
+      ...(override ?? {}),
+    }) as Redis<ReplyMappingFromOptions<ReplyMapping, Override>>;
   }
 
   /**
@@ -356,7 +436,7 @@ class Redis extends Commander implements DataHandledable {
   get mode(): "normal" | "subscriber" | "monitor" {
     return this.options.monitor
       ? "monitor"
-      : this.condition?.subscriber
+      : isResp2SubscriberMode(this.condition)
       ? "subscriber"
       : "normal";
   }
@@ -391,6 +471,7 @@ class Redis extends Commander implements DataHandledable {
     const monitorInstance = this.duplicate({
       monitor: true,
       lazyConnect: false,
+      himportFieldsets: undefined,
     });
 
     return asCallback(
@@ -422,6 +503,8 @@ class Redis extends Commander implements DataHandledable {
    * @ignore
    */
   sendCommand(command: Command, stream?: WriteableStream): unknown {
+    command.setReplyContext(this.condition ?? this.options);
+
     if (this.status === "wait") {
       this.connect().catch(noop);
     }
@@ -430,7 +513,7 @@ class Redis extends Commander implements DataHandledable {
       return command.promise;
     }
     if (
-      this.condition?.subscriber &&
+      isResp2SubscriberMode(this.condition) &&
       !Command.checkFlag("VALID_IN_SUBSCRIBER_MODE", command.name)
     ) {
       command.reject(
@@ -445,12 +528,37 @@ class Redis extends Commander implements DataHandledable {
       command.setTimeout(this.options.commandTimeout);
     }
 
+    if (
+      !stream &&
+      this[hasHimportCoordinator] &&
+      interceptHimportCommand(
+        this,
+        command,
+        this.status === "ready",
+        () => {
+          this.sendCommand(command);
+        }
+      )
+    ) {
+      return command.promise;
+    }
+
+    const blockingTimeout = this.getBlockingTimeoutInMs(command);
+
     let writable =
       this.status === "ready" ||
+      // During handshake, only internal handshake commands may bypass the queue.
       (!stream &&
         this.status === "connect" &&
-        exists(command.name) &&
-        hasFlag(command.name, "loading"));
+        this.condition?.handshake &&
+        (Command.checkFlag("HANDSHAKE_COMMANDS", command.name) ||
+          isInternalHimportCommand(command))) ||
+      // Before ready, loading-safe commands remain writable after handshake.
+      (!stream &&
+        this.status === "connect" &&
+        !this.condition?.handshake &&
+        exists(command.name, { caseInsensitive: true }) &&
+        hasFlag(command.name, "loading", { nameCaseInsensitive: true }));
     if (!this.stream) {
       writable = false;
     } else if (!this.stream.writable) {
@@ -494,6 +602,16 @@ class Redis extends Commander implements DataHandledable {
         stream: stream,
         select: this.condition.select,
       });
+
+      // For blocking commands in the offline queue, arm a client-side timeout
+      // only when blockingTimeout is configured. Without this option, queued
+      // blocking commands may wait indefinitely on a dead connection.
+      if (Command.checkFlag("BLOCKING_COMMANDS", command.name)) {
+        const offlineTimeout = this.getConfiguredBlockingTimeout();
+        if (offlineTimeout !== undefined) {
+          command.setBlockingTimeout(offlineTimeout);
+        }
+      }
     } else {
       // @ts-expect-error
       if (debug.enabled) {
@@ -522,11 +640,18 @@ class Redis extends Commander implements DataHandledable {
         select: this.condition.select,
       });
 
+      if (blockingTimeout !== undefined) {
+        command.setBlockingTimeout(blockingTimeout);
+      }
+
       if (Command.checkFlag("WILL_DISCONNECT", command.name)) {
         this.manuallyClosing = true;
       }
 
-      if (this.options.socketTimeout !== undefined && this.socketTimeoutTimer === undefined) {
+      if (
+        this.options.socketTimeout !== undefined &&
+        this.socketTimeoutTimer === undefined
+      ) {
         this.setSocketTimeout();
       }
     }
@@ -540,18 +665,79 @@ class Redis extends Commander implements DataHandledable {
       }
     }
 
-    return command.promise;
+    if (!writable || command.isTraced) {
+      return command.promise;
+    }
+
+    // Trace on the write path only, and only once per command. Commands may
+    // pass through sendCommand multiple times (offline queue flush,
+    // prevCommandQueue resend after reconnect). The isTraced flag ensures
+    // we don't emit duplicate trace events.
+    command.isTraced = true;
+    return traceCommand(
+      () => command.promise as Promise<unknown>,
+      () => this._buildCommandContext(command)
+    );
+  }
+
+  private getBlockingTimeoutInMs(command: Command): number | undefined {
+    if (!Command.checkFlag("BLOCKING_COMMANDS", command.name)) {
+      return undefined;
+    }
+
+    // Feature is opt-in: only enabled when blockingTimeout is set to a positive number
+    const configuredTimeout = this.getConfiguredBlockingTimeout();
+    if (configuredTimeout === undefined) {
+      return undefined;
+    }
+
+    const timeout = command.extractBlockingTimeout();
+    if (typeof timeout === "number") {
+      if (timeout > 0) {
+        // Finite timeout from command args - add grace period
+        return (
+          timeout +
+          (this.options.blockingTimeoutGrace ??
+            DEFAULT_REDIS_OPTIONS.blockingTimeoutGrace)
+        );
+      }
+      // Command has timeout=0 (block forever), use blockingTimeout option as safety net
+      return configuredTimeout;
+    }
+
+    if (timeout === null) {
+      // No BLOCK option found (e.g., XREAD without BLOCK), use blockingTimeout as safety net
+      return configuredTimeout;
+    }
+
+    return undefined;
+  }
+
+  private getConfiguredBlockingTimeout(): number | undefined {
+    if (
+      typeof this.options.blockingTimeout === "number" &&
+      this.options.blockingTimeout > 0
+    ) {
+      return this.options.blockingTimeout;
+    }
+
+    return undefined;
   }
 
   private setSocketTimeout() {
+    const stream = this.stream;
     this.socketTimeoutTimer = setTimeout(() => {
-      this.stream.destroy(new Error(`Socket timeout. Expecting data, but didn't receive any in ${this.options.socketTimeout}ms.`));
+      stream.destroy(
+        new Error(
+          `Socket timeout. Expecting data, but didn't receive any in ${this.options.socketTimeout}ms.`
+        )
+      );
       this.socketTimeoutTimer = undefined;
     }, this.options.socketTimeout);
 
     // this handler must run after the "data" handler in "DataHandler"
     // so that `this.commandQueue.length` will be updated
-    this.stream.once("data", () => {
+    stream.once("data", () => {
       clearTimeout(this.socketTimeoutTimer);
       this.socketTimeoutTimer = undefined;
       if (this.commandQueue.length === 0) return;
@@ -646,7 +832,12 @@ class Redis extends Commander implements DataHandledable {
    */
   handleReconnection(err: Error, item: CommandItem) {
     let needReconnect: ReturnType<ReconnectOnError> = false;
-    if (this.options.reconnectOnError) {
+    const ignoreReconnectOnError =
+      Command.checkFlag("IGNORE_RECONNECT_ON_ERROR", item.command.name) ||
+      (this.condition?.handshake &&
+        Command.checkFlag("HANDSHAKE_COMMANDS", item.command.name));
+
+    if (this.options.reconnectOnError && !ignoreReconnectOnError) {
       needReconnect = this.options.reconnectOnError(err);
     }
 
@@ -675,6 +866,41 @@ class Redis extends Commander implements DataHandledable {
       default:
         item.command.reject(err);
     }
+  }
+
+  /**
+   * @ignore
+   */
+  _getServerAddress(): { address: string; port: number | undefined } {
+    if ("path" in this.options && this.options.path) {
+      return { address: this.options.path, port: undefined };
+    }
+    return {
+      address: ("host" in this.options && this.options.host) || "localhost",
+      port: ("port" in this.options && this.options.port) || 6379,
+    };
+  }
+
+  private _buildCommandContext(command: Command): CommandTraceContext {
+    const { address, port } = this._getServerAddress();
+    return {
+      command: command.name,
+      args: sanitizeArgs(command.name, command.args),
+      database: this.condition?.select ?? this.options.db ?? 0,
+      serverAddress: address,
+      serverPort: port,
+    };
+  }
+
+  _buildBatchContext(batchSize: number): BatchOperationContext {
+    const { address, port } = this._getServerAddress();
+    return {
+      batchMode: "MULTI",
+      batchSize,
+      database: this.condition?.select ?? this.options.db ?? 0,
+      serverAddress: address,
+      serverPort: port,
+    };
   }
 
   /**
@@ -741,6 +967,12 @@ class Redis extends Commander implements DataHandledable {
     }
     if (typeof options.db === "string") {
       options.db = parseInt(options.db, 10);
+    }
+
+    if (options.replyMapping === "resp3" && options.protocol !== 3) {
+      throw new Error(
+        'The "resp3" replyMapping is only supported with protocol 3'
+      );
     }
 
     // @ts-expect-error
@@ -860,7 +1092,9 @@ class Redis extends Commander implements DataHandledable {
   }
 }
 
-interface Redis extends EventEmitter {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface Redis<ReplyMapping extends "legacy" | "resp3" = "legacy">
+  extends EventEmitter {
   on(event: "message", cb: (channel: string, message: string) => void): this;
   once(event: "message", cb: (channel: string, message: string) => void): this;
 
@@ -891,6 +1125,18 @@ interface Redis extends EventEmitter {
     cb: (pattern: string, channel: Buffer, message: Buffer) => void
   ): this;
 
+  on(event: "smessage", cb: (channel: string, message: string) => void): this;
+  once(event: "smessage", cb: (channel: string, message: string) => void): this;
+
+  on(
+    event: "smessageBuffer",
+    cb: (channel: Buffer, message: Buffer) => void
+  ): this;
+  once(
+    event: "smessageBuffer",
+    cb: (channel: Buffer, message: Buffer) => void
+  ): this;
+
   on(event: "error", cb: (error: Error) => void): this;
   once(event: "error", cb: (error: Error) => void): this;
 
@@ -905,6 +1151,7 @@ interface Redis extends EventEmitter {
 applyMixin(Redis, EventEmitter);
 
 addTransactionSupport(Redis.prototype);
-interface Redis extends Transaction {}
+interface Redis<ReplyMapping extends "legacy" | "resp3" = "legacy">
+  extends Transaction<ReplyMapping extends "resp3" ? "resp3" : "resp2"> {}
 
 export default Redis;

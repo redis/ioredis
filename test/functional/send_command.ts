@@ -249,6 +249,7 @@ describe("send command", () => {
   it("should allow sending the loading valid commands in connect event", (done) => {
     const redis = new Redis({ enableOfflineQueue: false });
     redis.on("connect", () => {
+      expect(redis.status).to.eql("connect");
       redis.select(2, function (err, res) {
         expect(res).to.eql("OK");
         done();
@@ -259,6 +260,7 @@ describe("send command", () => {
   it("should reject loading invalid commands in connect event", (done) => {
     const redis = new Redis({ enableOfflineQueue: false });
     redis.on("connect", () => {
+      expect(redis.status).to.eql("connect");
       redis.get("foo", function (err) {
         expect(err.message).to.eql(
           "Stream isn't writeable and enableOfflineQueue options is false"

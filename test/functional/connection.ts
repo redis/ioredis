@@ -10,6 +10,7 @@ describe("connection", function () {
   it('should emit "connect" when connected', (done) => {
     const redis = new Redis();
     redis.on("connect", function () {
+      expect(redis.status).to.eql("connect");
       redis.disconnect();
       done();
     });
@@ -23,17 +24,19 @@ describe("connection", function () {
     });
   });
 
-  it("should send AUTH command before any other commands", (done) => {
+  it("should send HELLO command before any other commands", (done) => {
     const redis = new Redis({ password: "123" });
     redis.get("foo");
     let times = 0;
     sinon.stub(redis, "sendCommand").callsFake((command) => {
       times += 1;
       if (times === 1) {
-        expect(command.name).to.eql("auth");
-      } else if (times === 2) {
+        expect(command.name).to.eql("hello");
+      } else if (times === 2 || times === 3) {
+        expect(command.name).to.eql("client");
+      } else if (times === 4) {
         expect(command.name).to.eql("info");
-      } else if (times === 3) {
+      } else if (times === 5) {
         redis.disconnect();
         setImmediate(() => done());
       }
@@ -273,6 +276,32 @@ describe("connection", function () {
       });
     });
 
+    it("should reset retry times when connect() is called after giving up", (done) => {
+      const timesSeen: number[] = [];
+
+      const redis = new Redis({
+        port: 1,
+        retryStrategy(times) {
+          timesSeen.push(times);
+          return times > 2 ? null : 0;
+        },
+      });
+
+      let endCount = 0;
+      redis.on("end", () => {
+        endCount++;
+
+        if (endCount === 1) {
+          redis.connect().catch(() => {});
+          return;
+        }
+
+        expect(timesSeen).to.eql([1, 2, 3, 1, 2, 3]);
+        redis.disconnect();
+        done();
+      });
+    });
+
     it("should skip reconnecting when retryStrategy doesn't return a number", (done) => {
       var redis = new Redis({
         port: 1,
@@ -352,8 +381,8 @@ describe("connection", function () {
   });
 
   describe("readOnly", function () {
-    it("should send readonly command before other commands", (done) => {
-      let called = false;
+    it("should send readonly command exactly once before other commands", (done) => {
+      let readonlyCount = 0;
       const redis = new Redis({
         port: 30001,
         readOnly: true,
@@ -361,9 +390,9 @@ describe("connection", function () {
       });
       var node = new MockServer(30001, function (argv) {
         if (argv[0] === "readonly") {
-          called = true;
+          readonlyCount += 1;
         } else if (argv[0] === "get" && argv[1] === "foo") {
-          expect(called).to.eql(true);
+          expect(readonlyCount).to.eql(1);
           redis.disconnect();
           node.disconnect(function () {
             done();
@@ -371,6 +400,39 @@ describe("connection", function () {
         }
       });
       redis.get("foo").catch(function () {});
+    });
+
+    it("should become ready with auto-pipelining enabled", (done) => {
+      let settled = false;
+      const node = new MockServer(30001);
+      const redis = new Redis({
+        port: 30001,
+        readOnly: true,
+        enableAutoPipelining: true,
+        showFriendlyErrorStack: true,
+      });
+      const timeout = setTimeout(function () {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        redis.disconnect();
+        node.disconnect(function () {
+          done(new Error("ready was not emitted"));
+        });
+      }, 1000);
+
+      redis.once("ready", function () {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timeout);
+        redis.disconnect();
+        node.disconnect(function () {
+          done();
+        });
+      });
     });
   });
 
@@ -425,6 +487,30 @@ describe("connection", function () {
         });
       });
     });
+
+    it("should reject unfulfilled commands when disabled", (done) => {
+      const redis = new Redis({ autoResendUnfulfilledCommands: false });
+      redis.once("ready", function () {
+        redis.blpop("l", 0).then(
+          function () {
+            done(new Error("blpop should not have resolved"));
+          },
+          function (err) {
+            expect(err.name).to.eql("AbortError");
+            expect(err.message).to.eql(
+              "Command aborted due to connection close"
+            );
+            redis.disconnect();
+            done();
+          }
+        );
+        // Let the blocking command reach the server, then drop the socket so it
+        // is in flight when the connection closes.
+        setTimeout(function () {
+          redis.stream.destroy();
+        }, 50);
+      });
+    });
   });
 
   describe("sync connection", () => {
@@ -474,6 +560,57 @@ describe("connection", function () {
             done();
           });
         });
+      });
+    });
+  });
+
+  describe("enableReadyCheck: false", function () {
+    it("keeps reconnecting after the connection is closed during client setup (#2099)", (done) => {
+      let clientSetupCommands = 0;
+      let connectionsAccepted = 0;
+
+      const node = new MockServer(30010, function (argv, socket, flags) {
+        if (String(argv[0]).toLowerCase() !== "client") {
+          return;
+        }
+        clientSetupCommands += 1;
+        if (clientSetupCommands === 1) {
+          // Drop the first connection while the CLIENT SETNAME handshake
+          // command is still in flight, before replying to it.
+          flags.hang = true;
+          socket.destroy();
+        }
+        // Later connections: reply "+OK" so the client can become ready.
+      });
+      node.on("connect", function () {
+        connectionsAccepted += 1;
+      });
+
+      const redis = new Redis(30010, {
+        enableReadyCheck: false,
+        disableClientInfo: true,
+        connectionName: "test-2099",
+        // Forces closeHandler() to flush the in-flight setup command on
+        // every close, which is what makes the connect-time readiness
+        // callback run after the connection has already gone away.
+        maxRetriesPerRequest: 0,
+        retryStrategy: () => 50,
+      });
+      redis.on("error", function () {});
+
+      redis.on("ready", function () {
+        // A genuine "ready" only happens if the client actually reconnected,
+        // i.e. the mock server accepted a second connection. With the bug the
+        // client wedges in the "ready" state on the dead first connection and
+        // never reconnects, so only one connection is ever accepted.
+        const err =
+          connectionsAccepted < 2
+            ? new Error(
+                "redis did not reconnect after the connection was closed during client setup"
+              )
+            : undefined;
+        redis.disconnect();
+        done(err);
       });
     });
   });

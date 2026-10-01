@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import ConnectionPool from "./ConnectionPool";
-import { getConnectionName, getNodeKey } from "./util";
+import { getConnectionName, getNodeKey, NodeRole } from "./util";
 import { sample, noop, Debug } from "../utils";
 import Redis from "../Redis";
 
@@ -19,6 +19,7 @@ export default class ClusterSubscriber {
   constructor(
     private connectionPool: ConnectionPool,
     private emitter: EventEmitter,
+    private subscriberNodeRole: NodeRole = "all",
     private isSharded : boolean = false
   ) {
     // If the current node we're using as the subscriber disappears
@@ -38,8 +39,14 @@ export default class ClusterSubscriber {
         this.selectSubscriber();
       }
     });
+    // Restricted roles are selected after a complete topology refresh because
+    // "+node" can fire while the connection pool is only partially updated.
     this.connectionPool.on("+node", () => {
-      if (!this.started || this.subscriber) {
+      if (
+        !this.started ||
+        this.subscriber ||
+        this.subscriberNodeRole !== "all"
+      ) {
         return;
       }
       debug(
@@ -87,6 +94,12 @@ export default class ClusterSubscriber {
     return this.started;
   }
 
+  selectSubscriberIfNeeded(): void {
+    if (!this.started || this.subscriber) {
+      return;
+    }
+    this.selectSubscriber();
+  }
 
   private onSubscriberEnd = () => {
     if (!this.started) {
@@ -117,7 +130,9 @@ export default class ClusterSubscriber {
       this.subscriber.disconnect();
     }
 
-    const sampleNode = sample(this.connectionPool.getNodes());
+    const sampleNode = sample(
+      this.connectionPool.getNodes(this.subscriberNodeRole)
+    );
     if (!sampleNode) {
       debug(
         "selecting subscriber failed since there is no node discovered in the cluster yet"
@@ -151,6 +166,8 @@ export default class ClusterSubscriber {
       connectionName: getConnectionName(connectionPrefix, options.connectionName),
       lazyConnect: true,
       tls: options.tls,
+      protocol: options.protocol,
+      replyMapping: options.replyMapping,
       // Don't try to reconnect the subscriber connection. If the connection fails
       // we will get an end event (handled below), at which point we'll pick a new
       // node from the pool and try to connect to that as the subscriber connection.
@@ -192,9 +209,28 @@ export default class ClusterSubscriber {
       let pending = 0;
       for (const type of ["subscribe", "psubscribe", "ssubscribe"]) {
         const channels = previousChannels[type];
-        if (channels.length) {
+        if (channels.length == 0) {
+          continue;
+        }
+
+        debug("%s %d channels", type, channels.length);
+
+        if (type === "ssubscribe") {
+          for (const channel of channels) {
+            pending += 1;
+            this.subscriber[type](channel)
+              .then(() => {
+                if (!--pending) {
+                  this.lastActiveSubscriber = this.subscriber;
+                }
+              })
+              .catch(() => {
+                // TODO: should probably disconnect the subscriber and try again.
+                debug("failed to ssubscribe to channel: %s", channel);
+              });
+          }
+        } else {
           pending += 1;
-          debug("%s %d channels", type, channels.length);
           this.subscriber[type](channels)
             .then(() => {
               if (!--pending) {

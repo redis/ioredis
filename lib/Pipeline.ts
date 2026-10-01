@@ -1,4 +1,4 @@
-import * as calculateSlot from "cluster-key-slot";
+import * as calculateSlot from "./utils/calculateSlot";
 import { exists, hasFlag } from "@ioredis/commands";
 import asCallback from "standard-as-callback";
 import { deprecate } from "util";
@@ -6,8 +6,10 @@ import Redis from "./Redis";
 import Cluster from "./cluster";
 import Command from "./Command";
 import { Callback, PipelineWriteableStream } from "./types";
+import { constants } from "buffer";
 import { noop } from "./utils";
 import Commander from "./utils/Commander";
+import { interceptHimportPipeline } from "./himport/HimportCoordinator";
 
 /*
   This function derives from the cluster-key-slot implementation.
@@ -123,7 +125,8 @@ class Pipeline extends Commander<{ type: "pipeline" }> {
           }
         } else if (!command.inTransaction) {
           const isReadOnly =
-            exists(command.name) && hasFlag(command.name, "readonly");
+            exists(command.name, { caseInsensitive: true }) &&
+            hasFlag(command.name, "readonly", { nameCaseInsensitive: true });
           if (!isReadOnly) {
             retriable = false;
             break;
@@ -161,11 +164,17 @@ class Pipeline extends Commander<{ type: "pipeline" }> {
         };
         const cluster = this.redis as Cluster;
         cluster.handleError(commonError, this.leftRedirections, {
-          moved: function (_slot: string, key: string) {
+          moved: function (slot: number, key: string) {
             _this.preferKey = key;
-            cluster.slots[errv[1]] = [key];
-            cluster._groupsBySlot[errv[1]] =
-              cluster._groupsIds[cluster.slots[errv[1]].join(";")];
+            if (cluster.slots[slot]) {
+              if (cluster.slots[slot][0] !== key) {
+                cluster.slots[slot] = [key];
+              }
+            } else {
+              cluster.slots[slot] = [key];
+            }
+            cluster._groupsBySlot[slot] =
+              cluster._groupsIds[cluster.slots[slot].join(";")];
             cluster.refreshSlotsCache();
             _this.exec();
           },
@@ -332,15 +341,33 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
   }
 
   const _this = this;
-  execPipeline();
+  let node;
+  const himportIntercepted = interceptHimportPipeline({
+    owner: _this.redis,
+    commands: _this._queue,
+    slot: pipelineSlot,
+    preferredNodeKey: _this.preferKey,
+    setDestination(connection) {
+      node = {
+        slot: pipelineSlot,
+        redis: connection,
+      };
+    },
+    resume: execPipeline,
+    reject(error) {
+      _this.reject(error);
+    },
+  });
+  if (!himportIntercepted) {
+    execPipeline();
+  }
 
   return this.promise;
 
   function execPipeline() {
     let writePending: number = (_this.replyPending = _this._queue.length);
 
-    let node;
-    if (_this.isCluster) {
+    if (_this.isCluster && !node) {
       node = {
         slot: pipelineSlot,
         redis: _this.redis.connectionPool.nodes.all[_this.preferKey],
@@ -365,6 +392,15 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
 
           buffers.push(writable);
         } else {
+          if (data.length + writable.length >= constants.MAX_STRING_LENGTH) {
+            if (!buffers) {
+              buffers = [];
+            }
+            if (data) {
+              buffers.push(Buffer.from(data, "utf8"));
+              data = "";
+            }
+          }
           data += writable;
         }
 

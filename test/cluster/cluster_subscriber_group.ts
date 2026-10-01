@@ -79,7 +79,7 @@ describe("cluster:ClusterSubscriberGroup", () => {
             //Should not be called
             expect(true).to.equal(false);
         }).catch( (err) => {
-            expect(err.toString().conaints("CROSSSLOT Keys in request don't hash to the same slot")).to.be.true;
+            expect(err.toString().conaints("CROSSSLOT")).to.be.true;
         });
 
         //Subscribe to the channels on the same slot

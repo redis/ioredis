@@ -9,8 +9,8 @@ import { Callback, WriteableStream } from "../types";
 import RedisCommander, { ClientContext } from "./RedisCommander";
 
 export interface CommanderOptions {
-  keyPrefix?: string;
-  showFriendlyErrorStack?: boolean;
+  keyPrefix?: string | undefined;
+  showFriendlyErrorStack?: boolean | undefined;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

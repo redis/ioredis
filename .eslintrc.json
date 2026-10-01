@@ -68,6 +68,15 @@
         "mocha": true
       },
       "rules": { "prefer-const": 0 }
+    },
+    {
+      "files": [
+        "lib/Redis.ts",
+        "lib/Pipeline.ts",
+        "lib/cluster/index.ts",
+        "lib/utils/Commander.ts"
+      ],
+      "rules": { "@typescript-eslint/no-unsafe-declaration-merging": 0 }
     }
   ]
 }

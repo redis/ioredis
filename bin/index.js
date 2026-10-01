@@ -26,7 +26,7 @@ const template = fs.readFileSync(path.join(__dirname, "/template.ts"), "utf8");
 async function main() {
   const interface = await getCommanderInterface({
     commands,
-    complexityLimit: 50,
+    complexityLimit: 100,
     redisOpts: {
       port: process.env.REDIS_PORT,
     },

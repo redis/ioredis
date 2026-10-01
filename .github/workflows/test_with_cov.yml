@@ -7,22 +7,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [12.x, 14.x, 16.x, 18.x, 20.x]
+        node: [20.x, 22.x, 24.x, 26.x]
+        redis: ["rs-7.4.0-v1", "8.2", "8.4.0", "8.8.0", "custom-30445126297-debian"]
     steps:
       - name: Git checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
 
       - name: Use Node.js ${{ matrix.node }}
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
 
-      - name: Start Redis
-        uses: supercharge/redis-github-action@1.4.0
-        with:
-          redis-version: latest
-
-      - run: npm run cluster:setup
+      - run: npm run docker:setup
+        env:
+          REDIS_VERSION: ${{ matrix.redis }}
 
       - run: npm install
       - run: npm run lint
@@ -31,8 +29,9 @@ jobs:
       - run: npm run test:cov || npm run test:cov || npm run test:cov
       - run: npm run test:cluster
       - name: Coveralls
-        if: matrix.node == '18.x'
-        uses: coverallsapp/github-action@master
+        if: matrix.node == '24.x'
+        continue-on-error: true
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           flag-name: node-${{matrix.node}}
@@ -43,7 +42,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls
-        uses: coverallsapp/github-action@master
+        continue-on-error: true
+        uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           parallel-finished: true

@@ -1,5 +1,5 @@
 import { exists, getKeyIndexes } from "@ioredis/commands";
-import * as calculateSlot from "cluster-key-slot";
+import * as calculateSlot from "./utils/calculateSlot";
 import asCallback from "standard-as-callback";
 import {
   convertBufferToString,
@@ -8,7 +8,25 @@ import {
   convertMapToArray,
   convertObjectToArray,
 } from "./utils";
-import { Callback, Respondable, CommandParameter } from "./types";
+import {
+  Callback,
+  Respondable,
+  CommandParameter,
+  ProtocolVersion,
+  ReplyMappingMode,
+} from "./types";
+import {
+  parseBlockOption,
+  parseSecondsArgument,
+} from "./utils/argumentParsers";
+import {
+  ReplyContext,
+  ReplyTransformer,
+  sortedSetWithScorePairCommands,
+  transformPairReply,
+  transformStreamReadReply,
+  transformVsimReply,
+} from "./replyTransformers";
 
 export type ArgumentType =
   | string
@@ -30,7 +48,6 @@ interface CommandOptions {
 }
 
 type ArgumentTransformer = (args: any[]) => any[];
-type ReplyTransformer = (reply: any) => any;
 interface FlagMap {
   [flag: string]: { [command: string]: true };
 }
@@ -55,6 +72,44 @@ export interface CommandNameFlags {
   EXIT_SUBSCRIBER_MODE: ["unsubscribe", "punsubscribe", "sunsubscribe"];
   // Commands that will make client disconnect from server TODO shutdown?
   WILL_DISCONNECT: ["quit"];
+  // Commands that are sent when the client is connecting
+  HANDSHAKE_COMMANDS: [
+    "auth",
+    "hello",
+    "select",
+    "client",
+    "readonly",
+    "info"
+  ];
+  // Commands that should not trigger a reconnection when errors occur
+  IGNORE_RECONNECT_ON_ERROR: ["client"];
+  // Commands that block
+  BLOCKING_COMMANDS: [
+    "blpop",
+    "brpop",
+    "brpoplpush",
+    "blmove",
+    "blmovem",
+    "bzpopmin",
+    "bzpopmax",
+    "bzmpop",
+    "blmpop",
+    "xread",
+    "xreadgroup"
+  ];
+  // Commands that have timeout as the last argument
+  LAST_ARG_TIMEOUT_COMMANDS: [
+    "blpop",
+    "brpop",
+    "brpoplpush",
+    "blmove",
+    "bzpopmin",
+    "bzpopmax"
+  ];
+  // Commands that have timeout as the first argument
+  FIRST_ARG_TIMEOUT_COMMANDS: ["bzmpop", "blmpop"];
+  // Commands that have BLOCK option
+  BLOCK_OPTION_COMMANDS: ["xread", "xreadgroup"];
 }
 
 /**
@@ -95,6 +150,38 @@ export default class Command implements Respondable {
     ENTER_SUBSCRIBER_MODE: ["subscribe", "psubscribe", "ssubscribe"],
     EXIT_SUBSCRIBER_MODE: ["unsubscribe", "punsubscribe", "sunsubscribe"],
     WILL_DISCONNECT: ["quit"],
+    HANDSHAKE_COMMANDS: [
+      "auth",
+      "hello",
+      "select",
+      "client",
+      "readonly",
+      "info",
+    ],
+    IGNORE_RECONNECT_ON_ERROR: ["client"],
+    BLOCKING_COMMANDS: [
+      "blpop",
+      "brpop",
+      "brpoplpush",
+      "blmove",
+      "blmovem",
+      "bzpopmin",
+      "bzpopmax",
+      "bzmpop",
+      "blmpop",
+      "xread",
+      "xreadgroup",
+    ],
+    LAST_ARG_TIMEOUT_COMMANDS: [
+      "blpop",
+      "brpop",
+      "brpoplpush",
+      "blmove",
+      "bzpopmin",
+      "bzpopmax",
+    ],
+    FIRST_ARG_TIMEOUT_COMMANDS: ["bzmpop", "blmpop"],
+    BLOCK_OPTION_COMMANDS: ["xread", "xreadgroup"],
   };
 
   private static flagMap?: FlagMap;
@@ -113,6 +200,7 @@ export default class Command implements Respondable {
     flagName: T,
     commandName: string
   ): commandName is CommandNameFlags[T][number] {
+    commandName = commandName.toLowerCase();
     return !!this.getFlagMap()[flagName][commandName];
   }
 
@@ -146,18 +234,24 @@ export default class Command implements Respondable {
   args: CommandParameter[];
   inTransaction = false;
   pipelineIndex?: number;
+  isTraced = false;
 
   isResolved = false;
+  isSettled = false;
   reject: (err: Error) => void;
   resolve: (result: any) => void;
   promise: Promise<any>;
 
   private replyEncoding: BufferEncoding | null;
+  private protocol: ProtocolVersion;
+  private replyMapping: ReplyMappingMode;
   private errorStack: Error;
   private bufferMode: boolean;
   private callback: Callback;
   private transformed = false;
   private _commandTimeoutTimer?: NodeJS.Timeout;
+  private _blockingTimeoutTimer?: NodeJS.Timeout;
+  private _blockingDeadline?: number;
 
   private slot?: number | null;
   private keys?: Array<string | Buffer>;
@@ -177,6 +271,8 @@ export default class Command implements Respondable {
     callback?: Callback
   ) {
     this.replyEncoding = options.replyEncoding;
+    this.protocol = 2;
+    this.replyMapping = "legacy";
     this.errorStack = options.errorStack;
 
     this.args = args.flat();
@@ -220,6 +316,11 @@ export default class Command implements Respondable {
 
   getKeys(): Array<string | Buffer> {
     return this._iterateKeys();
+  }
+
+  setReplyContext(context: ReplyContext | null | undefined): void {
+    this.protocol = context?.protocol ?? 2;
+    this.replyMapping = context?.replyMapping ?? "legacy";
   }
 
   /**
@@ -300,7 +401,11 @@ export default class Command implements Respondable {
     }
     const transformer = Command._transformer.reply[this.name];
     if (transformer) {
-      result = transformer(result);
+      result = transformer(result, {
+        commandName: this.name,
+        protocol: this.protocol,
+        replyMapping: this.replyMapping,
+      });
     }
 
     return result;
@@ -313,14 +418,114 @@ export default class Command implements Respondable {
   setTimeout(ms: number) {
     if (!this._commandTimeoutTimer) {
       this._commandTimeoutTimer = setTimeout(() => {
-        if (!this.isResolved) {
+        if (!this.isSettled) {
           this.reject(new Error("Command timed out"));
         }
       }, ms);
     }
   }
 
+  /**
+   * Set a timeout for blocking commands.
+   * When the timeout expires, the command resolves with null (matching Redis behavior).
+   * This handles the case of undetectable network failures (e.g., docker network disconnect)
+   * where the TCP connection becomes a zombie and no close event fires.
+   */
+  setBlockingTimeout(ms: number) {
+    if (ms <= 0) {
+      return;
+    }
+
+    // Clear existing timer if any (can happen when command moves from offline to command queue)
+    if (this._blockingTimeoutTimer) {
+      clearTimeout(this._blockingTimeoutTimer);
+      this._blockingTimeoutTimer = undefined;
+    }
+
+    const now = Date.now();
+
+    // First call: establish absolute deadline
+    if (this._blockingDeadline === undefined) {
+      this._blockingDeadline = now + ms;
+    }
+
+    // Check if we've already exceeded the deadline
+    const remaining = this._blockingDeadline - now;
+    if (remaining <= 0) {
+      // Resolve with null to indicate timeout (same as Redis behavior)
+      this.resolve(null);
+      return;
+    }
+
+    this._blockingTimeoutTimer = setTimeout(() => {
+      if (this.isSettled) {
+        this._blockingTimeoutTimer = undefined;
+        return;
+      }
+
+      this._blockingTimeoutTimer = undefined;
+
+      // Timeout expired - resolve with null (same as Redis behavior when blocking command times out)
+      this.resolve(null);
+    }, remaining);
+  }
+
+  /**
+   * Extract the blocking timeout from the command arguments.
+   *
+   * @returns The timeout in seconds, null for indefinite blocking (timeout of 0),
+   *          or undefined if this is not a blocking command
+   */
+  extractBlockingTimeout(): number | null | undefined {
+    const args = this.args;
+
+    if (!args || args.length === 0) {
+      return undefined;
+    }
+
+    const name = this.name.toLowerCase();
+
+    // BLMOVEM may have trailing options, but its timeout is always the fifth argument.
+    if (name === "blmovem") {
+      return parseSecondsArgument(args[4]);
+    }
+
+    if (Command.checkFlag("LAST_ARG_TIMEOUT_COMMANDS", name)) {
+      return parseSecondsArgument(args[args.length - 1]);
+    }
+
+    if (Command.checkFlag("FIRST_ARG_TIMEOUT_COMMANDS", name)) {
+      return parseSecondsArgument(args[0]);
+    }
+
+    if (Command.checkFlag("BLOCK_OPTION_COMMANDS", name)) {
+      return parseBlockOption(args);
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Clear the command and blocking timers
+   */
+  private _clearTimers() {
+    const existingTimer = this._commandTimeoutTimer;
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+      delete this._commandTimeoutTimer;
+    }
+
+    const blockingTimer = this._blockingTimeoutTimer;
+    if (blockingTimer) {
+      clearTimeout(blockingTimer);
+      delete this._blockingTimeoutTimer;
+    }
+  }
+
   private initPromise() {
+    this.isResolved = false;
+    this.isSettled = false;
+
     const promise = new Promise((resolve, reject) => {
       if (!this.transformed) {
         this.transformed = true;
@@ -332,13 +537,15 @@ export default class Command implements Respondable {
       }
 
       this.resolve = this._convertValue(resolve);
-      if (this.errorStack) {
-        this.reject = (err) => {
+      this.reject = (err: Error) => {
+        this._clearTimers();
+        this.isSettled = true;
+        if (this.errorStack) {
           reject(optimizeErrorStack(err, this.errorStack.stack, __dirname));
-        };
-      } else {
-        this.reject = reject;
-      }
+        } else {
+          reject(err);
+        }
+      };
     });
 
     this.promise = asCallback(promise, this.callback);
@@ -352,9 +559,11 @@ export default class Command implements Respondable {
   ): (string | Buffer)[] {
     if (typeof this.keys === "undefined") {
       this.keys = [];
-      if (exists(this.name)) {
+      if (exists(this.name, { caseInsensitive: true })) {
         // @ts-expect-error
-        const keyIndexes = getKeyIndexes(this.name, this.args);
+        const keyIndexes = getKeyIndexes(this.name, this.args, {
+          nameCaseInsensitive: true,
+        });
         for (const index of keyIndexes) {
           this.args[index] = transform(this.args[index]);
           this.keys.push(this.args[index] as string | Buffer);
@@ -370,14 +579,10 @@ export default class Command implements Respondable {
   private _convertValue(resolve: Function): (result: any) => void {
     return (value) => {
       try {
-        const existingTimer = this._commandTimeoutTimer;
-        if (existingTimer) {
-          clearTimeout(existingTimer);
-          delete this._commandTimeoutTimer;
-        }
-
+        this._clearTimers();
         resolve(this.transformReply(value));
         this.isResolved = true;
+        this.isSettled = true;
       } catch (err) {
         this.reject(err);
       }
@@ -439,6 +644,15 @@ Command.setReplyTransformer("hgetall", function (result) {
   }
   return result;
 });
+
+Command.setReplyTransformer("vsim", transformVsimReply);
+Command.setReplyTransformer("hrandfield", transformPairReply);
+Command.setReplyTransformer("xread", transformStreamReadReply);
+Command.setReplyTransformer("xreadgroup", transformStreamReadReply);
+
+for (const command of sortedSetWithScorePairCommands) {
+  Command.setReplyTransformer(command, transformPairReply);
+}
 
 class MixedBuffers {
   length = 0;

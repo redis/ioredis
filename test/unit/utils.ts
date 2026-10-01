@@ -25,6 +25,46 @@ describe("utils", () => {
         ])
       ).to.eql(["abc", 5, "b", [["abc", 4]]]);
     });
+
+    it("should convert values of plain objects", () => {
+      expect(
+        utils.convertBufferToString(
+          {
+            a: Buffer.from("abc"),
+            b: 5,
+            c: [Buffer.from("abc"), { d: Buffer.from("abc") }],
+          },
+          "utf8"
+        )
+      ).to.eql({ a: "abc", b: 5, c: ["abc", { d: "abc" }] });
+    });
+
+    it("should leave non-plain objects untouched", () => {
+      const date = new Date(0);
+
+      expect(utils.convertBufferToString(date, "utf8")).to.equal(date);
+    });
+
+    it("should keep special keys as own properties", () => {
+      const input: Record<string, unknown> = { a: Buffer.from("abc") };
+      Object.defineProperty(input, "__proto__", {
+        value: Buffer.from("x"),
+        configurable: true,
+        enumerable: true,
+        writable: true,
+      });
+
+      const res = utils.convertBufferToString(input, "utf8") as Record<
+        string,
+        unknown
+      >;
+
+      expect(Object.getPrototypeOf(res)).to.equal(Object.prototype);
+      expect(Object.getOwnPropertyDescriptor(res, "__proto__")?.value).to.equal(
+        "x"
+      );
+      expect(res.a).to.equal("abc");
+    });
   });
 
   describe(".wrapMultiResult", () => {
@@ -118,6 +158,142 @@ describe("utils", () => {
     });
   });
 
+  describe(".defaults", () => {
+    it("should assign source properties if missing on `object`", () => {
+      const actual = utils.defaults({ a: 1 }, { a: 2, b: 2 });
+
+      expect(actual).to.eql({ a: 1, b: 2 });
+    });
+
+    it("should accept multiple sources", () => {
+      const expected = { a: 1, b: 2, c: 3 };
+      let actual = utils.defaults({ a: 1, b: 2 }, { b: 3 }, { c: 3 });
+
+      expect(actual).to.eql(expected);
+
+      actual = utils.defaults({ a: 1, b: 2 }, { b: 3, c: 3 }, { c: 2 });
+      expect(actual).to.eql(expected);
+    });
+
+    it("should not overwrite `null` values", () => {
+      const actual = utils.defaults({ a: null }, { a: 1 });
+
+      expect((actual as any).a).to.eql(null);
+    });
+
+    it("should overwrite `undefined` values", () => {
+      const actual = utils.defaults({ a: undefined }, { a: 1 });
+
+      expect((actual as any).a).to.eql(1);
+    });
+
+    it("should assign `undefined` values", () => {
+      const source = { a: undefined, b: 1 };
+      const actual = utils.defaults({}, source);
+
+      expect(actual).to.eql({ a: undefined, b: 1 });
+    });
+
+    it("should assign inherited enumerable source properties", () => {
+      const source = Object.create({ a: 1 });
+      source.b = 2;
+
+      const actual = utils.defaults({}, source);
+
+      expect(actual).to.eql({ a: 1, b: 2 });
+    });
+
+    it("should assign properties that shadow those on `Object.prototype`", () => {
+      const objectProto = Object.prototype;
+      const object = {
+        constructor: objectProto.constructor,
+        hasOwnProperty: objectProto.hasOwnProperty,
+        isPrototypeOf: objectProto.isPrototypeOf,
+        propertyIsEnumerable: objectProto.propertyIsEnumerable,
+        toLocaleString: objectProto.toLocaleString,
+        toString: objectProto.toString,
+        valueOf: objectProto.valueOf,
+      };
+
+      const source = {
+        constructor: 1,
+        hasOwnProperty: 2,
+        isPrototypeOf: 3,
+        propertyIsEnumerable: 4,
+        toLocaleString: 5,
+        toString: 6,
+        valueOf: 7,
+      };
+
+      expect(utils.defaults({}, source)).to.eql({ ...source });
+      expect(utils.defaults({}, object, source)).to.eql({ ...object });
+    });
+
+    it("should be used as a iteratee", () => {
+      const array = [{ b: 1 }, { c: 2 }, { d: 3 }];
+      const source = { a: 4 };
+
+      array.forEach((...args: any[]) => utils.defaults(source, ...args));
+
+      expect(source).to.eql({ a: 4, b: 1, c: 2, d: 3 });
+    });
+
+    it("should not throw an error when a source is `undefined`", () => {
+      const source = undefined;
+      const actual = utils.defaults({ a: 1 }, source);
+
+      expect(actual).to.eql({ a: 1 });
+    });
+
+    it("should not throw an error when a source is `null`", () => {
+      const source = null;
+      const actual = utils.defaults({ a: 1 }, source);
+
+      expect(actual).to.eql({ a: 1 });
+    });
+  });
+
+  describe(".isArguments", () => {
+    it("should return `true` for `arguments` objects", () => {
+      const args = (function () {
+        return arguments;
+      })();
+
+      const strictArgs = (function () {
+        "use strict";
+        return arguments;
+      })();
+
+      expect(utils.isArguments(args)).to.eql(true);
+      expect(utils.isArguments(strictArgs)).to.eql(true);
+    });
+
+    it("should return `false` for non `arguments` objects", () => {
+      const symbol = Symbol("test-symbol");
+      const slice = Array.prototype.slice;
+      const falsey = [undefined, null, false, 0, NaN, ""];
+      const stubFalse = () => false;
+      const expected = falsey.map(stubFalse);
+      const actual = falsey.map((value, index) =>
+        index ? utils.isArguments(value) : utils.isArguments()
+      );
+
+      expect(actual).to.eql(expected);
+
+      expect(utils.isArguments([1, 2, 3])).to.eql(false);
+      expect(utils.isArguments(true)).to.eql(false);
+      expect(utils.isArguments(new Date())).to.eql(false);
+      expect(utils.isArguments(new Error())).to.eql(false);
+      expect(utils.isArguments(slice)).to.eql(false);
+      expect(utils.isArguments({ 0: 1, callee: utils.noop, length: 1 })).to.eql(false);
+      expect(utils.isArguments(1)).to.eql(false);
+      expect(utils.isArguments(/x/)).to.eql(false);
+      expect(utils.isArguments("a")).to.eql(false);
+      expect(utils.isArguments(symbol)).to.eql(false);
+    });
+
+  });
+
   describe(".toArg", () => {
     it("should return correctly", () => {
       expect(utils.toArg(null)).to.eql("");
@@ -148,6 +324,24 @@ describe("utils", () => {
         host: "127.0.0.1",
         port: "6379",
       });
+      // TODO(next major): Consider rejecting protocol-relative Redis URLs early
+      // and requiring redis:// or rediss:// instead. Keep this behavior in 5.x
+      // for backward compatibility.
+      expect(utils.parseURL("//service-redis:6379")).to.eql({
+        host: "service-redis",
+        port: "6379",
+      });
+      expect(utils.parseURL("//pi.local:6379?family=4")).to.eql({
+        host: "pi.local",
+        port: "6379",
+        family: 4,
+      });
+      expect(utils.parseURL("//127.0.0.1:6379/4?key=value")).to.eql({
+        host: "127.0.0.1",
+        port: "6379",
+        db: "4",
+        key: "value",
+      });
       expect(utils.parseURL("127.0.0.1:6379?db=2&key=value")).to.eql({
         host: "127.0.0.1",
         port: "6379",
@@ -173,6 +367,13 @@ describe("utils", () => {
         username: "user",
         password: "pass:word",
         key: "value",
+      });
+      expect(utils.parseURL("redis://:authpassword@127.0.0.1:6380/4")).to.eql({
+        host: "127.0.0.1",
+        port: "6380",
+        db: "4",
+        username: "",
+        password: "authpassword",
       });
       expect(utils.parseURL("redis://user@127.0.0.1:6380/4?key=value")).to.eql({
         host: "127.0.0.1",
@@ -202,6 +403,27 @@ describe("utils", () => {
       expect(utils.parseURL("redis://127.0.0.1/?family=IPv6")).to.eql({
         host: "127.0.0.1",
         family: "IPv6",
+      });
+      expect(utils.parseURL("REDIS://127.0.0.1:6379/0")).to.eql({
+        host: "127.0.0.1",
+        port: "6379",
+        db: "0",
+      });
+      expect(utils.parseURL("redis://[::1]:6379/0")).to.eql({
+        host: "::1",
+        port: "6379",
+        db: "0",
+      });
+      expect(utils.parseURL("[::1]:6379")).to.eql({
+        host: "::1",
+        port: "6379",
+      });
+      expect(utils.parseURL("/tmp/redis.sock?key=value")).to.eql({
+        path: "/tmp/redis.sock",
+        key: "value",
+      });
+      expect(utils.parseURL("/tmp/redis.sock?path=/other.sock")).to.eql({
+        path: "/tmp/redis.sock",
       });
     });
   });

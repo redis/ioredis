@@ -1,5 +1,6 @@
 import { nodeKeyToRedisOptions } from "../../../lib/cluster/util";
 import { Cluster } from "../../../lib";
+import Command from "../../../lib/Command";
 import * as sinon from "sinon";
 import { expect } from "chai";
 
@@ -19,6 +20,7 @@ describe("cluster", () => {
     const cluster = new Cluster([{ port: 7777 }], options);
     expect(cluster.options).to.have.property("maxRedirections", 1000);
     expect(cluster.options).to.have.property("scaleReads", "master");
+    expect(cluster.options).to.have.property("subscriberNodeRole", "all");
   });
 
   it("should allow overriding Commander options", () => {
@@ -42,6 +44,20 @@ describe("cluster", () => {
     }).to.throw(/Invalid option scaleReads/);
   });
 
+  it("throws when subscriberNodeRole is invalid", () => {
+    expect(() => {
+      // @ts-expect-error
+      new Cluster([{}], { subscriberNodeRole: "invalid" });
+    }).to.throw(/Invalid option subscriberNodeRole/);
+  });
+
+  it("preserves subscriberNodeRole when duplicated", () => {
+    const cluster = new Cluster([{}], { subscriberNodeRole: "slave" });
+    const duplicate = cluster.duplicate();
+
+    expect(duplicate.options.subscriberNodeRole).to.eql("slave");
+  });
+
   it("disables slotsRefreshTimeout by default", () => {
     const cluster = new Cluster([{}]);
     expect(cluster.options.slotsRefreshInterval).to.eql(undefined);
@@ -57,6 +73,22 @@ describe("cluster", () => {
     });
   });
 
+  describe("#sendCommand", () => {
+    it("does not enumerate masters for ordinary commands", () => {
+      const cluster = new Cluster([]);
+      const getNodes = sinon.spy(cluster["connectionPool"], "getNodes");
+      const command = new Command("get", ["key"]);
+      cluster.status = "ready";
+
+      try {
+        cluster.sendCommand(command);
+        expect(getNodes.called).to.equal(false);
+      } finally {
+        command.resolve(Buffer.from("value"));
+        getNodes.restore();
+      }
+    });
+  });
 
   describe("natMapper", () => {
     it("returns the original nodeKey if no NAT mapping is provided", () => {
@@ -96,7 +128,6 @@ describe("cluster", () => {
       expect(result).to.eql({ host: "203.0.113.1", port: 6379 });
     });
   });
-
 });
 
 describe("nodeKeyToRedisOptions()", () => {

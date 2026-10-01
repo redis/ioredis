@@ -3,6 +3,28 @@ import { TLSSocket } from "tls";
 
 export type Callback<T = any> = (err?: Error | null, result?: T) => void;
 export type NetStream = Socket | TLSSocket;
+export type ProtocolVersion = 2 | 3;
+export type ReplyMappingMode = "legacy" | "resp3";
+
+export type ReplyMappingFromOptions<
+  Current extends ReplyMappingMode,
+  Options
+> = Options extends { replyMapping: infer Mapping }
+  ? Extract<Mapping, ReplyMappingMode> extends never
+    ? Current
+    : Extract<Mapping, ReplyMappingMode>
+  : Current;
+
+export type ReplyMappingFromClusterOptions<
+  Current extends ReplyMappingMode,
+  Options
+> = Options extends {
+  redisOptions: { replyMapping: infer Mapping };
+}
+  ? Extract<Mapping, ReplyMappingMode> extends never
+    ? Current
+    : Extract<Mapping, ReplyMappingMode>
+  : Current;
 
 export type CommandParameter = string | Buffer | number | any[];
 export interface Respondable {

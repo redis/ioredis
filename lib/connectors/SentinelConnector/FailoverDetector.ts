@@ -10,6 +10,7 @@ export class FailoverDetector {
   private connector: SentinelConnector;
   private sentinels: Sentinel[];
   private isDisconnected = false;
+  private isCleanedUp = false;
 
   // sentinels can't be used for regular commands after this
   constructor(connector: SentinelConnector, sentinels: Sentinel[]) {
@@ -18,6 +19,10 @@ export class FailoverDetector {
   }
 
   cleanup() {
+    if (this.isCleanedUp) {
+      return;
+    }
+    this.isCleanedUp = true;
     this.isDisconnected = true;
 
     for (const sentinel of this.sentinels) {

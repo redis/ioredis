@@ -8,7 +8,13 @@ import Pipeline from "../Pipeline";
 import Redis from "../Redis";
 import ScanStream from "../ScanStream";
 import { addTransactionSupport, Transaction } from "../transaction";
-import { Callback, ScanStreamOptions, WriteableStream } from "../types";
+import {
+  Callback,
+  ReplyMappingFromClusterOptions,
+  ReplyMappingMode,
+  ScanStreamOptions,
+  WriteableStream,
+} from "../types";
 import {
   CONNECTION_CLOSED_ERROR_MSG,
   Debug,
@@ -21,12 +27,17 @@ import {
 } from "../utils";
 import applyMixin from "../utils/applyMixin";
 import Commander from "../utils/Commander";
-import { ClusterOptions, DEFAULT_CLUSTER_OPTIONS } from "./ClusterOptions";
+import {
+  ClusterOptions,
+  ClusterOptionsWithReplyMapping,
+  DEFAULT_CLUSTER_OPTIONS,
+} from "./ClusterOptions";
 import ClusterSubscriber from "./ClusterSubscriber";
 import ConnectionPool from "./ConnectionPool";
 import DelayQueue from "./DelayQueue";
 import {
-  getConnectionName, getNodeKey,
+  getConnectionName,
+  getNodeKey,
   getUniqueHostnamesFromOptions,
   groupSrvRecords,
   NodeKey,
@@ -34,10 +45,20 @@ import {
   NodeRole,
   normalizeNodeOptions,
   RedisOptions,
+  waitForRedisReady,
   weightSrvRecords,
 } from "./util";
 import Deque = require("denque");
 import ClusterSubscriberGroup from "./ClusterSubscriberGroup";
+import HimportCoordinator, {
+  bindHimportCoordinator,
+  cloneHimportFieldsets,
+  getHimportBinding,
+  interceptHimportControlCommand,
+  isHimportControlCommand,
+  setHimportRole,
+  unbindHimportCoordinator,
+} from "../himport/HimportCoordinator";
 
 const debug = Debug("cluster");
 
@@ -57,7 +78,7 @@ export type ClusterNode =
       port?: number | undefined;
     };
 
-type ClusterStatus =
+export type ClusterStatus =
   | "end"
   | "close"
   | "wait"
@@ -70,7 +91,12 @@ type ClusterStatus =
 /**
  * Client for the official Redis Cluster
  */
-class Cluster extends Commander {
+class Cluster<
+  ReplyMapping extends ReplyMappingMode = "legacy"
+> extends Commander<{
+  type: "default";
+  mapping: ReplyMapping extends "resp3" ? "resp3" : "resp2";
+}> {
   options: ClusterOptions;
   slots: NodeKey[][] = [];
   status: ClusterStatus;
@@ -98,13 +124,14 @@ class Cluster extends Commander {
   private offlineQueue = new Deque<OfflineQueueItem>();
   private subscriber: ClusterSubscriber;
   private shardedSubscribers: ClusterSubscriberGroup;
-  private slotsTimer: NodeJS.Timer;
-  private reconnectTimeout: NodeJS.Timer;
+  private slotsTimer: ReturnType<typeof setTimeout> | null;
+  private reconnectTimeout: ReturnType<typeof setTimeout> | null;
   private isRefreshing = false;
   private _refreshSlotsCacheCallbacks = [];
   private _autoPipelines: Map<string, typeof Pipeline> = new Map();
   private _runningAutoPipelines: Set<string> = new Set();
   private _readyDelayedCallbacks: Callback[] = [];
+  private subscriberGroupEmitter: EventEmitter | null;
 
   /**
    * Every time Cluster#connect() is called, this value will be
@@ -118,15 +145,31 @@ class Cluster extends Commander {
    * Creates an instance of Cluster.
    */
   //TODO: Add an option that enables or disables sharded PubSub
-  constructor(startupNodes: ClusterNode[], options: ClusterOptions = {}) {
+  // `redisOptions.replyMapping` carries the `ReplyMapping` class type parameter
+  // so RESP3 return shapes are inferred from the options literal at construction,
+  // mirroring the single-node `Redis` constructor.
+  constructor(
+    startupNodes: ClusterNode[],
+    options: ClusterOptionsWithReplyMapping<ReplyMapping> = {}
+  ) {
     super();
     EventEmitter.call(this);
 
     this.startupNodes = startupNodes;
     this.options = defaults({}, options, DEFAULT_CLUSTER_OPTIONS, this.options);
+    this.options.himportFieldsets = cloneHimportFieldsets(
+      this.options.himportFieldsets
+    );
+    const himportCoordinator = this.options.himportFieldsets?.length
+      ? new HimportCoordinator(this.options.himportFieldsets)
+      : undefined;
+    if (himportCoordinator) {
+      bindHimportCoordinator(this, himportCoordinator, "cluster");
+    }
 
-    if (this.options.shardedSubscribers == true)
-      this.shardedSubscribers = new ClusterSubscriberGroup(this, this.refreshSlotsCache.bind(this));
+    if (this.options.shardedSubscribers) {
+      this.createShardedSubscriberGroup();
+    }
 
     if (
       this.options.redisOptions &&
@@ -147,8 +190,58 @@ class Cluster extends Commander {
           '". Expected "all", "master", "slave" or a custom function'
       );
     }
+    if (
+      ["all", "master", "slave"].indexOf(this.options.subscriberNodeRole) === -1
+    ) {
+      throw new Error(
+        'Invalid option subscriberNodeRole "' +
+          this.options.subscriberNodeRole +
+          '". Expected "all", "master" or "slave"'
+      );
+    }
 
-    this.connectionPool = new ConnectionPool(this.options.redisOptions);
+    const redisOptions = { ...(this.options.redisOptions ?? {}) };
+    delete (redisOptions as Partial<RedisOptions>).himportFieldsets;
+    this.connectionPool = new ConnectionPool(
+      redisOptions,
+      this.options.clusterNodeRetryStrategy,
+      himportCoordinator
+        ? {
+            onCreate: (redis, readOnly) => {
+              bindHimportCoordinator(
+                redis,
+                himportCoordinator,
+                readOnly ? "replica" : "master"
+              );
+            },
+            onRoleChange: (redis, key, readOnly) => {
+              setHimportRole(redis, readOnly ? "replica" : "master");
+              himportCoordinator.invalidate(redis);
+              if (!readOnly) {
+                waitForRedisReady(redis).then(
+                  () => {
+                    for (const definition of himportCoordinator.getDefinitions()) {
+                      const preparation = himportCoordinator.ensurePrepared(
+                        redis,
+                        definition
+                      );
+                      preparation?.catch((error) => {
+                        this.emit("node error", error, key);
+                      });
+                    }
+                  },
+                  (error: Error) => {
+                    this.emit("node error", error, key);
+                  }
+                );
+              }
+            },
+            onRemove: (redis) => {
+              unbindHimportCoordinator(redis);
+            },
+          }
+        : undefined
+    );
 
     this.connectionPool.on("-node", (redis, key) => {
       this.emit("-node", redis);
@@ -163,7 +256,11 @@ class Cluster extends Commander {
       this.emit("node error", error, key);
     });
 
-    this.subscriber = new ClusterSubscriber(this.connectionPool, this);
+    this.subscriber = new ClusterSubscriber(
+      this.connectionPool,
+      this,
+      this.options.subscriberNodeRole
+    );
 
     if (this.options.scripts) {
       Object.entries(this.options.scripts).forEach(([name, definition]) => {
@@ -194,6 +291,10 @@ class Cluster extends Commander {
         return;
       }
 
+      if (this.status === "end") {
+        this.retryAttempts = 0;
+      }
+
       const epoch = ++this.connectionEpoch;
       this.setStatus("connecting");
 
@@ -222,6 +323,15 @@ class Cluster extends Commander {
           }
           this.connectionPool.reset(nodes);
 
+          if (this.options.shardedSubscribers) {
+            this.shardedSubscribers
+              .reset(this.slots, this.connectionPool.getNodes("all"))
+              .catch((err) => {
+                // TODO should we emit an error event here?
+                debug("Error while starting subscribers: %s", err);
+              });
+          }
+
           const readyHandler = () => {
             this.setStatus("ready");
             this.retryAttempts = 0;
@@ -236,6 +346,15 @@ class Cluster extends Commander {
             this.removeListener("close", closeListener);
             this.manuallyClosing = false;
             this.setStatus("connect");
+            // Startup nodes have no authoritative role metadata until the
+            // first slots refresh completes. Automatic reconnects recover an
+            // already-started subscriber while resetting the connection pool.
+            if (
+              this.options.subscriberNodeRole !== "all" &&
+              !this.subscriber.isStarted()
+            ) {
+              this.subscriber.start();
+            }
             if (this.options.enableReadyCheck) {
               this.readyCheck((err, fail) => {
                 if (err || fail) {
@@ -273,10 +392,15 @@ class Cluster extends Commander {
               this.connectionPool.reset([]);
             }
           });
-          this.subscriber.start();
+          if (this.options.subscriberNodeRole === "all") {
+            this.subscriber.start();
+          }
 
           if (this.options.shardedSubscribers) {
-            this.shardedSubscribers.start();
+            this.shardedSubscribers.start().catch((err) => {
+              // TODO should we emit an error event here?
+              debug("Error while starting subscribers: %s", err);
+            });
           }
         })
         .catch((err) => {
@@ -340,7 +464,6 @@ class Cluster extends Commander {
       this.shardedSubscribers.stop();
     }
 
-
     if (status === "wait") {
       const ret = asCallback(Promise.resolve<"OK">("OK"), callback);
 
@@ -381,13 +504,29 @@ class Cluster extends Commander {
    * var anotherCluster = cluster.duplicate();
    * ```
    */
-  duplicate(overrideStartupNodes = [], overrideOptions = {}) {
+  duplicate<
+    OverrideOptions extends
+      | ClusterOptionsWithReplyMapping<ReplyMappingMode>
+      | undefined = undefined
+  >(
+    overrideStartupNodes: ClusterNode[] = [],
+    overrideOptions?: OverrideOptions
+  ): Cluster<ReplyMappingFromClusterOptions<ReplyMapping, OverrideOptions>> {
     const startupNodes =
       overrideStartupNodes.length > 0
         ? overrideStartupNodes
         : this.startupNodes.slice(0);
     const options = Object.assign({}, this.options, overrideOptions);
-    return new Cluster(startupNodes, options);
+    if (this.options.redisOptions && overrideOptions?.redisOptions) {
+      options.redisOptions = Object.assign(
+        {},
+        this.options.redisOptions,
+        overrideOptions.redisOptions
+      );
+    }
+    return new Cluster(startupNodes, options) as Cluster<
+      ReplyMappingFromClusterOptions<ReplyMapping, OverrideOptions>
+    >;
   }
 
   /**
@@ -439,7 +578,7 @@ class Cluster extends Commander {
     if (this.isRefreshing) {
       return;
     }
-    
+
     this.isRefreshing = true;
 
     const _this = this;
@@ -499,6 +638,18 @@ class Cluster extends Commander {
       command.reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
       return command.promise;
     }
+    if (
+      !stream &&
+      !node &&
+      this.status === "ready" &&
+      isHimportControlCommand(command) &&
+      interceptHimportControlCommand(
+        this.connectionPool.getNodes("master"),
+        command
+      )
+    ) {
+      return command.promise;
+    }
     let to = this.options.scaleReads;
     if (to !== "master") {
       const isCommandReadOnly =
@@ -512,6 +663,9 @@ class Cluster extends Commander {
     let targetSlot = node ? node.slot : command.getSlot();
     const ttl = {};
     const _this = this;
+    // The connection the command was last sent on, used to detect
+    // MOVED redirects that point back at the same node.
+    let lastRedis: Redis | null = null;
     if (!node && !REJECT_OVERWRITTEN_COMMANDS.has(command)) {
       REJECT_OVERWRITTEN_COMMANDS.add(command);
 
@@ -529,7 +683,26 @@ class Cluster extends Commander {
             }
             _this._groupsBySlot[slot] =
               _this._groupsIds[_this.slots[slot].join(";")];
-            _this.connectionPool.findOrCreate(_this.natMapper(key));
+            const mapped = _this.natMapper(key);
+            const mappedKey = getNodeKey(mapped);
+            if (
+              lastRedis &&
+              getNodeKey(lastRedis.options as RedisOptions) === mappedKey &&
+              _this.connectionPool.getInstanceByKey(mappedKey) === lastRedis
+            ) {
+              // The redirect points back at the connection that returned
+              // the error, so it is stale (e.g. the endpoint is a proxy
+              // whose backing server changed) and retrying on it would
+              // loop forever. Replace it with a fresh one, unless another
+              // command already did — then reuse the replacement.
+              debug(
+                "MOVED redirect points back at %s; recreating its connection",
+                mappedKey
+              );
+              _this.connectionPool.recreate(mapped);
+            } else {
+              _this.connectionPool.findOrCreate(mapped);
+            }
             tryConnection();
             debug("refreshing slot caches... (triggered by MOVED error)");
             _this.refreshSlotsCache();
@@ -567,26 +740,67 @@ class Cluster extends Commander {
           Command.checkFlag("ENTER_SUBSCRIBER_MODE", command.name) ||
           Command.checkFlag("EXIT_SUBSCRIBER_MODE", command.name)
         ) {
-          if (_this.options.shardedSubscribers == true &&
-              (command.name == "ssubscribe" || command.name == "sunsubscribe")) {
+          if (
+            _this.options.shardedSubscribers &&
+            (command.name == "ssubscribe" || command.name == "sunsubscribe")
+          ) {
+            // A zero-argument SUNSUBSCRIBE has no channel to compute a target
+            // slot from, so it can't be routed to a single sharded subscriber.
+            // Redis unsubscribes the connection from all of its shard channels
+            // in that case; fan the command out across every sharded subscriber
+            // that currently holds channels.
+            if (
+              command.name == "sunsubscribe" &&
+              command.getKeys().length === 0
+            ) {
+              _this.shardedSubscribers
+                .sunsubscribeAll()
+                .then((count) => command.resolve(count))
+                .catch((err) => command.reject(err));
+              return;
+            }
 
-            const sub: ClusterSubscriber = _this.shardedSubscribers.getResponsibleSubscriber(targetSlot);
+            const sub =
+              _this.shardedSubscribers.getResponsibleSubscriber(targetSlot);
+
+            if (!sub) {
+              command.reject(
+                new AbortError(`No sharded subscriber for slot: ${targetSlot}`)
+              );
+              return;
+            }
+
             let status = -1;
 
-            if (command.name == "ssubscribe")
+            if (command.name == "ssubscribe") {
               status = _this.shardedSubscribers.addChannels(command.getKeys());
+            }
 
-            if ( command.name == "sunsubscribe")
-              status = _this.shardedSubscribers.removeChannels(command.getKeys());
+            if (command.name == "sunsubscribe") {
+              status = _this.shardedSubscribers.removeChannels(
+                command.getKeys()
+              );
+            }
 
             if (status !== -1) {
               redis = sub.getInstance();
             } else {
-              command.reject(new AbortError("Can't add or remove the given channels. Are they in the same slot?"));
+              command.reject(
+                new AbortError(
+                  "Possible CROSSSLOT error: All channels must hash to the same slot"
+                )
+              );
             }
-          }
-          else {
+          } else {
             redis = _this.subscriber.getInstance();
+            if (!redis && _this.options.subscriberNodeRole !== "all") {
+              command.reject(
+                new AbortError(
+                  `No node matching subscriberNodeRole "${_this.options.subscriberNodeRole}" is available for the cluster subscriber`
+                )
+              );
+              return;
+            }
           }
 
           if (!redis) {
@@ -622,7 +836,6 @@ class Cluster extends Commander {
             }
             if (asking) {
               redis = _this.connectionPool.getInstanceByKey(asking);
-              redis.asking();
             }
           }
           if (!redis) {
@@ -632,26 +845,77 @@ class Cluster extends Commander {
                 : _this.connectionPool.getSampleInstance(to)) ||
               _this.connectionPool.getSampleInstance("all");
           }
+          if (
+            redis &&
+            !_this.options.enableOfflineQueue &&
+            redis.status !== "ready" &&
+            redis.status !== "wait"
+          ) {
+            command.reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
+            return;
+          }
         }
         if (node && !node.redis) {
           node.redis = redis;
         }
       }
-      if (redis) {
-        redis.sendCommand(command, stream);
-      } else if (_this.options.enableOfflineQueue) {
+      if (!redis && _this.options.enableOfflineQueue) {
         _this.offlineQueue.push({
           command: command,
           stream: stream,
           node: node,
         });
-      } else {
+        return;
+      }
+
+      if (!redis) {
         command.reject(
           new Error(
             "Cluster isn't ready and enableOfflineQueue options is false"
           )
         );
+        return;
       }
+
+      lastRedis = redis;
+      if (asking) {
+        const himportBinding = getHimportBinding(redis);
+        const managedSet =
+          !stream && himportBinding?.role === "master"
+            ? himportBinding.coordinator.classify(command)
+            : undefined;
+        if (managedSet) {
+          waitForRedisReady(redis)
+            .then(() => {
+              if (command.isSettled) {
+                return;
+              }
+              const preparation = himportBinding.coordinator.prepareCommand(
+                redis,
+                command
+              );
+              return preparation ?? Promise.resolve();
+            })
+            .then(
+              () => {
+                if (command.isSettled) {
+                  return;
+                }
+                himportBinding.coordinator.allowNextSend(redis, command);
+                redis.asking();
+                redis.sendCommand(command, stream);
+              },
+              (error: Error) => {
+                if (!command.isSettled) {
+                  command.reject(error);
+                }
+              }
+            );
+          return;
+        }
+        redis.asking();
+      }
+      redis.sendCommand(command, stream);
     }
     return command.promise;
   }
@@ -697,15 +961,25 @@ class Cluster extends Commander {
     }
     const errv = error.message.split(" ");
     if (errv[0] === "MOVED") {
+      const slot = Number(errv[1]);
+      // Reject redirects whose slot is not a valid integer in the cluster
+      // range. The moved handlers use the slot to index the `slots` array;
+      // a crafted token such as "__proto__" would otherwise resolve to
+      // Array.prototype and pollute it globally. See
+      // https://hackerone.com/reports/3761875
+      if (!Number.isInteger(slot) || slot < 0 || slot >= 16384) {
+        handlers.defaults();
+        return;
+      }
       const timeout = this.options.retryDelayOnMoved;
       if (timeout && typeof timeout === "number") {
         this.delayQueue.push(
           "moved",
-          handlers.moved.bind(null, errv[1], errv[2]),
+          handlers.moved.bind(null, slot, errv[2]),
           { timeout }
         );
       } else {
-        handlers.moved(errv[1], errv[2]);
+        handlers.moved(slot, errv[2]);
       }
     } else if (errv[0] === "ASK") {
       handlers.ask(errv[1], errv[2]);
@@ -804,6 +1078,10 @@ class Cluster extends Commander {
         });
       }, retryDelay);
     } else {
+      if (this.options.shardedSubscribers) {
+        this.subscriberGroupEmitter?.removeAllListeners();
+      }
+
       this.setStatus("end");
       this.flushQueue(new Error("None of startup nodes is available"));
     }
@@ -833,9 +1111,7 @@ class Cluster extends Commander {
 
   private natMapper(nodeKey: NodeKey | RedisOptions): RedisOptions {
     const key =
-      typeof nodeKey === "string"
-        ? nodeKey
-        : `${nodeKey.host}:${nodeKey.port}`;
+      typeof nodeKey === "string" ? nodeKey : `${nodeKey.host}:${nodeKey.port}`;
 
     let mapped = null;
     if (this.options.natMap && typeof this.options.natMap === "function") {
@@ -866,6 +1142,8 @@ class Cluster extends Commander {
       enableOfflineQueue: true,
       enableReadyCheck: false,
       retryStrategy: null,
+      protocol: 2,
+      replyMapping: "legacy",
       connectionName: getConnectionName(
         "refresher",
         this.options.redisOptions && this.options.redisOptions.connectionName
@@ -952,6 +1230,17 @@ class Cluster extends Commander {
         }
 
         this.connectionPool.reset(nodes);
+        // A refresh can reclassify an existing node without emitting "+node".
+        this.subscriber.selectSubscriberIfNeeded();
+
+        if (this.options.shardedSubscribers) {
+          this.shardedSubscribers
+            .reset(this.slots, this.connectionPool.getNodes("all"))
+            .catch((err) => {
+              // TODO should we emit an error event here?
+              debug("Error while starting subscribers: %s", err);
+            });
+        }
         callback();
       }, this.options.slotsRefreshTimeout)
     );
@@ -1105,12 +1394,151 @@ class Cluster extends Commander {
       ...options,
     });
   }
+
+  private createShardedSubscriberGroup() {
+    this.subscriberGroupEmitter = new EventEmitter();
+
+    this.shardedSubscribers = new ClusterSubscriberGroup(
+      this.subscriberGroupEmitter,
+      this.options
+    );
+
+    // Error handler used only for sharded-subscriber-triggered slots cache refreshes.
+    // Normal (non-subscriber) connections are created with lazyConnect: true and can
+    // become zombied. For sharded subscribers, a ClusterAllFailedError means
+    // we have lost all nodes from the subscriber perspective and must tear down.
+    const refreshSlotsCacheCallback = (err?: Error) => {
+      // Disconnect only when refreshing the slots cache fails with ClusterAllFailedError
+      if (err instanceof ClusterAllFailedError) {
+        this.disconnect(true);
+      }
+    };
+
+    this.subscriberGroupEmitter.on("-node", (redis, nodeKey) => {
+      this.emit("-node", redis, nodeKey);
+
+      this.refreshSlotsCache(refreshSlotsCacheCallback);
+    });
+
+    this.subscriberGroupEmitter.on(
+      "subscriberConnectFailed",
+      ({ delay, error }) => {
+        this.emit("error", error);
+
+        setTimeout(() => {
+          this.refreshSlotsCache(refreshSlotsCacheCallback);
+        }, delay);
+      }
+    );
+
+    this.subscriberGroupEmitter.on("moved", () => {
+      this.refreshSlotsCache(refreshSlotsCacheCallback);
+    });
+
+    this.subscriberGroupEmitter.on("-subscriber", () => {
+      this.emit("-subscriber");
+    });
+
+    this.subscriberGroupEmitter.on("+subscriber", () => {
+      this.emit("+subscriber");
+    });
+
+    this.subscriberGroupEmitter.on("nodeError", (error, nodeKey) => {
+      this.emit("nodeError", error, nodeKey);
+    });
+
+    this.subscriberGroupEmitter.on("subscribersReady", () => {
+      this.emit("subscribersReady");
+    });
+
+    for (const event of ["smessage", "smessageBuffer"]) {
+      this.subscriberGroupEmitter.on(event, (arg1, arg2, arg3) => {
+        this.emit(event, arg1, arg2, arg3);
+      });
+    }
+  }
 }
 
-interface Cluster extends EventEmitter {}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface Cluster<ReplyMapping extends "legacy" | "resp3" = "legacy">
+  extends EventEmitter {
+  on(event: "message", cb: (channel: string, message: string) => void): this;
+  once(event: "message", cb: (channel: string, message: string) => void): this;
+
+  on(
+    event: "messageBuffer",
+    cb: (channel: Buffer, message: Buffer) => void
+  ): this;
+  once(
+    event: "messageBuffer",
+    cb: (channel: Buffer, message: Buffer) => void
+  ): this;
+
+  on(
+    event: "pmessage",
+    cb: (pattern: string, channel: string, message: string) => void
+  ): this;
+  once(
+    event: "pmessage",
+    cb: (pattern: string, channel: string, message: string) => void
+  ): this;
+
+  on(
+    event: "pmessageBuffer",
+    cb: (pattern: string, channel: Buffer, message: Buffer) => void
+  ): this;
+  once(
+    event: "pmessageBuffer",
+    cb: (pattern: string, channel: Buffer, message: Buffer) => void
+  ): this;
+
+  on(event: "smessage", cb: (channel: string, message: string) => void): this;
+  once(event: "smessage", cb: (channel: string, message: string) => void): this;
+
+  on(
+    event: "smessageBuffer",
+    cb: (channel: Buffer, message: Buffer) => void
+  ): this;
+  once(
+    event: "smessageBuffer",
+    cb: (channel: Buffer, message: Buffer) => void
+  ): this;
+
+  on(event: "error", cb: (error: Error) => void): this;
+  once(event: "error", cb: (error: Error) => void): this;
+
+  on(event: "+node", cb: (node: Redis) => void): this;
+  once(event: "+node", cb: (node: Redis) => void): this;
+
+  on(event: "-node", cb: (node: Redis, nodeKey?: string) => void): this;
+  once(event: "-node", cb: (node: Redis, nodeKey?: string) => void): this;
+
+  on(event: "node error", cb: (error: Error, nodeKey: string) => void): this;
+  once(event: "node error", cb: (error: Error, nodeKey: string) => void): this;
+
+  on(event: "nodeError", cb: (error: Error, nodeKey: string) => void): this;
+  once(event: "nodeError", cb: (error: Error, nodeKey: string) => void): this;
+
+  on(
+    event: "+subscriber" | "-subscriber" | "subscribersReady" | "refresh",
+    cb: () => void
+  ): this;
+  once(
+    event: "+subscriber" | "-subscriber" | "subscribersReady" | "refresh",
+    cb: () => void
+  ): this;
+
+  on(event: ClusterStatus, cb: () => void): this;
+  once(event: ClusterStatus, cb: () => void): this;
+
+  // base method of EventEmitter
+  on(event: string | symbol, listener: (...args: any[]) => void): this;
+  once(event: string | symbol, listener: (...args: any[]) => void): this;
+}
 applyMixin(Cluster, EventEmitter);
 
 addTransactionSupport(Cluster.prototype);
-interface Cluster extends Transaction {}
+interface Cluster<ReplyMapping extends "legacy" | "resp3" = "legacy">
+  extends Transaction<ReplyMapping extends "resp3" ? "resp3" : "resp2"> {}
 
 export default Cluster;

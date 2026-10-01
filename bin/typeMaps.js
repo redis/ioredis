@@ -10,6 +10,7 @@ module.exports = {
       "pivot",
       "threshold",
       "start",
+      "stop",
       "end",
       "max",
       "min",

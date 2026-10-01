@@ -53,6 +53,7 @@ export {
 } from "./connectors/SentinelConnector";
 export { StandaloneConnectionOptions } from "./connectors/StandaloneConnector";
 export { RedisOptions, CommonRedisOptions } from "./redis/RedisOptions";
+export type { HimportFieldset } from "./himport/types";
 export { ClusterNode } from "./cluster";
 export {
   ClusterOptions,
@@ -66,6 +67,16 @@ export type {
   RedisValue,
   ChainableCommander,
 } from "./utils/RedisCommander";
+export type { ScanStreamOptions } from "./types";
+export type { RedisStatus } from "./Redis";
+export type { ClusterStatus } from "./cluster";
+
+// Tracing types for diagnostics_channel consumers
+export type {
+  CommandTraceContext,
+  BatchOperationContext,
+  ConnectTraceContext,
+} from "./tracing";
 
 // No TS typings
 export const ReplyError = require("redis-errors").ReplyError;

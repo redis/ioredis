@@ -10,12 +10,12 @@ describe("fatal_error", () => {
         return;
       }
       if (argv[0] === "get") {
-        return MockServer.raw("&");
+        return MockServer.raw("&\r\n");
       }
     });
     const redis = new Redis(30000);
     redis.get("foo", function (err) {
-      expect(err.message).to.match(/Protocol error/);
+      expect(err.message).to.match(/Unknown RESP type/);
 
       recovered = true;
       redis.get("bar", function (err) {

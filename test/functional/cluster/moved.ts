@@ -1,4 +1,4 @@
-import * as calculateSlot from "cluster-key-slot";
+import * as calculateSlot from "../../../lib/utils/calculateSlot";
 import MockServer from "../../helpers/mock_server";
 import { expect } from "chai";
 import { Cluster } from "../../../lib";
@@ -117,6 +117,158 @@ describe("cluster:MOVED", () => {
     cluster.get("foo", () => {
       cluster.get("foo");
     });
+  });
+
+  it("refreshes the connection when MOVED points back at the same node", (done) => {
+    // Simulates a proxy endpoint whose backing server changed: old
+    // connections answer with MOVED pointing at the same address, new
+    // ones are routed correctly. https://github.com/redis/ioredis/issues/1865
+    const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
+    let swapped = false;
+    let movedCount = 0;
+    const freshSockets = new Set();
+    const server = new MockServer(30001, (argv, c) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+      if (argv[0] === "get" && argv[1] === "foo") {
+        if (swapped && !freshSockets.has(c)) {
+          movedCount += 1;
+          return new Error(
+            "MOVED " + calculateSlot("foo") + " 127.0.0.1:30001"
+          );
+        }
+        return "bar";
+      }
+    });
+    server.on("connect", (c) => {
+      if (swapped) {
+        freshSockets.add(c);
+      }
+    });
+
+    const cluster = new Cluster([{ host: "127.0.0.1", port: 30001 }]);
+    // Establish the pooled connection before the swap so it goes stale.
+    cluster.get("foo", (err, res) => {
+      expect(err).to.eql(null);
+      expect(res).to.eql("bar");
+      swapped = true;
+      cluster.get("foo", (err2, res2) => {
+        expect(err2).to.eql(null);
+        expect(res2).to.eql("bar");
+        expect(movedCount).to.eql(1);
+        cluster.disconnect();
+        done();
+      });
+    });
+  });
+
+  it("recreates the connection only once for concurrent circular MOVED", (done) => {
+    // Two in-flight commands on the same stale connection both receive
+    // MOVED pointing back at the node. Only the first should replace the
+    // connection; the second must reuse the fresh one.
+    const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
+    let swapped = false;
+    const freshSockets = new Set();
+    const server = new MockServer(30001, (argv, c) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+      if (argv[0] === "get" && argv[1] === "foo") {
+        if (swapped && !freshSockets.has(c)) {
+          return new Error(
+            "MOVED " + calculateSlot("foo") + " 127.0.0.1:30001"
+          );
+        }
+        return "bar";
+      }
+    });
+    server.on("connect", (c) => {
+      if (swapped) {
+        freshSockets.add(c);
+      }
+    });
+
+    const cluster = new Cluster([{ host: "127.0.0.1", port: 30001 }]);
+    cluster.get("foo", (err, res) => {
+      expect(err).to.eql(null);
+      expect(res).to.eql("bar");
+      swapped = true;
+      const recreateSpy = sinon.spy(cluster.connectionPool, "recreate");
+      Promise.all([cluster.get("foo"), cluster.get("foo")]).then(
+        ([res1, res2]) => {
+          expect(res1).to.eql("bar");
+          expect(res2).to.eql("bar");
+          expect(recreateSpy.callCount).to.eql(1);
+          cluster.disconnect();
+          done();
+        },
+        done
+      );
+    });
+  });
+
+  it("rejects a MOVED redirect with a non-numeric slot without polluting Array.prototype", (done) => {
+    // A malicious/compromised node replying with a crafted slot such as
+    // "__proto__" must not be used to index the internal slots array,
+    // which would write to Array.prototype[0].
+    // https://hackerone.com/reports/3761875
+    let cluster = undefined;
+    const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
+    new MockServer(30001, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+      if (argv[0] === "get" && argv[1] === "foo") {
+        return new Error("MOVED __proto__ 127.0.0.1:30002");
+      }
+    });
+
+    cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      maxRedirections: 2,
+    });
+    cluster.get("foo", (err) => {
+      expect(err).to.be.instanceOf(Error);
+      expect(err.message).to.include("MOVED __proto__");
+      // eslint-disable-next-line no-prototype-builtins
+      expect(Array.prototype.hasOwnProperty(0)).to.eql(false);
+      expect([].length).to.eql(0);
+      cluster.disconnect();
+      done();
+    });
+  });
+
+  it("rejects a MOVED redirect with a non-numeric slot inside a pipeline without polluting Array.prototype", (done) => {
+    // The pipeline retry path has its own MOVED handler; it must also
+    // reject a crafted slot such as "__proto__" (or a token like "length"
+    // that would throw RangeError). https://hackerone.com/reports/3761875
+    let cluster = undefined;
+    const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
+    new MockServer(30001, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+      if (argv[0] === "get" && argv[1] === "foo") {
+        return new Error("MOVED __proto__ 127.0.0.1:30002");
+      }
+    });
+
+    cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      maxRedirections: 2,
+    });
+    cluster
+      .pipeline()
+      .get("foo")
+      .exec((err, results) => {
+        expect(err).to.eql(null);
+        expect(results[0][0]).to.be.instanceOf(Error);
+        expect(results[0][0].message).to.include("MOVED __proto__");
+        // eslint-disable-next-line no-prototype-builtins
+        expect(Array.prototype.hasOwnProperty(0)).to.eql(false);
+        expect([].length).to.eql(0);
+        cluster.disconnect();
+        done();
+      });
   });
 
   it("should supports retryDelayOnMoved", (done) => {
