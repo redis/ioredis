@@ -662,7 +662,7 @@ export class Decoder {
       case RESP_TYPES.ATTRIBUTE:
         return this.#decodeAttribute(
           this.#decodeMap(typeMapping, chunk),
-          typeMapping,
+          this.#decodeNestedType.bind(this, typeMapping),
           chunk
         );
 
@@ -673,18 +673,19 @@ export class Decoder {
     }
   }
 
-  #decodeAttribute(attribute, typeMapping, chunk) {
+  // `decodeNext` decodes whatever the attribute decorates, and has to be the
+  // decoder for the position the attribute was found in: a map key still needs
+  // #decodeMapKey, which forces string keys, and not the generic nested path.
+  #decodeAttribute(attribute, decodeNext, chunk) {
     if (typeof attribute === "function") {
-      return this.#continueDecodeAttribute.bind(this, attribute, typeMapping);
+      return this.#continueDecodeAttribute.bind(this, attribute, decodeNext);
     }
 
-    return this.#cursor >= chunk.length
-      ? this.#decodeNestedType.bind(this, typeMapping)
-      : this.#decodeNestedType(typeMapping, chunk);
+    return this.#cursor >= chunk.length ? decodeNext : decodeNext(chunk);
   }
 
-  #continueDecodeAttribute(attributeCb, typeMapping, chunk) {
-    return this.#decodeAttribute(attributeCb(chunk), typeMapping, chunk);
+  #continueDecodeAttribute(attributeCb, decodeNext, chunk) {
+    return this.#decodeAttribute(attributeCb(chunk), decodeNext, chunk);
   }
 
   #decodeArray(typeMapping, chunk) {
@@ -914,6 +915,16 @@ export class Decoder {
       // decode blob string map key as string (and not as buffer)
       case RESP_TYPES.BLOB_STRING:
         return this.#decodeBlobString(String, chunk);
+
+      // An attributed key is still a key: resume on the key path so it keeps
+      // being coerced to a string. Leaving it to the nested path would hand
+      // #decodeMapAsObject a Buffer key, which bypasses its `__proto__` guard.
+      case RESP_TYPES.ATTRIBUTE:
+        return this.#decodeAttribute(
+          this.#decodeMap(typeMapping, chunk),
+          this.#decodeMapKey.bind(this, typeMapping),
+          chunk
+        );
 
       default:
         return this.#decodeNestedTypeValue(type, typeMapping, chunk);

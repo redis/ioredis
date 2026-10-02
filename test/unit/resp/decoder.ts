@@ -604,6 +604,46 @@ describe("RESP Decoder", () => {
       replies: [{ key: 1 }],
     });
 
+    // An attributed key has to stay on the map-key path, which forces keys to
+    // strings. A Buffer key would read back as `Buffer(foo)` from a Map and
+    // would walk straight past the `__proto__` guard in #decodeMapAsObject.
+    test("on a map key with blob strings as Buffer", {
+      typeMapping: {
+        [RESP_TYPES.SIMPLE_STRING]: Buffer,
+        [RESP_TYPES.BLOB_STRING]: Buffer,
+      },
+      toWrite: Buffer.from("%1\r\n|1\r\n+a\r\n+b\r\n$3\r\nfoo\r\n:1\r\n"),
+      replies: [{ foo: 1 }],
+    });
+
+    test("on a map key as Map with blob strings as Buffer", {
+      typeMapping: {
+        [RESP_TYPES.MAP]: Map,
+        [RESP_TYPES.SIMPLE_STRING]: Buffer,
+        [RESP_TYPES.BLOB_STRING]: Buffer,
+      },
+      toWrite: Buffer.from("%1\r\n|1\r\n+a\r\n+b\r\n$3\r\nfoo\r\n:1\r\n"),
+      replies: [new Map([["foo", 1]])],
+    });
+
+    test("on a __proto__ map key", {
+      typeMapping: {
+        [RESP_TYPES.SIMPLE_STRING]: Buffer,
+        [RESP_TYPES.BLOB_STRING]: Buffer,
+      },
+      toWrite: Buffer.from(
+        "%1\r\n|1\r\n+a\r\n+b\r\n$9\r\n__proto__\r\n*1\r\n:1\r\n"
+      ),
+      replies: [
+        Object.defineProperty({}, "__proto__", {
+          value: [1],
+          configurable: true,
+          enumerable: true,
+          writable: true,
+        }),
+      ],
+    });
+
     test("on a set element as Set", {
       typeMapping: {
         [RESP_TYPES.SET]: Set,
