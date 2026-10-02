@@ -179,6 +179,81 @@ call never settle. Reproduced on `main` with a deferred `dnsLookup`:
 [test/functional/cluster/dnsLookup.ts](test/functional/cluster/dnsLookup.ts), "ends when
 disconnect()/quit() is called while resolving the startup nodes" (both time out on `main`).
 
+## Where does this issue come from
+
+### Before #723, `connect()` had no asynchronous gap
+
+Until [#723](https://github.com/redis/ioredis/pull/723) (`b9c4793`, October 2018, support for a
+custom `dnsLookup`), `Cluster.connect()` was synchronous from `setStatus("connecting")` to the
+registration of its listeners
+([index.ts:120-164 before #723](https://github.com/redis/ioredis/blob/6d13c5420733a5573a55e1db5c6df5a684af7955/lib/cluster/index.ts#L120-L164)):
+
+```text
+setStatus("connecting")
+connectionPool.reset(startupNodes)    // pool populated at once
+once("close", closeListener)
+once("close", handleCloseEvent)       // listener registered at once
+```
+
+Two invariants therefore always held:
+
+1. **While the status is `connecting`, a `close` listener exists.** Any `drain` → `close` is
+   followed by `handleCloseEvent()`.
+2. **While the status is `connecting`, the pool is not empty.** If the user calls `disconnect()` or
+   `quit()`, the nodes emit `end`, then `drain`, then `close`: the disconnection completes on its own.
+
+### What #723 broke
+
+#723 inserted `resolveStartupNodeHostnames()` between `setStatus("connecting")`
+([index.ts:299-301](https://github.com/redis/ioredis/blob/a8378bd9a6d44823b2c1813f258a179313d4a23f/lib/cluster/index.ts#L299-L301))
+and those two steps
+([index.ts:386-387](https://github.com/redis/ioredis/blob/a8378bd9a6d44823b2c1813f258a179313d4a23f/lib/cluster/index.ts#L386-L387)),
+and added two guards after the lookup:
+
+- **epoch mismatch** ("Connection is discarded because a new connection is made"): a more recent
+  `connect()` has taken over and owns the lifecycle. Giving up silently is correct.
+- **status changed** ("Connection is aborted",
+  [index.ts:316-323](https://github.com/redis/ioredis/blob/a8378bd9a6d44823b2c1813f258a179313d4a23f/lib/cluster/index.ts#L316-L323)):
+  the intent was "the user closed the client during the lookup", assuming `disconnect()` would
+  complete on its own. But during the lookup, neither invariant holds any more: there is no `close`
+  listener, and the pool is empty.
+
+The two branches of `handleAbortedConnect()` restore exactly these two invariants:
+
+| Invariant lost with #723 | Branch of `handleAbortedConnect()` |
+|---|---|
+| A `close` listener exists during `connecting` | `close` → `handleCloseEvent()` |
+| Nodes are left to emit `drain` during `disconnecting` | `disconnecting` with an empty pool → `setStatus("close")` |
+
+The fix does not introduce new behaviour: it restores what was guaranteed before #723.
+
+### Why it went unnoticed for eight years
+
+- **The same gap was already fixed, on one branch only.** Two months after #723,
+  [#762](https://github.com/redis/ioredis/pull/762) (`21138af`, "handle connection errors by
+  reconnection") added `setStatus("close")` + `handleCloseEvent(err)` to the `catch` of `connect()`
+  ([index.ts:406-411](https://github.com/redis/ioredis/blob/a8378bd9a6d44823b2c1813f258a179313d4a23f/lib/cluster/index.ts#L406-L411)).
+  That covers a failed lookup. The abort path still ends with a bare `reject` + `return`.
+- **The window is tiny**: a few milliseconds of DNS lookup, during which a late `end` or a
+  `disconnect()` has to land.
+- **Nothing reports it**: the rejection is swallowed by the reconnection's `.catch` ("Ignoring..."),
+  and the stuck state emits no event.
+
+### The code already applies this pattern elsewhere
+
+- `disconnect()` and `quit()` special-case `status === "wait"`
+  ([index.ts:438](https://github.com/redis/ioredis/blob/a8378bd9a6d44823b2c1813f258a179313d4a23f/lib/cluster/index.ts#L438),
+  [index.ts:467](https://github.com/redis/ioredis/blob/a8378bd9a6d44823b2c1813f258a179313d4a23f/lib/cluster/index.ts#L467)):
+  the pool is empty, no `drain` will come, so they call `close` + `handleCloseEvent()` themselves.
+  The `disconnecting` branch of `handleAbortedConnect()` applies the same rule to "`connecting` with
+  an empty pool".
+- The standalone client completes its lifecycle when it is interrupted. If `disconnect()` lands
+  during `connect()`, `StandaloneConnector` rejects with "Connection is closed."
+  ([StandaloneConnector.ts:60-63](https://github.com/redis/ioredis/blob/a8378bd9a6d44823b2c1813f258a179313d4a23f/lib/connectors/StandaloneConnector.ts#L60-L63)),
+  and the `err` branch of `Redis.connect()`
+  ([Redis.ts:283-289](https://github.com/redis/ioredis/blob/a8378bd9a6d44823b2c1813f258a179313d4a23f/lib/Redis.ts#L283-L289))
+  flushes the queue and moves to `end`. `Cluster` was the only one of the two to drop the ball.
+
 ## Fix directions
 
 The code relies on one rule: **every `close` is followed by `handleCloseEvent()`**, which either
