@@ -228,11 +228,12 @@ describe("cluster:pipeline", () => {
       });
   });
 
-  it("should not redirect commands on a non-readonly command is successful", (done) => {
+  it("should redirect only the moved command when a non-readonly command is successful", (done) => {
     const slotTable = [
       [0, 12181, ["127.0.0.1", 30001]],
       [12182, 16383, ["127.0.0.1", 30002]],
     ];
+    let setsOnNewOwner = 0;
     new MockServer(30001, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
@@ -240,13 +241,20 @@ describe("cluster:pipeline", () => {
       if (argv[0] === "get" && argv[1] === "foo") {
         return "bar";
       }
+      if (argv[0] === "set") {
+        setsOnNewOwner++;
+      }
     });
+    let setsOnOldOwner = 0;
     new MockServer(30002, (argv) => {
       if (argv[0] === "cluster" && argv[1] === "SLOTS") {
         return slotTable;
       }
       if (argv[0] === "get" && argv[1] === "foo") {
         return new Error("MOVED " + calculateSlot("foo") + " 127.0.0.1:30001");
+      }
+      if (argv[0] === "set") {
+        setsOnOldOwner++;
       }
     });
 
@@ -257,8 +265,10 @@ describe("cluster:pipeline", () => {
       .set("foo", "bar")
       .exec(function (err, result) {
         expect(err).to.eql(null);
-        expect(result[0][0].message).to.match(/MOVED/);
+        expect(result[0]).to.eql([null, "bar"]);
         expect(result[1]).to.eql([null, "OK"]);
+        expect(setsOnOldOwner).to.eql(1);
+        expect(setsOnNewOwner).to.eql(0);
         cluster.disconnect();
         done();
       });
@@ -333,7 +343,9 @@ describe("cluster:pipeline", () => {
       if (argv[0] === "get" && argv[1] === "bar") {
         if (!moved) {
           moved = true;
-          return new Error("MOVED " + calculateSlot("bar") + " 127.0.0.1:30001");
+          return new Error(
+            "MOVED " + calculateSlot("bar") + " 127.0.0.1:30001"
+          );
         }
         return "bar2";
       }
@@ -348,18 +360,538 @@ describe("cluster:pipeline", () => {
     const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
       scaleReads: "slave",
     });
-    cluster.on('ready', () => {
+    cluster.on("ready", () => {
       /** moved for bar is thrown, slots map updated, command is retried */
-      cluster.pipeline()
-        .get('bar') // slot 5061
-        .get('bag') // slot 4433
-        .get('baz') // slot 4813
+      cluster
+        .pipeline()
+        .get("bar") // slot 5061
+        .get("bag") // slot 4433
+        .get("baz") // slot 4813
         .exec((err, res) => {
           expect(err).to.eql(null);
           expect(res).to.have.lengthOf(3);
           cluster.disconnect();
           done();
+        });
+    });
+  });
+
+  describe("recovering individual redirected commands", () => {
+    const slotTable = [
+      [0, 12181, ["127.0.0.1", 30001]],
+      [12182, 16383, ["127.0.0.1", 30002]],
+    ];
+    const fooSlot = calculateSlot("foo");
+
+    function serve(port: number, handler: (argv: string[]) => any) {
+      return new MockServer(port, (argv) => {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+          return slotTable;
+        }
+        return handler(argv);
       });
+    }
+
+    it("keeps each result at its original index and sends nothing else again", async () => {
+      const received: string[] = [];
+      serve(30001, (argv) => {
+        received.push(`30001 ${argv.join(" ")}`);
+        if (argv[0] === "get" && argv[1] === "foo") {
+          return "bar";
+        }
+      });
+      serve(30002, (argv) => {
+        received.push(`30002 ${argv.join(" ")}`);
+        if (argv[0] === "get" && argv[1] === "foo") {
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30001`);
+        }
+        if (argv[0] === "get" && argv[1] === "y") {
+          return "other";
+        }
+      });
+
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
+      try {
+        const result = await cluster
+          .pipeline()
+          .set("a", "1")
+          .get("foo")
+          .incr("x")
+          .get("y")
+          .exec();
+        expect(result).to.eql([
+          [null, "OK"],
+          [null, "bar"],
+          [null, "OK"],
+          [null, "other"],
+        ]);
+        const commands = received.filter((line) =>
+          /(^| )(asking|get|set|incr)( |$)/.test(line)
+        );
+        expect(commands).to.have.members([
+          "30002 set a 1",
+          "30002 get foo",
+          "30002 incr x",
+          "30002 get y",
+          "30001 get foo",
+        ]);
+        expect(commands).to.have.lengthOf(5);
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
+    it("calls a redirected command's own callback once, with the final reply", async () => {
+      serve(30001, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          return "bar";
+        }
+      });
+      serve(30002, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30001`);
+        }
+      });
+
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
+      const calls: unknown[][] = [];
+      try {
+        await cluster
+          .pipeline()
+          .get("foo", (...args) => {
+            calls.push(args);
+          })
+          .set("a", "bar")
+          .exec();
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        expect(calls).to.eql([[null, "bar"]]);
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
+    it("sends ASKING only before the command that was asked to move", async () => {
+      const received: string[] = [];
+      serve(30001, (argv) => {
+        received.push(argv.join(" "));
+        if (argv[0] === "get" && argv[1] === "foo") {
+          return "bar";
+        }
+      });
+      serve(30002, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          return new Error(`ASK ${fooSlot} 127.0.0.1:30001`);
+        }
+      });
+
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
+      try {
+        const result = await cluster
+          .pipeline()
+          .get("foo")
+          .set("foo", "bar")
+          .exec();
+        expect(result).to.eql([
+          [null, "bar"],
+          [null, "OK"],
+        ]);
+        const commands = received.filter((line) =>
+          /(^| )(asking|get|set|incr)( |$)/.test(line)
+        );
+        expect(commands).to.eql(["asking", "get foo"]);
+        // ASK does not change slot ownership
+        expect(cluster.slots[fooSlot][0]).to.eql("127.0.0.1:30002");
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
+    it("retries only the command that got TRYAGAIN", async () => {
+      let mgets = 0;
+      let sets = 0;
+      new MockServer(30001, (argv) => {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+          return [[0, 16383, ["127.0.0.1", 30001]]];
+        }
+        if (argv[0] === "mget") {
+          if (mgets++ === 0) {
+            return new Error(
+              "TRYAGAIN Multiple keys request during rehashing of slot"
+            );
+          }
+          return ["1", "2"];
+        }
+        if (argv[0] === "set") {
+          sets++;
+        }
+      });
+
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+        retryDelayOnTryAgain: 1,
+      });
+      try {
+        const result = await cluster
+          .pipeline()
+          .mget("{t}a", "{t}b")
+          .set("{t}a", "2")
+          .exec();
+        expect(result).to.eql([
+          [null, ["1", "2"]],
+          [null, "OK"],
+        ]);
+        expect(mgets).to.eql(2);
+        expect(sets).to.eql(1);
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
+    it("waits for retryDelayOnMoved before resending a redirected command", async () => {
+      let movedAt = 0;
+      let retriedAt = 0;
+      serve(30001, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          retriedAt = Date.now();
+          return "bar";
+        }
+      });
+      serve(30002, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          movedAt = Date.now();
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30001`);
+        }
+      });
+
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+        retryDelayOnMoved: 60,
+      });
+      try {
+        const result = await cluster
+          .pipeline()
+          .get("foo")
+          .set("foo", "bar")
+          .exec();
+        expect(result[0]).to.eql([null, "bar"]);
+        expect(retriedAt - movedAt).to.be.at.least(50);
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
+    it("spends one unit of maxRedirections per resend, per command", async () => {
+      let resends = 0;
+      serve(30001, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          resends++;
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30002`);
+        }
+      });
+      serve(30002, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30001`);
+        }
+      });
+
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+        maxRedirections: 2,
+      });
+      try {
+        const result = await cluster
+          .pipeline()
+          .get("foo")
+          .set("foo", "bar")
+          .exec();
+        expect(result[0][0].message).to.match(
+          /^Too many Cluster redirections\. Last error: .*MOVED/
+        );
+        expect(result[1]).to.eql([null, "OK"]);
+        // first reply from the batch, then two resends: 30001, 30002, 30001
+        expect(resends).to.eql(1);
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
+    it("leaves errors other than redirections to the pipeline", async () => {
+      let gets = 0;
+      serve(30001, () => undefined);
+      serve(30002, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          gets++;
+          return new Error("CLUSTERDOWN The cluster is down");
+        }
+      });
+
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+        retryDelayOnClusterDown: 1,
+      });
+      try {
+        const result = await cluster
+          .pipeline()
+          .get("foo")
+          .set("foo", "bar")
+          .exec();
+        // A successful write makes the batch non-retriable, as before.
+        expect(result[0][0].message).to.eql("CLUSTERDOWN The cluster is down");
+        expect(result[1]).to.eql([null, "OK"]);
+        expect(gets).to.eql(1);
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
+    it("recovers a redirection that follows a whole-pipeline retry", async () => {
+      let round = 0;
+      serve(30001, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          return "bar";
+        }
+      });
+      serve(30002, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          round++;
+          if (round === 1) {
+            return new Error("CLUSTERDOWN The cluster is down");
+          }
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30001`);
+        }
+        if (argv[0] === "set" && round === 1) {
+          return new Error("CLUSTERDOWN The cluster is down");
+        }
+      });
+
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+        retryDelayOnClusterDown: 1,
+      });
+      try {
+        const result = await cluster
+          .pipeline()
+          .get("foo")
+          .set("a", "bar")
+          .exec();
+        expect(result).to.eql([
+          [null, "bar"],
+          [null, "OK"],
+        ]);
+        expect(round).to.eql(2);
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
+    it("keeps one redirection budget when the resend waits in the offline queue", async () => {
+      let resends = 0;
+      let parked = false;
+      let cluster: Cluster;
+      serve(30001, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          resends++;
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30002`);
+        }
+      });
+      serve(30002, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          if (!parked) {
+            parked = true;
+            // The cluster is not ready when the MOVED reply is handled, so
+            // the resend is parked in the cluster's offline queue.
+            (cluster as any).status = "connecting";
+          } else {
+            resends++;
+          }
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30001`);
+        }
+      });
+
+      cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+        maxRedirections: 3,
+      });
+      try {
+        await cluster.get("a");
+        const pending = cluster.pipeline().get("foo").set("a", "1").exec();
+        while ((cluster as any).status !== "connecting") {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+        }
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        (cluster as any).status = "ready";
+        (cluster as any).executeOfflineCommands();
+
+        const result = await pending;
+        expect(result[0][0].message).to.match(/^Too many Cluster redirections/);
+        expect(result[1]).to.eql([null, "OK"]);
+        expect(resends).to.eql(3);
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
+    it("keeps one redirection budget for a script whose resend waits in the offline queue", async () => {
+      let resends = 0;
+      let parked = false;
+      let cluster: Cluster;
+      // A script command replaces its reject each time it is written, so
+      // the wrapper it wraps is no longer the function on the command.
+      const isScriptOnFoo = (argv: string[]) =>
+        (argv[0] === "eval" || argv[0] === "evalsha") && argv[3] === "foo";
+      serve(30001, (argv) => {
+        if (isScriptOnFoo(argv)) {
+          resends++;
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30002`);
+        }
+      });
+      serve(30002, (argv) => {
+        if (isScriptOnFoo(argv)) {
+          if (!parked) {
+            parked = true;
+            (cluster as any).status = "connecting";
+          } else {
+            resends++;
+          }
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30001`);
+        }
+      });
+
+      cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+        maxRedirections: 3,
+      });
+      cluster.defineCommand("getfoo", {
+        numberOfKeys: 1,
+        lua: "return redis.call('get', KEYS[1])",
+      });
+      try {
+        await cluster.get("a");
+        const pending = (cluster.pipeline() as any)
+          .getfoo("foo")
+          .set("a", "1")
+          .exec();
+        while ((cluster as any).status !== "connecting") {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+        }
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        (cluster as any).status = "ready";
+        (cluster as any).executeOfflineCommands();
+
+        const result = await pending;
+        expect(result[0][0].message).to.match(/^Too many Cluster redirections/);
+        expect(result[1]).to.eql([null, "OK"]);
+        expect(resends).to.eql(3);
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
+    it("treats a resent command as a single command when its connection closes", async () => {
+      let resends = 0;
+      new MockServer(30001, (argv, socket, flags) => {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+          return slotTable;
+        }
+        if (argv[0] === "get" && argv[1] === "foo") {
+          resends++;
+          if (resends === 1) {
+            // Drop the connection while the resent command waits for its reply.
+            flags.hang = true;
+            socket.destroy();
+            return;
+          }
+          return "bar";
+        }
+      });
+      serve(30002, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30001`);
+        }
+      });
+
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+        retryDelayOnFailover: 1,
+      });
+      try {
+        // GET is not the first command, so it would keep a non-zero
+        // pipeline index if it were still treated as part of the batch.
+        const result = await cluster.pipeline().set("a", "1").get("foo").exec();
+        expect(result).to.eql([
+          [null, "OK"],
+          [null, "bar"],
+        ]);
+        expect(resends).to.eql(2);
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
+    it("keeps today's result when maxRedirections is 0", async () => {
+      let resends = 0;
+      serve(30001, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          resends++;
+          return "bar";
+        }
+      });
+      serve(30002, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30001`);
+        }
+      });
+
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+        maxRedirections: 0,
+      });
+      try {
+        const result = await cluster
+          .pipeline()
+          .get("foo")
+          .set("foo", "bar")
+          .exec();
+        expect(result[0][0].message).to.eql(`MOVED ${fooSlot} 127.0.0.1:30001`);
+        expect(result[1]).to.eql([null, "OK"]);
+        expect(resends).to.eql(0);
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
+    it("leaves a MOVED inside MULTI/EXEC to the whole-transaction retry", async () => {
+      const received: string[] = [];
+      serve(30001, (argv) => {
+        received.push(`30001 ${argv[0]}`);
+        if (argv[0] === "exec") {
+          return ["OK"];
+        }
+        if (argv[0] !== "multi") {
+          return "QUEUED";
+        }
+      });
+      serve(30002, (argv) => {
+        received.push(`30002 ${argv[0]}`);
+        if (argv[0] === "set") {
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30001`);
+        }
+        if (argv[0] === "exec") {
+          return new Error(
+            "EXECABORT Transaction discarded because of previous errors."
+          );
+        }
+      });
+
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
+      try {
+        const result = await cluster.multi().set("foo", "bar").exec();
+        expect(result).to.eql([[null, "OK"]]);
+        const commands = received.filter((line) =>
+          / (multi|set|exec)$/.test(line)
+        );
+        expect(commands).to.eql([
+          "30002 multi",
+          "30002 set",
+          "30002 exec",
+          "30001 multi",
+          "30001 set",
+          "30001 exec",
+        ]);
+      } finally {
+        cluster.disconnect();
+      }
     });
   });
 });
