@@ -816,3 +816,87 @@ describe("autoPipelining for cluster", () => {
     cluster.disconnect();
   });
 });
+
+describe("autoPipelining for cluster: redirected commands", () => {
+  const slotTable = [
+    [0, 12181, ["127.0.0.1", 30001]],
+    [12182, 16383, ["127.0.0.1", 30002]],
+  ];
+  const fooSlot = calculateKeySlot("foo");
+
+  function serve(port: number, handler: (argv: string[]) => any) {
+    return new MockServer(port, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+      return handler(argv);
+    });
+  }
+
+  it("recovers a moved read batched with a successful write", async () => {
+    let incrsOnOldOwner = 0;
+    serve(30001, (argv) => {
+      if (argv[0] === "get" && argv[1] === "foo") {
+        return "bar";
+      }
+    });
+    serve(30002, (argv) => {
+      if (argv[0] === "get" && argv[1] === "foo") {
+        return new Error(`MOVED ${fooSlot} 127.0.0.1:30001`);
+      }
+      if (argv[0] === "incr") {
+        incrsOnOldOwner++;
+        return incrsOnOldOwner;
+      }
+    });
+
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      enableAutoPipelining: true,
+    });
+    try {
+      await new Promise((resolve) => cluster.once("ready", resolve));
+      const [read, write] = await Promise.all([
+        cluster.get("foo"),
+        cluster.incr("a"),
+      ]);
+      expect(read).to.eql("bar");
+      expect(write).to.eql(1);
+      expect(incrsOnOldOwner).to.eql(1);
+    } finally {
+      cluster.disconnect();
+    }
+  });
+
+  it("does not fail an unmoved read batched with a moved one", async () => {
+    serve(30001, (argv) => {
+      if (argv[0] === "get" && argv[1] === "foo") {
+        return "bar";
+      }
+    });
+    serve(30002, (argv) => {
+      if (argv[0] === "get" && argv[1] === "foo") {
+        return new Error(`MOVED ${fooSlot} 127.0.0.1:30001`);
+      }
+      if (argv[0] === "get" && argv[1] === "y") {
+        return "stays";
+      }
+    });
+
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      enableAutoPipelining: true,
+    });
+    try {
+      await new Promise((resolve) => cluster.once("ready", resolve));
+      const results = await Promise.allSettled([
+        cluster.get("foo"),
+        cluster.get("y"),
+      ]);
+      expect(results).to.eql([
+        { status: "fulfilled", value: "bar" },
+        { status: "fulfilled", value: "stays" },
+      ]);
+    } finally {
+      cluster.disconnect();
+    }
+  });
+});
