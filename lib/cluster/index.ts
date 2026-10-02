@@ -1142,6 +1142,7 @@ class Cluster<
       enableOfflineQueue: true,
       enableReadyCheck: false,
       retryStrategy: null,
+      maintNotifications: "disabled",
       protocol: 2,
       replyMapping: "legacy",
       connectionName: getConnectionName(

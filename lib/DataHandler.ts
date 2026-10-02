@@ -8,12 +8,26 @@ import {
 import Deque = require("denque");
 import { EventEmitter } from "events";
 import Command from "./Command";
-import { Debug } from "./utils";
+import { Debug, toError } from "./utils";
 import SubscriptionSet from "./SubscriptionSet";
 import { Decoder, RESP_TYPES } from "./resp/decoder";
 import { TypeMapping } from "./resp/types";
+import {
+  parseMaintenanceNotification,
+  type MaintenanceNotification,
+} from "./maintNotifications";
+import { createDiagnosticChannel } from "./utils/diagnostics";
 
 const debug = Debug("dataHandler");
+
+/**
+ * Emitted on the client when a reply empties `commandQueue`. A symbol keeps
+ * this internal drain signal from becoming an accidental public event.
+ */
+export const COMMAND_QUEUE_DRAINED = Symbol("ioredis:commandQueueDrained");
+const maintenanceChannel = createDiagnosticChannel<MaintenanceNotification>(
+  "ioredis:maintenance"
+);
 
 type ReplyData = null | boolean | string | Buffer | number | Array<ReplyData>;
 
@@ -32,6 +46,9 @@ export interface Condition {
   // Internal connection gate. While true, only handshake commands are writable;
   // user commands are queued so they cannot race ahead of the ready check.
   handshake: boolean;
+  // True while the server holds a WATCH for this connection: a WATCH was
+  // written and no UNWATCH, EXEC, DISCARD, or RESET has cleared it yet.
+  watching: boolean;
 }
 
 export type FlushQueueOptions = {
@@ -52,14 +69,23 @@ export interface DataHandledable extends EventEmitter {
     options: FlushQueueOptions
   ): void;
   handleReconnection(err: Error, item: CommandItem): void;
+  silentEmit(eventName: string, arg?: unknown): boolean;
 }
 
 interface ParserOptions {
   stringNumbers: boolean;
   replyMapping: ReplyMappingMode;
+  onMaintenanceNotification?: (
+    notification: MaintenanceNotification
+  ) => void | Promise<void>;
 }
 
 export default class DataHandler {
+  private onMaintenanceNotification?: (
+    notification: MaintenanceNotification
+  ) => void | Promise<void>;
+  private readonly onData: (data: Buffer) => void;
+
   constructor(private redis: DataHandledable, parserOptions: ParserOptions) {
     // Parser options can't change over the lifetime of a connection, so the
     // mapping is resolved once instead of per reply.
@@ -77,14 +103,29 @@ export default class DataHandler {
       },
     });
 
-    // prependListener ensures the parser receives and processes data before socket timeout checks are performed
-    redis.stream.prependListener("data", (data) => {
+    this.onData = (data) => {
       try {
         decoder.write(data);
       } catch (err) {
         this.returnFatalError(err as Error);
       }
-    });
+    };
+    this.rebind(redis, parserOptions.onMaintenanceNotification);
+  }
+
+  /**
+   * Attaches to a new owner after the previous stream listeners were removed.
+   * Keep the decoder and its callbacks intact: an unfinished frame may have
+   * captured a callback that must dispatch through this handler's new owner.
+   */
+  rebind(
+    redis: DataHandledable,
+    onMaintenanceNotification: ParserOptions["onMaintenanceNotification"]
+  ): void {
+    this.redis = redis;
+    this.onMaintenanceNotification = onMaintenanceNotification;
+    // prependListener ensures the parser receives and processes data before socket timeout checks are performed
+    redis.stream.prependListener("data", this.onData);
     // prependListener() doesn't enable flowing mode automatically - we need to resume the stream manually
     redis.stream.resume();
   }
@@ -142,7 +183,10 @@ export default class DataHandler {
     // command response. Routing it by content would misinterpret replies that
     // merely look like pub/sub messages (e.g. an LRANGE result starting with
     // "message") and desync the command queue.
-    if (this.redis.condition.protocol !== 3 && this.handleSubscriberReply(reply)) {
+    if (
+      this.redis.condition.protocol !== 3 &&
+      this.handleSubscriberReply(reply)
+    ) {
       return;
     }
 
@@ -174,7 +218,27 @@ export default class DataHandler {
       return;
     }
 
-    const replyType = reply[0].toString();
+    const replyTypeValue = reply[0];
+
+    const replyType =
+      typeof replyTypeValue === "string" || Buffer.isBuffer(replyTypeValue)
+        ? replyTypeValue.toString()
+        : null;
+
+    if (!replyType) {
+      return;
+    }
+
+    const maintenanceNotification = parseMaintenanceNotification(
+      reply,
+      replyType
+    );
+
+    if (maintenanceNotification) {
+      this.handleMaintenanceNotification(maintenanceNotification);
+      return;
+    }
+
     debug('receive push "%s"', replyType);
 
     switch (replyType) {
@@ -232,6 +296,29 @@ export default class DataHandler {
         break;
       }
     }
+  }
+
+  private handleMaintenanceNotification(
+    notification: MaintenanceNotification
+  ): void {
+    maintenanceChannel.publish(notification);
+
+    const handler = this.onMaintenanceNotification;
+    if (!handler) {
+      return;
+    }
+
+    try {
+      void Promise.resolve(handler(notification)).catch((err) => {
+        this.reportMaintenanceError(err);
+      });
+    } catch (err) {
+      this.reportMaintenanceError(err);
+    }
+  }
+
+  private reportMaintenanceError(err: unknown): void {
+    this.dispatch(() => this.redis.silentEmit("error", toError(err)));
   }
 
   // Cluster sends unsolicited `sunsubscribe` pushes on slot migration; those
@@ -386,6 +473,22 @@ export default class DataHandler {
       );
       this.redis.emit("error", error);
       return null;
+    }
+    if (
+      this.redis.commandQueue.length === 0 &&
+      this.redis.listenerCount(COMMAND_QUEUE_DRAINED) > 0
+    ) {
+      // Reply handling may put the shifted command back (partially
+      // acknowledged multi-channel (un)subscribe) or resend it
+      // (reconnectOnError), so only signal the drain once the current
+      // processing turn completes with the queue still empty. The listener
+      // check keeps the hot reply path free of deferred work unless a
+      // drain waiter actually exists.
+      process.nextTick(() => {
+        if (this.redis.commandQueue.length === 0) {
+          this.redis.emit(COMMAND_QUEUE_DRAINED);
+        }
+      });
     }
     return item;
   }

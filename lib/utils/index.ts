@@ -215,6 +215,10 @@ export function toArg(arg: any): string {
   return String(arg);
 }
 
+export function toError(value: unknown): Error {
+  return value instanceof Error ? value : new Error(String(value));
+}
+
 /**
  * Optimize error stack
  *
