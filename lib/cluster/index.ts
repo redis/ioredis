@@ -715,8 +715,11 @@ class Cluster<
           }
           // The batch's node and write stream only flush as a whole, so the
           // retry must not reuse them. lastRedis stays the batch connection.
+          // Clearing pipelineIndex keeps a closed connection from aborting
+          // it as a fragment of a partially answered pipeline.
           node = undefined;
           stream = undefined;
+          command.pipelineIndex = undefined;
           targetSlot = command.getSlot();
         }
         const partialTry = tryConnection.bind(null, true);

@@ -725,6 +725,46 @@ describe("cluster:pipeline", () => {
       }
     });
 
+    it("treats a resent command as a single command when its connection closes", async () => {
+      let resends = 0;
+      new MockServer(30001, (argv, socket, flags) => {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+          return slotTable;
+        }
+        if (argv[0] === "get" && argv[1] === "foo") {
+          resends++;
+          if (resends === 1) {
+            // Drop the connection while the resent command waits for its reply.
+            flags.hang = true;
+            socket.destroy();
+            return;
+          }
+          return "bar";
+        }
+      });
+      serve(30002, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30001`);
+        }
+      });
+
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+        retryDelayOnFailover: 1,
+      });
+      try {
+        // GET is not the first command, so it would keep a non-zero
+        // pipeline index if it were still treated as part of the batch.
+        const result = await cluster.pipeline().set("a", "1").get("foo").exec();
+        expect(result).to.eql([
+          [null, "OK"],
+          [null, "bar"],
+        ]);
+        expect(resends).to.eql(2);
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
     it("keeps today's result when maxRedirections is 0", async () => {
       let resends = 0;
       serve(30001, (argv) => {
