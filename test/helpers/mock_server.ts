@@ -222,3 +222,35 @@ export function pubSubReply(
   }
   return [type, channel, value];
 }
+
+// `pubSubReply` goes through the string-based writer, which cannot carry a
+// channel name that is not valid utf8. This builds the same reply as raw bytes
+// instead, for the binary-safe channel names, and returns a Buffer to write to
+// the socket directly (RESP3 push frame or RESP2 array, as the protocol asks).
+export function rawPubSubReply(
+  protocol: MockServerProtocol,
+  type: string,
+  channel: string | Buffer,
+  value: string | number = 1
+): Buffer {
+  const channelBytes = Buffer.isBuffer(channel)
+    ? channel
+    : Buffer.from(channel);
+  const parts = [
+    Buffer.from(`${protocol === 3 ? ">" : "*"}3\r\n`),
+    blobString(Buffer.from(type)),
+    blobString(channelBytes),
+    typeof value === "number"
+      ? Buffer.from(`:${value}\r\n`)
+      : blobString(Buffer.from(value)),
+  ];
+  return Buffer.concat(parts);
+}
+
+function blobString(payload: Buffer): Buffer {
+  return Buffer.concat([
+    Buffer.from(`$${payload.length}\r\n`),
+    payload,
+    Buffer.from("\r\n"),
+  ]);
+}
