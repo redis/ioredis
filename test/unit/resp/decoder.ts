@@ -552,6 +552,112 @@ describe("RESP Decoder", () => {
     });
   });
 
+  // Attributes are metadata attached to the reply behind them. They carry no
+  // reply of their own, so nothing reaches onReply until the real reply is
+  // decoded - and a client that doesn't consume them reads that real reply as
+  // an unknown type and kills the connection.
+  describe("Attribute", () => {
+    test("DEBUG PROTOCOL attrib", {
+      toWrite: Buffer.from(
+        "|1\r\n$14\r\nkey-popularity\r\n*2\r\n$7\r\nkey:123\r\n:90\r\n$39\r\nSome real reply following the attribute\r\n"
+      ),
+      replies: ["Some real reply following the attribute"],
+    });
+
+    test("empty", {
+      toWrite: Buffer.from("|0\r\n+OK\r\n"),
+      replies: ["OK"],
+    });
+
+    test("two in a row", {
+      toWrite: Buffer.from("|1\r\n+a\r\n+b\r\n|1\r\n+c\r\n+d\r\n:1\r\n"),
+      replies: [1],
+    });
+
+    test("before an error", {
+      toWrite: Buffer.from("|1\r\n+a\r\n+b\r\n-ERROR\r\n"),
+      errorReplies: [new SimpleError("ERROR")],
+    });
+
+    test("before a push", {
+      toWrite: Buffer.from("|1\r\n+a\r\n+b\r\n>2\r\n:0\r\n:1\r\n"),
+      pushReplies: [[0, 1]],
+    });
+
+    test("on an array element", {
+      toWrite: Buffer.from("*2\r\n|1\r\n+a\r\n+b\r\n:1\r\n:2\r\n"),
+      replies: [[1, 2]],
+    });
+
+    test("on a nested array element", {
+      toWrite: Buffer.from("*1\r\n*1\r\n|1\r\n+a\r\n+b\r\n:1\r\n"),
+      replies: [[[1]]],
+    });
+
+    test("on a map value", {
+      toWrite: Buffer.from("%1\r\n+key\r\n|1\r\n+a\r\n+b\r\n:1\r\n"),
+      replies: [{ key: 1 }],
+    });
+
+    test("on a map key", {
+      toWrite: Buffer.from("%1\r\n|1\r\n+a\r\n+b\r\n+key\r\n:1\r\n"),
+      replies: [{ key: 1 }],
+    });
+
+    // An attributed key has to stay on the map-key path, which forces keys to
+    // strings. A Buffer key would read back as `Buffer(foo)` from a Map and
+    // would walk straight past the `__proto__` guard in #decodeMapAsObject.
+    test("on a map key with blob strings as Buffer", {
+      typeMapping: {
+        [RESP_TYPES.SIMPLE_STRING]: Buffer,
+        [RESP_TYPES.BLOB_STRING]: Buffer,
+      },
+      toWrite: Buffer.from("%1\r\n|1\r\n+a\r\n+b\r\n$3\r\nfoo\r\n:1\r\n"),
+      replies: [{ foo: 1 }],
+    });
+
+    test("on a map key as Map with blob strings as Buffer", {
+      typeMapping: {
+        [RESP_TYPES.MAP]: Map,
+        [RESP_TYPES.SIMPLE_STRING]: Buffer,
+        [RESP_TYPES.BLOB_STRING]: Buffer,
+      },
+      toWrite: Buffer.from("%1\r\n|1\r\n+a\r\n+b\r\n$3\r\nfoo\r\n:1\r\n"),
+      replies: [new Map([["foo", 1]])],
+    });
+
+    test("on a __proto__ map key", {
+      typeMapping: {
+        [RESP_TYPES.SIMPLE_STRING]: Buffer,
+        [RESP_TYPES.BLOB_STRING]: Buffer,
+      },
+      toWrite: Buffer.from(
+        "%1\r\n|1\r\n+a\r\n+b\r\n$9\r\n__proto__\r\n*1\r\n:1\r\n"
+      ),
+      replies: [
+        Object.defineProperty({}, "__proto__", {
+          value: [1],
+          configurable: true,
+          enumerable: true,
+          writable: true,
+        }),
+      ],
+    });
+
+    test("on a set element as Set", {
+      typeMapping: {
+        [RESP_TYPES.SET]: Set,
+      },
+      toWrite: Buffer.from("~1\r\n|1\r\n+a\r\n+b\r\n:1\r\n"),
+      replies: [new Set([1])],
+    });
+
+    test("with a map value of its own", {
+      toWrite: Buffer.from("|1\r\n+a\r\n%1\r\n+b\r\n:1\r\n:2\r\n"),
+      replies: [2],
+    });
+  });
+
   describe("Push", () => {
     test("[]", {
       toWrite: Buffer.from(">0\r\n"),
