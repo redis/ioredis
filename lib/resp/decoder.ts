@@ -25,6 +25,7 @@ export const RESP_TYPES = {
   ARRAY: 42, // *
   SET: 126, // ~
   MAP: 37, // %
+  ATTRIBUTE: 124, // |
   PUSH: 62, // >
 } as const;
 
@@ -39,6 +40,10 @@ const ASCII = {
 export const PUSH_TYPE_MAPPING = {
   [RESP_TYPES.BLOB_STRING]: Buffer,
 };
+
+// Attribute contents aren't surfaced to callers; this keeps the decoded map
+// from being reported as a reply of its own.
+function discardAttribute() {}
 
 // this was written with performance in mind, so it's not very readable... sorry :(
 
@@ -193,6 +198,17 @@ export class Decoder {
       case RESP_TYPES.MAP:
         return this.#handleDecodedValue(
           this.onReply,
+          this.#decodeMap(this.getTypeMapping(), chunk)
+        );
+
+      // An attribute is metadata for the reply that follows it, not a reply of
+      // its own. The spec lets clients ignore the contents, but they still have
+      // to be consumed: leaving them in the stream turns the reply behind them
+      // into a protocol error. Dropping out of #decodeTypeValue without calling
+      // a callback resumes the main loop on the real reply.
+      case RESP_TYPES.ATTRIBUTE:
+        return this.#handleDecodedValue(
+          discardAttribute,
           this.#decodeMap(this.getTypeMapping(), chunk)
         );
 
@@ -641,11 +657,34 @@ export class Decoder {
       case RESP_TYPES.MAP:
         return this.#decodeMap(typeMapping, chunk);
 
+      // Nested attributes decorate the element that follows them, so the
+      // element takes their place in the array/set/map being decoded.
+      case RESP_TYPES.ATTRIBUTE:
+        return this.#decodeAttribute(
+          this.#decodeMap(typeMapping, chunk),
+          typeMapping,
+          chunk
+        );
+
       default:
         throw new Error(
           `Unknown RESP type ${type} "${String.fromCharCode(type)}"`
         );
     }
+  }
+
+  #decodeAttribute(attribute, typeMapping, chunk) {
+    if (typeof attribute === "function") {
+      return this.#continueDecodeAttribute.bind(this, attribute, typeMapping);
+    }
+
+    return this.#cursor >= chunk.length
+      ? this.#decodeNestedType.bind(this, typeMapping)
+      : this.#decodeNestedType(typeMapping, chunk);
+  }
+
+  #continueDecodeAttribute(attributeCb, typeMapping, chunk) {
+    return this.#decodeAttribute(attributeCb(chunk), typeMapping, chunk);
   }
 
   #decodeArray(typeMapping, chunk) {
