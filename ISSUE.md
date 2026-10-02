@@ -151,7 +151,7 @@ is not a real fix.
 
 | Ticket | State | What it is about | Proximity to this bug |
 |---|---|---|---|
-| [#1864](https://github.com/redis/ioredis/pull/1864) fix: Improve cluster connection pool logic when disconnecting | PR closed by stale bot, **not merged** | Stray `drain` events from nodes removed by `reset()` set the status to `close` during a later `connect()` → `Connection is aborted`. Fix: remove node listeners when a node leaves the pool, add new nodes before removing old ones. Reproduced with `quit()` + `connect()` (Bull). | **Very high**: same root cause (step 5), different trigger. Its listener cleanup would likely prevent the stray `drain`, but not the "abort without reconnecting" in step 6. |
+| [#1864](https://github.com/redis/ioredis/pull/1864) fix: Improve cluster connection pool logic when disconnecting | PR closed by stale bot, **not merged**, never reviewed. The same fix was merged in the Valkey fork: [iovalkey#5](https://github.com/valkey-io/iovalkey/pull/5) (June 2024) | Stray `drain` events from nodes removed by `reset()` set the status to `close` during a later `connect()` → `Connection is aborted`. Fix: remove node listeners when a node leaves the pool, add new nodes before removing old ones. Reproduced with `quit()` + `connect()` (Bull); that scenario no longer reproduces on `main` with `MockServer` (20 cycles pass). | **Very high**: same root cause (step 5), different trigger. Its listener cleanup would likely prevent the stray `drain`, but not the "abort without reconnecting" in step 6. |
 | [#709](https://github.com/redis/ioredis/issues/709) flaky cluster connection sequence | Closed | Cluster sometimes never connects after a failed ready check (`cluster_state:fail`) on startup. | **High**: same trigger (`disconnect(true)` from the ready check). |
 | [#741](https://github.com/redis/ioredis/pull/741) chore(test): easy way to get cluster stuck | PR open since 2018 | Test with a mock server returning `cluster_state:fail` a few times, plus a fix keeping the `connect()` promise across `disconnect(true)`. | **High** for the test setup (reusable to trigger the ready-check path); its fix targets the lost `connect()` promise, not the lost reconnection. |
 | [#979](https://github.com/redis/ioredis/issues/979) DNS lookup failure causes cluster connection to hang | Closed | Errors during `resolveStartupNodeHostnames()` led to a hang or an early exit. | **Medium**: same DNS window in `connect()`, different failure (lookup error, not a status change). |
@@ -164,14 +164,86 @@ is not a real fix.
 No ticket describes this exact sequence (late `end` during the DNS lookup → aborted `connect()` →
 stuck in `close`).
 
-## Fix directions (to be decided on this branch)
+## A sibling bug: `disconnect()` or `quit()` during the lookup
 
-- **A.** In `connect()`, when the status changed during the lookup, hand over to `handleCloseEvent()`
-  instead of returning silently, so a reconnection is scheduled (or `end` reached and the queue
-  flushed).
-- **B.** In `ConnectionPool`, ignore the `end` of a node that is no longer in the pool (or detach its
-  listener in `reset()`/`removeNode()`), so no stray `drain` is emitted. Close to #1864.
-- **C.** Register the `close` listeners before the DNS lookup.
+The same branch of `connect()` has a second consequence, found while testing the fix directions.
+If the user calls `disconnect()` or `quit()` while `connect()` resolves the startup nodes:
 
-A alone guarantees the client cannot stay stuck whatever emits the stray `close`; B removes the
-known source. Both may be worth doing.
+- the status becomes `disconnecting`;
+- the pool is empty (nothing was connected yet, or the previous nodes were removed synchronously),
+  so no node will ever emit `end`, hence no `drain`, hence no `close`;
+- `connect()` sees `status !== "connecting"` and gives up.
+
+The cluster stays in `disconnecting` forever: it never emits `end`, and commands queued before the
+call never settle. Reproduced on `main` with a deferred `dnsLookup`:
+[test/functional/cluster/dnsLookup.ts](test/functional/cluster/dnsLookup.ts), "ends when
+disconnect()/quit() is called while resolving the startup nodes" (both time out on `main`).
+
+## Fix directions
+
+The code relies on one rule: **every `close` is followed by `handleCloseEvent()`**, which either
+schedules a reconnection or ends the client and flushes the queues. The three direct
+`setStatus("close")` calls in `lib/cluster/index.ts` are each immediately followed by
+`handleCloseEvent()`. The only exception is the pool's `drain`
+([index.ts:252-254](https://github.com/redis/ioredis/blob/a8378bd9a6d44823b2c1813f258a179313d4a23f/lib/cluster/index.ts#L252-L254)),
+which relies on the `once("close")` listener set by `connect()`, and that listener does not exist
+during the lookup. The "Connection is aborted" guard dates back to the introduction of the lookup
+(#723, 2018), to give up when the user closes the client meanwhile; it did not anticipate an internal
+`drain`, nor that nothing would finish the user's `disconnect()`.
+
+Each direction was tried as a minimal throwaway patch, against the cluster tests
+(`test/unit/clusters`, `test/functional/cluster`, with the global helpers and Redis on 6379 as in CI;
+184 passing on `main`), the reproduction, and the `disconnect()`-during-lookup scenario:
+
+| Direction | Size | Cluster tests | Late `end` (this bug) | `disconnect()` during lookup |
+|---|---|---|---|---|
+| **A.** On abort in `close`, call `handleCloseEvent()` | 1 line | ✅ no failure | ✅ | ❌ |
+| **A+.** A, and on abort in `disconnecting` with an empty pool, go to `close` first | ~10 lines | ✅ no failure | ✅ | ✅ `end`, queue rejected |
+| **B.** In `ConnectionPool`, ignore the `end` of a node no longer in the pool | 1 line | ❌ **22 failures** | ❌ | ❌ |
+| **C.** Register the `close` → `handleCloseEvent()` listener before the lookup | 2 lines | ❌ **4 failures** | ✅ | ❌ |
+
+- **A / A+** restore the rule at the one place that breaks it. They go through the user's
+  `clusterRetryStrategy`: if it gives up, the client ends and its queue is rejected instead of
+  growing. They cover any cause of a status change during the lookup, not only the stray `drain`.
+  Limits: the stray `drain` still happens (one extra `close` event and one extra reconnection
+  cycle), and a direct `connect()` caller still gets "Connection is aborted" although the client then
+  recovers.
+- **B** targets the root cause, but `drain` on node `end` is also what completes `disconnect()`:
+  `reset([])` removes the nodes at once, and the `drain` of their late `end` moves the cluster to
+  `close`, then `end`. Ignoring those `end` events means `disconnect()` never ends (22 failures,
+  e.g. "should stop reconnecting when disconnected", "should clear all timers on disconnect"). Doing
+  it properly means emitting `-node`/`drain` when a node leaves the pool, as #1864 does: it changes
+  when public events (`-node`, `close`, `end`) fire and affects `ClusterSubscriber`. It would not
+  cover the `disconnect()`-during-lookup case either.
+- **C** breaks the rule the other way: the `catch` of `connect()` already calls `handleCloseEvent()`
+  after a lookup failure, so it runs twice, the second time without a reason (the 4 failures in
+  `dnsLookup.ts`), and schedules two reconnection timers. Making it work requires removing the
+  listener on every abort path, for no gain over A.
+
+Maintainers' stance on scope: #2204 (a small `connect()` fix with a focused test) was merged as is,
+while #2197 was closed because it "affects several reconnect and shutdown paths" and falls outside the
+"small, isolated bug fix" exception of the contribution guidelines.
+
+## Chosen fix
+
+**A+**, in `Cluster.connect()`: when it gives up because the status changed during the lookup, it
+calls a new private `handleAbortedConnect()`:
+
+- `disconnecting` with an empty pool → `setStatus("close")`;
+- then, if the status is `close` → `handleCloseEvent()`.
+
+Any other status is left alone: `reconnecting` (a reconnection is already scheduled), `end`, or
+`disconnecting` with nodes left (their `drain` will close the cluster).
+
+Tests:
+
+- [test/functional/cluster/lateNodeEnd.ts](test/functional/cluster/lateNodeEnd.ts): the cluster
+  reconnects and the queued `get` resolves;
+- [test/functional/cluster/dnsLookup.ts](test/functional/cluster/dnsLookup.ts): `disconnect()` and
+  `quit()` during the lookup end the cluster and reject the queued `get` with "None of startup nodes
+  is available".
+
+All three fail on `main` and pass with the fix.
+
+B remains worth an issue of its own (referring to #1864 and iovalkey#5) to remove the stray `drain`
+and the extra reconnection cycle, with a maintainer's go-ahead first.
