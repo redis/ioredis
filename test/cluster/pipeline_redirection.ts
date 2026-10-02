@@ -73,10 +73,34 @@ describe("cluster:pipeline redirection", function () {
         await admin[from].migrate("127.0.0.1", to, key, 0, 5000);
       }
     }
-    for (const port of masters) {
+    // SETSLOT NODE on the importing node bumps its config epoch. If that
+    // node has not yet heard of another node's newer epoch (CLUSTER
+    // BUMPEPOCH in an earlier test, or the previous move), both end up with
+    // the same epoch, and resolving that collision can hand the slot back
+    // to the old owner. Wait until every node knows the current epoch.
+    await untilEpochsAgree();
+    // The new owner first, as the CLUSTER SETSLOT documentation advises.
+    for (const port of [to, ...masters.filter((port) => port !== to)]) {
       await admin[port].cluster("SETSLOT", slot, "NODE", ids[to]);
     }
     await untilAllNodesSee(slot, to);
+  }
+
+  async function untilEpochsAgree() {
+    const deadline = Date.now() + 10000;
+    for (;;) {
+      const epochs = await Promise.all(
+        allNodes.map(async (port) => {
+          const info = (await admin[port].cluster("INFO")) as string;
+          return /cluster_current_epoch:(\d+)/.exec(info)![1];
+        })
+      );
+      if (epochs.every((epoch) => epoch === epochs[0])) return;
+      if (Date.now() > deadline) {
+        throw new Error(`nodes never agreed on the epoch: ${epochs}`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
   }
 
   /** Replicas learn a new owner by gossip; wait so no node serves a stale map. */
