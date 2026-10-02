@@ -319,6 +319,7 @@ class Cluster<
               this.status
             );
             reject(new RedisError("Connection is aborted"));
+            this.handleAbortedConnect();
             return;
           }
           this.connectionPool.reset(nodes);
@@ -1047,6 +1048,27 @@ class Cluster<
     process.nextTick(() => {
       this.emit(status);
     });
+  }
+
+  /**
+   * Called when connect() gives up because the status changed while it was
+   * resolving the startup nodes. Its "close" listeners are not set yet and the
+   * pool is empty, so nothing else would move the cluster out of that status:
+   * - "close": the late "end" of a node removed by a previous disconnection
+   *   made the pool emit "drain";
+   * - "disconnecting": disconnect() or quit() was called, and no node is left
+   *   to emit "drain".
+   */
+  private handleAbortedConnect(): void {
+    if (
+      this.status === "disconnecting" &&
+      !this.connectionPool.getNodes().length
+    ) {
+      this.setStatus("close");
+    }
+    if (this.status === "close") {
+      this.handleCloseEvent();
+    }
   }
 
   /**
