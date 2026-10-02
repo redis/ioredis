@@ -43,7 +43,7 @@
     "url": "https://opencollective.com/ioredis"
   },
   "dependencies": {
-    "@ioredis/commands": "2.1.0",
+    "@ioredis/commands": "2.1.1",
     "debug": "4.4.3",
     "denque": "2.1.0",
     "redis-errors": "1.2.0",
