@@ -1,10 +1,17 @@
 import Redis from "../../../lib/Redis";
 import { expect } from "chai";
 import { RESP_CONFIGS } from "../../helpers/respConfigs";
+import { isRedisVersionLowerThan } from "../../helpers/util";
 
 for (const { name, opts } of RESP_CONFIGS) {
-  describe(`bless (${name})`, () => {
+  describe(`bless (${name})`, function () {
     let redis: Redis;
+
+    before(async function () {
+      if (await isRedisVersionLowerThan("8.12")) {
+        this.skip();
+      }
+    });
 
     beforeEach(async () => {
       redis = new Redis(opts);
