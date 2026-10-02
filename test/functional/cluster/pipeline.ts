@@ -725,6 +725,61 @@ describe("cluster:pipeline", () => {
       }
     });
 
+    it("keeps one redirection budget for a script whose resend waits in the offline queue", async () => {
+      let resends = 0;
+      let parked = false;
+      let cluster: Cluster;
+      // A script command replaces its reject each time it is written, so
+      // the wrapper it wraps is no longer the function on the command.
+      const isScriptOnFoo = (argv: string[]) =>
+        (argv[0] === "eval" || argv[0] === "evalsha") && argv[3] === "foo";
+      serve(30001, (argv) => {
+        if (isScriptOnFoo(argv)) {
+          resends++;
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30002`);
+        }
+      });
+      serve(30002, (argv) => {
+        if (isScriptOnFoo(argv)) {
+          if (!parked) {
+            parked = true;
+            (cluster as any).status = "connecting";
+          } else {
+            resends++;
+          }
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30001`);
+        }
+      });
+
+      cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+        maxRedirections: 3,
+      });
+      cluster.defineCommand("getfoo", {
+        numberOfKeys: 1,
+        lua: "return redis.call('get', KEYS[1])",
+      });
+      try {
+        await cluster.get("a");
+        const pending = (cluster.pipeline() as any)
+          .getfoo("foo")
+          .set("a", "1")
+          .exec();
+        while ((cluster as any).status !== "connecting") {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+        }
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        (cluster as any).status = "ready";
+        (cluster as any).executeOfflineCommands();
+
+        const result = await pending;
+        expect(result[0][0].message).to.match(/^Too many Cluster redirections/);
+        expect(result[1]).to.eql([null, "OK"]);
+        expect(resends).to.eql(3);
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
     it("treats a resent command as a single command when its connection closes", async () => {
       let resends = 0;
       new MockServer(30001, (argv, socket, flags) => {

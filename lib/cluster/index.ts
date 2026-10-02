@@ -696,9 +696,7 @@ class Cluster<
     if (
       recoverFromPipeline
         ? !command.reject[PIPELINE_RECOVERY]
-        : !node &&
-          !REJECT_OVERWRITTEN_COMMANDS.has(command) &&
-          !command.reject[PIPELINE_RECOVERY]
+        : !node && !REJECT_OVERWRITTEN_COMMANDS.has(command)
     ) {
       if (!recoverFromPipeline) {
         REJECT_OVERWRITTEN_COMMANDS.add(command);
@@ -717,9 +715,13 @@ class Cluster<
           // retry must not reuse them. lastRedis stays the batch connection.
           // Clearing pipelineIndex keeps a closed connection from aborting
           // it as a fragment of a partially answered pipeline.
+          // Recording it as a wrapped single command keeps a later pass
+          // through sendCommand (from the offline queue) from wrapping it
+          // again, even after a script has replaced this reject.
           node = undefined;
           stream = undefined;
           command.pipelineIndex = undefined;
+          REJECT_OVERWRITTEN_COMMANDS.add(command);
           targetSlot = command.getSlot();
         }
         const partialTry = tryConnection.bind(null, true);
