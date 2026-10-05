@@ -1052,12 +1052,13 @@ class Cluster<
 
   /**
    * Called when connect() gives up because the status changed while it was
-   * resolving the startup nodes. Its "close" listeners are not set yet and the
-   * pool is empty, so nothing else would move the cluster out of that status:
+   * resolving the startup nodes. connect() has not registered its "close"
+   * listeners yet, so in two cases nothing else would move the cluster out of
+   * its current status:
    * - "close": the late "end" of a node removed by a previous disconnection
    *   made the pool emit "drain";
-   * - "disconnecting": disconnect() or quit() was called, and no node is left
-   *   to emit "drain".
+   * - "disconnecting" with an empty pool: disconnect() or quit() was called,
+   *   and no node is left to emit "drain".
    */
   private handleAbortedConnect(): void {
     if (
