@@ -1068,6 +1068,9 @@ class Cluster<
       this.setStatus("close");
     }
     if (this.status === "close") {
+      this.invokeReadyDelayedCallbacks(
+        new Error("None of startup nodes is available")
+      );
       this.handleCloseEvent();
     }
   }

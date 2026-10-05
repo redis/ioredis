@@ -126,6 +126,7 @@ describe("cluster:dnsLookup", () => {
         },
       });
       const pending = cluster.get("foo");
+      const pendingPipeline = cluster.pipeline().get("foo").exec();
       const end = new Promise((resolve) => cluster.once("end", resolve));
 
       await new Promise((resolve) => setImmediate(resolve));
@@ -135,6 +136,9 @@ describe("cluster:dnsLookup", () => {
       await end;
       expect(cluster.status).to.eql("end");
       await expect(pending).to.be.rejectedWith(
+        "None of startup nodes is available"
+      );
+      await expect(pendingPipeline).to.be.rejectedWith(
         "None of startup nodes is available"
       );
     });
