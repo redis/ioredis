@@ -111,7 +111,14 @@ export default class ClusterSubscriberGroup {
     const slotChannels = this.channels.get(slot);
 
     if (slotChannels) {
-      const updatedChannels = slotChannels.filter((c) => !channels.includes(c));
+      const updatedChannels = slotChannels.filter(
+        (c) =>
+          !channels.some((channel) =>
+            typeof c === "string" && typeof channel === "string"
+              ? c === channel
+              : Buffer.from(c).equals(Buffer.from(channel)),
+          ),
+      );
       this.channels.set(slot, updatedChannels);
     }
 
