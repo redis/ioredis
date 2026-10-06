@@ -9,7 +9,7 @@ import Deque = require("denque");
 import { EventEmitter } from "events";
 import Command from "./Command";
 import { Debug } from "./utils";
-import SubscriptionSet from "./SubscriptionSet";
+import SubscriptionSet, { ChannelName } from "./SubscriptionSet";
 import { Decoder, RESP_TYPES } from "./resp/decoder";
 import { TypeMapping } from "./resp/types";
 
@@ -142,7 +142,10 @@ export default class DataHandler {
     // command response. Routing it by content would misinterpret replies that
     // merely look like pub/sub messages (e.g. an LRANGE result starting with
     // "message") and desync the command queue.
-    if (this.redis.condition.protocol !== 3 && this.handleSubscriberReply(reply)) {
+    if (
+      this.redis.condition.protocol !== 3 &&
+      this.handleSubscriberReply(reply)
+    ) {
       return;
     }
 
@@ -154,7 +157,7 @@ export default class DataHandler {
       this.redis.condition.subscriber = new SubscriptionSet();
       this.redis.condition.subscriber.add(
         item.command.name,
-        reply[1].toString()
+        reply[1] as ChannelName
       );
 
       if (!fillSubCommand(item.command, reply[2])) {
@@ -190,7 +193,7 @@ export default class DataHandler {
           this.redis.condition.subscriber = new SubscriptionSet();
         }
 
-        const channel = reply[1].toString();
+        const channel = reply[1] as ChannelName;
         this.redis.condition.subscriber.add(replyType, channel);
         const item = this.shiftCommand(reply);
         if (!item) {
@@ -206,16 +209,17 @@ export default class DataHandler {
       case "sunsubscribe":
       case "unsubscribe":
       case "punsubscribe": {
+        const count = reply[2] as string | Buffer | number;
+
         if (this.redis.condition.subscriber) {
-          const channel = reply[1] ? reply[1].toString() : null;
-          if (channel) {
+          // Empty channel names are valid; only a null or undefined reply
+          // element means no channel.
+          const channel = reply[1] == null ? null : (reply[1] as ChannelName);
+          if (channel !== null) {
             this.redis.condition.subscriber.del(replyType, channel);
           }
-        }
 
-        const count = reply[2] as string | Buffer | number;
-        if (Number(count) === 0) {
-          this.redis.condition.subscriber = false;
+          leaveSubscriberModeIfDone(this.redis.condition, count);
         }
 
         if (this.handleUnsolicitedUnsubscribe(replyType)) {
@@ -299,7 +303,7 @@ export default class DataHandler {
       case "ssubscribe":
       case "subscribe":
       case "psubscribe": {
-        const channel = reply[1].toString();
+        const channel = reply[1] as ChannelName;
         this.redis.condition.subscriber.add(replyType, channel);
         const item = this.shiftCommand(reply);
         if (!item) {
@@ -313,14 +317,14 @@ export default class DataHandler {
       case "sunsubscribe":
       case "unsubscribe":
       case "punsubscribe": {
-        const channel = reply[1] ? reply[1].toString() : null;
-        if (channel) {
+        // Empty channel names are valid; only a null or undefined reply
+        // element means no channel.
+        const channel = reply[1] == null ? null : (reply[1] as ChannelName);
+        if (channel !== null) {
           this.redis.condition.subscriber.del(replyType, channel);
         }
         const count = reply[2];
-        if (Number(count) === 0) {
-          this.redis.condition.subscriber = false;
-        }
+        leaveSubscriberModeIfDone(this.redis.condition, count);
         if (this.handleUnsolicitedUnsubscribe(replyType)) {
           break;
         }
@@ -388,6 +392,25 @@ export default class DataHandler {
       return null;
     }
     return item;
+  }
+}
+
+// The count carried by the reply and the subscription set are each a partial
+// view of the connection's subscriptions. Regular channels and patterns share
+// one count and shard channels have their own, so a count of zero says nothing
+// about the other group; the set tracks only what this connection subscribed
+// to through ioredis, so it cannot see a subscription the server holds but
+// never acknowledged. Subscriber mode is left only when both are empty. A
+// reply carrying no count is not authoritative and does not hold the
+// connection in subscriber mode on its own.
+function leaveSubscriberModeIfDone(
+  condition: Condition,
+  count: string | Buffer | number
+) {
+  const remaining = Number(count);
+  const subscriber = condition.subscriber as SubscriptionSet;
+  if (subscriber.isEmpty() && !(remaining > 0)) {
+    condition.subscriber = false;
   }
 }
 
