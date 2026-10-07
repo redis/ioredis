@@ -41,8 +41,7 @@ export const PUSH_TYPE_MAPPING = {
   [RESP_TYPES.BLOB_STRING]: Buffer,
 };
 
-// Attribute contents aren't surfaced to callers; this keeps the decoded map
-// from being reported as a reply of its own.
+// Attribute contents aren't surfaced to callers.
 function discardAttribute() {}
 
 // this was written with performance in mind, so it's not very readable... sorry :(
@@ -201,11 +200,7 @@ export class Decoder {
           this.#decodeMap(this.getTypeMapping(), chunk)
         );
 
-      // An attribute is metadata for the reply that follows it, not a reply of
-      // its own. The spec lets clients ignore the contents, but they still have
-      // to be consumed: leaving them in the stream turns the reply behind them
-      // into a protocol error. Dropping out of #decodeTypeValue without calling
-      // a callback resumes the main loop on the real reply.
+      // RESP3 attribute: consume and discard, then decode the reply it decorates
       case RESP_TYPES.ATTRIBUTE:
         return this.#handleDecodedValue(
           discardAttribute,
@@ -657,8 +652,7 @@ export class Decoder {
       case RESP_TYPES.MAP:
         return this.#decodeMap(typeMapping, chunk);
 
-      // Nested attributes decorate the element that follows them, so the
-      // element takes their place in the array/set/map being decoded.
+      // RESP3 attribute: the element it decorates takes its place
       case RESP_TYPES.ATTRIBUTE:
         return this.#decodeAttribute(
           this.#decodeMap(typeMapping, chunk),
@@ -673,9 +667,7 @@ export class Decoder {
     }
   }
 
-  // `decodeNext` decodes whatever the attribute decorates, and has to be the
-  // decoder for the position the attribute was found in: a map key still needs
-  // #decodeMapKey, which forces string keys, and not the generic nested path.
+  // `decodeNext` has to be the decoder for the position the attribute was found in.
   #decodeAttribute(attribute, decodeNext, chunk) {
     if (typeof attribute === "function") {
       return this.#continueDecodeAttribute.bind(this, attribute, decodeNext);
@@ -916,9 +908,7 @@ export class Decoder {
       case RESP_TYPES.BLOB_STRING:
         return this.#decodeBlobString(String, chunk);
 
-      // An attributed key is still a key: resume on the key path so it keeps
-      // being coerced to a string. Leaving it to the nested path would hand
-      // #decodeMapAsObject a Buffer key, which bypasses its `__proto__` guard.
+      // RESP3 attribute: resume on the key path so the key is still forced to a string
       case RESP_TYPES.ATTRIBUTE:
         return this.#decodeAttribute(
           this.#decodeMap(typeMapping, chunk),
