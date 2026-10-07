@@ -1,6 +1,8 @@
 import MockServer from "../../helpers/mock_server";
 import { Cluster } from "../../../lib";
-import { expect } from "chai";
+import { expect, use } from "chai";
+
+use(require("chai-as-promised"));
 
 describe("cluster:dnsLookup", () => {
   it("resolve hostnames to IPs", (done) => {
@@ -109,6 +111,36 @@ describe("cluster:dnsLookup", () => {
     cluster.on("ready", () => {
       cluster.disconnect();
       done();
+    });
+  });
+
+  ["disconnect", "quit"].forEach((method) => {
+    it(`ends when ${method}() is called while resolving the startup nodes`, async () => {
+      const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
+      new MockServer(30001, () => {}, slotTable);
+
+      let resolveLookup: () => void;
+      const cluster = new Cluster([{ host: "a.com", port: "30001" }], {
+        dnsLookup(_, callback) {
+          resolveLookup = () => callback(null, "127.0.0.1");
+        },
+      });
+      const pending = cluster.get("foo");
+      const pendingPipeline = cluster.pipeline().get("foo").exec();
+      const end = new Promise((resolve) => cluster.once("end", resolve));
+
+      await new Promise((resolve) => setImmediate(resolve));
+      cluster[method]();
+      resolveLookup();
+
+      await end;
+      expect(cluster.status).to.eql("end");
+      await expect(pending).to.be.rejectedWith(
+        "None of startup nodes is available"
+      );
+      await expect(pendingPipeline).to.be.rejectedWith(
+        "None of startup nodes is available"
+      );
     });
   });
 });
