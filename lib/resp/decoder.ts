@@ -25,6 +25,7 @@ export const RESP_TYPES = {
   ARRAY: 42, // *
   SET: 126, // ~
   MAP: 37, // %
+  ATTRIBUTE: 124, // |
   PUSH: 62, // >
 } as const;
 
@@ -39,6 +40,9 @@ const ASCII = {
 export const PUSH_TYPE_MAPPING = {
   [RESP_TYPES.BLOB_STRING]: Buffer,
 };
+
+// Attribute contents aren't surfaced to callers.
+function discardAttribute() {}
 
 // this was written with performance in mind, so it's not very readable... sorry :(
 
@@ -193,6 +197,13 @@ export class Decoder {
       case RESP_TYPES.MAP:
         return this.#handleDecodedValue(
           this.onReply,
+          this.#decodeMap(this.getTypeMapping(), chunk)
+        );
+
+      // RESP3 attribute: consume and discard, then decode the reply it decorates
+      case RESP_TYPES.ATTRIBUTE:
+        return this.#handleDecodedValue(
+          discardAttribute,
           this.#decodeMap(this.getTypeMapping(), chunk)
         );
 
@@ -641,11 +652,32 @@ export class Decoder {
       case RESP_TYPES.MAP:
         return this.#decodeMap(typeMapping, chunk);
 
+      // RESP3 attribute: the element it decorates takes its place
+      case RESP_TYPES.ATTRIBUTE:
+        return this.#decodeAttribute(
+          this.#decodeMap(typeMapping, chunk),
+          this.#decodeNestedType.bind(this, typeMapping),
+          chunk
+        );
+
       default:
         throw new Error(
           `Unknown RESP type ${type} "${String.fromCharCode(type)}"`
         );
     }
+  }
+
+  // `decodeNext` has to be the decoder for the position the attribute was found in.
+  #decodeAttribute(attribute, decodeNext, chunk) {
+    if (typeof attribute === "function") {
+      return this.#continueDecodeAttribute.bind(this, attribute, decodeNext);
+    }
+
+    return this.#cursor >= chunk.length ? decodeNext : decodeNext(chunk);
+  }
+
+  #continueDecodeAttribute(attributeCb, decodeNext, chunk) {
+    return this.#decodeAttribute(attributeCb(chunk), decodeNext, chunk);
   }
 
   #decodeArray(typeMapping, chunk) {
@@ -875,6 +907,14 @@ export class Decoder {
       // decode blob string map key as string (and not as buffer)
       case RESP_TYPES.BLOB_STRING:
         return this.#decodeBlobString(String, chunk);
+
+      // RESP3 attribute: resume on the key path so the key is still forced to a string
+      case RESP_TYPES.ATTRIBUTE:
+        return this.#decodeAttribute(
+          this.#decodeMap(typeMapping, chunk),
+          this.#decodeMapKey.bind(this, typeMapping),
+          chunk
+        );
 
       default:
         return this.#decodeNestedTypeValue(type, typeMapping, chunk);
