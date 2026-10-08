@@ -4,8 +4,72 @@ import { EventEmitter } from "events";
 import MockServer from "../../helpers/mock_server";
 import { expect } from "chai";
 import * as sinon from "sinon";
+import { AddressInfo, createServer, Socket } from "net";
 
 describe("ClusterSubscriber", () => {
+  it("uses the node's connectTimeout when the TLS handshake stalls", async () => {
+    let socket: Socket;
+    // Accept TCP connections without replying to the TLS handshake.
+    const server = createServer((connection) => {
+      socket = connection;
+    });
+    const pool = new ConnectionPool({
+      connectTimeout: 50,
+      tls: { rejectUnauthorized: false },
+    });
+    const subscriber = new ClusterSubscriber(pool, new EventEmitter());
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        server.once("error", reject);
+        server.listen(0, "127.0.0.1", resolve);
+      });
+      const { port } = server.address() as AddressInfo;
+      pool.findOrCreate({ host: "127.0.0.1", port });
+      subscriber.start();
+
+      const client = subscriber.getInstance();
+      expect(client.options.connectTimeout).to.equal(50);
+
+      const errors: Error[] = [];
+      client.on("error", (error) => errors.push(error));
+      const connectionError = await client.connect().then(
+        () => undefined,
+        (error) => error
+      );
+
+      expect(connectionError).to.be.instanceOf(Error);
+      expect(errors).to.have.lengthOf(1);
+      expect(errors[0]).to.have.property("code", "ETIMEDOUT");
+    } finally {
+      subscriber.stop();
+      pool.reset([]);
+      socket?.destroy();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it("inherits the replacement node's connectTimeout, including zero", () => {
+    const pool = new ConnectionPool({ connectTimeout: 50 });
+    const subscriber = new ClusterSubscriber(pool, new EventEmitter());
+    const node = { host: "127.0.0.1", port: 30000 };
+
+    try {
+      pool.findOrCreate(node);
+      subscriber.start();
+      const original = subscriber.getInstance();
+
+      pool.recreate({ ...node, connectTimeout: 0 });
+      const replacement = subscriber.getInstance();
+
+      expect(replacement).not.to.equal(original);
+      expect(replacement.options.connectTimeout).to.equal(0);
+    } finally {
+      subscriber.stop();
+      pool.reset([]);
+    }
+  });
+
   it("selects from all node roles by default", () => {
     const pool = new ConnectionPool({});
     const getNodes = sinon.spy(pool, "getNodes");
