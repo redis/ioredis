@@ -4,7 +4,10 @@ import { SentinelConnectionOptions } from "../connectors/SentinelConnector";
 import { StandaloneConnectionOptions } from "../connectors/StandaloneConnector";
 import { ProtocolVersion, ReplyMappingMode } from "../types";
 import type { HimportFieldset } from "../himport/types";
-import type { MaintEndpointType, MaintNotifications } from "../maintNotifications";
+import type {
+  MaintEndpointType,
+  MaintNotifications,
+} from "../maintNotifications";
 
 export type ReconnectOnError = (err: Error) => boolean | 1 | 2;
 export type RetryStrategy =
@@ -209,7 +212,7 @@ export interface CommonRedisOptions extends CommanderOptions {
    */
   maintRelaxedSocketTimeout?: number;
 
-  /** 
+  /**
    * How long the client will wait before killing a socket due to inactivity during initial connection.
    * @default 10000
    */
@@ -285,10 +288,16 @@ export interface CommonRedisOptions extends CommanderOptions {
   /**
    * @default undefined
    */
-  scripts?: Record<
-    string,
-    { lua: string; numberOfKeys?: number | undefined; readOnly?: boolean | undefined }
-  > | undefined;
+  scripts?:
+    | Record<
+        string,
+        {
+          lua: string;
+          numberOfKeys?: number | undefined;
+          readOnly?: boolean | undefined;
+        }
+      >
+    | undefined;
 
   /**
    * Managed-fieldset support is experimental and requires Redis 8.10 or newer.

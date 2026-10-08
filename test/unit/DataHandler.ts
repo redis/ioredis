@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import Deque = require("denque");
+import { subscribe, unsubscribe } from "node:diagnostics_channel";
 import { EventEmitter } from "events";
 import * as sinon from "sinon";
 import Command from "../../lib/Command";
@@ -88,6 +89,103 @@ describe("DataHandler", () => {
     expect(await command.promise).to.equal("VALUE");
   });
 
+  it("dispatches typed maintenance pushes without shifting the command queue", async () => {
+    const setup = setupDataHandler();
+    setup.redis.onMaintenanceNotification = sinon.spy();
+    const command = new Command("get", ["key"], { replyEncoding: "utf8" });
+    setup.redis.commandQueue.push({ command, select: 0 });
+
+    setup.write(
+      ">4\r\n$6\r\nMOVING\r\n:17\r\n:15\r\n$19\r\ncache.internal:6380\r\n+VALUE\r\n"
+    );
+
+    expect(
+      setup.redis.onMaintenanceNotification.calledOnceWithExactly({
+        type: "MOVING",
+        sequenceNumber: 17,
+        timeSeconds: 15,
+        endpoint: { host: "cache.internal", port: 6380 },
+      })
+    ).to.be.true;
+    expect(await command.promise).to.equal("VALUE");
+    expect(setup.redis.commandQueue.length).to.equal(0);
+  });
+
+  it("publishes standalone maintenance frames to diagnostics_channel", () => {
+    const setup = setupDataHandler();
+    const notifications: unknown[] = [];
+    const subscriber = (notification: unknown) => {
+      notifications.push(notification);
+    };
+    subscribe("ioredis:maintenance", subscriber);
+
+    try {
+      setup.write(
+        ">4\r\n$6\r\nMOVING\r\n:17\r\n:15\r\n$19\r\ncache.internal:6380\r\n" +
+          ">3\r\n$9\r\nMIGRATING\r\n:18\r\n:30\r\n" +
+          ">2\r\n$8\r\nMIGRATED\r\n:19\r\n" +
+          ">3\r\n$12\r\nFAILING_OVER\r\n:20\r\n:30\r\n" +
+          ">2\r\n$11\r\nFAILED_OVER\r\n:21\r\n"
+      );
+    } finally {
+      unsubscribe("ioredis:maintenance", subscriber);
+    }
+
+    expect(notifications).to.eql([
+      {
+        type: "MOVING",
+        sequenceNumber: 17,
+        timeSeconds: 15,
+        endpoint: { host: "cache.internal", port: 6380 },
+      },
+      { type: "MIGRATING", sequenceNumber: 18, timeSeconds: 30 },
+      { type: "MIGRATED", sequenceNumber: 19 },
+      { type: "FAILING_OVER", sequenceNumber: 20, timeSeconds: 30 },
+      { type: "FAILED_OVER", sequenceNumber: 21 },
+    ]);
+  });
+
+  it("ignores unknown and malformed pushes without shifting the command queue", async () => {
+    const setup = setupDataHandler();
+    setup.redis.onMaintenanceNotification = sinon.spy();
+    const command = new Command("get", ["key"], { replyEncoding: "utf8" });
+    setup.redis.commandQueue.push({ command, select: 0 });
+
+    setup.write(
+      ">2\r\n+FUTURE_EVENT\r\n:1\r\n" +
+        ">2\r\n$6\r\nMOVING\r\n:17\r\n" +
+        "+VALUE\r\n"
+    );
+
+    expect(setup.redis.onMaintenanceNotification.called).to.be.false;
+    expect(await command.promise).to.equal("VALUE");
+    expect(setup.redis.commandQueue.length).to.equal(0);
+  });
+
+  it("ignores push frames without a scalar type", () => {
+    const setup = setupDataHandler();
+    const command = new Command("get", ["key"], { replyEncoding: "utf8" });
+    setup.redis.commandQueue.push({ command, select: 0 });
+
+    setup.write(">1\r\n_\r\n");
+
+    expect(setup.redis.commandQueue.length).to.equal(1);
+    expect(setup.redis.recoverFromFatalError.called).to.be.false;
+  });
+
+  it("observes asynchronous maintenance handler failures", async () => {
+    const setup = setupDataHandler();
+    const handlerError = new Error("maintenance handler failed");
+    setup.redis.onMaintenanceNotification = sinon.stub().rejects(handlerError);
+
+    setup.write(">3\r\n$12\r\nFAILING_OVER\r\n:17\r\n:30\r\n");
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(setup.redis.silentEmit.calledOnceWithExactly("error", handlerError))
+      .to.be.true;
+    expect(setup.redis.commandQueue.length).to.equal(0);
+  });
+
   it("handles RESP3 subscribe acknowledgements as push frames", async () => {
     const setup = setupDataHandler();
     const command = new Command("subscribe", ["channel"], {
@@ -173,7 +271,9 @@ describe("DataHandler", () => {
     const command = new Command("get", ["key"], { replyEncoding: "utf8" });
     setup.redis.commandQueue.push({ command, select: 0 });
 
-    setup.write(">3\r\n$11\r\nunsubscribe\r\n$7\r\nchannel\r\n:0\r\n+VALUE\r\n");
+    setup.write(
+      ">3\r\n$11\r\nunsubscribe\r\n$7\r\nchannel\r\n:0\r\n+VALUE\r\n"
+    );
 
     expect(await unsubscribe.promise).to.equal(0);
     expect(await command.promise).to.equal("VALUE");
@@ -326,6 +426,7 @@ function setupDataHandler(parserOptions = { stringNumbers: false }) {
   redis.handleReconnection = sinon.spy((err: Error, item) => {
     item.command.reject(err);
   });
+  redis.silentEmit = sinon.spy();
 
   new DataHandler(redis, parserOptions);
 
