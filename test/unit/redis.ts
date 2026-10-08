@@ -43,6 +43,10 @@ describe("Redis", () => {
         expect(option).to.have.property("password", "123");
         expect(option).to.have.property("db", 2);
 
+        option = getOption(6381, "::1");
+        expect(option).to.have.property("port", 6381);
+        expect(option).to.have.property("host", "::1");
+
         option = getOption("redis://:authpassword@127.0.0.1:6380/4");
         expect(option).to.have.property("port", 6380);
         expect(option).to.have.property("host", "127.0.0.1");

@@ -418,6 +418,8 @@ describe("utils", () => {
         host: "::1",
         port: "6379",
       });
+      expect(utils.parseURL("::1")).to.eql({ host: "::1" });
+      expect(utils.parseURL("2001:db8::1")).to.eql({ host: "2001:db8::1" });
       expect(utils.parseURL("/tmp/redis.sock?key=value")).to.eql({
         path: "/tmp/redis.sock",
         key: "value",

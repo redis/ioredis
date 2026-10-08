@@ -1,3 +1,4 @@
+import { isIPv6 } from "net";
 import { defaults, isArguments, noop } from "./lodash";
 import { Callback, ProtocolVersion } from "../types";
 import Debug from "./debug";
@@ -279,6 +280,11 @@ export function parseURL(url: string): Record<string, unknown> {
       defaults(result, options);
     }
     return result;
+  }
+
+  // A bare IPv6 address (e.g., "::1") is not a valid URL host without brackets.
+  if (isIPv6(rawUrl)) {
+    return { host: rawUrl };
   }
 
   let parsed: URL;
