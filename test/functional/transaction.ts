@@ -1,6 +1,7 @@
 import Redis from "../../lib/Redis";
 import { expect } from "chai";
 import Command from "../../lib/Command";
+import { MaxRetriesPerRequestError } from "../../lib/errors";
 import { isReCluster } from "../helpers/re-config";
 
 describe("transaction", () => {
@@ -47,6 +48,26 @@ describe("transaction", () => {
         expect(err.toString()).to.match(
           /Transaction discarded because of previous errors/
         );
+        done();
+      });
+  });
+
+  it("should not include the exec error in its own previousErrors", (done) => {
+    const redis = new Redis(9999, {
+      maxRetriesPerRequest: 1,
+      retryStrategy() {
+        return 1;
+      },
+    });
+    redis
+      .multi()
+      .set("foo", "bar")
+      .get("foo")
+      .exec(function (err: any) {
+        expect(err).instanceOf(MaxRetriesPerRequestError);
+        expect(() => JSON.stringify(err)).to.not.throw();
+        expect(err.previousErrors).to.eql([]);
+        redis.disconnect();
         done();
       });
   });
