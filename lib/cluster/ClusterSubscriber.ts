@@ -162,6 +162,7 @@ export default class ClusterSubscriber {
       host: options.host,
       username: options.username,
       password: options.password,
+      connectTimeout: options.connectTimeout,
       enableReadyCheck: true,
       connectionName: getConnectionName(connectionPrefix, options.connectionName),
       lazyConnect: true,
