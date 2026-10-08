@@ -1365,10 +1365,14 @@ However there are some differences when using transaction and pipeline in Cluste
 0. All keys in a pipeline should belong to slots served by the same node, since ioredis sends all commands in a pipeline to the same node.
 1. You can't use `multi` without pipeline (aka `cluster.multi({ pipeline: false })`). This is because when you call `cluster.multi({ pipeline: false })`, ioredis doesn't know which node the `multi` command should be sent to.
 
-When any commands in a pipeline receives a `MOVED` or `ASK` error, ioredis will resend the whole pipeline to the specified node automatically if all of the following conditions are satisfied:
+When a command in a pipeline (including an auto pipeline) receives its own `MOVED`, `ASK` or `TRYAGAIN` error, ioredis resends only that command, the same way it retries a command sent without a pipeline: it follows `retryDelayOnMoved`, `retryDelayOnTryAgain` and `maxRedirections`, and a `MOVED` updates the slot table. Redis returns these errors before running the command, so the command was not executed. Commands that succeeded are not sent again, and every result stays at its original position. The pipeline resolves after the last resent command settles. With `maxRedirections: 0`, nothing is resent and the error is returned as is.
+
+Commands inside `multi()`/`exec()` are not resent one by one. For a transaction, and for other errors such as `CLUSTERDOWN` or a closed connection, ioredis resends the whole pipeline automatically if all of the following conditions are satisfied:
 
 0. All errors received in the pipeline are the same. For example, we won't resend the pipeline if we got two `MOVED` errors pointing to different nodes.
 1. All commands executed successfully are readonly commands. This makes sure that resending the pipeline won't have side effects.
+
+A pipeline does not guarantee the order in which its commands take effect when one of them is resent. For example, in a pipeline of `MSET {t}a 1 {t}b 1` followed by `SET {t}a 2`, sent while `{t}b` is being migrated, the `MSET` can get `TRYAGAIN` while the `SET` succeeds. When the `MSET` is resent later, `{t}a` ends as `1`. Commands sent without a pipeline in the same tick behave the same way. If your commands must take effect in a fixed order, send them in a `multi()` transaction on keys that share a hash tag.
 
 ### Pub/Sub
 
