@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { sample, Debug, noop, defaults } from "../utils";
+import { sample, Debug, defaults } from "../utils";
 import { RedisOptions, getNodeKey, NodeKey, NodeRole } from "./util";
 import { ClusterOptions, ClusterNodeRetryStrategy } from "./ClusterOptions";
 import Redis from "../Redis";
@@ -121,7 +121,19 @@ export default class ConnectionPool extends EventEmitter {
       if (redis.options.readOnly !== readOnly) {
         redis.options.readOnly = readOnly;
         debug("Change role of %s to %s", key, readOnly ? "slave" : "master");
-        redis[readOnly ? "readonly" : "readwrite"]().catch(noop);
+        redis[readOnly ? "readonly" : "readwrite"]().catch((error) => {
+          // Do not keep a connection in the pool after a failed role change.
+          // The pool would otherwise route reads to a node that never entered
+          // readonly mode, which can cause a retry loop of MOVED errors during
+          // failover while the node is still loading.
+          debug(
+            "Failed to change role of %s to %s: %s; disconnecting",
+            key,
+            readOnly ? "slave" : "master",
+            error
+          );
+          redis.disconnect(true);
+        });
         if (readOnly) {
           delete this.nodes.master[key];
           this.nodes.slave[key] = redis;
