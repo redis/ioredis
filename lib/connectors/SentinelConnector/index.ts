@@ -134,8 +134,8 @@ export default class SentinelConnector extends AbstractConnector {
     const noEligibleSlaveSentinels = new Set<Partial<SentinelAddress>>();
 
     if (this.options.role === "slave-master") {
-      // Search the entire list, normally starting with the last resolved Sentinel.
-      this.sentinelIterator.reset(true);
+      // Search the entire list, continuing from the next unvisited Sentinel.
+      this.sentinelIterator.rotateToCursor();
     }
 
     const connectToNext = async (): Promise<NetStream> => {

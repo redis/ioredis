@@ -636,40 +636,156 @@ describe("sentinel", () => {
   });
 
   describe("slave-master", () => {
-    it("reuses the sentinel reporting a preferred slave on reconnect", async () => {
-      let masterLookups = 0;
-      let firstSentinelLookups = 0;
-      new MockServer(28379, (argv) => {
-        if (argv[0] === "sentinel" && argv[1] === "slaves") {
-          firstSentinelLookups++;
-          return [
-            ["ip", "127.0.0.1", "port", "18381", "flags", "slave,s_down"],
-          ];
+    for (const failoverDetector of [false, true]) {
+      const detector = failoverDetector ? "with" : "without";
+      it(
+        "tries the next sentinel after an unreachable slave " +
+          detector +
+          " the failover detector",
+        async () => {
+          const slaveLookups = [0, 0];
+          let masterLookups = 0;
+          [28379, 28380].forEach((port, index) => {
+            new MockServer(port, (argv) => {
+              if (argv[0] === "subscribe") {
+                return pubSubReply(2, "subscribe", "+switch-master");
+              }
+              if (argv[0] === "sentinel" && argv[1] === "slaves") {
+                slaveLookups[index]++;
+                return (index === 0 ? [18383] : [18381, 18382]).map(
+                  (slavePort) => [
+                    "ip",
+                    "127.0.0.1",
+                    "port",
+                    String(slavePort),
+                    "flags",
+                    "slave",
+                  ]
+                );
+              }
+              if (
+                argv[0] === "sentinel" &&
+                argv[1] === "get-master-addr-by-name"
+              ) {
+                masterLookups++;
+                return ["127.0.0.1", "18380"];
+              }
+            });
+          });
+          [18381, 18382].forEach((port) => {
+            new MockServer(port, (argv) => {
+              if (argv[0] === "info") return "role:slave";
+              if (argv[0] === "get") return String(port);
+            });
+          });
+          const redis = new Redis({
+            sentinels: [
+              { host: "127.0.0.1", port: 28379 },
+              { host: "127.0.0.1", port: 28380 },
+            ],
+            name: "master",
+            role: "slave-master",
+            preferredSlaves: [{ ip: "127.0.0.1", port: "18382" }],
+            failoverDetector,
+            lazyConnect: true,
+            retryStrategy: (times) => (times === 1 ? 0 : null),
+          });
+          const subscribed = failoverDetector
+            ? new Promise<void>((resolve) =>
+                redis.once("failoverSubscribed", resolve)
+              )
+            : Promise.resolve();
+
+          try {
+            expect(await redis.get("foo")).to.equal("18382");
+            await subscribed;
+            expect(slaveLookups).to.deep.equal([1, 1]);
+            expect(masterLookups).to.equal(0);
+          } finally {
+            redis.disconnect();
+          }
         }
-        if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
-          masterLookups++;
-          return ["127.0.0.1", "18380"];
-        }
-      });
-      new MockServer(28380, (argv) => {
-        if (argv[0] === "sentinel" && argv[1] === "slaves") {
-          return [
-            ["ip", "127.0.0.1", "port", "18381", "flags", "slave"],
-            ["ip", "127.0.0.1", "port", "18382", "flags", "slave"],
-          ];
-        }
-        if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
-          masterLookups++;
-          return ["127.0.0.1", "18380"];
-        }
-      });
-      const slaves = [18381, 18382].map(
-        (port) =>
-          new MockServer(port, (argv) => {
-            if (argv[0] === "info") return "role:slave";
-            if (argv[0] === "get") return String(port);
-          })
       );
+
+      it(
+        "tries the next sentinel after an unreachable fallback master " +
+          detector +
+          " the failover detector",
+        async () => {
+          const slaveLookups: number[] = [];
+          const masterLookups = [0, 0];
+          [28379, 28380].forEach((port, index) => {
+            new MockServer(port, (argv) => {
+              if (argv[0] === "subscribe") {
+                return pubSubReply(2, "subscribe", "+switch-master");
+              }
+              if (argv[0] === "sentinel" && argv[1] === "slaves") {
+                slaveLookups.push(index);
+                return [];
+              }
+              if (
+                argv[0] === "sentinel" &&
+                argv[1] === "get-master-addr-by-name"
+              ) {
+                masterLookups[index]++;
+                return ["127.0.0.1", index === 0 ? "18383" : "18380"];
+              }
+            });
+          });
+          new MockServer(18380, (argv) => {
+            if (argv[0] === "info") return "role:master";
+            if (argv[0] === "get") return "master";
+          });
+          const redis = new Redis({
+            sentinels: [
+              { host: "127.0.0.1", port: 28379 },
+              { host: "127.0.0.1", port: 28380 },
+            ],
+            name: "master",
+            role: "slave-master",
+            failoverDetector,
+            lazyConnect: true,
+            retryStrategy: (times) => (times === 1 ? 0 : null),
+          });
+          const subscribed = failoverDetector
+            ? new Promise<void>((resolve) =>
+                redis.once("failoverSubscribed", resolve)
+              )
+            : Promise.resolve();
+
+          try {
+            expect(await redis.get("foo")).to.equal("master");
+            await subscribed;
+            expect(slaveLookups).to.deep.equal([0, 1, 1, 0]);
+            expect(masterLookups).to.deep.equal([1, 1]);
+          } finally {
+            redis.disconnect();
+          }
+        }
+      );
+    }
+
+    it("does not fall back when a later sentinel reports an unreachable eligible slave", async () => {
+      const slaveLookups: number[] = [];
+      let masterLookups = 0;
+      [28379, 28380].forEach((port, index) => {
+        new MockServer(port, (argv) => {
+          if (argv[0] === "sentinel" && argv[1] === "slaves") {
+            slaveLookups.push(index);
+            return index === 0
+              ? [["ip", "127.0.0.1", "port", "18383", "flags", "slave"]]
+              : [];
+          }
+          if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
+            masterLookups++;
+            return ["127.0.0.1", "18380"];
+          }
+        });
+      });
+      new MockServer(18380, (argv) => {
+        if (argv[0] === "info") return "role:master";
+        if (argv[0] === "get") return "master";
+      });
       const redis = new Redis({
         sentinels: [
           { host: "127.0.0.1", port: 28379 },
@@ -677,24 +793,17 @@ describe("sentinel", () => {
         ],
         name: "master",
         role: "slave-master",
-        preferredSlaves: [{ ip: "127.0.0.1", port: "18382" }],
         lazyConnect: true,
-        retryStrategy: () => 10,
+        retryStrategy: (times) => (times === 1 ? 0 : null),
       });
 
       try {
-        await redis.connect();
-        expect(await redis.get("foo")).to.equal("18382");
-        expect(firstSentinelLookups).to.equal(1);
-
-        const ready = new Promise<void>((resolve) =>
-          redis.once("ready", resolve)
+        const error = await redis.get("foo").then(
+          () => null,
+          (err) => err
         );
-        slaves[1].getAllClients().forEach((client) => client.destroy());
-        await ready;
-
-        expect(await redis.get("foo")).to.equal("18382");
-        expect(firstSentinelLookups).to.equal(1);
+        expect(error).to.be.an.instanceOf(Error);
+        expect(slaveLookups).to.deep.equal([0, 1, 0]);
         expect(masterLookups).to.equal(0);
       } finally {
         redis.disconnect();

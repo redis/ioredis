@@ -29,9 +29,16 @@ export default class SentinelIterator
     if (
       moveCurrentEndpointToFirst &&
       this.sentinels.length > 1 &&
-      this.cursor > 1
+      this.cursor !== 1
     ) {
       this.sentinels.unshift(...this.sentinels.splice(this.cursor - 1));
+    }
+    this.cursor = 0;
+  }
+
+  rotateToCursor(): void {
+    if (this.cursor > 0 && this.cursor < this.sentinels.length) {
+      this.sentinels.unshift(...this.sentinels.splice(this.cursor));
     }
     this.cursor = 0;
   }
