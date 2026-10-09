@@ -2,6 +2,24 @@ import { expect } from "chai";
 import SentinelIterator from "../../../../lib/connectors/SentinelConnector/SentinelIterator";
 
 describe("SentinelIterator", () => {
+  it("preserves order when reset before iteration or reset again", () => {
+    const sentinels = [30001, 30002, 30003].map((port) => ({ port }));
+    const iter = new SentinelIterator(sentinels);
+
+    iter.reset(true);
+    expect(iter.next().value.port).to.equal(30001);
+    expect(iter.next().value.port).to.equal(30002);
+
+    iter.reset(true);
+    iter.reset(true);
+    expect(iter.next().value.port).to.equal(30002);
+    expect(iter.next().value.port).to.equal(30003);
+    expect(iter.next().value.port).to.equal(30001);
+    expect(sentinels.map((sentinel) => sentinel.port)).to.deep.equal([
+      30001, 30002, 30003,
+    ]);
+  });
+
   it("keep the options immutable", () => {
     function getSentinels() {
       return [{ host: "127.0.0.1", port: 30001 }];

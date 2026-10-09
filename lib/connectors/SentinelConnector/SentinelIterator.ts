@@ -29,7 +29,7 @@ export default class SentinelIterator
     if (
       moveCurrentEndpointToFirst &&
       this.sentinels.length > 1 &&
-      this.cursor !== 1
+      this.cursor > 1
     ) {
       this.sentinels.unshift(...this.sentinels.splice(this.cursor - 1));
     }
