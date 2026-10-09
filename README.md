@@ -1090,7 +1090,7 @@ The arguments passed to the constructor are different from the ones you use to c
 - `name` identifies a group of Redis instances composed of a master and one or more slaves (`mymaster` in the example);
 - `sentinelPassword` (optional) password for Sentinel instances.
 - `sentinels` are a list of sentinels to connect to. The list does not need to enumerate all your sentinel instances, but a few so that if one is down the client will try the next one.
-- `role` (optional) with a value of `slave` will return a random slave from the Sentinel group.
+- `role` (optional) defaults to `master`. Use `slave` to connect to a random slave, or `slave-master` to prefer a slave and fall back to the master when no eligible slaves are available.
 - `preferredSlaves` (optional) can be used to prefer a particular slave or set of slaves based on priority. It accepts a function or array.
 - `enableTLSForSentinelMode` (optional) set to true if connecting to sentinel instances that are encrypted
 
@@ -1098,7 +1098,13 @@ ioredis **guarantees** that the node you connected to is always a master even af
 
 It's possible to connect to a slave instead of a master by specifying the option `role` with the value of `slave` and ioredis will try to connect to a random slave of the specified master, with the guarantee that the connected node is always a slave. If the current node is promoted to master due to a failover, ioredis will disconnect from it and ask the sentinels for another slave node to connect to.
 
-If you specify the option `preferredSlaves` along with `role: 'slave'` ioredis will attempt to use this value when selecting the slave from the pool of available slaves. The value of `preferredSlaves` should either be a function that accepts an array of available slaves and returns a single result, or an array of slave values priorities by the lowest `prio` value first with a default value of `1`.
+Use `role: "slave-master"` to prefer a slave while allowing a master fallback. Slaves marked `disconnected`, `s_down`, or `o_down` by Sentinel are excluded. ioredis tries all known Sentinels for an eligible slave before asking for the master. Only Sentinels that returned a valid reply reporting no eligible slaves are asked for the master in that attempt. If every Sentinel query fails, or a connection to an eligible slave fails, ioredis follows the existing retry behavior.
+
+Trying every Sentinel can delay master fallback when some Sentinels are unreachable or slow. `connectTimeout` and `sentinelCommandTimeout` control the connection and command waits respectively. `sentinelCommandTimeout` has no default; a Sentinel that accepts a connection but never replies can stall discovery unless this option is set.
+
+This preference is reevaluated on each reconnect. Each discovery attempt follows the existing Sentinel retry order and wraps around to search all known Sentinels before falling back. An unreachable selected node does not pin discovery to the Sentinel that reported it. A healthy connection to the master stays in place when slaves become available again, until the connection is closed and reestablished. Master fallback places that connection's read load on the master. The role controls the entire connection and does not enforce read-only commands: writes return `READONLY` on a read-only slave but can succeed on the fallback master.
+
+If you specify the option `preferredSlaves` along with `role: 'slave'` or `role: 'slave-master'`, ioredis will attempt to use this value when selecting the slave from the pool of available slaves. The value of `preferredSlaves` should either be a function that accepts an array of available slaves and returns a single result, or an array of slave values priorities by the lowest `prio` value first with a default value of `1`.
 
 ```javascript
 // available slaves format

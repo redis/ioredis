@@ -67,6 +67,15 @@ expectType<Redis>(
   })
 );
 
+expectType<Redis>(
+  new Redis({
+    sentinels: [{ host: "localhost", port: 26379 }],
+    name: "mymaster",
+    role: "slave-master",
+    preferredSlaves: [{ ip: "localhost", port: "6379" }],
+  })
+);
+
 // Cluster
 expectType<Cluster>(new Cluster([30001, 30002]));
 expectType<Cluster>(new Redis.Cluster([30001, 30002]));
