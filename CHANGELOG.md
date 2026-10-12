@@ -1,3 +1,40 @@
+# [6.1.0-beta.1](https://github.com/redis/ioredis/compare/v6.0.0...v6.1.0-beta.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* accept field arrays in hmget/hmgetBuffer types ([#2167](https://github.com/redis/ioredis/issues/2167)) ([c0cd66c](https://github.com/redis/ioredis/commit/c0cd66cad8bc3d6fb02e2021f32ae2a88506ee97))
+* align auto-pipeline callbacks for dynamic commands ([#2180](https://github.com/redis/ioredis/issues/2180)) ([7479cab](https://github.com/redis/ioredis/commit/7479cabf7538d3d1db25ddb8a81041e74d69627e))
+* clean up Sentinel failover subscriptions after quit ([#2198](https://github.com/redis/ioredis/issues/2198)) ([727edfa](https://github.com/redis/ioredis/commit/727edfa6c05b18d25ad74cfc89335911475e48ae))
+* cluster stuck in close ([#2217](https://github.com/redis/ioredis/issues/2217)) ([a5fad1d](https://github.com/redis/ioredis/commit/a5fad1db7bc8231c09631a99763f5c99b88d7ad9))
+* **cluster:** bucket autopipelined MSET objects by their first key ([#2207](https://github.com/redis/ioredis/issues/2207)) ([b4e3237](https://github.com/redis/ioredis/commit/b4e3237d68f8da497dd08d0a227b4b8d8ecd633b))
+* **cluster:** hash autopipelined Buffer keys by their bytes ([#2208](https://github.com/redis/ioredis/issues/2208)) ([a8378bd](https://github.com/redis/ioredis/commit/a8378bd9a6d44823b2c1813f258a179313d4a23f)), closes [Command#getSlot](https://github.com/Command/issues/getSlot)
+* **cluster:** match Buffer shard channels when unsubscribing ([#2203](https://github.com/redis/ioredis/issues/2203)) ([d997d01](https://github.com/redis/ioredis/commit/d997d0141b8c77c6275cb5d1be86b8cfd0e87dad))
+* **cluster:** support zero-argument sunsubscribe with sharded subscribers ([#2137](https://github.com/redis/ioredis/issues/2137)) ([13ff050](https://github.com/redis/ioredis/commit/13ff050989c139843d3544a4ca556f2740a5619d)), closes [#2133](https://github.com/redis/ioredis/issues/2133)
+* **cluster:** vendor cluster-key-slot to fix empty hash tag slot bug ([#2172](https://github.com/redis/ioredis/issues/2172)) ([b479b76](https://github.com/redis/ioredis/commit/b479b7627e51baec5f9a58a8d3d7640d97bcf3e5))
+* decode integer replies up to MAX_SAFE_INTEGER exactly ([#2164](https://github.com/redis/ioredis/issues/2164)) ([28940b5](https://github.com/redis/ioredis/commit/28940b5e29f38ce4252f1f30dc3cdc38e32f540c))
+* decode RESP3 attribute replies instead of failing the connection ([#2213](https://github.com/redis/ioredis/issues/2213)) ([6a8cb3e](https://github.com/redis/ioredis/commit/6a8cb3e87424b07814322cf79de6873563fb0592)), closes [#decodeNestedType](https://github.com/redis/ioredis/issues/decodeNestedType) [#decodeMapAsObject](https://github.com/redis/ioredis/issues/decodeMapAsObject) [#decodeMapKey](https://github.com/redis/ioredis/issues/decodeMapKey)
+* decode RESP3 doubles with Number ([#2150](https://github.com/redis/ioredis/issues/2150)) ([6fb5a10](https://github.com/redis/ioredis/commit/6fb5a10bb8a3c2d61a7c8484e6ffec331cca2724))
+* handle rejections from auto-resubscribe and select on reconnect ([#2187](https://github.com/redis/ioredis/issues/2187)) ([de2fbdf](https://github.com/redis/ioredis/commit/de2fbdf219346e948a54319d68022861615fb540))
+* inherit connectTimeout for cluster subscribers ([#2220](https://github.com/redis/ioredis/issues/2220)) ([db57c2d](https://github.com/redis/ioredis/commit/db57c2d9d0b6f089bd95938e8483459573272e64))
+* keep String.prototype in fast mode after defining VerbatimString ([#2206](https://github.com/redis/ioredis/issues/2206)) ([90e1261](https://github.com/redis/ioredis/commit/90e1261ce71f4e77ad00f54690eda54123c34bc6))
+* keep subscriber mode while other channel kinds remain subscribed ([#2196](https://github.com/redis/ioredis/issues/2196)) ([eb97beb](https://github.com/redis/ioredis/commit/eb97bebf60946303d5f82b01d293888e7339aff0))
+* keep the exec error out of its own previousErrors ([#2218](https://github.com/redis/ioredis/issues/2218)) ([2c602cf](https://github.com/redis/ioredis/commit/2c602cf32a0a261d0f7c041d27674ec0ff2de56d))
+* preserve empty keys and match patterns in scan streams ([#2199](https://github.com/redis/ioredis/issues/2199)) ([b169c3a](https://github.com/redis/ioredis/commit/b169c3af29887aec8cf1a879dc9c808192e3d3d9))
+* reject unfulfilled commands dropped on reconnect ([#2194](https://github.com/redis/ioredis/issues/2194)) ([d95d05a](https://github.com/redis/ioredis/commit/d95d05a964be3687b01381224753f82c23427177)), closes [#2193](https://github.com/redis/ioredis/issues/2193)
+* reset retry attempts when connect() is called after giving up ([#2204](https://github.com/redis/ioredis/issues/2204)) ([b597303](https://github.com/redis/ioredis/commit/b59730310716d7e4b3330ee42c140f7acd409444)), closes [#1463](https://github.com/redis/ioredis/issues/1463)
+* **types:** accept documented TLS profile options ([#2195](https://github.com/redis/ioredis/issues/2195)) ([56a7fb8](https://github.com/redis/ioredis/commit/56a7fb8ad31b651917f9bb0c8e5fa3bae65bb281)), closes [#1626](https://github.com/redis/ioredis/issues/1626)
+* **types:** add event overloads to Cluster interface ([#2201](https://github.com/redis/ioredis/issues/2201)) ([3996eaf](https://github.com/redis/ioredis/commit/3996eaf2e849b9c472eb01729c7cef9f7f1e657f)), closes [#2191](https://github.com/redis/ioredis/issues/2191)
+* **types:** add smessage and smessageBuffer event overloads ([#2191](https://github.com/redis/ioredis/issues/2191)) ([ee48f4c](https://github.com/redis/ioredis/commit/ee48f4c25138f6716de07c4da33e96590f7f01b1)), closes [#2190](https://github.com/redis/ioredis/issues/2190)
+* **types:** allow number for zrange stop argument ([#2163](https://github.com/redis/ioredis/issues/2163)) ([932f4c2](https://github.com/redis/ioredis/commit/932f4c2903639d5b7782fe35004918d9c1e5e084))
+
+
+### Features
+
+* bless commands ([#2209](https://github.com/redis/ioredis/issues/2209)) ([9181ee0](https://github.com/redis/ioredis/commit/9181ee065f5214df5e5163353ab4bf44ee3bd327))
+* **cluster:** allow configuring node role for Pub/Sub subscriber ([#2176](https://github.com/redis/ioredis/issues/2176)) ([6b9130c](https://github.com/redis/ioredis/commit/6b9130c4f9a9134a5109c3f064d9dda803047b6a))
+* smart client handoffs ([#2165](https://github.com/redis/ioredis/issues/2165)) ([d8ae3cb](https://github.com/redis/ioredis/commit/d8ae3cb24c534e77b2c2df2f542cbf4789d758fe))
+
 # [6.0.0](https://github.com/redis/ioredis/compare/v5.11.1...v6.0.0) (2026-07-31)
 
 
