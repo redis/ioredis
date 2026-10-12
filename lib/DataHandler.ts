@@ -9,7 +9,7 @@ import Deque = require("denque");
 import { EventEmitter } from "events";
 import Command from "./Command";
 import { Debug, toError } from "./utils";
-import SubscriptionSet from "./SubscriptionSet";
+import SubscriptionSet, { ChannelName } from "./SubscriptionSet";
 import { Decoder, RESP_TYPES } from "./resp/decoder";
 import { TypeMapping } from "./resp/types";
 import {
