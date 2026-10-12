@@ -1,6 +1,9 @@
 {
   "branches": [
-    "main",
+    {
+      "name": "main",
+      "tag": "latest"
+    },
     {
       "name": "beta",
       "channel": "beta",
@@ -20,8 +23,15 @@
     ],
     "@semantic-release/release-notes-generator",
     ["@semantic-release/changelog", { "changelogFile": "CHANGELOG.md" }],
-    "@semantic-release/npm",
-    ["@semantic-release/exec", { "prepareCmd": "node bin/generate-version.js" }],
+    ["@semantic-release/npm", { "npmPublish": false }],
+    [
+      "@semantic-release/exec",
+      {
+        "verifyConditionsCmd": "test -n '${branch.tag}' || { echo 'No npm dist-tag configured for branch ${branch.name}' >&2; exit 1; }",
+        "prepareCmd": "node bin/generate-version.js",
+        "publishCmd": "npm stage publish --tag ${branch.tag} --provenance"
+      }
+    ],
     [
       "@semantic-release/git",
       {
