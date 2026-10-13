@@ -21,6 +21,12 @@ module.exports = {
       "$1Buffer(key: RedisKey, fields: (string | Buffer)[], callback?: Callback<(Buffer | null)[]>): Result<(Buffer | null)[], Context>",
     ],
   },
+  del: {
+    overwrite: false,
+    defs: [
+      "$1(keys: RedisKey | RedisKey[], callback?: Callback<number>): Result<number, Context>",
+    ],
+  },
   mset: msetOverrides,
   msetnx: msetOverrides,
   hset: {
