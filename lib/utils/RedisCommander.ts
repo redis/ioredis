@@ -1431,6 +1431,7 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _complexity_: O(N) where N is the number of keys that will be removed. When a key to remove holds a value other than a string, the individual complexity for this key is O(M) where M is the number of elements in the list, set, sorted set or hash. Removing a single key that holds a string value is O(1).
    * - _since_: 1.0.0
    */
+  del(keys: RedisKey | RedisKey[], callback?: Callback<number>): Result<number, Context>
   del(...args: [...keys: (RedisKey)[], callback: Callback<number>]): Result<number, Context>;
   del(...args: [keys: (RedisKey)[], callback: Callback<number>]): Result<number, Context>;
   del(...args: [...keys: (RedisKey)[]]): Result<number, Context>;

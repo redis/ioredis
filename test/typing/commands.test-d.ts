@@ -44,6 +44,8 @@ expectType<Promise<string | null>>(redis.set("key", "bar", "GET"));
 expectType<Promise<number>>(redis.del("key"));
 expectType<Promise<number>>(redis.del(["key1", "key2"]));
 expectType<Promise<number>>(redis.del("key1", "key2"));
+const keys: string | string[] = "key";
+expectType<Promise<number>>(redis.del(keys));
 
 // INCR
 expectType<Promise<number>>(redis.incr("key"));
