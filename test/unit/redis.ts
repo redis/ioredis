@@ -287,4 +287,22 @@ describe("Redis", () => {
       command.verify();
     });
   });
+
+  describe("#handleReconnection", () => {
+    it("emits an error when the db-restoring select fails on reconnectOnError", async () => {
+      const redis = new Redis({ lazyConnect: true, reconnectOnError: () => 2 });
+      const selectError = new Error("ERR DB index is out of range");
+      sinon.stub(redis, "disconnect");
+      sinon.stub(redis, "sendCommand");
+      sinon.stub(redis, "select").rejects(selectError);
+      const emitted = new Promise((resolve) => redis.once("error", resolve));
+
+      redis.handleReconnection(new Error("READONLY"), {
+        command: new Command("get", ["foo"]),
+        select: 2,
+      });
+
+      expect(await emitted).to.equal(selectError);
+    });
+  });
 });
