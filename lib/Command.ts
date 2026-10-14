@@ -299,6 +299,9 @@ export default class Command implements Respondable {
           for (let i = 2; i < args.length; i += 2) {
             if (token(i) === "auth-pass" || token(i) === "auth-user") {
               redact(i + 1);
+            } else if (token(i) === "rename-command") {
+              // rename-command takes two values: the command and its new name
+              i += 1;
             }
           }
           // SENTINEL CONFIG SET parameter value [parameter value ...]

@@ -728,6 +728,25 @@ describe("Command", () => {
         "AUTH-USER",
         "[REDACTED]",
       ]);
+      expect(
+        redact("sentinel", [
+          "SET",
+          "mymaster",
+          "rename-command",
+          "CONFIG",
+          "HIDDEN",
+          "auth-pass",
+          "secret",
+        ])
+      ).to.eql([
+        "SET",
+        "mymaster",
+        "rename-command",
+        "CONFIG",
+        "HIDDEN",
+        "auth-pass",
+        "[REDACTED]",
+      ]);
       expect(redact("sentinel", ["SET", "auth-pass", "quorum", 2])).to.eql([
         "SET",
         "auth-pass",
