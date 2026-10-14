@@ -104,7 +104,14 @@ export interface CommandNameFlags {
   // Commands that have BLOCK option
   BLOCK_OPTION_COMMANDS: ["xread", "xreadgroup"];
   // Commands that can carry credentials in their arguments
-  SENSITIVE_ARGS_COMMANDS: ["auth", "hello", "migrate", "acl", "config"];
+  SENSITIVE_ARGS_COMMANDS: [
+    "auth",
+    "hello",
+    "migrate",
+    "acl",
+    "config",
+    "sentinel"
+  ];
 }
 
 /**
@@ -177,7 +184,14 @@ export default class Command implements Respondable {
     ],
     FIRST_ARG_TIMEOUT_COMMANDS: ["bzmpop", "blmpop"],
     BLOCK_OPTION_COMMANDS: ["xread", "xreadgroup"],
-    SENSITIVE_ARGS_COMMANDS: ["auth", "hello", "migrate", "acl", "config"],
+    SENSITIVE_ARGS_COMMANDS: [
+      "auth",
+      "hello",
+      "migrate",
+      "acl",
+      "config",
+      "sentinel",
+    ],
   };
 
   private static flagMap?: FlagMap;
@@ -209,6 +223,8 @@ export default class Command implements Respondable {
    * - `MIGRATE ... AUTH password` / `AUTH2 username password`: the credentials
    * - `ACL SETUSER username ...rules`: the password rules (`>`, `<`, `#` and `!`)
    * - `CONFIG SET parameter value ...`: the values
+   * - `SENTINEL SET master option value ...`: the values of `auth-pass` and `auth-user`
+   * - `SENTINEL CONFIG SET parameter value ...`: the values
    *
    * Other commands get their arguments back unchanged.
    */
@@ -273,6 +289,21 @@ export default class Command implements Respondable {
         // CONFIG SET parameter value [parameter value ...]
         if (token(0) === "set") {
           for (let i = 2; i < args.length; i += 2) {
+            redact(i);
+          }
+        }
+        return redacted;
+      case "sentinel":
+        // SENTINEL SET master option value [option value ...]
+        if (token(0) === "set") {
+          for (let i = 2; i < args.length; i += 2) {
+            if (token(i) === "auth-pass" || token(i) === "auth-user") {
+              redact(i + 1);
+            }
+          }
+          // SENTINEL CONFIG SET parameter value [parameter value ...]
+        } else if (token(0) === "config" && token(1) === "set") {
+          for (let i = 3; i < args.length; i += 2) {
             redact(i);
           }
         }

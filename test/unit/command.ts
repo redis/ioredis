@@ -706,6 +706,62 @@ describe("Command", () => {
       ]);
     });
 
+    it("should redact the credentials of SENTINEL SET only", () => {
+      expect(
+        redact("sentinel", [
+          "SET",
+          "mymaster",
+          "quorum",
+          2,
+          "auth-pass",
+          "secret",
+          "AUTH-USER",
+          "user",
+        ])
+      ).to.eql([
+        "SET",
+        "mymaster",
+        "quorum",
+        2,
+        "auth-pass",
+        "[REDACTED]",
+        "AUTH-USER",
+        "[REDACTED]",
+      ]);
+      expect(redact("sentinel", ["SET", "auth-pass", "quorum", 2])).to.eql([
+        "SET",
+        "auth-pass",
+        "quorum",
+        2,
+      ]);
+    });
+
+    it("should redact the values of SENTINEL CONFIG SET only", () => {
+      expect(
+        redact("sentinel", [
+          "CONFIG",
+          "SET",
+          "sentinel-pass",
+          "secret",
+          "resolve-hostnames",
+          "yes",
+        ])
+      ).to.eql([
+        "CONFIG",
+        "SET",
+        "sentinel-pass",
+        "[REDACTED]",
+        "resolve-hostnames",
+        "[REDACTED]",
+      ]);
+      expect(redact("sentinel", ["CONFIG", "GET", "sentinel-pass"])).to.eql([
+        "CONFIG",
+        "GET",
+        "sentinel-pass",
+      ]);
+      expect(redact("sentinel", ["MASTERS"])).to.eql(["MASTERS"]);
+    });
+
     it("should redact Buffer arguments", () => {
       expect(
         redact("hello", [
