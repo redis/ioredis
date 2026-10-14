@@ -610,4 +610,128 @@ describe("Command", () => {
       });
     });
   });
+
+  describe(".redactSensitiveArgs()", () => {
+    const redact = (name: string, args: (string | Buffer | number)[]) =>
+      Command.redactSensitiveArgs(name, args);
+
+    it("should redact all arguments of AUTH", () => {
+      expect(redact("auth", ["secret"])).to.eql(["[REDACTED]"]);
+      expect(redact("AUTH", ["user", "secret"])).to.eql([
+        "[REDACTED]",
+        "[REDACTED]",
+      ]);
+    });
+
+    it("should redact the credentials of HELLO and keep the other arguments", () => {
+      expect(
+        redact("hello", ["3", "AUTH", "user", "secret", "SETNAME", "auth"])
+      ).to.eql(["3", "AUTH", "[REDACTED]", "[REDACTED]", "SETNAME", "auth"]);
+      expect(
+        redact("hello", ["3", "SETNAME", "auth", "auth", "user", "secret"])
+      ).to.eql(["3", "SETNAME", "auth", "auth", "[REDACTED]", "[REDACTED]"]);
+      expect(redact("hello", ["3"])).to.eql(["3"]);
+    });
+
+    it("should redact the credentials of MIGRATE and keep the other arguments", () => {
+      expect(
+        redact("migrate", ["host", 6379, "auth", 0, 5000, "AUTH", "secret"])
+      ).to.eql(["host", 6379, "auth", 0, 5000, "AUTH", "[REDACTED]"]);
+      expect(
+        redact("migrate", [
+          "host",
+          6379,
+          "",
+          0,
+          5000,
+          "COPY",
+          "AUTH2",
+          "user",
+          "secret",
+          "KEYS",
+          "auth",
+          "auth2",
+        ])
+      ).to.eql([
+        "host",
+        6379,
+        "",
+        0,
+        5000,
+        "COPY",
+        "AUTH2",
+        "[REDACTED]",
+        "[REDACTED]",
+        "KEYS",
+        "auth",
+        "auth2",
+      ]);
+    });
+
+    it("should redact the password rules of ACL SETUSER only", () => {
+      expect(
+        redact("acl", [
+          "SETUSER",
+          ">user",
+          "on",
+          ">secret",
+          "<old",
+          "#hash",
+          "!hash",
+          "~keys:*",
+          "+get",
+        ])
+      ).to.eql([
+        "SETUSER",
+        ">user",
+        "on",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "~keys:*",
+        "+get",
+      ]);
+      expect(redact("acl", ["DELUSER", "user"])).to.eql(["DELUSER", "user"]);
+      expect(redact("acl", ["WHOAMI"])).to.eql(["WHOAMI"]);
+    });
+
+    it("should redact the values of CONFIG SET only", () => {
+      expect(
+        redact("config", ["SET", "requirepass", "secret", "maxmemory", "1mb"])
+      ).to.eql(["SET", "requirepass", "[REDACTED]", "maxmemory", "[REDACTED]"]);
+      expect(redact("config", ["GET", "requirepass"])).to.eql([
+        "GET",
+        "requirepass",
+      ]);
+    });
+
+    it("should redact Buffer arguments", () => {
+      expect(
+        redact("hello", [
+          Buffer.from("3"),
+          Buffer.from("AUTH"),
+          Buffer.from("user"),
+          Buffer.from("secret"),
+        ])
+      ).to.eql([
+        Buffer.from("3"),
+        Buffer.from("AUTH"),
+        "[REDACTED]",
+        "[REDACTED]",
+      ]);
+    });
+
+    it("should not copy or change the arguments of other commands", () => {
+      const args = ["key", "value"];
+      expect(redact("set", args)).to.equal(args);
+      expect(args).to.eql(["key", "value"]);
+    });
+
+    it("should not change the arguments it is given", () => {
+      const args = ["SET", "requirepass", "secret"];
+      redact("config", args);
+      expect(args).to.eql(["SET", "requirepass", "secret"]);
+    });
+  });
 });

@@ -103,6 +103,8 @@ export interface CommandNameFlags {
   FIRST_ARG_TIMEOUT_COMMANDS: ["bzmpop", "blmpop"];
   // Commands that have BLOCK option
   BLOCK_OPTION_COMMANDS: ["xread", "xreadgroup"];
+  // Commands that can carry credentials in their arguments
+  SENSITIVE_ARGS_COMMANDS: ["auth", "hello", "migrate", "acl", "config"];
 }
 
 /**
@@ -175,6 +177,7 @@ export default class Command implements Respondable {
     ],
     FIRST_ARG_TIMEOUT_COMMANDS: ["bzmpop", "blmpop"],
     BLOCK_OPTION_COMMANDS: ["xread", "xreadgroup"],
+    SENSITIVE_ARGS_COMMANDS: ["auth", "hello", "migrate", "acl", "config"],
   };
 
   private static flagMap?: FlagMap;
@@ -195,6 +198,88 @@ export default class Command implements Respondable {
   ): commandName is CommandNameFlags[T][number] {
     commandName = commandName.toLowerCase();
     return !!this.getFlagMap()[flagName][commandName];
+  }
+
+  /**
+   * Returns the arguments of a command with credentials replaced by `"[REDACTED]"`,
+   * so that the command can be attached to errors and logged safely:
+   *
+   * - `AUTH`: all arguments
+   * - `HELLO ... AUTH username password`: the username and the password
+   * - `MIGRATE ... AUTH password` / `AUTH2 username password`: the credentials
+   * - `ACL SETUSER username ...rules`: the password rules (`>`, `<`, `#` and `!`)
+   * - `CONFIG SET parameter value ...`: the values
+   *
+   * Other commands get their arguments back unchanged.
+   */
+  static redactSensitiveArgs(
+    commandName: string,
+    args: CommandParameter[]
+  ): CommandParameter[] {
+    if (!Command.checkFlag("SENSITIVE_ARGS_COMMANDS", commandName)) {
+      return args;
+    }
+    const token = (index: number) =>
+      index < args.length ? String(args[index]).toLowerCase() : undefined;
+    const redacted = args.slice();
+    const redact = (index: number) => {
+      if (index < redacted.length) {
+        redacted[index] = "[REDACTED]";
+      }
+    };
+
+    switch (commandName.toLowerCase()) {
+      case "auth":
+        return args.map(() => "[REDACTED]");
+      case "hello":
+        // HELLO [protover [AUTH username password] [SETNAME clientname]]
+        for (let i = 1; i < args.length; i++) {
+          if (token(i) === "auth") {
+            redact(i + 1);
+            redact(i + 2);
+            i += 2;
+          } else if (token(i) === "setname") {
+            i += 1;
+          }
+        }
+        return redacted;
+      case "migrate":
+        // MIGRATE host port key db timeout [COPY] [REPLACE]
+        //   [AUTH password | AUTH2 username password] [KEYS key ...]
+        for (let i = 5; i < args.length; i++) {
+          if (token(i) === "auth") {
+            redact(i + 1);
+            i += 1;
+          } else if (token(i) === "auth2") {
+            redact(i + 1);
+            redact(i + 2);
+            i += 2;
+          } else if (token(i) === "keys") {
+            break;
+          }
+        }
+        return redacted;
+      case "acl":
+        // ACL SETUSER username [rule ...]
+        if (token(0) === "setuser") {
+          for (let i = 2; i < args.length; i++) {
+            if (/^[><#!]/.test(String(args[i]))) {
+              redact(i);
+            }
+          }
+        }
+        return redacted;
+      case "config":
+        // CONFIG SET parameter value [parameter value ...]
+        if (token(0) === "set") {
+          for (let i = 2; i < args.length; i += 2) {
+            redact(i);
+          }
+        }
+        return redacted;
+      default:
+        return args;
+    }
   }
 
   static setArgumentTransformer(name: string, func: ArgumentTransformer) {
