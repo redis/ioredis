@@ -781,6 +781,49 @@ describe("Command", () => {
       expect(redact("sentinel", ["MASTERS"])).to.eql(["MASTERS"]);
     });
 
+    describe("with malformed commands", () => {
+      it("should redact HELLO credentials without a protocol version", () => {
+        expect(redact("hello", ["AUTH", "user", "secret"])).to.eql([
+          "AUTH",
+          "[REDACTED]",
+          "[REDACTED]",
+        ]);
+      });
+
+      it("should redact MIGRATE credentials when the timeout is missing", () => {
+        expect(
+          redact("migrate", ["host", 6379, "key", 0, "AUTH", "secret"])
+        ).to.eql(["host", 6379, "key", 0, "AUTH", "[REDACTED]"]);
+      });
+
+      it("should redact all CONFIG SET arguments when they are not in pairs", () => {
+        expect(redact("config", ["SET", "a", "requirepass", "secret"])).to.eql([
+          "SET",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+        ]);
+      });
+
+      it("should redact SENTINEL SET credentials after an unknown option", () => {
+        expect(
+          redact("sentinel", [
+            "SET",
+            "mymaster",
+            "bogus",
+            "auth-pass",
+            "secret",
+          ])
+        ).to.eql(["SET", "mymaster", "bogus", "auth-pass", "[REDACTED]"]);
+      });
+
+      it("should redact all SENTINEL CONFIG SET arguments when they are not in pairs", () => {
+        expect(
+          redact("sentinel", ["CONFIG", "SET", "x", "sentinel-pass", "secret"])
+        ).to.eql(["CONFIG", "SET", "[REDACTED]", "[REDACTED]", "[REDACTED]"]);
+      });
+    });
+
     it("should redact Buffer arguments", () => {
       expect(
         redact("hello", [

@@ -243,13 +243,24 @@ export default class Command implements Respondable {
         redacted[index] = "[REDACTED]";
       }
     };
+    // Redacts the values of a "parameter value [parameter value ...]" list that starts at `start`.
+    // With an odd number of arguments the pairs are not reliable, so everything is redacted.
+    const redactParameterValues = (start: number) => {
+      const malformed = (args.length - start) % 2 !== 0;
+      for (let i = start; i < args.length; i++) {
+        if (malformed || (i - start) % 2 === 1) {
+          redact(i);
+        }
+      }
+    };
 
     switch (commandName.toLowerCase()) {
       case "auth":
         return args.map(() => "[REDACTED]");
       case "hello":
         // HELLO [protover [AUTH username password] [SETNAME clientname]]
-        for (let i = 1; i < args.length; i++) {
+        // Scan from the first argument, so a malformed HELLO without protover is covered too.
+        for (let i = 0; i < args.length; i++) {
           if (token(i) === "auth") {
             redact(i + 1);
             redact(i + 2);
@@ -262,7 +273,9 @@ export default class Command implements Respondable {
       case "migrate":
         // MIGRATE host port key db timeout [COPY] [REPLACE]
         //   [AUTH password | AUTH2 username password] [KEYS key ...]
-        for (let i = 5; i < args.length; i++) {
+        // Scan right after the key (db and timeout are numbers), so a malformed MIGRATE
+        // that misses one of them is covered too.
+        for (let i = 3; i < args.length; i++) {
           if (token(i) === "auth") {
             redact(i + 1);
             i += 1;
@@ -288,27 +301,23 @@ export default class Command implements Respondable {
       case "config":
         // CONFIG SET parameter value [parameter value ...]
         if (token(0) === "set") {
-          for (let i = 2; i < args.length; i += 2) {
-            redact(i);
-          }
+          redactParameterValues(1);
         }
         return redacted;
       case "sentinel":
         // SENTINEL SET master option value [option value ...]
+        // Options take one or two values (rename-command), and a malformed command
+        // can shift them, so look at every token instead of stepping through pairs.
         if (token(0) === "set") {
-          for (let i = 2; i < args.length; i += 2) {
+          for (let i = 2; i < args.length; i++) {
             if (token(i) === "auth-pass" || token(i) === "auth-user") {
               redact(i + 1);
-            } else if (token(i) === "rename-command") {
-              // rename-command takes two values: the command and its new name
               i += 1;
             }
           }
           // SENTINEL CONFIG SET parameter value [parameter value ...]
         } else if (token(0) === "config" && token(1) === "set") {
-          for (let i = 3; i < args.length; i += 2) {
-            redact(i);
-          }
+          redactParameterValues(2);
         }
         return redacted;
       default:
