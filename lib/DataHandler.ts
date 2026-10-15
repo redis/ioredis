@@ -157,7 +157,7 @@ export default class DataHandler {
 
     (err as any).command = {
       name: item.command.name,
-      args: item.command.args,
+      args: Command.redactSensitiveArgs(item.command.name, item.command.args),
     };
 
     // A MOVED reply to SSUBSCRIBE means the shard channel's slot migrated.

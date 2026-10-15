@@ -316,7 +316,7 @@ function abortError(command: Respondable) {
   const err = new AbortError("Command aborted due to connection close");
   (err as any).command = {
     name: command.name,
-    args: command.args,
+    args: Command.redactSensitiveArgs(command.name, command.args),
   };
   return err;
 }
