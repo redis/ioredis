@@ -73,14 +73,7 @@ export interface CommandNameFlags {
   // Commands that will make client disconnect from server TODO shutdown?
   WILL_DISCONNECT: ["quit"];
   // Commands that are sent when the client is connecting
-  HANDSHAKE_COMMANDS: [
-    "auth",
-    "hello",
-    "select",
-    "client",
-    "readonly",
-    "info"
-  ];
+  HANDSHAKE_COMMANDS: ["auth", "hello", "select", "client", "readonly", "info"];
   // Commands that should not trigger a reconnection when errors occur
   IGNORE_RECONNECT_ON_ERROR: ["client"];
   // Commands that block
@@ -110,6 +103,15 @@ export interface CommandNameFlags {
   FIRST_ARG_TIMEOUT_COMMANDS: ["bzmpop", "blmpop"];
   // Commands that have BLOCK option
   BLOCK_OPTION_COMMANDS: ["xread", "xreadgroup"];
+  // Commands that can carry credentials in their arguments
+  SENSITIVE_ARGS_COMMANDS: [
+    "auth",
+    "hello",
+    "migrate",
+    "acl",
+    "config",
+    "sentinel"
+  ];
 }
 
 /**
@@ -182,6 +184,14 @@ export default class Command implements Respondable {
     ],
     FIRST_ARG_TIMEOUT_COMMANDS: ["bzmpop", "blmpop"],
     BLOCK_OPTION_COMMANDS: ["xread", "xreadgroup"],
+    SENSITIVE_ARGS_COMMANDS: [
+      "auth",
+      "hello",
+      "migrate",
+      "acl",
+      "config",
+      "sentinel",
+    ],
   };
 
   private static flagMap?: FlagMap;
@@ -202,6 +212,117 @@ export default class Command implements Respondable {
   ): commandName is CommandNameFlags[T][number] {
     commandName = commandName.toLowerCase();
     return !!this.getFlagMap()[flagName][commandName];
+  }
+
+  /**
+   * Returns the arguments of a command with credentials replaced by `"[REDACTED]"`,
+   * so that the command can be attached to errors and logged safely:
+   *
+   * - `AUTH`: all arguments
+   * - `HELLO ... AUTH username password`: the username and the password
+   * - `MIGRATE ... AUTH password` / `AUTH2 username password`: the credentials
+   * - `ACL SETUSER username ...rules`: the password rules (`>`, `<`, `#` and `!`)
+   * - `CONFIG SET parameter value ...`: the values
+   * - `SENTINEL SET master option value ...`: the values of `auth-pass` and `auth-user`
+   * - `SENTINEL CONFIG SET parameter value ...`: the values
+   *
+   * Other commands get their arguments back unchanged.
+   */
+  static redactSensitiveArgs(
+    commandName: string,
+    args: CommandParameter[]
+  ): CommandParameter[] {
+    if (!Command.checkFlag("SENSITIVE_ARGS_COMMANDS", commandName)) {
+      return args;
+    }
+    const token = (index: number) =>
+      index < args.length ? String(args[index]).toLowerCase() : undefined;
+    const redacted = args.slice();
+    const redact = (index: number) => {
+      if (index < redacted.length) {
+        redacted[index] = "[REDACTED]";
+      }
+    };
+    // Redacts the values of a "parameter value [parameter value ...]" list that starts at `start`.
+    // With an odd number of arguments the pairs are not reliable, so everything is redacted.
+    const redactParameterValues = (start: number) => {
+      const malformed = (args.length - start) % 2 !== 0;
+      for (let i = start; i < args.length; i++) {
+        if (malformed || (i - start) % 2 === 1) {
+          redact(i);
+        }
+      }
+    };
+
+    switch (commandName.toLowerCase()) {
+      case "auth":
+        return args.map(() => "[REDACTED]");
+      case "hello":
+        // HELLO [protover [AUTH username password] [SETNAME clientname]]
+        // Scan from the first argument, so a malformed HELLO without protover is covered too.
+        for (let i = 0; i < args.length; i++) {
+          if (token(i) === "auth") {
+            redact(i + 1);
+            redact(i + 2);
+            i += 2;
+          } else if (token(i) === "setname") {
+            i += 1;
+          }
+        }
+        return redacted;
+      case "migrate":
+        // MIGRATE host port key db timeout [COPY] [REPLACE]
+        //   [AUTH password | AUTH2 username password] [KEYS key ...]
+        // Scan right after the key (db and timeout are numbers), so a malformed MIGRATE
+        // that misses one of them is covered too.
+        for (let i = 3; i < args.length; i++) {
+          if (token(i) === "auth") {
+            redact(i + 1);
+            i += 1;
+          } else if (token(i) === "auth2") {
+            redact(i + 1);
+            redact(i + 2);
+            i += 2;
+          } else if (token(i) === "keys") {
+            break;
+          }
+        }
+        return redacted;
+      case "acl":
+        // ACL SETUSER username [rule ...]
+        if (token(0) === "setuser") {
+          for (let i = 2; i < args.length; i++) {
+            if (/^[><#!]/.test(String(args[i]))) {
+              redact(i);
+            }
+          }
+        }
+        return redacted;
+      case "config":
+        // CONFIG SET parameter value [parameter value ...]
+        if (token(0) === "set") {
+          redactParameterValues(1);
+        }
+        return redacted;
+      case "sentinel":
+        // SENTINEL SET master option value [option value ...]
+        // Options take one or two values (rename-command), and a malformed command
+        // can shift them, so look at every token instead of stepping through pairs.
+        if (token(0) === "set") {
+          for (let i = 2; i < args.length; i++) {
+            if (token(i) === "auth-pass" || token(i) === "auth-user") {
+              redact(i + 1);
+              i += 1;
+            }
+          }
+          // SENTINEL CONFIG SET parameter value [parameter value ...]
+        } else if (token(0) === "config" && token(1) === "set") {
+          redactParameterValues(2);
+        }
+        return redacted;
+      default:
+        return args;
+    }
   }
 
   static setArgumentTransformer(name: string, func: ArgumentTransformer) {
@@ -250,6 +371,7 @@ export default class Command implements Respondable {
   private callback: Callback;
   private transformed = false;
   private _commandTimeoutTimer?: NodeJS.Timeout;
+  private _commandDeadline?: number;
   private _blockingTimeoutTimer?: NodeJS.Timeout;
   private _blockingDeadline?: number;
 
@@ -415,14 +537,49 @@ export default class Command implements Respondable {
    * Set the wait time before terminating the attempt to execute a command
    * and generating an error.
    */
-  setTimeout(ms: number) {
+  setTimeout(ms: number, createTimeoutError?: () => Error) {
     if (!this._commandTimeoutTimer) {
+      this._commandDeadline = Date.now() + ms;
       this._commandTimeoutTimer = setTimeout(() => {
         if (!this.isSettled) {
-          this.reject(new Error("Command timed out"));
+          this.reject(
+            createTimeoutError
+              ? createTimeoutError()
+              : new Error("Command timed out")
+          );
         }
       }, ms);
     }
+  }
+
+  /**
+   * Extend a running command timeout so that it expires no earlier than
+   * `ms` from now. The deadline is only ever extended, never shortened, and
+   * a command without a running timeout is left untouched. The timeout error
+   * is always replaced, even when the deadline stays unchanged.
+   */
+  extendTimeout(ms: number, createTimeoutError?: () => Error) {
+    if (!this._commandTimeoutTimer || this.isSettled) {
+      return;
+    }
+
+    const proposed = Date.now() + ms;
+    const deadline =
+      this._commandDeadline === undefined
+        ? proposed
+        : Math.max(this._commandDeadline, proposed);
+
+    clearTimeout(this._commandTimeoutTimer);
+    this._commandDeadline = deadline;
+    this._commandTimeoutTimer = setTimeout(() => {
+      if (!this.isSettled) {
+        this.reject(
+          createTimeoutError
+            ? createTimeoutError()
+            : new Error("Command timed out")
+        );
+      }
+    }, deadline - Date.now());
   }
 
   /**
@@ -505,9 +662,6 @@ export default class Command implements Respondable {
     return undefined;
   }
 
-  /**
-   * Clear the command and blocking timers
-   */
   private _clearTimers() {
     const existingTimer = this._commandTimeoutTimer;
     if (existingTimer) {

@@ -19,6 +19,10 @@ describe("Redis", () => {
         expect(option).to.have.property("host", "localhost");
         expect(option).to.have.property("family", 0);
         expect(option).to.have.property("keepAlive", 30000);
+        expect(option).to.have.property("maintNotifications", "auto");
+        expect(option).to.have.property("maintEndpointType", "auto");
+        expect(option).to.have.property("maintRelaxedCommandTimeout", 10000);
+        expect(option).to.have.property("maintRelaxedSocketTimeout", 10000);
 
         option = getOption({ keepAlive: 1234 });
         expect(option).to.have.property("keepAlive", 1234);
@@ -281,6 +285,24 @@ describe("Redis", () => {
       flushQueue.call(redis, new Error(), { commandQueue: false });
       offline.verify();
       command.verify();
+    });
+  });
+
+  describe("#handleReconnection", () => {
+    it("emits an error when the db-restoring select fails on reconnectOnError", async () => {
+      const redis = new Redis({ lazyConnect: true, reconnectOnError: () => 2 });
+      const selectError = new Error("ERR DB index is out of range");
+      sinon.stub(redis, "disconnect");
+      sinon.stub(redis, "sendCommand");
+      sinon.stub(redis, "select").rejects(selectError);
+      const emitted = new Promise((resolve) => redis.once("error", resolve));
+
+      redis.handleReconnection(new Error("READONLY"), {
+        command: new Command("get", ["foo"]),
+        select: 2,
+      });
+
+      expect(await emitted).to.equal(selectError);
     });
   });
 });

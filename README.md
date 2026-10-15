@@ -599,6 +599,12 @@ const redis = new Redis({
 });
 ```
 
+By default, commands defined with the `scripts` constructor option are inherited by
+`redis.duplicate()`, because it copies the connection options. Commands added
+later with `defineCommand()` belong to that instance and are not inherited.
+Use the `scripts` option when duplicated connections need the same custom
+commands, or call `defineCommand()` on each new instance.
+
 ### TypeScript Usages
 
 You can refer to [the example](examples/typescript/scripts.ts) for how to declare your custom commands.

@@ -116,6 +116,56 @@ describe("Command", () => {
     });
   });
 
+  describe("#extendTimeout()", () => {
+    let clock: sinon.SinonFakeTimers;
+
+    beforeEach(() => {
+      clock = sinon.useFakeTimers();
+    });
+
+    afterEach(() => {
+      clock.restore();
+    });
+
+    const maintenanceError = () => new Error("Maintenance timeout");
+
+    it("extends a running timeout to the relaxed deadline", async () => {
+      const command = new Command("get", ["foo"]);
+      const rejection = command.promise.catch((err) => err);
+      command.setTimeout(100);
+
+      command.extendTimeout(2000, maintenanceError);
+
+      await clock.tickAsync(1999);
+      expect(command.isSettled).to.equal(false);
+      await clock.tickAsync(1);
+      expect((await rejection).message).to.equal("Maintenance timeout");
+    });
+
+    it("never shortens the deadline when extending", async () => {
+      const command = new Command("get", ["foo"]);
+      const rejection = command.promise.catch((err) => err);
+      command.setTimeout(500);
+
+      command.extendTimeout(100, maintenanceError);
+
+      await clock.tickAsync(499);
+      expect(command.isSettled).to.equal(false);
+      await clock.tickAsync(1);
+      expect((await rejection).message).to.equal("Maintenance timeout");
+    });
+
+    it("leaves a command without a running timeout untouched", async () => {
+      const command = new Command("get", ["foo"]);
+      command.promise.catch(() => {});
+
+      command.extendTimeout(100, maintenanceError);
+
+      await clock.tickAsync(1000);
+      expect(command.isSettled).to.equal(false);
+    });
+  });
+
   describe("#getKeys()", () => {
     it("should return keys", () => {
       expect(getKeys("get", ["foo"])).to.eql(["foo"]);
@@ -290,19 +340,19 @@ describe("Command", () => {
 
       // First call sets deadline at now + 100ms
       command.setBlockingTimeout(100);
-      
+
       clock.tick(50);
-      
+
       // Second call (e.g., command moved from offline to command queue)
       // Should NOT extend deadline - should still fire at original 100ms
       command.setBlockingTimeout(100);
-      
+
       // At 100ms mark, command should resolve
       clock.tick(50);
-      
+
       const value = await command.promise;
       expect(value).to.be.null;
-      
+
       clock.restore();
     });
 
@@ -312,14 +362,14 @@ describe("Command", () => {
 
       // Set deadline at now + 100ms
       command.setBlockingTimeout(100);
-      
+
       clock.tick(150);
-      
+
       // Second call - deadline already passed, should resolve immediately
       command.setBlockingTimeout(100);
-      
+
       expect(command.isResolved).to.be.true;
-      
+
       clock.restore();
     });
   });
@@ -446,7 +496,12 @@ describe("Command", () => {
         });
 
         it(`extracts timeout from ${cmd.toUpperCase()} (case insensitive)`, () => {
-          const command = new Command(cmd.toUpperCase(), [3, "1", "MIN", "key"]);
+          const command = new Command(cmd.toUpperCase(), [
+            3,
+            "1",
+            "MIN",
+            "key",
+          ]);
           expect(command.extractBlockingTimeout()).to.equal(3000);
         });
 
@@ -472,12 +527,24 @@ describe("Command", () => {
 
       blockOptionCommands.forEach((cmd) => {
         it(`extracts timeout from ${cmd} with BLOCK option`, () => {
-          const command = new Command(cmd, ["BLOCK", 5000, "STREAMS", "stream", "0"]);
+          const command = new Command(cmd, [
+            "BLOCK",
+            5000,
+            "STREAMS",
+            "stream",
+            "0",
+          ]);
           expect(command.extractBlockingTimeout()).to.equal(5000);
         });
 
         it(`extracts timeout from ${cmd} with lowercase block option`, () => {
-          const command = new Command(cmd, ["block", 3000, "STREAMS", "stream", "0"]);
+          const command = new Command(cmd, [
+            "block",
+            3000,
+            "STREAMS",
+            "stream",
+            "0",
+          ]);
           expect(command.extractBlockingTimeout()).to.equal(3000);
         });
 
@@ -487,30 +554,302 @@ describe("Command", () => {
         });
 
         it(`returns 0 for ${cmd} with zero BLOCK duration`, () => {
-          const command = new Command(cmd, ["BLOCK", 0, "STREAMS", "stream", "0"]);
+          const command = new Command(cmd, [
+            "BLOCK",
+            0,
+            "STREAMS",
+            "stream",
+            "0",
+          ]);
           expect(command.extractBlockingTimeout()).to.equal(0);
         });
 
         it(`returns 0 for ${cmd} with negative BLOCK duration`, () => {
-          const command = new Command(cmd, ["BLOCK", -100, "STREAMS", "stream", "0"]);
+          const command = new Command(cmd, [
+            "BLOCK",
+            -100,
+            "STREAMS",
+            "stream",
+            "0",
+          ]);
           expect(command.extractBlockingTimeout()).to.equal(0);
         });
 
         it(`returns undefined for ${cmd} with invalid BLOCK duration`, () => {
-          const command = new Command(cmd, ["BLOCK", "invalid", "STREAMS", "stream", "0"]);
+          const command = new Command(cmd, [
+            "BLOCK",
+            "invalid",
+            "STREAMS",
+            "stream",
+            "0",
+          ]);
           expect(command.extractBlockingTimeout()).to.be.undefined;
         });
       });
 
       it("handles BLOCK option with Buffer value", () => {
-        const command = new Command("xread", ["BLOCK", Buffer.from("5000"), "STREAMS", "s", "0"]);
+        const command = new Command("xread", [
+          "BLOCK",
+          Buffer.from("5000"),
+          "STREAMS",
+          "s",
+          "0",
+        ]);
         expect(command.extractBlockingTimeout()).to.equal(5000);
       });
 
       it("handles BLOCK as Buffer token", () => {
-        const command = new Command("xread", [Buffer.from("BLOCK"), 2000, "STREAMS", "s", "0"]);
+        const command = new Command("xread", [
+          Buffer.from("BLOCK"),
+          2000,
+          "STREAMS",
+          "s",
+          "0",
+        ]);
         expect(command.extractBlockingTimeout()).to.equal(2000);
       });
+    });
+  });
+
+  describe(".redactSensitiveArgs()", () => {
+    const redact = (name: string, args: (string | Buffer | number)[]) =>
+      Command.redactSensitiveArgs(name, args);
+
+    it("should redact all arguments of AUTH", () => {
+      expect(redact("auth", ["secret"])).to.eql(["[REDACTED]"]);
+      expect(redact("AUTH", ["user", "secret"])).to.eql([
+        "[REDACTED]",
+        "[REDACTED]",
+      ]);
+    });
+
+    it("should redact the credentials of HELLO and keep the other arguments", () => {
+      expect(
+        redact("hello", ["3", "AUTH", "user", "secret", "SETNAME", "auth"])
+      ).to.eql(["3", "AUTH", "[REDACTED]", "[REDACTED]", "SETNAME", "auth"]);
+      expect(
+        redact("hello", ["3", "SETNAME", "auth", "auth", "user", "secret"])
+      ).to.eql(["3", "SETNAME", "auth", "auth", "[REDACTED]", "[REDACTED]"]);
+      expect(redact("hello", ["3"])).to.eql(["3"]);
+    });
+
+    it("should redact the credentials of MIGRATE and keep the other arguments", () => {
+      expect(
+        redact("migrate", ["host", 6379, "auth", 0, 5000, "AUTH", "secret"])
+      ).to.eql(["host", 6379, "auth", 0, 5000, "AUTH", "[REDACTED]"]);
+      expect(
+        redact("migrate", [
+          "host",
+          6379,
+          "",
+          0,
+          5000,
+          "COPY",
+          "AUTH2",
+          "user",
+          "secret",
+          "KEYS",
+          "auth",
+          "auth2",
+        ])
+      ).to.eql([
+        "host",
+        6379,
+        "",
+        0,
+        5000,
+        "COPY",
+        "AUTH2",
+        "[REDACTED]",
+        "[REDACTED]",
+        "KEYS",
+        "auth",
+        "auth2",
+      ]);
+    });
+
+    it("should redact the password rules of ACL SETUSER only", () => {
+      expect(
+        redact("acl", [
+          "SETUSER",
+          ">user",
+          "on",
+          ">secret",
+          "<old",
+          "#hash",
+          "!hash",
+          "~keys:*",
+          "+get",
+        ])
+      ).to.eql([
+        "SETUSER",
+        ">user",
+        "on",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "[REDACTED]",
+        "~keys:*",
+        "+get",
+      ]);
+      expect(redact("acl", ["DELUSER", "user"])).to.eql(["DELUSER", "user"]);
+      expect(redact("acl", ["WHOAMI"])).to.eql(["WHOAMI"]);
+    });
+
+    it("should redact the values of CONFIG SET only", () => {
+      expect(
+        redact("config", ["SET", "requirepass", "secret", "maxmemory", "1mb"])
+      ).to.eql(["SET", "requirepass", "[REDACTED]", "maxmemory", "[REDACTED]"]);
+      expect(redact("config", ["GET", "requirepass"])).to.eql([
+        "GET",
+        "requirepass",
+      ]);
+    });
+
+    it("should redact the credentials of SENTINEL SET only", () => {
+      expect(
+        redact("sentinel", [
+          "SET",
+          "mymaster",
+          "quorum",
+          2,
+          "auth-pass",
+          "secret",
+          "AUTH-USER",
+          "user",
+        ])
+      ).to.eql([
+        "SET",
+        "mymaster",
+        "quorum",
+        2,
+        "auth-pass",
+        "[REDACTED]",
+        "AUTH-USER",
+        "[REDACTED]",
+      ]);
+      expect(
+        redact("sentinel", [
+          "SET",
+          "mymaster",
+          "rename-command",
+          "CONFIG",
+          "HIDDEN",
+          "auth-pass",
+          "secret",
+        ])
+      ).to.eql([
+        "SET",
+        "mymaster",
+        "rename-command",
+        "CONFIG",
+        "HIDDEN",
+        "auth-pass",
+        "[REDACTED]",
+      ]);
+      expect(redact("sentinel", ["SET", "auth-pass", "quorum", 2])).to.eql([
+        "SET",
+        "auth-pass",
+        "quorum",
+        2,
+      ]);
+    });
+
+    it("should redact the values of SENTINEL CONFIG SET only", () => {
+      expect(
+        redact("sentinel", [
+          "CONFIG",
+          "SET",
+          "sentinel-pass",
+          "secret",
+          "resolve-hostnames",
+          "yes",
+        ])
+      ).to.eql([
+        "CONFIG",
+        "SET",
+        "sentinel-pass",
+        "[REDACTED]",
+        "resolve-hostnames",
+        "[REDACTED]",
+      ]);
+      expect(redact("sentinel", ["CONFIG", "GET", "sentinel-pass"])).to.eql([
+        "CONFIG",
+        "GET",
+        "sentinel-pass",
+      ]);
+      expect(redact("sentinel", ["MASTERS"])).to.eql(["MASTERS"]);
+    });
+
+    describe("with malformed commands", () => {
+      it("should redact HELLO credentials without a protocol version", () => {
+        expect(redact("hello", ["AUTH", "user", "secret"])).to.eql([
+          "AUTH",
+          "[REDACTED]",
+          "[REDACTED]",
+        ]);
+      });
+
+      it("should redact MIGRATE credentials when the timeout is missing", () => {
+        expect(
+          redact("migrate", ["host", 6379, "key", 0, "AUTH", "secret"])
+        ).to.eql(["host", 6379, "key", 0, "AUTH", "[REDACTED]"]);
+      });
+
+      it("should redact all CONFIG SET arguments when they are not in pairs", () => {
+        expect(redact("config", ["SET", "a", "requirepass", "secret"])).to.eql([
+          "SET",
+          "[REDACTED]",
+          "[REDACTED]",
+          "[REDACTED]",
+        ]);
+      });
+
+      it("should redact SENTINEL SET credentials after an unknown option", () => {
+        expect(
+          redact("sentinel", [
+            "SET",
+            "mymaster",
+            "bogus",
+            "auth-pass",
+            "secret",
+          ])
+        ).to.eql(["SET", "mymaster", "bogus", "auth-pass", "[REDACTED]"]);
+      });
+
+      it("should redact all SENTINEL CONFIG SET arguments when they are not in pairs", () => {
+        expect(
+          redact("sentinel", ["CONFIG", "SET", "x", "sentinel-pass", "secret"])
+        ).to.eql(["CONFIG", "SET", "[REDACTED]", "[REDACTED]", "[REDACTED]"]);
+      });
+    });
+
+    it("should redact Buffer arguments", () => {
+      expect(
+        redact("hello", [
+          Buffer.from("3"),
+          Buffer.from("AUTH"),
+          Buffer.from("user"),
+          Buffer.from("secret"),
+        ])
+      ).to.eql([
+        Buffer.from("3"),
+        Buffer.from("AUTH"),
+        "[REDACTED]",
+        "[REDACTED]",
+      ]);
+    });
+
+    it("should not copy or change the arguments of other commands", () => {
+      const args = ["key", "value"];
+      expect(redact("set", args)).to.equal(args);
+      expect(args).to.eql(["key", "value"]);
+    });
+
+    it("should not change the arguments it is given", () => {
+      const args = ["SET", "requirepass", "secret"];
+      redact("config", args);
+      expect(args).to.eql(["SET", "requirepass", "secret"]);
     });
   });
 });

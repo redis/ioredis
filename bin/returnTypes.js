@@ -124,6 +124,11 @@ module.exports = {
   auth: "'OK'",
   bgrewriteaof: "string",
   bgsave: "'OK'",
+  bless: (types) => {
+    if (matchSubcommand(types, ["CLEAR", "SET"])) return "number";
+    if (matchSubcommand(types, "GET")) return "string[]";
+    if (matchSubcommand(types, "SCAN")) return "[cursor: string, elements: string[]]";
+  },
   bitcount: "number",
   bitfield_ro: "unknown[]",
   bitop: "number",

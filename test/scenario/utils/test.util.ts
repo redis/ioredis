@@ -1,5 +1,10 @@
 import { readFileSync } from "fs";
-import { Cluster, ClusterOptions } from "../../../lib";
+import {
+  Cluster,
+  ClusterOptions,
+  Redis,
+  RedisOptions,
+} from "../../../lib";
 
 interface DatabaseEndpoint {
   addr: string[];
@@ -139,7 +144,7 @@ const DB_CONFIGS: Record<
   [CreateDatabaseConfigType.STANDALONE]: (
     namePrefix: string,
     port: number = randomPort(),
-    size = 1073741824 // 1GB
+    size = 1273741824 // ~1.2GB, mirrors the node-redis "m-standard" database
   ) => {
     return {
       name: getTestDatabaseName(namePrefix),
@@ -264,6 +269,19 @@ export const getConfig = (): TestConfig => {
 };
 
 /**
+ * Returns the fault injection API URL from the RE_FAULT_INJECTOR_URL
+ * environment variable.
+ * @throws Error if the environment variable is not set
+ */
+export const getFaultInjectorUrl = (): string => {
+  const url = process.env["RE_FAULT_INJECTOR_URL"];
+  if (!url) {
+    throw new Error("RE_FAULT_INJECTOR_URL environment variable must be set");
+  }
+  return url;
+};
+
+/**
  * Creates a test cluster client with the provided configuration, connects it and attaches an error handler listener
  * @param clientConfig - The Redis connection configuration
  * @param options - Optional cluster options
@@ -294,6 +312,26 @@ export const createClusterTestClient = (
 };
 
 /**
+ * Creates a standalone test client with the provided configuration
+ * @param clientConfig - The Redis connection configuration
+ * @param options - Optional Redis options
+ * @returns The created Redis client
+ */
+export const createStandaloneTestClient = (
+  clientConfig: RedisConnectionConfig,
+  options: Partial<RedisOptions> = {}
+) => {
+  return new Redis({
+    host: clientConfig.host,
+    port: clientConfig.port,
+    ...(clientConfig.username && { username: clientConfig.username }),
+    ...(clientConfig.password && { password: clientConfig.password }),
+    ...(clientConfig.tls && { tls: {} }),
+    ...options,
+  });
+};
+
+/**
  * Waits for a Redis or Cluster client to reach the `"ready"` state.
  *
  * @param client - An `ioredis` `Redis` or `Cluster` instance.
@@ -301,7 +339,10 @@ export const createClusterTestClient = (
  * @returns Promise that resolves when the client is ready.
  * @throws {Error} If the client errors or does not become ready before the timeout.
  */
-export const waitClientReady = async (client: Cluster, timeoutMs = 5_000) => {
+export const waitClientReady = async (
+  client: Redis | Cluster,
+  timeoutMs = 5_000
+) => {
   if (client["status"] === "ready") {
     return;
   }

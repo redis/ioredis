@@ -81,7 +81,8 @@ export function addTransactionSupport(redis) {
           if (execResult[0]) {
             execResult[0].previousErrors = [];
             for (let i = 0; i < result.length - 1; ++i) {
-              if (result[i][0]) {
+              // A flushed queue rejects every command with the same error object.
+              if (result[i][0] && result[i][0] !== execResult[0]) {
                 execResult[0].previousErrors.push(result[i][0]);
               }
             }

@@ -162,6 +162,7 @@ export default class ClusterSubscriber {
       host: options.host,
       username: options.username,
       password: options.password,
+      connectTimeout: options.connectTimeout,
       enableReadyCheck: true,
       connectionName: getConnectionName(connectionPrefix, options.connectionName),
       lazyConnect: true,
@@ -172,6 +173,9 @@ export default class ClusterSubscriber {
       // we will get an end event (handled below), at which point we'll pick a new
       // node from the pool and try to connect to that as the subscriber connection.
       retryStrategy: null,
+      // Maintenance notifications are currently only supported on standalone
+      // clients.
+      maintNotifications: "disabled" as const,
     });
 
     // Ignore the errors since they're handled in the connection pool.

@@ -44,6 +44,8 @@ expectType<Promise<string | null>>(redis.set("key", "bar", "GET"));
 expectType<Promise<number>>(redis.del("key"));
 expectType<Promise<number>>(redis.del(["key1", "key2"]));
 expectType<Promise<number>>(redis.del("key1", "key2"));
+const keys: string | string[] = "key";
+expectType<Promise<number>>(redis.del(keys));
 
 // INCR
 expectType<Promise<number>>(redis.incr("key"));
@@ -424,3 +426,18 @@ redis.zunionstore(
     expectType<number | undefined>(res);
   }
 );
+
+expectType<Promise<number>>(redis.bless("SET", "key", "NO-EVICT"));
+expectType<Promise<number>>(redis.bless("CLEAR", "key", "NO-EVICT"));
+expectType<Promise<string[]>>(redis.bless("GET", "key"));
+expectType<Promise<[cursor: string, elements: string[]]>>(
+  redis.bless("SCAN", 0, "NO-EVICT")
+);
+expectType<Promise<[cursor: string, elements: string[]]>>(
+  redis.bless("SCAN", 0, "NO-EVICT", "COUNT", 100)
+);
+
+redis.bless("GET", "key", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<string[] | undefined>(res);
+});
