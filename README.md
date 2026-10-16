@@ -1373,7 +1373,7 @@ However there are some differences when using transaction and pipeline in Cluste
 
 When a command in a pipeline (including an auto pipeline) receives its own `MOVED`, `ASK` or `TRYAGAIN` error, ioredis resends only that command, the same way it retries a command sent without a pipeline: it follows `retryDelayOnMoved`, `retryDelayOnTryAgain` and `maxRedirections`, and a `MOVED` updates the slot table. Redis returns these errors before running the command, so the command was not executed. Commands that succeeded are not sent again, and every result stays at its original position. The pipeline resolves after the last resent command settles. With `maxRedirections: 0`, nothing is resent and the error is returned as is.
 
-Commands inside `multi()`/`exec()` are not resent one by one. For a transaction, and for other errors such as `CLUSTERDOWN` or a closed connection, ioredis resends the whole pipeline automatically if all of the following conditions are satisfied:
+Commands inside `multi()`/`exec()` are not resent one by one. In a pipeline that contains `multi()`, only read-only commands outside the transaction are resent on their own; the transaction and any other write are left to the whole-pipeline retry. For a transaction, and for other errors such as `CLUSTERDOWN` or a closed connection, ioredis resends the whole pipeline automatically if all of the following conditions are satisfied:
 
 0. All errors received in the pipeline are the same. For example, we won't resend the pipeline if we got two `MOVED` errors pointing to different nodes.
 1. All commands executed successfully are readonly commands. This makes sure that resending the pipeline won't have side effects.

@@ -898,6 +898,49 @@ describe("cluster:pipeline", () => {
       }
     });
 
+    it("leaves a MOVED on a read-only command inside MULTI/EXEC to the whole-transaction retry", async () => {
+      const received: string[] = [];
+      serve(30001, (argv) => {
+        received.push(`30001 ${argv[0]}`);
+        if (argv[0] === "exec") {
+          return ["bar"];
+        }
+        if (argv[0] !== "multi") {
+          return "QUEUED";
+        }
+      });
+      serve(30002, (argv) => {
+        received.push(`30002 ${argv[0]}`);
+        if (argv[0] === "get") {
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30001`);
+        }
+        if (argv[0] === "exec") {
+          return new Error(
+            "EXECABORT Transaction discarded because of previous errors."
+          );
+        }
+      });
+
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
+      try {
+        const result = await cluster.multi().get("foo").exec();
+        expect(result).to.eql([[null, "bar"]]);
+        const commands = received.filter((line) =>
+          / (multi|get|exec)$/.test(line)
+        );
+        expect(commands).to.eql([
+          "30002 multi",
+          "30002 get",
+          "30002 exec",
+          "30001 multi",
+          "30001 get",
+          "30001 exec",
+        ]);
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
     it("keeps a WATCH before MULTI in the whole-transaction retry", async () => {
       const received: string[] = [];
       serve(30001, (argv) => {
