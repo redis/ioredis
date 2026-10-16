@@ -1,4 +1,5 @@
 import { exists, getKeyIndexes } from "@ioredis/commands";
+import type Redis from "./Redis";
 import * as calculateSlot from "./utils/calculateSlot";
 import asCallback from "standard-as-callback";
 import {
@@ -355,6 +356,13 @@ export default class Command implements Respondable {
   args: CommandParameter[];
   inTransaction = false;
   pipelineIndex?: number;
+  /**
+   * A redirection (MOVED, ASK or TRYAGAIN) the command received as part of a
+   * cluster pipeline, and the connection that returned it. Cluster#sendCommand
+   * follows it as if the command had received it when sent on its own.
+   * @ignore
+   */
+  redirection?: { error: Error; from: Redis };
   isTraced = false;
 
   isResolved = false;
