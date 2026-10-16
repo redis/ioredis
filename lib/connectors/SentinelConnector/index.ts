@@ -25,6 +25,11 @@ interface AddressFromResponse {
   flags?: string | undefined;
 }
 
+interface ResolvedAddress {
+  address: TcpNetConnectOpts;
+  role: "master" | "slave";
+}
+
 type PreferredSlaves =
   | ((slaves: AddressFromResponse[]) => AddressFromResponse | null)
   | Array<{ port: string; ip: string; prio?: number | undefined }>
@@ -38,9 +43,13 @@ export interface SentinelConnectionOptions {
    */
   name?: string | undefined;
   /**
+   * Node to connect to: `master`, `slave`, or `slave-master` to prefer a slave
+   * and fall back to the master when Sentinel reports no eligible slaves.
+   * The choice is re-evaluated on reconnect.
+   *
    * @default "master"
    */
-  role?: "master" | "slave" | undefined;
+  role?: "master" | "slave" | "slave-master" | undefined;
   tls?: StandaloneConnectionOptions["tls"];
   sentinelUsername?: string | undefined;
   sentinelPassword?: string | undefined;
@@ -75,6 +84,7 @@ export default class SentinelConnector extends AbstractConnector {
   protected sentinelIterator: SentinelIterator;
   private retryAttempts: number;
   private failoverDetector: FailoverDetector | null = null;
+  private resolvedRole?: "master" | "slave";
 
   constructor(protected options: SentinelConnectionOptions) {
     super(options.disconnectTimeout);
@@ -90,13 +100,13 @@ export default class SentinelConnector extends AbstractConnector {
   }
 
   check(info: { role?: string }): boolean {
-    const roleMatches: boolean = !info.role || this.options.role === info.role;
+    const expectedRole =
+      this.options.role === "slave-master"
+        ? this.resolvedRole
+        : this.options.role;
+    const roleMatches: boolean = !info.role || expectedRole === info.role;
     if (!roleMatches) {
-      debug(
-        "role invalid, expected %s, but got %s",
-        this.options.role,
-        info.role
-      );
+      debug("role invalid, expected %s, but got %s", expectedRole, info.role);
       // Start from the next item.
       // Note that `reset` will move the cursor to the previous element,
       // so we advance two steps here.
@@ -120,12 +130,29 @@ export default class SentinelConnector extends AbstractConnector {
     this.retryAttempts = 0;
 
     let lastError;
+    let masterFallback = false;
+    const noEligibleSlaveSentinels = new Set<Partial<SentinelAddress>>();
+
+    if (this.options.role === "slave-master") {
+      // Search the entire list, continuing from the next unvisited Sentinel.
+      this.sentinelIterator.rotateToCursor();
+    }
 
     const connectToNext = async (): Promise<NetStream> => {
       const endpoint = this.sentinelIterator.next();
 
       if (endpoint.done) {
         this.sentinelIterator.reset(false);
+        if (
+          this.options.role === "slave-master" &&
+          !masterFallback &&
+          noEligibleSlaveSentinels.size > 0
+        ) {
+          masterFallback = true;
+          return connectToNext();
+        }
+        masterFallback = false;
+        noEligibleSlaveSentinels.clear();
         const retryDelay =
           typeof this.options.sentinelRetryStrategy === "function"
             ? this.options.sentinelRetryStrategy(++this.retryAttempts)
@@ -152,11 +179,15 @@ export default class SentinelConnector extends AbstractConnector {
         }
       }
 
-      let resolved: TcpNetConnectOpts | null = null;
+      if (masterFallback && !noEligibleSlaveSentinels.has(endpoint.value)) {
+        return connectToNext();
+      }
+
+      let resolved: ResolvedAddress | null = null;
       let err: Error | null = null;
 
       try {
-        resolved = await this.resolve(endpoint.value);
+        resolved = await this.resolve(endpoint.value, masterFallback);
       } catch (error) {
         err = error;
       }
@@ -165,28 +196,41 @@ export default class SentinelConnector extends AbstractConnector {
         throw new Error(CONNECTION_CLOSED_ERROR_MSG);
       }
 
+      if (
+        !resolved &&
+        !err &&
+        this.options.role === "slave-master" &&
+        !masterFallback
+      ) {
+        noEligibleSlaveSentinels.add(endpoint.value);
+        return connectToNext();
+      }
+
       const endpointAddress = endpoint.value.host + ":" + endpoint.value.port;
 
       if (resolved) {
+        const { address, role } = resolved;
         debug(
-          "resolved: %s:%s from sentinel %s",
-          resolved.host,
-          resolved.port,
-          endpointAddress
+          "resolved: %s:%s from sentinel %s (role: %s)",
+          address.host,
+          address.port,
+          endpointAddress,
+          role
         );
 
         if (this.options.enableTLSForSentinelMode && this.options.tls) {
-          Object.assign(resolved, this.options.tls);
-          this.stream = createTLSConnection(resolved);
+          Object.assign(address, this.options.tls);
+          this.stream = createTLSConnection(address);
           this.stream.once(
             "secureConnect",
             this.initFailoverDetector.bind(this)
           );
         } else {
-          this.stream = createConnection(resolved);
+          this.stream = createConnection(address);
           this.stream.once("connect", this.initFailoverDetector.bind(this));
         }
 
+        this.resolvedRole = role;
         this.stream.once("error", (err) => {
           this.firstError = err;
         });
@@ -274,6 +318,9 @@ export default class SentinelConnector extends AbstractConnector {
     const result = await client.sentinel("slaves", this.options.name);
 
     if (!Array.isArray(result)) {
+      if (this.options.role === "slave-master") {
+        throw new Error("Invalid Sentinel reply when resolving slaves");
+      }
       return null;
     }
 
@@ -334,19 +381,24 @@ export default class SentinelConnector extends AbstractConnector {
   }
 
   private async resolve(
-    endpoint: Partial<SentinelAddress>
-  ): Promise<TcpNetConnectOpts | null> {
+    endpoint: Partial<SentinelAddress>,
+    masterFallback: boolean
+  ): Promise<ResolvedAddress | null> {
     const client = this.connectToSentinel(endpoint);
 
     // ignore the errors since resolve* methods will handle them
     client.on("error", noop);
 
     try {
-      if (this.options.role === "slave") {
-        return await this.resolveSlave(client);
-      } else {
-        return await this.resolveMaster(client);
+      if (
+        this.options.role === "slave" ||
+        (this.options.role === "slave-master" && !masterFallback)
+      ) {
+        const address = await this.resolveSlave(client);
+        return address ? { address, role: "slave" } : null;
       }
+      const address = await this.resolveMaster(client);
+      return address ? { address, role: "master" } : null;
     } finally {
       client.disconnect();
     }
