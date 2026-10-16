@@ -13,7 +13,6 @@ import {
   ReplyMappingFromClusterOptions,
   ReplyMappingMode,
   ScanStreamOptions,
-  PipelineWriteableStream,
   WriteableStream,
 } from "../types";
 import {
@@ -63,20 +62,10 @@ import HimportCoordinator, {
 
 const debug = Debug("cluster");
 
-const REJECT_OVERWRITTEN_COMMANDS = new WeakSet<Command>();
-
-// Marks the reject wrapper installed on a pipelined command. A whole-pipeline
-// retry gives the command a fresh promise and a fresh, unmarked reject, so the
-// wrapper is installed again.
-const PIPELINE_RECOVERY = Symbol("pipelineRedirectionRecovery");
-
-// Redis returns these before it executes the command, so the command is known
-// not to have run and can be sent again on its own.
-function isRedirectionError(err: Error): boolean {
-  const code =
-    err && typeof err.message === "string" && err.message.split(" ")[0];
-  return code === "MOVED" || code === "ASK" || code === "TRYAGAIN";
-}
+// Keyed by the command's promise rather than the command: a pipeline retried
+// as a whole gives its commands fresh promises and rejects, which must be
+// wrapped again when they are resent on their own.
+const REJECT_OVERWRITTEN_PROMISES = new WeakSet<Promise<unknown>>();
 
 type OfflineQueueItem = {
   command: Command;
@@ -681,50 +670,11 @@ class Cluster<
     // The connection the command was last sent on, used to detect
     // MOVED redirects that point back at the same node.
     let lastRedis: Redis | null = null;
-    // A pipelined command whose own reply is a redirection leaves the batch
-    // and is recovered the same way as a command sent on its own. Commands
-    // inside MULTI/EXEC are left to the pipeline, which retries the whole
-    // transaction. With maxRedirections 0 nothing is resent, as before.
-    const recoverFromPipeline =
-      !!node &&
-      !!stream &&
-      (stream as PipelineWriteableStream).isPipeline === true &&
-      !command.inTransaction &&
-      !command.ignore &&
-      command.name !== "exec" &&
-      command.name !== "multi" &&
-      this.options.maxRedirections > 0;
-    if (
-      recoverFromPipeline
-        ? !command.reject[PIPELINE_RECOVERY]
-        : !node && !REJECT_OVERWRITTEN_COMMANDS.has(command)
-    ) {
-      if (!recoverFromPipeline) {
-        REJECT_OVERWRITTEN_COMMANDS.add(command);
-      }
+    if (!node && !REJECT_OVERWRITTEN_PROMISES.has(command.promise)) {
+      REJECT_OVERWRITTEN_PROMISES.add(command.promise);
 
       const reject = command.reject;
       command.reject = function (err) {
-        if (node) {
-          // Still part of the pipeline: anything but a redirection goes
-          // back to the pipeline unchanged.
-          if (!isRedirectionError(err)) {
-            reject.call(command, err);
-            return;
-          }
-          // The batch's node and write stream only flush as a whole, so the
-          // retry must not reuse them. lastRedis stays the batch connection.
-          // Clearing pipelineIndex keeps a closed connection from aborting
-          // it as a fragment of a partially answered pipeline.
-          // Recording it as a wrapped single command keeps a later pass
-          // through sendCommand (from the offline queue) from wrapping it
-          // again, even after a script has replaced this reject.
-          node = undefined;
-          stream = undefined;
-          command.pipelineIndex = undefined;
-          REJECT_OVERWRITTEN_COMMANDS.add(command);
-          targetSlot = command.getSlot();
-        }
         const partialTry = tryConnection.bind(null, true);
         _this.handleError(err, ttl, {
           moved: function (slot, key) {
@@ -778,8 +728,17 @@ class Cluster<
           },
         });
       };
-      if (recoverFromPipeline) {
-        command.reject[PIPELINE_RECOVERY] = true;
+
+      const redirection = command.redirection;
+      if (redirection) {
+        // Follow the redirection the command received in a pipeline instead
+        // of sending it to the node that redirected it again. Starting from
+        // the batch's connection lets a MOVED that points back at it replace
+        // the stale connection on the first try.
+        command.redirection = undefined;
+        lastRedis = redirection.from;
+        command.reject(redirection.error);
+        return command.promise;
       }
     }
     tryConnection();

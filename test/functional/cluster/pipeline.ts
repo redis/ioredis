@@ -472,6 +472,7 @@ describe("cluster:pipeline", () => {
 
     it("sends ASKING only before the command that was asked to move", async () => {
       const received: string[] = [];
+      let sourceGets = 0;
       serve(30001, (argv) => {
         received.push(argv.join(" "));
         if (argv[0] === "get" && argv[1] === "foo") {
@@ -480,6 +481,7 @@ describe("cluster:pipeline", () => {
       });
       serve(30002, (argv) => {
         if (argv[0] === "get" && argv[1] === "foo") {
+          sourceGets++;
           return new Error(`ASK ${fooSlot} 127.0.0.1:30001`);
         }
       });
@@ -499,6 +501,8 @@ describe("cluster:pipeline", () => {
           /(^| )(asking|get|set|incr)( |$)/.test(line)
         );
         expect(commands).to.eql(["asking", "get foo"]);
+        // The resend follows the ASK it got in the batch, not a second one.
+        expect(sourceGets).to.eql(1);
         // ASK does not change slot ownership
         expect(cluster.slots[fooSlot][0]).to.eql("127.0.0.1:30002");
       } finally {
@@ -889,6 +893,159 @@ describe("cluster:pipeline", () => {
           "30001 set",
           "30001 exec",
         ]);
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
+    it("keeps a WATCH before MULTI in the whole-transaction retry", async () => {
+      const received: string[] = [];
+      serve(30001, (argv) => {
+        received.push(`30001 ${argv[0]}`);
+        if (argv[0] === "exec") {
+          return ["OK"];
+        }
+        if (argv[0] === "set") {
+          return "QUEUED";
+        }
+      });
+      serve(30002, (argv) => {
+        received.push(`30002 ${argv[0]}`);
+        if (argv[0] === "watch" || argv[0] === "set") {
+          return new Error(`MOVED ${fooSlot} 127.0.0.1:30001`);
+        }
+        if (argv[0] === "exec") {
+          return new Error(
+            "EXECABORT Transaction discarded because of previous errors."
+          );
+        }
+      });
+
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
+      try {
+        // Before the slots are loaded, the first exec() would run the
+        // pipeline instead of queueing EXEC.
+        await new Promise((resolve) => cluster.once("ready", resolve));
+        const result = await cluster
+          .pipeline()
+          .watch("foo")
+          .multi()
+          .set("foo", "bar")
+          .exec()
+          .exec();
+        expect(result).to.eql([
+          [null, "OK"],
+          [null, "OK"],
+          [null, "QUEUED"],
+          [null, ["OK"]],
+        ]);
+        const commands = received.filter((line) =>
+          / (watch|multi|set|exec)$/.test(line)
+        );
+        expect(commands).to.eql([
+          "30002 watch",
+          "30002 multi",
+          "30002 set",
+          "30002 exec",
+          "30001 watch",
+          "30001 multi",
+          "30001 set",
+          "30001 exec",
+        ]);
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
+    it("resends commands around an inline transaction on their own", async () => {
+      let execs = 0;
+      let redirectedGets = 0;
+      serve(30001, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          return "bar";
+        }
+      });
+      serve(30002, (argv) => {
+        if (argv[0] === "get" && argv[1] === "foo") {
+          // Both batched GETs are asked to retry; their resends succeed.
+          if (redirectedGets < 2) {
+            redirectedGets++;
+            return new Error("TRYAGAIN Multiple keys request during rehashing");
+          }
+          return "bar";
+        }
+        if (argv[0] === "set") {
+          return "QUEUED";
+        }
+        if (argv[0] === "exec") {
+          execs++;
+          return ["OK"];
+        }
+      });
+
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }]);
+      try {
+        // Before the slots are loaded, the first exec() would run the
+        // pipeline instead of queueing EXEC.
+        await new Promise((resolve) => cluster.once("ready", resolve));
+        const result = await cluster
+          .pipeline()
+          .get("foo")
+          .multi()
+          .set("foo", "bar")
+          .exec()
+          .get("foo")
+          .exec();
+        expect(result).to.eql([
+          [null, "bar"],
+          [null, "OK"],
+          [null, "QUEUED"],
+          [null, ["OK"]],
+          [null, "bar"],
+        ]);
+        expect(redirectedGets).to.eql(2);
+        expect(execs).to.eql(1);
+      } finally {
+        cluster.disconnect();
+      }
+    });
+
+    it("recreates a stale connection when MOVED points back at it", async () => {
+      // A proxy endpoint whose backing server changed: connections opened
+      // before the swap answer MOVED pointing at the same address.
+      // https://github.com/redis/ioredis/issues/1865
+      let swapped = false;
+      let staleMoves = 0;
+      const freshSockets = new Set();
+      const server = new MockServer(30001, (argv, c) => {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+          return [[0, 16383, ["127.0.0.1", 30001]]];
+        }
+        if (argv[0] === "get" && argv[1] === "foo") {
+          if (swapped && !freshSockets.has(c)) {
+            staleMoves++;
+            return new Error(`MOVED ${fooSlot} 127.0.0.1:30001`);
+          }
+          return "bar";
+        }
+      });
+      server.on("connect", (c) => {
+        if (swapped) {
+          freshSockets.add(c);
+        }
+      });
+
+      // One redirection is enough only if the first MOVED replaces the
+      // connection instead of sending to it again.
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+        maxRedirections: 1,
+      });
+      try {
+        expect(await cluster.get("foo")).to.eql("bar");
+        swapped = true;
+        const result = await cluster.pipeline().get("foo").exec();
+        expect(result).to.eql([[null, "bar"]]);
+        expect(staleMoves).to.eql(1);
       } finally {
         cluster.disconnect();
       }
