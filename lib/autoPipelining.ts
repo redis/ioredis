@@ -191,9 +191,10 @@ export function executeWithAutoPipelining(
     // error handling applies, instead of throwing on an undefined entry. The
     // bucket has to stay per-slot, because two unknown slots share no node and
     // Pipeline reads their two empty allocation groups as one group, sending
-    // both to the first key's node.
+    // both to the first key's node. The `#` keeps the fallback disjoint from
+    // `nodeKeys.join(",")`, which is always a list of `host:port` pairs.
     const nodeKeys = client.slots[slot];
-    slotKey = nodeKeys ? nodeKeys.join(",") : `slot:${slot}`;
+    slotKey = nodeKeys ? nodeKeys.join(",") : `#slot:${slot}`;
   }
 
   // When scaleReads is enabled, separate read and write commands into different pipelines
