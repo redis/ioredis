@@ -184,7 +184,13 @@ export function executeWithAutoPipelining(
     const slot = Buffer.isBuffer(key)
       ? calculateSlot(Buffer.concat([Buffer.from(prefix), key]))
       : calculateSlot(`${prefix}${key}`);
-    slotKey = client.slots[slot].join(",");
+    // A partially populated slot cache has no node group for this slot (for
+    // example slots that are not assigned to any node, or a topology that is
+    // still being discovered). Keep the generic bucket then: the command is
+    // routed like a non-pipelined command and the server's cluster error
+    // handling applies, instead of throwing on an undefined entry.
+    const nodeKeys = client.slots[slot];
+    slotKey = nodeKeys ? nodeKeys.join(",") : "main";
   }
 
   // When scaleReads is enabled, separate read and write commands into different pipelines

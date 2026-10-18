@@ -798,6 +798,44 @@ describe("autoPipelining for cluster", () => {
     cluster.disconnect();
   });
 
+  it("should route keys whose slot is missing from a partially populated cache", async () => {
+    // Only slots 0-8191 are served, so a key hashing above that has no entry
+    // in the slot cache (unassigned slots, or a topology that is still being
+    // discovered). Auto pipelining must route it like a regular command
+    // instead of throwing on the missing entry.
+    const partialSlotTable = [[0, 8191, ["127.0.0.1", 30007]]];
+    let dispatched = 0;
+    new MockServer(30007, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return partialSlotTable;
+      }
+      if (argv[0] === "get") {
+        dispatched++;
+        return "value";
+      }
+    });
+
+    let key;
+    for (let i = 0; i < 1000 && !key; i++) {
+      const candidate = `probe${i}`;
+      if (calculateKeySlot(candidate) > 8191) {
+        key = candidate;
+      }
+    }
+
+    const cluster = new Cluster([{ host: "127.0.0.1", port: 30007 }], {
+      enableAutoPipelining: true,
+    });
+
+    try {
+      await new Promise((resolve) => cluster.once("ready", resolve));
+      await expect(cluster.get(key)).to.eventually.eql("value");
+      expect(dispatched).to.eql(1);
+    } finally {
+      cluster.disconnect();
+    }
+  });
+
   it("should route writes to master and reads to replica with scaleReads", async () => {
     const cluster = new Cluster(hosts, {
       enableAutoPipelining: true,
