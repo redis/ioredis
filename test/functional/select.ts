@@ -54,16 +54,15 @@ describe("select", function () {
   it("should keep the selected db for commands issued while connecting", async () => {
     const redis = new Redis({ db: 2 });
     await redis.select(0);
-    await redis.set("foo", "0");
 
     const issued = new Promise<string>((resolve, reject) => {
       redis.once("connecting", () => {
-        redis.get("foo").then(resolve, reject);
+        redis.client("INFO").then(resolve, reject);
       });
     });
     redis.stream.destroy();
 
-    expect(await issued).to.eql("0");
+    expect(await issued).to.match(/\bdb=0\b/);
     redis.disconnect();
   });
 
@@ -71,16 +70,17 @@ describe("select", function () {
     const redis = new Redis();
     await redis.select(2);
 
-    const issued = new Promise((resolve, reject) => {
+    const ready = new Promise<void>((resolve) => {
       redis.once("connecting", () => {
         redis.select(5);
-        redis.set("foo", "5").then(resolve, reject);
+        redis.once("ready", resolve);
       });
     });
     redis.stream.destroy();
-    await issued;
 
-    expect(await redis.get("foo")).to.eql("5");
+    await ready;
+
+    expect(await redis.client("INFO")).to.match(/\bdb=5\b/);
     redis.disconnect();
   });
 
