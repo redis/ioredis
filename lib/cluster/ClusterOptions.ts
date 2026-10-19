@@ -134,9 +134,9 @@ export interface ClusterOptions extends CommanderOptions {
   slotsRefreshTimeout?: number | undefined;
 
   /**
-   * The milliseconds between every automatic slots refresh.
+   * The milliseconds between every automatic slots refresh. Disabled by default.
    *
-   * @default 5000
+   * @default undefined
    */
   slotsRefreshInterval?: number | undefined;
 
