@@ -184,15 +184,9 @@ export function executeWithAutoPipelining(
     const slot = Buffer.isBuffer(key)
       ? calculateSlot(Buffer.concat([Buffer.from(prefix), key]))
       : calculateSlot(`${prefix}${key}`);
-    // A partially populated slot cache has no node group for this slot (for
-    // example slots that are not assigned to any node, or a topology that is
-    // still being discovered). Fall back to a bucket named after the slot: the
-    // command is routed like a non-pipelined command and the server's cluster
-    // error handling applies, instead of throwing on an undefined entry. The
-    // bucket has to stay per-slot, because two unknown slots share no node and
-    // Pipeline reads their two empty allocation groups as one group, sending
-    // both to the first key's node. The `#` keeps the fallback disjoint from
-    // `nodeKeys.join(",")`, which is always a list of `host:port` pairs.
+    // Unassigned slots have no cache entry. Keep each in its own bucket:
+    // Pipeline treats all unmapped slots as one allocation group and would
+    // send them to the first key's node.
     const nodeKeys = client.slots[slot];
     slotKey = nodeKeys ? nodeKeys.join(",") : `#slot:${slot}`;
   }
