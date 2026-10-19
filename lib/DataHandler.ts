@@ -9,7 +9,7 @@ import Deque = require("denque");
 import { EventEmitter } from "events";
 import Command from "./Command";
 import { Debug, toError } from "./utils";
-import SubscriptionSet, { ChannelName } from "./SubscriptionSet";
+import SubscriptionSet, { ChannelName, DelSet } from "./SubscriptionSet";
 import { Decoder, RESP_TYPES } from "./resp/decoder";
 import { TypeMapping } from "./resp/types";
 import {
@@ -291,7 +291,7 @@ export default class DataHandler {
         if (!item) {
           return;
         }
-        if (!fillUnsubCommand(item.command, count)) {
+        if (!fillUnsubCommand(item.command, count, this.redis.condition)) {
           this.redis.commandQueue.unshift(item);
         }
         break;
@@ -416,7 +416,7 @@ export default class DataHandler {
         if (!item) {
           return;
         }
-        if (!fillUnsubCommand(item.command, count)) {
+        if (!fillUnsubCommand(item.command, count, this.redis.condition)) {
           this.redis.commandQueue.unshift(item);
         }
         break;
@@ -582,14 +582,20 @@ function fillSubCommand(command: Respondable, count: string | Buffer | number) {
 
 function fillUnsubCommand(
   command: Respondable,
-  count: string | Buffer | number
+  count: string | Buffer | number,
+  condition?: Condition
 ) {
   let remainingReplies = remainingRepliesMap.has(command)
     ? remainingRepliesMap.get(command)
     : command.args.length;
 
   if (remainingReplies === 0) {
-    if (Number(count) === 0) {
+    // The count also covers the other kind, which may stay subscribed.
+    const subscriber = condition?.subscriber;
+    if (
+      Number(count) === 0 ||
+      (subscriber && subscriber.size(command.name as DelSet) === 0)
+    ) {
       remainingRepliesMap.delete(command);
       command.resolve(count);
       return true;
