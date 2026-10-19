@@ -51,6 +51,39 @@ describe("select", function () {
     });
   });
 
+  it("should keep the selected db for commands issued while connecting", async () => {
+    const redis = new Redis({ db: 2 });
+    await redis.select(0);
+
+    const issued = new Promise<string>((resolve, reject) => {
+      redis.once("connecting", () => {
+        redis.client("INFO").then(resolve, reject);
+      });
+    });
+    redis.stream.destroy();
+
+    expect(await issued).to.match(/\bdb=0\b/);
+    redis.disconnect();
+  });
+
+  it("should keep a db selected while connecting", async () => {
+    const redis = new Redis();
+    await redis.select(2);
+
+    const ready = new Promise<void>((resolve) => {
+      redis.once("connecting", () => {
+        redis.select(5);
+        redis.once("ready", resolve);
+      });
+    });
+    redis.stream.destroy();
+
+    await ready;
+
+    expect(await redis.client("INFO")).to.match(/\bdb=5\b/);
+    redis.disconnect();
+  });
+
   it('should emit "select" event when db changes', (done) => {
     const changes = [];
     const redis = new Redis();

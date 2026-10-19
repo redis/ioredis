@@ -315,7 +315,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       const { options } = this;
 
       this.condition = {
-        select: options.db,
+        select: this.condition?.select ?? options.db,
         auth: options.username
           ? [options.username, options.password]
           : options.password,

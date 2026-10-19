@@ -475,9 +475,7 @@ export function readyHandler(self, flushOfflineQueue: () => void) {
       });
       return;
     }
-    const finalSelect = self.prevCondition
-      ? self.prevCondition.select
-      : self.condition.select;
+    const finalSelect = self.condition.select;
 
     if (self.prevCondition) {
       const condition = self.prevCondition;

@@ -128,9 +128,8 @@ PROTOCOLS.forEach((protocol, index) => {
     });
 
     it("surfaces a failing SELECT replay before resubscribing as an error event", async () => {
-      // condition.select resets to options.db (0) on reconnect while
-      // prevCondition.select is 2, so readyHandler re-selects the db before
-      // replaying the subscriptions.
+      // The reconnect handshake re-selects db 2 before the subscriptions are
+      // replayed.
       const server = serverRejectingReplayOf(
         basePort + 2,
         "select",
@@ -152,8 +151,7 @@ PROTOCOLS.forEach((protocol, index) => {
     });
 
     it("surfaces a failing SELECT replay on a non-subscriber connection as an error event", async () => {
-      // Same restoration, but through the final `select` in readyHandler rather
-      // than the subscriber branch.
+      // Same restoration on a connection with no subscriptions.
       const server = serverRejectingReplayOf(
         basePort + 3,
         "select",
