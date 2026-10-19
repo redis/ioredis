@@ -184,7 +184,11 @@ export function executeWithAutoPipelining(
     const slot = Buffer.isBuffer(key)
       ? calculateSlot(Buffer.concat([Buffer.from(prefix), key]))
       : calculateSlot(`${prefix}${key}`);
-    slotKey = client.slots[slot].join(",");
+    // Unassigned slots have no cache entry. Keep each in its own bucket:
+    // Pipeline treats all unmapped slots as one allocation group and would
+    // send them to the first key's node.
+    const nodeKeys = client.slots[slot];
+    slotKey = nodeKeys ? nodeKeys.join(",") : `#slot:${slot}`;
   }
 
   // When scaleReads is enabled, separate read and write commands into different pipelines

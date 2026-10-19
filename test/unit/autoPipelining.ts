@@ -74,6 +74,36 @@ describe("autoPipelining", function () {
     }
   });
 
+  it("should keep two uncached slots in separate pipelines", async function () {
+    const redis = new Redis(30000, {
+      enableAutoPipelining: true,
+      lazyConnect: true,
+    });
+    // A cluster whose slot cache is populated but holds no node group for any
+    // slot: the state `client.slots[slot]` used to be indexed without a check.
+    Object.defineProperty(redis, "isCluster", { value: true });
+    (redis as any).slots = new Array(16384);
+    (redis as any)._groupsBySlot = new Array(16384);
+    // Only the buckets are read here; the pipelines themselves are not run.
+    const exec = sinon.stub(Pipeline.prototype, "exec").callsFake(function () {
+      return Promise.resolve([]);
+    });
+
+    try {
+      (redis as any).get("a").catch(() => {});
+      (redis as any).get("b").catch(() => {});
+      // Two slots with no node group must not land in one pipeline: Pipeline
+      // compares their two empty allocation groups as equal and would send
+      // both commands to the first key's node.
+      expect([...(redis as any)._autoPipelines.keys()]).to.have.lengthOf(2);
+      // Let the pipelines scheduled above run while exec is still stubbed.
+      await new Promise((resolve) => setImmediate(resolve));
+    } finally {
+      exec.restore();
+      redis.disconnect();
+    }
+  });
+
   it("should enqueue builtins added after a pipeline was created", async () => {
     const received: string[] = [];
     new MockServer(30000, (argv) => {
