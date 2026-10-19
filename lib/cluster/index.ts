@@ -250,6 +250,9 @@ class Cluster<
       this.emit("+node", redis);
     });
     this.connectionPool.on("drain", () => {
+      if (this.status === "end") {
+        return;
+      }
       this.setStatus("close");
     });
     this.connectionPool.on("nodeError", (error, key) => {
