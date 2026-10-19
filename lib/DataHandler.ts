@@ -594,7 +594,8 @@ function fillUnsubCommand(
     const subscriber = condition?.subscriber;
     if (
       Number(count) === 0 ||
-      (subscriber && subscriber.size(command.name as DelSet) === 0)
+      (subscriber &&
+        subscriber.size(command.name.toLowerCase() as DelSet) === 0)
     ) {
       remainingRepliesMap.delete(command);
       command.resolve(count);

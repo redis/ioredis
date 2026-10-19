@@ -238,6 +238,15 @@ describe("pub/sub", function () {
       expect(await redis.unsubscribe()).to.eql(1);
       redis.disconnect();
     });
+
+    it(`should resolve an uppercase argument-less PUNSUBSCRIBE while a channel stays subscribed (RESP${protocol})`, async () => {
+      const redis = new Redis({ protocol });
+      await redis.subscribe("foo");
+      await redis.psubscribe("f?oo");
+      expect(await redis.call("PUNSUBSCRIBE")).to.eql(1);
+      expect(await redis.call("UNSUBSCRIBE")).to.eql(0);
+      redis.disconnect();
+    });
   });
 
   it("should be able to send quit command in the subscriber mode", (done) => {
