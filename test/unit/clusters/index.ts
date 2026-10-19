@@ -58,7 +58,7 @@ describe("cluster", () => {
     expect(duplicate.options.subscriberNodeRole).to.eql("slave");
   });
 
-  it("disables slotsRefreshTimeout by default", () => {
+  it("disables slotsRefreshInterval by default", () => {
     const cluster = new Cluster([{}]);
     expect(cluster.options.slotsRefreshInterval).to.eql(undefined);
   });
