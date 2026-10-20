@@ -476,4 +476,126 @@ describe("cluster:connect", () => {
       });
     });
   });
+
+  describe("commandTimeout", () => {
+    const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
+    let cluster: Cluster;
+
+    afterEach(() => {
+      cluster?.disconnect();
+    });
+
+    // Records the commands a node receives, apart from the cluster commands
+    // used to load the slots.
+    function createHandler(received: string[]) {
+      return (argv) => {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+          return slotTable;
+        }
+        if (argv[0] === "cluster" && argv[1] === "INFO") {
+          return "cluster_state:ok";
+        }
+        received.push(argv[0]);
+        if (argv[0] === "get") {
+          return "bar";
+        }
+      };
+    }
+
+    function createCluster(commandTimeout: number) {
+      return new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+        clusterRetryStrategy: () => 50,
+        redisOptions: { commandTimeout },
+      });
+    }
+
+    it("rejects a command that waits too long for the cluster to be ready", (done) => {
+      cluster = createCluster(100);
+
+      const start = Date.now();
+      cluster.get("foo", (err) => {
+        expect(err.message).to.eql("Command timed out");
+        expect(Date.now() - start).to.be.below(1000);
+        done();
+      });
+    });
+
+    it("does not send a timed out command once the cluster is ready", (done) => {
+      const received: string[] = [];
+      cluster = createCluster(100);
+
+      cluster.set("foo", "bar", (err) => {
+        expect(err.message).to.eql("Command timed out");
+        new MockServer(30001, createHandler(received));
+        cluster.once("ready", () => {
+          cluster.get("foo", (getErr, res) => {
+            expect(getErr).to.eql(null);
+            expect(res).to.eql("bar");
+            expect(received).to.not.include("set");
+            done();
+          });
+        });
+      });
+    });
+
+    it("sends a queued command once the cluster is ready within the timeout", (done) => {
+      cluster = createCluster(2000);
+
+      cluster.get("foo", (err, res) => {
+        expect(err).to.eql(null);
+        expect(res).to.eql("bar");
+        done();
+      });
+      setTimeout(() => new MockServer(30001, createHandler([])), 100);
+    });
+
+    it("does not send a command that timed out while the cluster reconnects", (done) => {
+      const received: string[] = [];
+      const server = new MockServer(30001, createHandler(received));
+      cluster = createCluster(100);
+
+      cluster.once("ready", () => {
+        cluster.once("reconnecting", () => {
+          cluster.set("foo", "bar", (err) => {
+            expect(err.message).to.eql("Command timed out");
+            new MockServer(30001, createHandler(received));
+            cluster.once("ready", () => {
+              cluster.get("foo", (getErr, res) => {
+                expect(getErr).to.eql(null);
+                expect(res).to.eql("bar");
+                expect(received).to.not.include("set");
+                done();
+              });
+            });
+          });
+        });
+        server.disconnect();
+      });
+    });
+
+    it("lets pipelined commands wait while the cluster reconnects", (done) => {
+      const received: string[] = [];
+      const server = new MockServer(30001, createHandler(received));
+      cluster = createCluster(100);
+
+      cluster.once("ready", () => {
+        cluster.once("reconnecting", () => {
+          // A pipeline retries commands that fail with the same error, so a
+          // timeout here would not stop the SET from running later. It waits.
+          cluster
+            .pipeline()
+            .set("foo", "bar")
+            .exec((err, res) => {
+              expect(err).to.eql(null);
+              expect(res).to.eql([[null, "OK"]]);
+              const sets = received.filter((name) => name === "set");
+              expect(sets).to.have.length(1);
+              done();
+            });
+          setTimeout(() => new MockServer(30001, createHandler(received)), 300);
+        });
+        server.disconnect();
+      });
+    });
+  });
 });
