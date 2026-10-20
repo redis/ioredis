@@ -62,7 +62,10 @@ import HimportCoordinator, {
 
 const debug = Debug("cluster");
 
-const REJECT_OVERWRITTEN_COMMANDS = new WeakSet<Command>();
+// Keyed by the command's promise rather than the command: a pipeline retried
+// as a whole gives its commands fresh promises and rejects, which must be
+// wrapped again when they are resent on their own.
+const REJECT_OVERWRITTEN_PROMISES = new WeakSet<Promise<unknown>>();
 
 type OfflineQueueItem = {
   command: Command;
@@ -670,8 +673,8 @@ class Cluster<
     // The connection the command was last sent on, used to detect
     // MOVED redirects that point back at the same node.
     let lastRedis: Redis | null = null;
-    if (!node && !REJECT_OVERWRITTEN_COMMANDS.has(command)) {
-      REJECT_OVERWRITTEN_COMMANDS.add(command);
+    if (!node && !REJECT_OVERWRITTEN_PROMISES.has(command.promise)) {
+      REJECT_OVERWRITTEN_PROMISES.add(command.promise);
 
       const reject = command.reject;
       command.reject = function (err) {
@@ -728,6 +731,18 @@ class Cluster<
           },
         });
       };
+
+      const redirection = command.redirection;
+      if (redirection) {
+        // Follow the redirection the command received in a pipeline instead
+        // of sending it to the node that redirected it again. Starting from
+        // the batch's connection lets a MOVED that points back at it replace
+        // the stale connection on the first try.
+        command.redirection = undefined;
+        lastRedis = redirection.from;
+        command.reject(redirection.error);
+        return command.promise;
+      }
     }
     tryConnection();
 

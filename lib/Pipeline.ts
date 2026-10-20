@@ -29,6 +29,49 @@ function generateMultiWithNodes(redis, keys) {
   return slot;
 }
 
+// Redis returns these before it executes the command, so the command is known
+// not to have run and can be sent again on its own.
+function isRedirectionError(err: Error): boolean {
+  const code = typeof err?.message === "string" && err.message.split(" ")[0];
+  return code === "MOVED" || code === "ASK" || code === "TRYAGAIN";
+}
+
+// A successful command outside a transaction keeps the pipeline from being
+// retried as a whole unless it is read-only, since a retry would run it again.
+function isReadOnly(command: Command): boolean {
+  return (
+    exists(command.name, { caseInsensitive: true }) &&
+    hasFlag(command.name, "readonly", { nameCaseInsensitive: true })
+  );
+}
+
+/**
+ * Lets a pipelined command whose own reply is a redirection leave the batch
+ * and be resent through the cluster as a single command, which follows the
+ * redirection it received and any later ones itself. Successful commands are
+ * not resent, and the command's promise settles once, with its final reply.
+ */
+function resendOnRedirection(
+  cluster: Cluster,
+  command: Command,
+  node: { redis?: Redis }
+) {
+  const reject = command.reject;
+  command.reject = function (err) {
+    command.reject = reject;
+    if (!isRedirectionError(err)) {
+      reject.call(command, err);
+      return;
+    }
+    // It is no longer part of this batch's replies, so a closed connection
+    // must not abort it as a fragment of a partially answered pipeline.
+    command.pipelineIndex = undefined;
+    // sendCommand has assigned node.redis by the time a reply arrives.
+    command.redirection = { error: err, from: node.redis };
+    cluster.sendCommand(command);
+  };
+}
+
 class Pipeline extends Commander<{ type: "pipeline" }> {
   isCluster: boolean;
   isPipeline = true;
@@ -123,14 +166,9 @@ class Pipeline extends Commander<{ type: "pipeline" }> {
             retriable = false;
             break;
           }
-        } else if (!command.inTransaction) {
-          const isReadOnly =
-            exists(command.name, { caseInsensitive: true }) &&
-            hasFlag(command.name, "readonly", { nameCaseInsensitive: true });
-          if (!isReadOnly) {
-            retriable = false;
-            break;
-          }
+        } else if (!command.inTransaction && !isReadOnly(command)) {
+          retriable = false;
+          break;
         }
       }
       if (commonError && retriable) {
@@ -423,8 +461,26 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
       },
     };
 
+    const resendRedirected =
+      _this.isCluster && (_this.redis as Cluster).options.maxRedirections > 0;
+
     for (let i = 0; i < _this._queue.length; ++i) {
-      _this.redis.sendCommand(_this._queue[i], stream, node);
+      const command = _this._queue[i];
+      // The pipeline retries a transaction as a whole, so MULTI through EXEC
+      // stays on the batch's connection. Around a transaction only read-only
+      // commands are resent on their own: a write that succeeded on its own
+      // would keep the pipeline from retrying the transaction. This also
+      // keeps a WATCH or UNWATCH with the transaction it belongs to.
+      if (
+        resendRedirected &&
+        !command.ignore &&
+        !command.inTransaction &&
+        command.name !== "exec" &&
+        (!stream.containsMulti || isReadOnly(command))
+      ) {
+        resendOnRedirection(_this.redis as Cluster, command, node);
+      }
+      _this.redis.sendCommand(command, stream, node);
     }
     return _this.promise;
   }
