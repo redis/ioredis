@@ -1,7 +1,7 @@
 import { CommandNameFlags } from "./Command";
 
 type AddSet = CommandNameFlags["ENTER_SUBSCRIBER_MODE"][number];
-type DelSet = CommandNameFlags["EXIT_SUBSCRIBER_MODE"][number];
+export type DelSet = CommandNameFlags["EXIT_SUBSCRIBER_MODE"][number];
 
 // The channel name is read out of a reply, and a reply is not guaranteed to be
 // the array a subscribe acknowledgement normally is: a server or proxy that
@@ -48,6 +48,10 @@ export default class SubscriptionSet {
 
   channels(set: AddSet | DelSet): string[] {
     return Array.from(this.set[mapSet(set)].values());
+  }
+
+  size(set: AddSet | DelSet): number {
+    return this.set[mapSet(set)].size;
   }
 
   // Called once per unsubscribe acknowledgement, and the server sends one per
