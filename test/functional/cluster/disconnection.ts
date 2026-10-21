@@ -73,4 +73,44 @@ describe("disconnection", () => {
       "Connection is closed."
     );
   });
+
+  ["disconnect", "quit"].forEach((method) => {
+    it(`should end when ${method}() is called while reconnecting`, async () => {
+      const server = new MockServer(30000, () => {}, [
+        [0, 16383, ["127.0.0.1", 30000]],
+      ]);
+      const cluster = new Cluster([{ host: "127.0.0.1", port: "30000" }], {
+        clusterRetryStrategy: () => 1000,
+      });
+      await new Promise((resolve) => cluster.once("ready", resolve));
+
+      server.disconnect();
+      await new Promise((resolve) => cluster.once("reconnecting", resolve));
+      await cluster[method]();
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(cluster.status).to.equal("end");
+      await expect(cluster.get("foo")).to.be.rejectedWith(
+        "Connection is closed."
+      );
+    });
+  });
+
+  it("should not retry again when disconnect(true) is called while reconnecting", async () => {
+    const server = new MockServer(30000, () => {}, [
+      [0, 16383, ["127.0.0.1", 30000]],
+    ]);
+    const clusterRetryStrategy = sinon.spy(() => 1000);
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30000" }], {
+      clusterRetryStrategy,
+    });
+    await new Promise((resolve) => cluster.once("ready", resolve));
+
+    server.disconnect();
+    await new Promise((resolve) => cluster.once("reconnecting", resolve));
+    cluster.disconnect(true);
+
+    expect(clusterRetryStrategy.callCount).to.equal(1);
+    cluster.disconnect();
+  });
 });

@@ -442,7 +442,8 @@ class Cluster<
       this.shardedSubscribers.stop();
     }
 
-    if (status === "wait") {
+    // No node is left to emit "drain" while reconnecting.
+    if (status === "wait" || (status === "reconnecting" && !reconnect)) {
       this.setStatus("close");
       this.handleCloseEvent();
     } else {
@@ -471,7 +472,7 @@ class Cluster<
       this.shardedSubscribers.stop();
     }
 
-    if (status === "wait") {
+    if (status === "wait" || status === "reconnecting") {
       const ret = asCallback(Promise.resolve<"OK">("OK"), callback);
 
       // use setImmediate to make sure "close" event
