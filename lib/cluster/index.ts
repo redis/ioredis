@@ -424,9 +424,7 @@ class Cluster<
    */
   disconnect(reconnect = false) {
     const status = this.status;
-    if (status !== "end") {
-      this.setStatus("disconnecting");
-    }
+    this.setStatus("disconnecting");
 
     if (!reconnect) {
       this.manuallyClosing = true;
@@ -458,9 +456,7 @@ class Cluster<
    */
   quit(callback?: Callback<"OK">): Promise<"OK"> {
     const status = this.status;
-    if (status !== "end") {
-      this.setStatus("disconnecting");
-    }
+    this.setStatus("disconnecting");
 
     this.manuallyClosing = true;
 
