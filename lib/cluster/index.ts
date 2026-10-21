@@ -424,7 +424,9 @@ class Cluster<
    */
   disconnect(reconnect = false) {
     const status = this.status;
-    this.setStatus("disconnecting");
+    if (status !== "end") {
+      this.setStatus("disconnecting");
+    }
 
     if (!reconnect) {
       this.manuallyClosing = true;
@@ -442,7 +444,8 @@ class Cluster<
       this.shardedSubscribers.stop();
     }
 
-    if (status === "wait") {
+    // No node is left to emit "drain" while reconnecting.
+    if (status === "wait" || (status === "reconnecting" && !reconnect)) {
       this.setStatus("close");
       this.handleCloseEvent();
     } else {
@@ -455,7 +458,9 @@ class Cluster<
    */
   quit(callback?: Callback<"OK">): Promise<"OK"> {
     const status = this.status;
-    this.setStatus("disconnecting");
+    if (status !== "end") {
+      this.setStatus("disconnecting");
+    }
 
     this.manuallyClosing = true;
 
@@ -471,7 +476,7 @@ class Cluster<
       this.shardedSubscribers.stop();
     }
 
-    if (status === "wait") {
+    if (status === "wait" || status === "reconnecting") {
       const ret = asCallback(Promise.resolve<"OK">("OK"), callback);
 
       // use setImmediate to make sure "close" event
