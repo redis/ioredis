@@ -392,6 +392,37 @@ describe("cluster:spub/ssub", function () {
     });
   });
 
+  it("logs a sharded subscriber connect error instead of throwing when nothing listens for errors", async () => {
+    new MockServer(30001, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return [
+          [0, 8191, ["127.0.0.1", 30001]],
+          [8192, 16383, ["127.0.0.1", 30002]],
+        ];
+      }
+    });
+    const cluster = new Cluster([{ host: "127.0.0.1", port: 30001 }], {
+      shardedSubscribers: true,
+      enableReadyCheck: false,
+    });
+
+    try {
+      await new Promise((resolve) => cluster.once("ready", resolve));
+      const logged = new Promise<any[]>((resolve) => {
+        sinon.stub(console, "error").callsFake((...args) => resolve(args));
+      });
+
+      // "foo" hashes to slot 12182, owned by 30002, where nothing listens.
+      cluster.ssubscribe("foo").catch(noop);
+
+      const [message, stack] = await logged;
+      expect(message).to.equal("[ioredis] Unhandled error event:");
+      expect(stack).to.contain("Connection is closed.");
+    } finally {
+      cluster.disconnect();
+    }
+  });
+
   it("waits for the same in-flight sharded subscriber start", async () => {
     let resolveConnect: (() => void) | undefined;
     const connectStub = sinon.stub(Redis.prototype, "connect").callsFake(() => {
