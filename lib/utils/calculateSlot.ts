@@ -114,6 +114,15 @@ function toUTF8Array(str: string): number[] {
       utf8[p++] = ((char >> 6) & 63) | 128;
       utf8[p++] = (char & 63) | 128;
     } else {
+      // A lone surrogate has no UTF-8 encoding, so Node writes it as U+FFFD
+      // (EF BF BD), both to a socket and in `Buffer.from(str)`. Encoding it
+      // the same way hashes the bytes the server receives. Node's UTF-8 write
+      // passes V8 `kReplaceInvalidUtf8`, which replaces orphan surrogates:
+      // https://github.com/nodejs/node/blob/59e46cac2943/src/string_bytes.cc#L305-L316
+      // https://github.com/nodejs/node/blob/59e46cac2943/deps/v8/include/v8-primitive.h#L222-L225
+      if ((char & 0xf800) === 0xd800) {
+        char = 0xfffd;
+      }
       utf8[p++] = (char >> 12) | 224;
       utf8[p++] = ((char >> 6) & 63) | 128;
       utf8[p++] = (char & 63) | 128;
