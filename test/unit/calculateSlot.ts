@@ -38,6 +38,34 @@ describe("calculateSlot", () => {
     });
   });
 
+  describe("lone UTF-16 surrogates", () => {
+    // Node writes string keys to the socket as UTF-8, replacing any lone
+    // surrogate with U+FFFD (EF BF BD). The slot must be computed from those
+    // same bytes, or the server answers with MOVED on every command.
+    const keys: Array<[string, string]> = [
+      ["a lone high surrogate", "x\ud800y"],
+      ["a lone low surrogate", "x\udc00"],
+      ["a high surrogate at the end", "abc\ud83d"],
+      ["a low surrogate followed by a high one", "a\udc00\ud800b"],
+    ];
+
+    for (const [name, key] of keys) {
+      it(`hashes ${name} as the UTF-8 bytes Node sends`, () => {
+        expect(calculateSlot(key)).to.eql(calculateSlot(Buffer.from(key)));
+      });
+    }
+
+    it("matches the server's slot for a lone low surrogate", () => {
+      // Measured with `CLUSTER KEYSLOT` against a live Redis 8 server.
+      expect(calculateSlot("x\udc00")).to.eql(13299);
+    });
+
+    it("still hashes a valid surrogate pair as one code point", () => {
+      const key = "x\ud83d\ude00";
+      expect(calculateSlot(key)).to.eql(calculateSlot(Buffer.from(key)));
+    });
+  });
+
   describe("generateMulti()", () => {
     it("returns the shared slot when all keys hash to the same slot", () => {
       // "a{}b}c" and "42703" both land on slot 2041 under the corrected
