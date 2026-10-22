@@ -1469,7 +1469,7 @@ class Cluster<
     this.subscriberGroupEmitter.on(
       "subscriberConnectFailed",
       ({ delay, error }) => {
-        this.emit("error", error);
+        Redis.prototype.silentEmit.call(this, "error", error);
 
         setTimeout(() => {
           this.refreshSlotsCache(refreshSlotsCacheCallback);
