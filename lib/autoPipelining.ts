@@ -143,6 +143,10 @@ function getFirstKeyForCommand(
   return getFirstValueInFlattenedArray(args);
 }
 
+function toBytes(value: string | Buffer | number | null | undefined): Buffer {
+  return Buffer.isBuffer(value) ? value : Buffer.from(String(value));
+}
+
 export function executeWithAutoPipelining(
   client,
   functionName: string,
@@ -179,11 +183,12 @@ export function executeWithAutoPipelining(
   if (client.isCluster) {
     const prefix = client.options.keyPrefix || "";
     const key = getFirstKeyForCommand(commandName, args);
-    // Hash Buffer keys by their bytes, as Command#getSlot does; decoding
-    // them as UTF-8 can change the slot.
-    const slot = Buffer.isBuffer(key)
-      ? calculateSlot(Buffer.concat([Buffer.from(prefix), key]))
-      : calculateSlot(`${prefix}${key}`);
+    // Hash Buffer keys and prefixes by their bytes, as Command#getSlot does;
+    // decoding them as UTF-8 can change the slot.
+    const slot =
+      Buffer.isBuffer(key) || Buffer.isBuffer(prefix)
+        ? calculateSlot(Buffer.concat([toBytes(prefix), toBytes(key)]))
+        : calculateSlot(`${prefix}${key}`);
     // Unassigned slots have no cache entry. Keep each in its own bucket:
     // Pipeline treats all unmapped slots as one allocation group and would
     // send them to the first key's node.
