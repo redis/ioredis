@@ -101,4 +101,21 @@ describe("monitor", () => {
       new Redis({ username: "nomonitor", password: "123456" }).monitor()
     ).to.eventually.be.rejectedWith(/NOPERM/);
   });
+
+  it("closes the monitor connection when monitor is rejected", async () => {
+    const redis = new Redis();
+    await redis.acl("SETUSER", "nomonitor", "reset", "+info", ">123456", "on");
+    const client = new Redis({ username: "nomonitor", password: "123456" });
+    const duplicate = sinon.spy(client, "duplicate");
+
+    const monitor = client.monitor();
+    const ended = new Promise((resolve) =>
+      duplicate.firstCall.returnValue.once("end", resolve)
+    );
+    await expect(monitor).to.eventually.be.rejectedWith(/NOPERM/);
+    await ended;
+
+    client.disconnect();
+    redis.disconnect();
+  });
 });
