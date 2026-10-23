@@ -1,7 +1,9 @@
 import Redis from "../../lib/Redis";
 import * as sinon from "sinon";
-import { expect } from "chai";
+import { expect, use } from "chai";
 import MockServer from "../helpers/mock_server";
+
+use(require("chai-as-promised"));
 
 describe("disconnection", () => {
   afterEach(() => {
@@ -23,6 +25,24 @@ describe("disconnection", () => {
       expect(setIntervalCalls.callCount).to.equal(clearIntervalCalls.callCount);
       server.disconnect();
       done();
+    });
+  });
+
+  ["disconnect", "quit"].forEach((method) => {
+    it(`should end when ${method}() is called while reconnecting`, async () => {
+      const server = new MockServer(30001);
+      const redis = new Redis({ port: 30001, retryStrategy: () => 1000 });
+      await new Promise((resolve) => redis.once("ready", resolve));
+
+      server.disconnect();
+      await new Promise((resolve) => redis.once("reconnecting", resolve));
+      await redis[method]();
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(redis.status).to.equal("end");
+      await expect(redis.get("foo")).to.be.rejectedWith(
+        "Connection is closed."
+      );
     });
   });
 

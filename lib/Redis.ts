@@ -457,7 +457,13 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
-    if (this.status === "wait") {
+    if (this.status === "reconnecting" && !reconnect) {
+      // The socket already closed and its "close" ran before the retry was
+      // scheduled, so nothing would ever emit "end": end it here.
+      this.manuallyClosing = false;
+      this.setStatus("end");
+      this.flushQueue(new Error(CONNECTION_CLOSED_ERROR_MSG));
+    } else if (this.status === "wait") {
       eventHandler.closeHandler(this)();
     } else {
       this.connector.disconnect();
