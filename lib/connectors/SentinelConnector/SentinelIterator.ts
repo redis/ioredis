@@ -36,6 +36,13 @@ export default class SentinelIterator
     this.cursor = 0;
   }
 
+  rotateToCursor(): void {
+    if (this.cursor > 0 && this.cursor < this.sentinels.length) {
+      this.sentinels.unshift(...this.sentinels.splice(this.cursor));
+    }
+    this.cursor = 0;
+  }
+
   add(sentinel: SentinelAddress): boolean {
     for (let i = 0; i < this.sentinels.length; i++) {
       if (isSentinelEql(sentinel, this.sentinels[i])) {
