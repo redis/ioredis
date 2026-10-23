@@ -1229,6 +1229,8 @@ cluster.get("foo", (err, res) => {
       the command instantly to the node returned together with the `MOVED` error. However, sometimes it takes time for a cluster to become
       state stabilized after a failover, so adding a delay before resending can prevent a ping pong effect.
     - `redisOptions`: Default options passed to the constructor of `Redis` when connecting to a node.
+      `redisOptions.commandTimeout` also covers the time a command waits in the offline queue for the cluster to become ready.
+      Commands sent through a pipeline (including `multi` and `enableAutoPipelining`) are excluded: their timeout starts when they reach a node.
     - `slotsRefreshTimeout`: Milliseconds before a timeout occurs while refreshing slots from the cluster (default `1000`).
     - `slotsRefreshInterval`: Milliseconds between every automatic slots refresh (by default, it is disabled).
 
