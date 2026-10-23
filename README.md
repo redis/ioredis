@@ -1141,6 +1141,8 @@ const redis = new Redis({
 });
 ```
 
+Redis node connection retries continue with the next known Sentinel and wrap around the list. With `failoverDetector` enabled, reconnecting after a ready connection closes starts with the Sentinel that resolved it.
+
 Besides the `retryStrategy` option, there's also a `sentinelRetryStrategy` in Sentinel mode which will be invoked when all the sentinel nodes are unreachable during connecting. If `sentinelRetryStrategy` returns a valid delay time, ioredis will try to reconnect from scratch. The default value of `sentinelRetryStrategy` is:
 
 ```javascript

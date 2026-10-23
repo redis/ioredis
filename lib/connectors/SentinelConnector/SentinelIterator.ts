@@ -25,6 +25,19 @@ export default class SentinelIterator
     return { done, value: done ? undefined : this.sentinels[this.cursor++] };
   }
 
+  clone(): SentinelIterator {
+    const iterator = new SentinelIterator(this.sentinels);
+    iterator.cursor = this.cursor;
+    return iterator;
+  }
+
+  rotateToCursor(): void {
+    if (this.cursor > 0 && this.cursor < this.sentinels.length) {
+      this.sentinels.unshift(...this.sentinels.splice(this.cursor));
+    }
+    this.cursor = 0;
+  }
+
   reset(moveCurrentEndpointToFirst: boolean): void {
     if (
       moveCurrentEndpointToFirst &&

@@ -97,12 +97,6 @@ export default class SentinelConnector extends AbstractConnector {
         this.options.role,
         info.role
       );
-      // Start from the next item.
-      // Note that `reset` will move the cursor to the previous element,
-      // so we advance two steps here.
-      this.sentinelIterator.next();
-      this.sentinelIterator.next();
-      this.sentinelIterator.reset(true);
     }
     return roleMatches;
   }
@@ -118,6 +112,9 @@ export default class SentinelConnector extends AbstractConnector {
   connect(eventEmitter: ErrorEmitter): Promise<NetStream> {
     this.connecting = true;
     this.retryAttempts = 0;
+
+    // Resume discovery from its retry position, wrapping at the end of the list.
+    this.sentinelIterator.rotateToCursor();
 
     let lastError;
 
@@ -356,14 +353,15 @@ export default class SentinelConnector extends AbstractConnector {
     if (!this.options.failoverDetector) {
       return;
     }
-    // Move the current sentinel to the first position
-    this.sentinelIterator.reset(true);
+    // Subscription discovery must not change the connection retry position.
+    const sentinelIterator = this.sentinelIterator.clone();
+    sentinelIterator.reset(true);
 
     const sentinels: Sentinel[] = [];
 
     // In case of a large amount of sentinels, limit the number of concurrent connections
     while (sentinels.length < this.options.sentinelMaxConnections) {
-      const { done, value } = this.sentinelIterator.next();
+      const { done, value } = sentinelIterator.next();
 
       if (done) {
         break;
@@ -384,8 +382,6 @@ export default class SentinelConnector extends AbstractConnector {
       sentinels.push({ address: value, client });
     }
 
-    this.sentinelIterator.reset(false);
-
     if (this.failoverDetector) {
       // Clean up previous detector
       this.failoverDetector.cleanup();
@@ -393,8 +389,21 @@ export default class SentinelConnector extends AbstractConnector {
 
     const failoverDetector = new FailoverDetector(this, sentinels);
     this.failoverDetector = failoverDetector;
+    const stream = this.stream;
+    const emitter = this.emitter;
+    const onReady = () => {
+      if (this.stream === stream) {
+        // Preserve the current Sentinel's priority only after the node is ready.
+        this.sentinelIterator.reset(true);
+      }
+    };
+    emitter?.once("ready", onReady);
+
     // QUIT closes the stream without calling the connector's disconnect().
-    this.stream.once("close", () => failoverDetector.cleanup());
+    stream.once("close", () => {
+      emitter?.removeListener("ready", onReady);
+      failoverDetector.cleanup();
+    });
     await failoverDetector.subscribe();
 
     // Tests listen to this event
