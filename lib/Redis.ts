@@ -546,11 +546,15 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
 
     return asCallback(
       new Promise(function (resolve, reject) {
+        let monitoring = false;
         monitorInstance.once("error", (err) => {
-          monitorInstance.disconnect();
+          if (!monitoring) {
+            monitorInstance.disconnect();
+          }
           reject(err);
         });
         monitorInstance.once("monitoring", function () {
+          monitoring = true;
           resolve(monitorInstance);
         });
       }),

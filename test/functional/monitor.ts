@@ -118,4 +118,20 @@ describe("monitor", () => {
     client.disconnect();
     redis.disconnect();
   });
+
+  it("keeps monitoring after a connection error once monitor resolves", async () => {
+    const redis = new Redis();
+    const monitor = await redis.monitor();
+    await waitForMonitorReady();
+
+    const next = new Promise((resolve) => {
+      monitor.once("ready", () => resolve("ready"));
+      monitor.once("end", () => resolve("end"));
+    });
+    monitor.stream.destroy(new Error("ECONNRESET"));
+    expect(await next).to.equal("ready");
+
+    monitor.disconnect();
+    redis.disconnect();
+  });
 });
