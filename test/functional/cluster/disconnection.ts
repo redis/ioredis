@@ -50,6 +50,35 @@ describe("disconnection", () => {
     server.disconnect();
   });
 
+  it("should stop refreshing slots when disconnected during a refresh", async () => {
+    let refreshStarted: () => void;
+    const refreshing = new Promise<void>(
+      (resolve) => (refreshStarted = resolve)
+    );
+    let slotsCalls = 0;
+    new MockServer(30000, (argv, _, flags) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        // Answer the startup and the first periodic refresh, hang the next one.
+        if (++slotsCalls < 3) {
+          return [[0, 16383, ["127.0.0.1", 30000]]];
+        }
+        flags.hang = true;
+        refreshStarted();
+      }
+    });
+
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30000" }], {
+      slotsRefreshInterval: 50,
+      slotsRefreshTimeout: 100,
+    });
+    await refreshing;
+    const refreshSlotsCache = sinon.spy(cluster, "refreshSlotsCache");
+    cluster.disconnect();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    expect(refreshSlotsCache.callCount).to.equal(0);
+  });
+
   it("should stay ended when the nodes end after disconnect", async () => {
     const slotTable = [
       [0, 8000, ["127.0.0.1", 30001]],

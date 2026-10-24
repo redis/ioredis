@@ -1045,14 +1045,17 @@ class Cluster<
       return;
     }
     const nextRound = () => {
-      this.slotsTimer = setTimeout(() => {
+      const timer = setTimeout(() => {
         debug(
           'refreshing slot caches... (triggered by "slotsRefreshInterval" option)'
         );
         this.refreshSlotsCache(() => {
-          nextRound();
+          if (this.slotsTimer === timer) {
+            nextRound();
+          }
         });
       }, this.options.slotsRefreshInterval);
+      this.slotsTimer = timer;
     };
 
     nextRound();
