@@ -1,5 +1,6 @@
 import Redis from "../../lib/Redis";
 import { expect } from "chai";
+import MockServer from "../helpers/mock_server";
 
 describe("select", function () {
   it("should support auto select", (done) => {
@@ -101,6 +102,43 @@ describe("select", function () {
         });
       });
     });
+  });
+
+  it("should restore a db selected by an uppercase SELECT after reconnecting", async () => {
+    const dbs = new Map();
+    const values = new Map();
+    const server = new MockServer(28777, (argv, socket) => {
+      const command = argv[0].toLowerCase();
+      const db = dbs.get(socket) ?? 0;
+      if (command === "select") {
+        dbs.set(socket, Number(argv[1]));
+        return "+OK";
+      }
+      if (command === "set") {
+        values.set(`${db}:${argv[1]}`, argv[2]);
+        return "+OK";
+      }
+      if (command === "get") {
+        return values.get(`${db}:${argv[1]}`) ?? null;
+      }
+    });
+
+    const redis = new Redis(28777);
+    try {
+      // Command names keep the caller's casing, so the client's db bookkeeping
+      // has to match `SELECT` case-insensitively. Otherwise the reconnect
+      // handshake restores the db from before this command.
+      await redis.call("SELECT", 2);
+      await redis.call("SET", "foo", "bar");
+
+      redis.stream.destroy();
+      await new Promise<void>((resolve) => redis.once("ready", resolve));
+
+      expect(await redis.call("GET", "foo")).to.eql("bar");
+    } finally {
+      redis.disconnect();
+      server.disconnect();
+    }
   });
 
   it("should be sent on the connect event", (done) => {

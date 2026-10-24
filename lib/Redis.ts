@@ -750,7 +750,9 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       }
     }
 
-    if (command.name === "select" && isInt(command.args[0])) {
+    // Command names keep the caller's casing (`call("SELECT", 2)`), so match
+    // case-insensitively like the other command-name checks.
+    if (command.name.toLowerCase() === "select" && isInt(command.args[0])) {
       const db = parseInt(command.args[0], 10);
       if (this.condition.select !== db) {
         this.condition.select = db;
