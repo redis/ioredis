@@ -237,12 +237,13 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     if (this.options.Connector) {
       this.connector = new this.options.Connector(this.options);
     } else if (this.options.sentinels) {
-      const sentinelConnector = new SentinelConnector(this.options);
-      sentinelConnector.emitter = this;
-
-      this.connector = sentinelConnector;
+      this.connector = new SentinelConnector(this.options);
     } else {
       this.connector = new StandaloneConnector(this.options);
+    }
+
+    if (this.connector instanceof SentinelConnector) {
+      this.connector.emitter = this;
     }
 
     if (this.options.scripts) {

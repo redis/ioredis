@@ -1,6 +1,8 @@
 import { Socket } from "net";
 
 import Redis from "../../lib/Redis";
+import SentinelConnector from "../../lib/connectors/SentinelConnector";
+import type { RedisOptions } from "../../lib/redis/RedisOptions";
 import MockServer, {
   MockServerProtocol,
   pubSubReply,
@@ -633,6 +635,273 @@ describe("sentinel", () => {
         role: "slave",
       });
     });
+  });
+
+  describe("retry order", () => {
+    for (const role of ["master", "slave"] as const) {
+      describe(role, () => {
+        function discoveryReply(nodePort: number) {
+          return role === "master"
+            ? ["127.0.0.1", String(nodePort)]
+            : [["ip", "127.0.0.1", "port", String(nodePort), "flags", "slave"]];
+        }
+
+        function createSentinel(
+          port: number,
+          nodePort: number,
+          lookups: number[]
+        ) {
+          return new MockServer(port, (argv) => {
+            if (argv[0] === "sentinel") {
+              if (argv[1] === "sentinels") return [];
+              const command =
+                role === "master" ? "get-master-addr-by-name" : "slaves";
+              if (argv[1] === command) {
+                lookups.push(port);
+                return discoveryReply(nodePort);
+              }
+            }
+            if (argv[0] === "subscribe") {
+              return pubSubReply(3, "subscribe", "+switch-master");
+            }
+          });
+        }
+
+        function createClient(
+          ports: number[],
+          failoverDetector: boolean,
+          options: Partial<RedisOptions> = {}
+        ) {
+          return new Redis({
+            sentinels: ports.map((port) => ({ host: "127.0.0.1", port })),
+            name: "master",
+            role,
+            failoverDetector,
+            lazyConnect: true,
+            retryStrategy: (times) => (times <= 3 ? 0 : null),
+            sentinelRetryStrategy: null,
+            ...options,
+          });
+        }
+
+        it("tries the next sentinel after the node closes before ready", async () => {
+          const lookups: number[] = [];
+          createSentinel(28379, 18380, lookups);
+          createSentinel(28380, 18381, lookups);
+          new MockServer(18380, (argv, socket, flags) => {
+            if (argv[0] === "info") {
+              flags.hang = true;
+              socket.destroy();
+            }
+          });
+          new MockServer(18381, (argv) => {
+            if (argv[0] === "info") return "role:" + role;
+            if (argv[0] === "get") return "healthy";
+          });
+          const redis = createClient([28379, 28380], true);
+
+          try {
+            expect(await redis.get("foo")).to.equal("healthy");
+            expect(lookups).to.deep.equal([28379, 28380]);
+          } finally {
+            redis.disconnect();
+          }
+        });
+
+        it("removes pending ready listeners after authentication closes the connection", async () => {
+          const lookups: number[] = [];
+          createSentinel(28379, 18380, lookups);
+          let authAttempts = 0;
+          new MockServer(18380, (argv, socket, flags) => {
+            if (argv[0] === "hello" && argv.includes("AUTH")) {
+              authAttempts++;
+              flags.hang = true;
+              socket.destroy();
+            }
+          });
+          const redis = createClient([28379], true, {
+            password: "secret",
+            enableReadyCheck: false,
+          });
+
+          try {
+            const ended = once(redis, "end");
+            const pending = redis.get("foo").catch((err) => err);
+            await ended;
+            expect(await pending).to.be.an.instanceOf(Error);
+            expect(authAttempts).to.equal(4);
+            expect(redis.listenerCount("ready")).to.equal(0);
+          } finally {
+            redis.disconnect();
+          }
+        });
+
+        it("wraps after a ready connection from the last sentinel closes without the detector", async () => {
+          const lookups: number[] = [];
+          const first = createSentinel(28379, 18380, lookups);
+          first.handler = (argv) => {
+            if (argv[0] === "sentinel") {
+              if (argv[1] === "sentinels") return [];
+              lookups.push(28379);
+              return lookups.length === 1
+                ? new Error("ERR discovery failed")
+                : discoveryReply(18380);
+            }
+          };
+          createSentinel(28380, 18380, lookups);
+          const node = new MockServer(18380, (argv) => {
+            if (argv[0] === "info") return "role:" + role;
+            if (argv[0] === "get") return "healthy";
+          });
+          const redis = createClient([28379, 28380], false);
+          const errors: string[] = [];
+          redis.on("error", (err) => errors.push(err.message));
+
+          try {
+            expect(await redis.get("foo")).to.equal("healthy");
+            const ready = once(redis, "ready");
+            node.getAllClients().forEach((socket) => socket.destroy());
+            await ready;
+            expect(await redis.get("foo")).to.equal("healthy");
+            expect(lookups).to.deep.equal([28379, 28380, 28379]);
+            expect(errors).to.deep.equal([]);
+          } finally {
+            redis.disconnect();
+          }
+        });
+
+        for (const failoverDetector of [false, true]) {
+          const detector = failoverDetector ? "with" : "without";
+          it(`does not skip a sentinel after a wrong role ${detector} the detector`, async () => {
+            const lookups: number[] = [];
+            [28379, 28380, 28381, 28382].forEach((port, index) => {
+              createSentinel(port, index % 2 === 0 ? 18380 : 18381, lookups);
+            });
+            new MockServer(18380, (argv) => {
+              if (argv[0] === "info") {
+                return "role:" + (role === "master" ? "slave" : "master");
+              }
+            });
+            new MockServer(18381, (argv) => {
+              if (argv[0] === "info") return "role:" + role;
+              if (argv[0] === "get") return "healthy";
+            });
+            const redis = createClient(
+              [28379, 28380, 28381, 28382],
+              failoverDetector
+            );
+
+            try {
+              expect(await redis.get("foo")).to.equal("healthy");
+              expect(lookups).to.deep.equal([28379, 28380]);
+            } finally {
+              redis.disconnect();
+            }
+          });
+
+          const retry = failoverDetector
+            ? "reuses the resolving sentinel"
+            : "tries the following sentinel";
+          for (const customConnector of failoverDetector
+            ? [false, true]
+            : [false]) {
+            const setup = customConnector
+              ? " with an explicit connector and ready checks disabled"
+              : "";
+            it(`${retry} after a ready connection closes${setup}`, async () => {
+              const lookups: number[] = [];
+              const unavailable = createSentinel(28379, 18380, lookups);
+              unavailable.handler = (argv) => {
+                if (argv[0] === "sentinel") {
+                  if (argv[1] === "sentinels") return [];
+                  lookups.push(28379);
+                  return new Error("ERR discovery failed");
+                }
+                if (argv[0] === "subscribe") {
+                  return pubSubReply(3, "subscribe", "+switch-master");
+                }
+              };
+              createSentinel(28380, 18381, lookups);
+              createSentinel(28381, 18381, lookups);
+              const node = new MockServer(18381, (argv) => {
+                if (argv[0] === "info") return "role:" + role;
+                if (argv[0] === "get") return "healthy";
+              });
+              const redis = createClient(
+                [28379, 28380, 28381],
+                failoverDetector,
+                {
+                  Connector: customConnector ? SentinelConnector : undefined,
+                  enableReadyCheck: !customConnector,
+                }
+              );
+
+              try {
+                expect(await redis.get("foo")).to.equal("healthy");
+                const ready = once(redis, "ready");
+                node.getAllClients().forEach((socket) => socket.destroy());
+                await ready;
+                expect(await redis.get("foo")).to.equal("healthy");
+                expect(lookups).to.deep.equal([
+                  28379,
+                  28380,
+                  failoverDetector ? 28380 : 28381,
+                ]);
+              } finally {
+                redis.disconnect();
+              }
+            });
+          }
+          for (const onlySentinel of [false, true]) {
+            const position = onlySentinel ? "only" : "last";
+            it(`wraps after the ${position} sentinel resolved a node that closed before ready ${detector} the detector`, async () => {
+              const lookups: number[] = [];
+              let attempts = 0;
+              createSentinel(28379, 18380, lookups);
+              if (!onlySentinel) {
+                const first = createSentinel(28378, 18380, lookups);
+                first.handler = (argv) => {
+                  if (argv[0] === "sentinel") {
+                    if (argv[1] === "sentinels") return [];
+                    lookups.push(28378);
+                    if (attempts === 0)
+                      return new Error("ERR discovery failed");
+                    return discoveryReply(18380);
+                  }
+                };
+              }
+              new MockServer(18380, (argv, socket, flags) => {
+                if (argv[0] === "info") {
+                  if (++attempts === 1) {
+                    flags.hang = true;
+                    socket.destroy();
+                    return;
+                  }
+                  return "role:" + role;
+                }
+                if (argv[0] === "get") return "healthy";
+              });
+              const redis = createClient(
+                onlySentinel ? [28379] : [28378, 28379],
+                failoverDetector
+              );
+              const errors: string[] = [];
+              redis.on("error", (err) => errors.push(err.message));
+
+              try {
+                expect(await redis.get("foo")).to.equal("healthy");
+                expect(lookups).to.deep.equal(
+                  onlySentinel ? [28379, 28379] : [28378, 28379, 28378]
+                );
+                expect(errors).to.deep.equal([]);
+              } finally {
+                redis.disconnect();
+              }
+            });
+          }
+        }
+      });
+    }
   });
 
   describe("failover", () => {
