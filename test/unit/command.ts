@@ -274,6 +274,28 @@ describe("Command", () => {
     });
   });
 
+  describe("#transformReply()", () => {
+    it("should apply the RESP3 shape transformers to uppercase command names", () => {
+      const transform = (name: string, reply: any) => {
+        const command = new Command(name);
+        command.setReplyContext({ protocol: 3, replyMapping: "legacy" });
+        return command.transformReply(reply);
+      };
+      const entries = [["1-1", ["k", "v"]]];
+
+      expect(
+        transform("ZRANGE", [
+          ["a", "1"],
+          ["b", "2"],
+        ])
+      ).to.eql(["a", "1", "b", "2"]);
+      expect(transform("XREAD", ["stream", entries])).to.eql([
+        ["stream", entries],
+      ]);
+      expect(transform("HGETALL", ["f1", "v1"])).to.eql(["f1", "v1"]);
+    });
+  });
+
   describe("#setBlockingTimeout()", () => {
     it("should resolve command with null when timeout fires", async () => {
       const clock = sinon.useFakeTimers();
