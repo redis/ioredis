@@ -302,6 +302,22 @@ describe("connection", function () {
       });
     });
 
+    it("should reconnect when connect() is called after disconnect() while connecting", async () => {
+      const redis = new Redis();
+      redis.disconnect();
+      await new Promise((resolve) => redis.once("end", resolve));
+
+      await redis.connect();
+      redis.stream.destroy();
+      const event = await new Promise((resolve) => {
+        redis.once("reconnecting", () => resolve("reconnecting"));
+        redis.once("end", () => resolve("end"));
+      });
+
+      expect(event).to.equal("reconnecting");
+      redis.disconnect();
+    });
+
     it("should skip reconnecting when retryStrategy doesn't return a number", (done) => {
       var redis = new Redis({
         port: 1,

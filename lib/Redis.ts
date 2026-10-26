@@ -308,6 +308,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
 
       if (this.status === "end") {
         this.retryAttempts = 0;
+        this.manuallyClosing = false;
       }
 
       this.connectionEpoch += 1;
