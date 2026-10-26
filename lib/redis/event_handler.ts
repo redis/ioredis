@@ -458,7 +458,7 @@ export function readyHandler(self, flushOfflineQueue: () => void) {
     if (self.options.monitor) {
       self.call("monitor").then(
         () => self.setStatus("monitoring"),
-        (error: Error) => self.emit("error", error)
+        (error: Error) => self.silentEmit("error", error)
       );
       const { sendCommand } = self;
       self.sendCommand = function (command) {
