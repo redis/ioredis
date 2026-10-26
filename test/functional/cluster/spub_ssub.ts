@@ -111,6 +111,38 @@ describe("cluster:spub/ssub", function () {
     });
   });
 
+  it("should receive messages after connect() is called following end", async () => {
+    const node = new MockServer(30001, function (argv) {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return [[0, 16383, ["127.0.0.1", 30001]]];
+      }
+      if (argv[0] === "ssubscribe") {
+        return pushFrame("ssubscribe", argv[1], 1);
+      }
+    });
+    const ssub = new Cluster([{ host: "127.0.0.1", port: 30001 }], {
+      shardedSubscribers: true,
+    });
+
+    await ssub.ssubscribe("test channel");
+    await new Promise((resolve) => {
+      ssub.once("end", resolve);
+      ssub.disconnect();
+    });
+    await ssub.connect();
+    await ssub.ssubscribe("test channel");
+
+    const received = new Promise((resolve) => {
+      ssub.once("smessage", (channel, message) => resolve([channel, message]));
+    });
+    node.write(
+      node.findClientByName("ioredis-cluster(ssubscriber)"),
+      pushFrame("smessage", "test channel", "hi")
+    );
+    expect(await received).to.eql(["test channel", "hi"]);
+    ssub.disconnect();
+  });
+
   it("sunsubscribe() without channels unsubscribes across all shards", (done) => {
     const slots = [
       [0, 8191, ["127.0.0.1", 30001]],

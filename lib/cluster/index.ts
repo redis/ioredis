@@ -299,6 +299,9 @@ class Cluster<
 
       if (this.status === "end") {
         this.retryAttempts = 0;
+        if (this.options.shardedSubscribers) {
+          this.addSubscriberGroupListeners();
+        }
       }
 
       const epoch = ++this.connectionEpoch;
@@ -1452,6 +1455,10 @@ class Cluster<
       this.options
     );
 
+    this.addSubscriberGroupListeners();
+  }
+
+  private addSubscriberGroupListeners() {
     // Error handler used only for sharded-subscriber-triggered slots cache refreshes.
     // Normal (non-subscriber) connections are created with lazyConnect: true and can
     // become zombied. For sharded subscribers, a ClusterAllFailedError means
