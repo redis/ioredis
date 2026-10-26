@@ -103,6 +103,17 @@ describe("select", function () {
     });
   });
 
+  it('should re-select a db chosen with call("SELECT") when reconnecting', async () => {
+    const redis = new Redis();
+    await redis.call("SELECT", 2);
+
+    redis.stream.destroy();
+    await new Promise<void>((resolve) => redis.once("ready", resolve));
+
+    expect(await redis.client("INFO")).to.match(/\bdb=2\b/);
+    redis.disconnect();
+  });
+
   it("should be sent on the connect event", (done) => {
     const redis = new Redis({ db: 2 });
     const select = redis.select;
