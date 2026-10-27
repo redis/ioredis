@@ -356,6 +356,8 @@ export default class Command implements Respondable {
   args: CommandParameter[];
   inTransaction = false;
   pipelineIndex?: number;
+  /** Target db of a SELECT queued in MULTI, committed when EXEC runs it, not when it is queued. */
+  selectDb?: number;
   /**
    * A redirection (MOVED, ASK or TRYAGAIN) the command received as part of a
    * cluster pipeline, and the connection that returned it. Cluster#sendCommand

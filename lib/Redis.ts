@@ -155,6 +155,10 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
   private connectionEpoch = 0;
   private retryAttempts = 0;
   private manuallyClosing = false;
+  // `multi({ pipeline: false })` sends SELECT as an ordinary command between MULTI and EXEC,
+  // so `Command#inTransaction` cannot mark it; these two carry its db until EXEC settles.
+  private manualTransaction = false;
+  private manualTxSelectDb: number | undefined;
   private socketTimeoutTimer: NodeJS.Timeout | undefined;
   private [hasHimportCoordinator] = false;
 
@@ -759,14 +763,46 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       }
     }
 
-    // Command names keep the caller's casing (`call("SELECT", 2)`), so match
-    // case-insensitively like the other command-name checks.
-    if (command.name.toLowerCase() === "select" && isInt(command.args[0])) {
+    // Command names keep the caller's casing (`call("SELECT", 2)`), so match case-insensitively
+    // like the other command-name checks.
+    const commandName = command.name.toLowerCase();
+    if (commandName === "multi" && !stream) {
+      // Start of `multi({ pipeline: false })`: a SELECT after it is queued by the server, not
+      // executed, so its db cannot be committed here.
+      this.manualTransaction = true;
+      this.manualTxSelectDb = undefined;
+    }
+    if (commandName === "select" && isInt(command.args[0])) {
       const db = parseInt(command.args[0], 10);
-      if (this.condition.select !== db) {
+      if (command.inTransaction) {
+        // Queued in MULTI: applied only if EXEC runs it. A transaction Redis discards -- WATCH
+        // invalidated, or EXECABORT after a queueing error -- never switches db, so committing
+        // `condition.select` now would make the reconnect handshake select a db the keys written
+        // after the discarded transaction never went to.
+        command.selectDb = db;
+      } else if (this.manualTransaction) {
+        this.manualTxSelectDb = db;
+      } else if (this.condition.select !== db) {
         this.condition.select = db;
         this.emit("select", db);
         debug("switch to db [%d]", this.condition.select);
+      }
+    }
+    if (commandName === "exec" && this.manualTransaction) {
+      this.manualTransaction = false;
+      const queuedSelectDb = this.manualTxSelectDb;
+      this.manualTxSelectDb = undefined;
+      if (queuedSelectDb !== undefined) {
+        command.promise
+          .then((reply) => {
+            // EXEC replies with the array of results when it ran; nil means Redis discarded it.
+            if (Array.isArray(reply) && this.condition.select !== queuedSelectDb) {
+              this.condition.select = queuedSelectDb;
+              this.emit("select", queuedSelectDb);
+              debug("switch to db [%d]", this.condition.select);
+            }
+          })
+          .catch(noop);
       }
     }
 

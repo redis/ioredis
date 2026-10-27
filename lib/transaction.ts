@@ -24,6 +24,7 @@ export function addTransactionSupport(redis) {
 
   const { multi } = redis;
   redis.multi = function (commands, options) {
+    const redisInstance = this;
     if (typeof options === "undefined" && !Array.isArray(commands)) {
       options = commands;
       commands = null;
@@ -87,6 +88,26 @@ export function addTransactionSupport(redis) {
               }
             }
             throw execResult[0];
+          }
+          if (execResult[1] !== null) {
+            // The SELECTs this MULTI queued have now run: commit the last one's db, the one the
+            // connection is on. A discarded EXEC (nil) never runs them, so nothing is committed.
+            let appliedSelect: number | undefined;
+            const queued = (pipeline as unknown as {
+              _queue: Array<{ selectDb?: number }>;
+            })._queue;
+            for (const command of queued) {
+              if (command.selectDb !== undefined) {
+                appliedSelect = command.selectDb;
+              }
+            }
+            if (
+              appliedSelect !== undefined &&
+              redisInstance.condition.select !== appliedSelect
+            ) {
+              redisInstance.condition.select = appliedSelect;
+              redisInstance.emit("select", appliedSelect);
+            }
           }
           return wrapMultiResult(execResult[1]);
         });
