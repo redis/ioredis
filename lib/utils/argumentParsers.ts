@@ -73,8 +73,14 @@ export const parseSecondsArgument = (
 export const parseBlockOption = (
   args: CommandParameter[]
 ): number | null | undefined => {
-  for (let i = 0; i < args.length; i++) {
+  // XREADGROUP starts with GROUP and two names, which are not options.
+  const start = parseStringArgument(args[0])?.toLowerCase() === "group" ? 3 : 0;
+  for (let i = start; i < args.length; i++) {
     const token = parseStringArgument(args[i]);
+    // Everything after STREAMS is a key or an ID, even when named BLOCK.
+    if (token && token.toLowerCase() === "streams") {
+      break;
+    }
     if (token && token.toLowerCase() === "block") {
       const duration = parseNumberArgument(args[i + 1]);
       if (duration === undefined) {

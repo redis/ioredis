@@ -11,6 +11,43 @@ const { expect } = chai;
 describe("blocking command recovery", function () {
   this.timeout(10000);
 
+  [
+    { command: "xread", args: ["STREAMS", "BLOCK", "1", "0-0", "0-0"] },
+    {
+      command: "xreadgroup",
+      args: ["GROUP", "BLOCK", "1", "BLOCK", 1000, "STREAMS", "stream", ">"],
+    },
+  ].forEach(({ command, args }) => {
+    it(`does not shorten ${command} deadlines for data named BLOCK`, async () => {
+      const reply = [["stream", [["1-0", ["field", "value"]]]]];
+      let responseTimer: NodeJS.Timeout | undefined;
+      const server = new MockServer(30001, (argv, socket, flags) => {
+        if (argv[0] === command) {
+          flags.hang = true;
+          responseTimer = setTimeout(() => server.write(socket, reply), 30);
+        }
+      });
+      const redis = new Redis({
+        port: 30001,
+        protocol: 2,
+        blockingTimeout: 1000,
+        blockingTimeoutGrace: 0,
+        lazyConnect: true,
+        enableReadyCheck: false,
+      });
+      redis.on("error", () => {});
+
+      try {
+        await redis.connect();
+        expect(await redis.call(command, ...args)).to.deep.equal(reply);
+      } finally {
+        clearTimeout(responseTimer);
+        redis.disconnect();
+        await server.disconnectPromise();
+      }
+    });
+  });
+
   it("resolves blocking command with null when timeout elapses without a reply", async () => {
     // When a blocking command times out (e.g., due to undetectable network failure
     // or server not responding), it should resolve with null (same as Redis behavior)

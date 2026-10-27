@@ -608,6 +608,89 @@ describe("Command", () => {
         ]);
         expect(command.extractBlockingTimeout()).to.equal(2000);
       });
+
+      const dataNamedBlock = [
+        {
+          name: "xread",
+          args: ["STREAMS", "BLOCK", "0-0"],
+          timeout: null,
+        },
+        {
+          name: "xread",
+          args: ["COUNT", 1, "STREAMS", "block", "1", "0-0", "0-0"],
+          timeout: null,
+        },
+        {
+          name: "xread",
+          args: [Buffer.from("streams"), Buffer.from("BLOCK"), "0-0"],
+          timeout: null,
+        },
+        {
+          name: "xreadgroup",
+          args: ["GROUP", "BLOCK", "7", "BLOCK", 250, "STREAMS", "s", ">"],
+          timeout: 250,
+        },
+        {
+          name: "xreadgroup",
+          args: ["GROUP", "g", "BLOCK", "BLOCK", 250, "STREAMS", "s", ">"],
+          timeout: 250,
+        },
+        {
+          name: "xreadgroup",
+          args: ["GROUP", "BLOCK", "7", "STREAMS", "s", ">"],
+          timeout: null,
+        },
+        {
+          name: "xreadgroup",
+          args: ["GROUP", "g", "BLOCK", "COUNT", 1, "STREAMS", "s", ">"],
+          timeout: null,
+        },
+        {
+          name: "xreadgroup",
+          args: [
+            "GROUP",
+            "STREAMS",
+            "BLOCK",
+            "BLOCK",
+            250,
+            "STREAMS",
+            "s",
+            ">",
+          ],
+          timeout: 250,
+        },
+        {
+          name: "XREADGROUP",
+          args: [
+            Buffer.from("group"),
+            Buffer.from("BLOCK"),
+            Buffer.from("7"),
+            Buffer.from("block"),
+            Buffer.from("250"),
+            "STREAMS",
+            "s",
+            ">",
+          ],
+          timeout: 250,
+        },
+        {
+          name: "xread",
+          args: ["BLOCK", 250, "STREAMS", "BLOCK", "0-0"],
+          timeout: 250,
+        },
+        {
+          name: "xreadgroup",
+          args: ["GROUP", "STREAMS", "c", "BLOCK", 0, "STREAMS", "BLOCK", ">"],
+          timeout: 0,
+        },
+      ];
+
+      dataNamedBlock.forEach(({ name, args, timeout }, index) => {
+        it(`does not parse data named BLOCK as an option (${name}, case ${index})`, () => {
+          const command = new Command(name, args);
+          expect(command.extractBlockingTimeout()).to.equal(timeout);
+        });
+      });
     });
   });
 
