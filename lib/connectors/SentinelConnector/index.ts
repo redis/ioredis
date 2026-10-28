@@ -374,6 +374,15 @@ export default class SentinelConnector extends AbstractConnector {
         replyMapping: "legacy",
       });
 
+      client.on("error", (err: Error) => {
+        debug(
+          "Error from failover sentinel %s:%s (%s)",
+          value.host || "127.0.0.1",
+          value.port || 26379,
+          err.message
+        );
+      });
+
       client.on("reconnecting", () => {
         // Tests listen to this event
         this.emitter?.emit("sentinelReconnecting");
