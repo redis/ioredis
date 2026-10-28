@@ -1193,6 +1193,7 @@ class Cluster<
       maintNotifications: "disabled",
       protocol: 2,
       replyMapping: "legacy",
+      stringNumbers: false,
       connectionName: getConnectionName(
         "refresher",
         this.options.redisOptions && this.options.redisOptions.connectionName
