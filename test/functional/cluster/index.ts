@@ -393,40 +393,6 @@ describe("cluster", () => {
         });
       });
     });
-
-    it("should map every slot when stringNumbers is enabled", (done) => {
-      const slotTable = [
-        [0, 5460, ["127.0.0.1", 30001]],
-        [5461, 10922, ["127.0.0.1", 30002]],
-        [10923, 16383, ["127.0.0.1", 30003]],
-      ];
-      const argvHandler = (argv) => {
-        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
-          return slotTable;
-        }
-      };
-      new MockServer(30001, argvHandler);
-      new MockServer(30002, argvHandler);
-      new MockServer(30003, argvHandler);
-
-      const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
-        redisOptions: { stringNumbers: true },
-      });
-      cluster.on("ready", () => {
-        try {
-          // "5461" <= "10922" is false as a string comparison, so this range
-          // used to be skipped entirely.
-          expect(cluster.slots.filter(Boolean)).to.have.lengthOf(16384);
-          expect(cluster.slots[5461]).to.eql(["127.0.0.1:30002"]);
-          expect(cluster.slots[10922]).to.eql(["127.0.0.1:30002"]);
-          done();
-        } catch (err) {
-          done(err);
-        } finally {
-          cluster.disconnect();
-        }
-      });
-    });
   });
 
   describe("#quit()", () => {

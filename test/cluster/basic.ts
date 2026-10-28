@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { once } from "events";
 import Redis, { Cluster } from "../../lib";
 
 const masters = [3000, 3001, 3002];
@@ -63,6 +64,17 @@ describe("cluster", () => {
       });
       await cluster.set("foo", "bar");
       expect(await cluster.get("foo")).to.eql("bar");
+    });
+  });
+
+  describe("stringNumbers", () => {
+    it("maps every slot", async () => {
+      const cluster = new Cluster([{ host: "127.0.0.1", port: masters[0] }], {
+        redisOptions: { stringNumbers: true },
+      });
+      await once(cluster, "ready");
+      expect(cluster.slots.filter(Boolean)).to.have.lengthOf(16384);
+      cluster.disconnect();
     });
   });
 

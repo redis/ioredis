@@ -1193,6 +1193,7 @@ class Cluster<
       maintNotifications: "disabled",
       protocol: 2,
       replyMapping: "legacy",
+      stringNumbers: false,
       connectionName: getConnectionName(
         "refresher",
         this.options.redisOptions && this.options.redisOptions.connectionName
@@ -1230,10 +1231,8 @@ class Cluster<
 
         for (let i = 0; i < result.length; ++i) {
           const items = result[i];
-          // With `stringNumbers` the bounds arrive as strings, which would make
-          // the loop below compare them as text and skip ranges like 5461~10922.
-          const slotRangeStart = Number(items[0]);
-          const slotRangeEnd = Number(items[1]);
+          const slotRangeStart = items[0];
+          const slotRangeEnd = items[1];
 
           const keys = [];
           for (let j = 2; j < items.length; j++) {
