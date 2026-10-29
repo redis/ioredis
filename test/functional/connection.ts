@@ -632,6 +632,71 @@ describe("connection", function () {
   });
 });
 
+describe("select during handshake", function () {
+  for (const protocol of [2, 3] as const) {
+    it(`treats a failed SELECT as fatal (protocol ${protocol})`, async () => {
+      new MockServer(30002, function (argv) {
+        if (argv[0] === "select") {
+          return new Error("ERR DB index is out of range");
+        }
+      });
+      const redis = new Redis({
+        port: 30002,
+        db: 99,
+        protocol,
+        lazyConnect: true,
+        retryStrategy: () => null,
+      });
+
+      let ready = false;
+      redis.on("ready", () => {
+        ready = true;
+      });
+      const errorPromise = new Promise<Error>((resolve) =>
+        redis.once("error", resolve)
+      );
+      const endPromise = new Promise<void>((resolve) =>
+        redis.once("end", resolve)
+      );
+
+      redis.connect().catch(() => {});
+
+      const err = await errorPromise;
+      await endPromise;
+
+      expect(err.message).to.eql("ERR DB index is out of range");
+      expect(ready).to.eql(false);
+      expect(redis.status).to.eql("end");
+      redis.disconnect();
+    });
+
+    it(`tolerates SELECT not being allowed in cluster mode (protocol ${protocol})`, async () => {
+      new MockServer(30003, function (argv) {
+        if (argv[0] === "select") {
+          return new Error("ERR SELECT is not allowed in cluster mode");
+        }
+        if (argv[0] === "ping") {
+          return "PONG";
+        }
+      });
+      const redis = new Redis({
+        port: 30003,
+        db: 2,
+        protocol,
+        retryStrategy: () => null,
+      });
+      const errors: string[] = [];
+      redis.on("error", (err) => errors.push(err.message));
+
+      await new Promise<void>((resolve) => redis.once("ready", resolve));
+
+      expect(await redis.ping()).to.eql("PONG");
+      expect(errors).to.eql(["ERR SELECT is not allowed in cluster mode"]);
+      redis.disconnect();
+    });
+  }
+});
+
 describe("disconnection", function () {
   it("emits an error if select is not allowed", (done) => {
     const errMessage = "select is not allowed";

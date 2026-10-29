@@ -59,7 +59,7 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
     commands.push({
       kind: "select",
       send: () => self.select(self.condition.select),
-      errorHandler: (err) => self.silentEmit("error", err),
+      errorHandler: (err) => handleSelectError(self, err),
     });
   }
 
@@ -275,6 +275,21 @@ export function connectHandler(self, flushOfflineQueue: () => void) {
       self.recoverFromFatalError(err as Error, err as Error);
     }
   };
+}
+
+function handleSelectError(self: any, err: Error): void {
+  const msg = (err.message || "").toLowerCase();
+  if (msg.indexOf("select is not allowed in cluster mode") !== -1) {
+    // Cluster nodes only have db 0, so `SELECT 0` is effectively a no-op
+    // there. Keep tolerating this specific error (and surfacing it) so that
+    // passing a `db` option doesn't break cluster connections.
+    self.silentEmit("error", err);
+    return;
+  }
+  // Any other failure means the connection is not on the database the user
+  // asked for. Treat it as fatal instead of silently running every command
+  // against db 0 while `options.db` claims otherwise.
+  throw err;
 }
 
 function handleAuthError(err: Error): void {
