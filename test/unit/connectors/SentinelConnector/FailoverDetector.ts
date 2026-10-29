@@ -36,4 +36,34 @@ describe("FailoverDetector", () => {
       disconnect.restore();
     }
   });
+
+  it("should handle error events on failover detector sentinel clients", async () => {
+    const subscribeStub = sinon
+      .stub(Redis.prototype, "subscribe")
+      .resolves(1 as any);
+    try {
+      const address = { host: "127.0.0.1", port: 27379 };
+      const connector = new SentinelConnector({
+        sentinels: [address],
+        name: "master",
+        failoverDetector: true,
+        sentinelMaxConnections: 10,
+      });
+      const stream = new (require("events").EventEmitter)();
+      (connector as any).stream = stream;
+
+      await (connector as any).initFailoverDetector();
+      const detector = (connector as any).failoverDetector;
+      expect(detector).to.be.an.instanceOf(FailoverDetector);
+      const client = (detector as any).sentinels[0].client;
+
+      expect(() => {
+        client.emit("error", new Error("connection reset by peer"));
+      }).to.not.throw();
+
+      detector.cleanup();
+    } finally {
+      subscribeStub.restore();
+    }
+  });
 });
