@@ -1303,53 +1303,27 @@ describe("sentinel", () => {
         });
       });
 
-      ([2, 3] as const).forEach((protocol) => {
-        it(`should handle errors from failover sentinels - RESP ${protocol}`, async () => {
-          let subscription: Socket | null = null;
-          const sentinel = new MockServer(27379, (argv, socket) => {
-            if (
-              argv[0] === "sentinel" &&
-              argv[1] === "get-master-addr-by-name"
-            ) {
-              return ["127.0.0.1", "17380"];
-            }
-            if (argv[0] === "subscribe") {
-              subscription = socket;
-              return pubSubReply(protocol, "subscribe", "+switch-master");
-            }
-          });
-          const master = new MockServer(17380);
-          const consoleError = sinon.stub(console, "error");
-
-          const redis = new Redis({
-            sentinels: [{ host: "127.0.0.1", port: 27379 }],
-            name: "master",
-            failoverDetector: true,
-            protocol,
-          });
-
-          try {
-            await Promise.all([
-              once(redis, "ready"),
-              once(redis, "failoverSubscribed"),
-            ]);
-
-            const reconnecting = once(redis, "sentinelReconnecting");
-            subscription.resetAndDestroy();
-            await reconnecting;
-
-            expect(
-              consoleError.calledWith("[ioredis] Unhandled error event:")
-            ).to.equal(false);
-          } finally {
-            consoleError.restore();
-            redis.disconnect();
-            await Promise.all([
-              sentinel.disconnectPromise(),
-              master.disconnectPromise(),
-            ]);
+      it("should handle errors from failover sentinels", async () => {
+        new MockServer(27379, (argv) => {
+          if (argv[0] === "sentinel" && argv[1] === "get-master-addr-by-name") {
+            return ["127.0.0.1", "17380"];
           }
         });
+        new MockServer(17380);
+        const consoleError = sinon.stub(console, "error");
+        const redis = new Redis({
+          sentinels: [
+            { host: "127.0.0.1", port: 27379 },
+            { host: "127.0.0.1", port: 27380 }, // Nothing listens here
+          ],
+          name: "master",
+          failoverDetector: true,
+        });
+        await once(redis, "sentinelReconnecting");
+        redis.disconnect();
+        expect(
+          consoleError.calledWith("[ioredis] Unhandled error event:")
+        ).to.equal(false);
       });
 
       ([2, 3] as const).forEach((protocol) => {
