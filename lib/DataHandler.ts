@@ -165,7 +165,8 @@ export default class DataHandler {
     // the command through normal error handling so the caller's promise
     // rejects instead of staying pending forever.
     const isMovedSsubscribe =
-      item.command.name === "ssubscribe" && err.message.startsWith("MOVED ");
+      item.command.name.toLowerCase() === "ssubscribe" &&
+      err.message.startsWith("MOVED ");
 
     if (isMovedSsubscribe) {
       this.redis.emit("moved");

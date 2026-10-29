@@ -148,7 +148,7 @@ class Pipeline extends Commander<{ type: "pipeline" }> {
         const command = this._queue[i];
         if (error) {
           if (
-            command.name === "exec" &&
+            command.name.toLowerCase() === "exec" &&
             error.message ===
               "EXECABORT Transaction discarded because of previous errors."
           ) {
@@ -416,7 +416,9 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
     let buffers: Buffer[];
     const stream: PipelineWriteableStream = {
       isPipeline: true,
-      containsMulti: _this._queue.some((command) => command.name === "multi"),
+      containsMulti: _this._queue.some(
+        (command) => command.name.toLowerCase() === "multi"
+      ),
       destination: _this.isCluster ? node : { redis: _this.redis },
       write(writable) {
         if (typeof writable !== "string") {

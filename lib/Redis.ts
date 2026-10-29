@@ -681,7 +681,10 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
         return command.promise;
       }
 
-      if (command.name === "quit" && this.offlineQueue.length === 0) {
+      if (
+        command.name.toLowerCase() === "quit" &&
+        this.offlineQueue.length === 0
+      ) {
         this.disconnect();
         command.resolve(Buffer.from("OK"));
         return command.promise;

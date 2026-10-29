@@ -350,10 +350,11 @@ function abortIncompletePipelines(commandQueue: Deque<CommandItem>) {
 function abortTransactionFragments(commandQueue: Deque<CommandItem>) {
   for (let i = 0; i < commandQueue.length; ) {
     const command = commandQueue.peekAt(i)?.command as Command;
-    if (command.name === "multi") {
+    const name = command.name.toLowerCase();
+    if (name === "multi") {
       break;
     }
-    if (command.name === "exec") {
+    if (name === "exec") {
       commandQueue.remove(i, 1);
       command.reject(abortError(command));
       break;

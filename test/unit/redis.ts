@@ -254,6 +254,19 @@ describe("Redis", () => {
         intercept.restore();
       }
     });
+
+    it("should resolve and disconnect when call('QUIT') is issued on a disconnected client", async () => {
+      const redis = new Redis({ lazyConnect: true });
+      const disconnectSpy = sinon.spy(redis, "disconnect");
+      try {
+        const result = (await redis.call("QUIT")) as Buffer;
+        expect(result.toString()).to.equal("OK");
+        expect(redis.offlineQueue.length).to.equal(0);
+        expect(disconnectSpy.calledOnce).to.equal(true);
+      } finally {
+        disconnectSpy.restore();
+      }
+    });
   });
 
   describe("#flushQueue", () => {

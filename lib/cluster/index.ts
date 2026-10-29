@@ -753,7 +753,8 @@ class Cluster<
         return;
       }
       let redis;
-      if (_this.status === "ready" || command.name === "cluster") {
+      const cmdName = command.name.toLowerCase();
+      if (_this.status === "ready" || cmdName === "cluster") {
         if (node && node.redis) {
           redis = node.redis;
         } else if (
@@ -762,17 +763,14 @@ class Cluster<
         ) {
           if (
             _this.options.shardedSubscribers &&
-            (command.name == "ssubscribe" || command.name == "sunsubscribe")
+            (cmdName === "ssubscribe" || cmdName === "sunsubscribe")
           ) {
             // A zero-argument SUNSUBSCRIBE has no channel to compute a target
             // slot from, so it can't be routed to a single sharded subscriber.
             // Redis unsubscribes the connection from all of its shard channels
             // in that case; fan the command out across every sharded subscriber
             // that currently holds channels.
-            if (
-              command.name == "sunsubscribe" &&
-              command.getKeys().length === 0
-            ) {
+            if (cmdName === "sunsubscribe" && command.getKeys().length === 0) {
               _this.shardedSubscribers
                 .sunsubscribeAll()
                 .then((count) => command.resolve(count))
