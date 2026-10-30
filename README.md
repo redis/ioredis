@@ -1407,6 +1407,7 @@ For sharded Pub/Sub, use the `spublish` and `ssubscribe` commands instead of the
 
 1. Instead of a single subscriber connection, there is now one subscriber connection per shard. Because of the potential overhead, you can enable or disable the use of the cluster subscriber group with the `shardedSubscribers` option. By default, this option is set to `false`, meaning sharded subscriptions are disabled. You should enable this option when establishing your cluster connection before using `ssubscribe`.
 2. All channel names that you pass to a single `ssubscribe` need to map to the same hash slot. You can call `ssubscribe` multiple times on the same cluster client instance to subscribe to channels across slots. The cluster's subscriber group takes care of forwarding the `ssubscribe` command to the shard that is responsible for the channels.
+3. A subscriber connection can stay open while the node stops answering its commands. To detect this, set the `shardedSubscriberHealthCheckInterval` option to an interval in milliseconds. A subscriber that receives no sharded message for one interval sends `PING`, so a busy subscriber never sends `PING`. If a command is still unanswered at two consecutive checks, the subscriber disconnects, and the cluster replaces the connection and emits `-node`. By default, this option is unset, and the check is disabled.
 
 The following basic example shows you how to use sharded Pub/Sub:
 

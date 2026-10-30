@@ -82,9 +82,11 @@ describe("Sharded Pub/Sub E2E - Failure Recovery Multiple Subscribers", () => {
     messageTracker2 = new MessageTracker(CHANNELS);
     subscriber1 = createClusterTestClient(config.clientConfig, {
       shardedSubscribers: true,
+      shardedSubscriberHealthCheckInterval: 5_000,
     });
     subscriber2 = createClusterTestClient(config.clientConfig, {
       shardedSubscribers: true,
+      shardedSubscriberHealthCheckInterval: 5_000,
     });
     publisher = createClusterTestClient(config.clientConfig);
 
