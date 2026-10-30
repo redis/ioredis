@@ -70,6 +70,23 @@ describe("ClusterSubscriber", () => {
     }
   });
 
+  it("inherits maxRetriesPerRequest from the node options", () => {
+    const pool = new ConnectionPool({ maxRetriesPerRequest: 1 });
+    const subscriber = new ClusterSubscriber(pool, new EventEmitter());
+    const node = { host: "127.0.0.1", port: 30000 };
+
+    try {
+      pool.findOrCreate(node);
+      subscriber.start();
+      const client = subscriber.getInstance();
+
+      expect(client.options.maxRetriesPerRequest).to.equal(1);
+    } finally {
+      subscriber.stop();
+      pool.reset([]);
+    }
+  });
+
   it("selects from all node roles by default", () => {
     const pool = new ConnectionPool({});
     const getNodes = sinon.spy(pool, "getNodes");
