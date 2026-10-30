@@ -40,6 +40,7 @@ export default class ShardedSubscriber {
   private instance: Redis | null = null;
   private connectPromise: Promise<void> | null = null;
   private lazyConnect: boolean;
+  private finishStart: (() => void) | null = null;
 
   // Store listener references for cleanup
   private readonly messageListeners: Map<string, (...args: any[]) => void> =
@@ -111,7 +112,12 @@ export default class ShardedSubscriber {
     }
 
     this.updateStatus(SubscriberStatus.STARTING);
-    this.connectPromise = this.instance.connect();
+    // stop() removes the instance's listeners, so connect() would never
+    // settle. Finish the start instead, so a reset waiting on it can finish.
+    const stopped = new Promise<void>((resolve) => {
+      this.finishStart = resolve;
+    });
+    this.connectPromise = Promise.race([this.instance.connect(), stopped]);
 
     try {
       await this.connectPromise;
@@ -120,12 +126,17 @@ export default class ShardedSubscriber {
       this.updateStatus(SubscriberStatus.ENDED);
       throw err;
     } finally {
+      this.finishStart = null;
       this.connectPromise = null;
     }
   }
 
   stop(): void {
     this.updateStatus(SubscriberStatus.STOPPING);
+
+    if (this.finishStart) {
+      this.finishStart();
+    }
 
     if (this.instance) {
       this.instance.disconnect();
