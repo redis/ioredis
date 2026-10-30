@@ -522,7 +522,7 @@ export function readyHandler(self, flushOfflineQueue: () => void) {
           const item = self.prevCommandQueue.shift();
           if (
             item.select !== self.condition.select &&
-            item.command.name !== "select"
+            item.command.name.toLowerCase() !== "select"
           ) {
             self
               .select(item.select)

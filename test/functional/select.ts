@@ -114,6 +114,23 @@ describe("select", function () {
     redis.disconnect();
   });
 
+  it('should not send duplicate select when call("SELECT") is queued offline', async () => {
+    const redis = new Redis({ lazyConnect: true });
+    let selectCount = 0;
+    const originalSelect = redis.select;
+    redis.select = function () {
+      selectCount++;
+      return originalSelect.apply(redis, arguments as any);
+    };
+
+    redis.call("SELECT", 2);
+    await redis.connect();
+
+    expect(selectCount).to.eql(0);
+    expect(await redis.client("INFO")).to.match(/\bdb=2\b/);
+    redis.disconnect();
+  });
+
   it("should be sent on the connect event", (done) => {
     const redis = new Redis({ db: 2 });
     const select = redis.select;

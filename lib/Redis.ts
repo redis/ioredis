@@ -975,7 +975,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       const item = offlineQueue.shift();
       if (
         item.select !== this.condition.select &&
-        item.command.name !== "select"
+        item.command.name.toLowerCase() !== "select"
       ) {
         this.select(item.select).catch((err) => this.silentEmit("error", err));
       }
@@ -1351,7 +1351,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
         }
         if (
           this.condition?.select !== item.select &&
-          item.command.name !== "select"
+          item.command.name.toLowerCase() !== "select"
         ) {
           this.select(item.select).catch((err) =>
             this.silentEmit("error", err)
