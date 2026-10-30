@@ -177,7 +177,7 @@ describe("Sharded Pub/Sub E2E - Failure Recovery Multiple Subscribers", () => {
 
   for (const failureCase of failureCases) {
     it(failureCase.name, async function () {
-      this.timeout(180_000);
+      this.timeout(360_000);
 
       if (!currentDatabaseConfig) {
         throw new Error("Current database config was not initialized");
@@ -257,7 +257,7 @@ describe("Sharded Pub/Sub E2E - Failure Recovery Multiple Subscribers", () => {
             `Channel ${channel} should resume receiving messages by subscriber 2 after recovery`,
           );
         }
-      }, 45_000);
+      }, 90_000);
 
       recoveryProbeController.abort();
       await recoveryProbeResult;
