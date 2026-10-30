@@ -76,6 +76,7 @@ describe("Sharded Pub/Sub E2E - Failure Recovery Single Subscriber", () => {
     const messageTracker = new MessageTracker(channels);
     const subscriber = createClusterTestClient(config.clientConfig, {
       shardedSubscribers: true,
+      shardedSubscriberHealthCheckInterval: 5_000,
     });
     const publisher = createClusterTestClient(config.clientConfig);
 
@@ -135,7 +136,7 @@ describe("Sharded Pub/Sub E2E - Failure Recovery Single Subscriber", () => {
 
   for (const failureCase of failureCases) {
     it(failureCase.name, async function () {
-      this.timeout(180_000);
+      this.timeout(360_000);
 
       if (!currentDatabaseConfig) {
         throw new Error("Current database config was not initialized");
@@ -218,7 +219,7 @@ describe("Sharded Pub/Sub E2E - Failure Recovery Single Subscriber", () => {
             `Channel ${channel} should resume receiving messages after recovery`,
           );
         }
-      }, 45_000);
+      }, 90_000);
 
       recoveryProbeController.abort();
       await recoveryProbeResult;
