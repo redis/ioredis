@@ -118,7 +118,10 @@ export default class SentinelConnector extends AbstractConnector {
 
     let lastError;
 
-    const connectToNext = async (): Promise<NetStream> => {
+    // Resolves to `null` when the caller should try again. Retrying through a
+    // loop instead of recursing keeps the promise chain from growing forever
+    // while the sentinels stay unreachable.
+    const connectToNext = async (): Promise<NetStream | null> => {
       const endpoint = this.sentinelIterator.next();
 
       if (endpoint.done) {
@@ -143,7 +146,7 @@ export default class SentinelConnector extends AbstractConnector {
         if (typeof retryDelay === "number") {
           eventEmitter("error", error);
           await new Promise((resolve) => setTimeout(resolve, retryDelay));
-          return connectToNext();
+          return null;
         } else {
           throw error;
         }
@@ -208,11 +211,18 @@ export default class SentinelConnector extends AbstractConnector {
           lastError = err;
         }
 
-        return connectToNext();
+        return null;
       }
     };
 
-    return connectToNext();
+    return (async () => {
+      for (;;) {
+        const stream = await connectToNext();
+        if (stream) {
+          return stream;
+        }
+      }
+    })();
   }
 
   private async updateSentinels(client: RedisClient): Promise<void> {

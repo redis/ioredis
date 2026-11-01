@@ -1,4 +1,6 @@
 import { Socket } from "net";
+import * as v8 from "v8";
+import * as vm from "vm";
 
 import Redis from "../../lib/Redis";
 import SentinelConnector from "../../lib/connectors/SentinelConnector";
@@ -138,6 +140,51 @@ describe("sentinel", () => {
         },
         name: "master",
       });
+    });
+
+    it("should not accumulate pending promises while all sentinels stay unreachable", async function () {
+      if (typeof v8.queryObjects !== "function") {
+        this.skip();
+      }
+      this.timeout(30000);
+      v8.setFlagsFromString("--expose-gc");
+      const gc = vm.runInNewContext("gc") as () => void;
+      const countPromises = () => {
+        gc();
+        return v8.queryObjects(Promise, { format: "count" });
+      };
+
+      const warmup = 1100;
+      const retries = 2100;
+      let times = 0;
+      let before = 0;
+      let after = 0;
+      const connector = new SentinelConnector({
+        sentinels: [{ host: "127.0.0.1", port: 27379 }],
+        name: "master",
+        sentinelRetryStrategy(attempt) {
+          times = attempt;
+          if (attempt === warmup) {
+            before = countPromises();
+          } else if (attempt === retries) {
+            after = countPromises();
+            return null;
+          }
+          return 0;
+        },
+      });
+
+      let error: Error | undefined;
+      try {
+        await connector.connect(() => {});
+      } catch (err) {
+        error = err;
+      }
+
+      expect(error?.message).to.match(/are unreachable/);
+      expect(times).to.equal(retries);
+      // Recursing on every retry kept several promises alive per attempt.
+      expect(after - before).to.be.lessThan(500);
     });
 
     it("should raise error when all sentinel are unreachable and retry is disabled", (done) => {
