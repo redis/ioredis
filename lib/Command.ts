@@ -53,6 +53,13 @@ interface FlagMap {
   [flag: string]: { [command: string]: true };
 }
 
+// The RESP3 reply transformers also apply to uppercase names, e.g. call("XREAD").
+const caseInsensitiveReplyTransformers = new Set<ReplyTransformer>([
+  transformPairReply,
+  transformStreamReadReply,
+  transformVsimReply,
+]);
+
 export interface CommandNameFlags {
   // Commands that can be processed when client is in the subscriber mode
   VALID_IN_SUBSCRIBER_MODE: [
@@ -529,7 +536,14 @@ export default class Command implements Respondable {
     if (this.replyEncoding) {
       result = convertBufferToString(result, this.replyEncoding);
     }
-    const transformer = Command._transformer.reply[this.name];
+    let transformer = Command._transformer.reply[this.name];
+    if (!transformer) {
+      const lowercaseTransformer =
+        Command._transformer.reply[this.name.toLowerCase()];
+      if (caseInsensitiveReplyTransformers.has(lowercaseTransformer)) {
+        transformer = lowercaseTransformer;
+      }
+    }
     if (transformer) {
       result = transformer(result, {
         commandName: this.name,
