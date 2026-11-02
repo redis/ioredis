@@ -232,6 +232,31 @@ describe("DataHandler", () => {
     ]);
   });
 
+  it("emits RESP3 invalidate pushes as __redis__:invalidate messages", async () => {
+    const setup = setupDataHandler();
+    const command = new Command("subscribe", ["__redis__:invalidate"], {
+      replyEncoding: "utf8",
+    });
+    setup.redis.commandQueue.push({ command, select: 0 });
+    const message = sinon.spy();
+    setup.redis.on("message", message);
+
+    setup.write(
+      ">2\r\n$10\r\ninvalidate\r\n*1\r\n$3\r\nold\r\n" +
+        ">3\r\n$9\r\nsubscribe\r\n$20\r\n__redis__:invalidate\r\n:1\r\n"
+    );
+    await command.promise;
+    setup.write(
+      ">2\r\n$10\r\ninvalidate\r\n*1\r\n$3\r\nkey\r\n" +
+        ">2\r\n$10\r\ninvalidate\r\n_\r\n"
+    );
+
+    expect(message.args).to.eql([
+      ["__redis__:invalidate", "key"],
+      ["__redis__:invalidate", ""],
+    ]);
+  });
+
   it("does not shift the command queue for server-initiated RESP3 sunsubscribe pushes", async () => {
     const setup = setupDataHandler();
     const error = sinon.spy();
