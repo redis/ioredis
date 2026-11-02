@@ -1299,19 +1299,15 @@ Sometimes you may want to send a command to multiple nodes (masters or slaves) o
 `Cluster#nodes()` accepts a parameter role, which can be "master", "slave" and "all" (default), and returns an array of `Redis` instance. For example:
 
 ```javascript
-// Send `FLUSHDB` command to all slaves:
+// Send `PING` command to all slaves:
 const slaves = cluster.nodes("slave");
-Promise.all(slaves.map((node) => node.flushdb()));
+Promise.all(slaves.map((node) => node.ping()));
 
 // Get keys of all the masters:
 const masters = cluster.nodes("master");
-Promise.all(
-  masters
-    .map((node) => node.keys())
-    .then((keys) => {
-      // keys: [['key1', 'key2'], ['key3', 'key4']]
-    })
-);
+Promise.all(masters.map((node) => node.keys("*"))).then((keys) => {
+  // keys: [['key1', 'key2'], ['key3', 'key4']]
+});
 ```
 
 ### NAT Mapping
