@@ -3424,6 +3424,85 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   sadd(...args: [key: RedisKey, members: (string | Buffer | number)[]]): Result<number, Context>;
 
   /**
+   * Add one or more members to a given set key, and optionally set their expiration.
+   * - _group_: set
+   * - _complexity_: O(N) where N is the number of members being added.
+   * - _since_: 8.12.0
+   */
+  saddex(...args: [key: RedisKey, mnx: 'MNX', secondsToken: 'EX', seconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', secondsToken: 'EX', seconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', secondsToken: 'EX', seconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', secondsToken: 'EX', seconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', millisecondsToken: 'PX', milliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', millisecondsToken: 'PX', milliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', millisecondsToken: 'PX', milliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', millisecondsToken: 'PX', milliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', keepttl: 'KEEPTTL', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', keepttl: 'KEEPTTL', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', keepttl: 'KEEPTTL', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', keepttl: 'KEEPTTL', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', secondsToken: 'EX', seconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', secondsToken: 'EX', seconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', secondsToken: 'EX', seconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', secondsToken: 'EX', seconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', millisecondsToken: 'PX', milliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', millisecondsToken: 'PX', milliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', millisecondsToken: 'PX', milliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', millisecondsToken: 'PX', milliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', keepttl: 'KEEPTTL', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', keepttl: 'KEEPTTL', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', keepttl: 'KEEPTTL', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', keepttl: 'KEEPTTL', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, secondsToken: 'EX', seconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, secondsToken: 'EX', seconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, secondsToken: 'EX', seconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, secondsToken: 'EX', seconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, millisecondsToken: 'PX', milliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, millisecondsToken: 'PX', milliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, millisecondsToken: 'PX', milliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, millisecondsToken: 'PX', milliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, unixTimeSecondsToken: 'EXAT', unixTimeSeconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, unixTimeMillisecondsToken: 'PXAT', unixTimeMilliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, keepttl: 'KEEPTTL', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, keepttl: 'KEEPTTL', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, keepttl: 'KEEPTTL', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, keepttl: 'KEEPTTL', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mnx: 'MNX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, mxx: 'MXX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number>]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number, Context>;
+  saddex(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number, Context>;
+
+  /**
    * Synchronously saves the database(s) to disk.
    * - _group_: server
    * - _complexity_: O(N) where N is the total number of keys in all databases
@@ -3728,6 +3807,71 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _since_: 2.2.0
    */
   setrange(key: RedisKey, offset: number | string, value: string | Buffer | number, callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Set expiry for set member using relative time to expire (seconds)
+   * - _group_: set
+   * - _complexity_: O(N) where N is the number of specified members
+   * - _since_: 8.12.0
+   */
+  sexpire(...args: [key: RedisKey, seconds: number | string, nx: 'NX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, nx: 'NX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, nx: 'NX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, nx: 'NX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, xx: 'XX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, xx: 'XX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, xx: 'XX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, xx: 'XX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, gt: 'GT', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, gt: 'GT', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, gt: 'GT', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, gt: 'GT', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, lt: 'LT', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, lt: 'LT', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, lt: 'LT', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, lt: 'LT', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpire(...args: [key: RedisKey, seconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+
+  /**
+   * Set expiry for set member using an absolute Unix timestamp (seconds)
+   * - _group_: set
+   * - _complexity_: O(N) where N is the number of specified members
+   * - _since_: 8.12.0
+   */
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, nx: 'NX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, nx: 'NX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, nx: 'NX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, nx: 'NX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, xx: 'XX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, xx: 'XX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, xx: 'XX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, xx: 'XX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, gt: 'GT', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, gt: 'GT', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, gt: 'GT', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, gt: 'GT', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, lt: 'LT', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, lt: 'LT', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, lt: 'LT', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, lt: 'LT', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpireat(...args: [key: RedisKey, unixTimeSeconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+
+  /**
+   * Returns the expiration time of a set member as a Unix timestamp, in seconds.
+   * - _group_: set
+   * - _complexity_: O(N) where N is the number of specified members
+   * - _since_: 8.12.0
+   */
+  sexpiretime(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpiretime(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sexpiretime(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sexpiretime(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
 
   /**
    * Synchronously saves the database(s) to disk and shuts down the Redis server.
@@ -4110,6 +4254,82 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   sort_ro(key: RedisKey, callback?: Callback<unknown>): Result<unknown, Context>;
 
   /**
+   * Removes the expiration time for each specified member
+   * - _group_: set
+   * - _complexity_: O(N) where N is the number of specified members
+   * - _since_: 8.12.0
+   */
+  spersist(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spersist(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spersist(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spersist(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+
+  /**
+   * Set expiry for set member using relative time to expire (milliseconds)
+   * - _group_: set
+   * - _complexity_: O(N) where N is the number of specified members
+   * - _since_: 8.12.0
+   */
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, nx: 'NX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, nx: 'NX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, nx: 'NX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, nx: 'NX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, xx: 'XX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, xx: 'XX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, xx: 'XX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, xx: 'XX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, gt: 'GT', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, gt: 'GT', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, gt: 'GT', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, gt: 'GT', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, lt: 'LT', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, lt: 'LT', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, lt: 'LT', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, lt: 'LT', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpire(...args: [key: RedisKey, milliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+
+  /**
+   * Set expiry for set member using an absolute Unix timestamp (milliseconds)
+   * - _group_: set
+   * - _complexity_: O(N) where N is the number of specified members
+   * - _since_: 8.12.0
+   */
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, nx: 'NX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, nx: 'NX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, nx: 'NX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, nx: 'NX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, xx: 'XX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, xx: 'XX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, xx: 'XX', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, xx: 'XX', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, gt: 'GT', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, gt: 'GT', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, gt: 'GT', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, gt: 'GT', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, lt: 'LT', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, lt: 'LT', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, lt: 'LT', membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, lt: 'LT', membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpireat(...args: [key: RedisKey, unixTimeMilliseconds: number | string, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+
+  /**
+   * Returns the expiration time of a set member as a Unix timestamp, in msec.
+   * - _group_: set
+   * - _complexity_: O(N) where N is the number of specified members
+   * - _since_: 8.12.0
+   */
+  spexpiretime(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpiretime(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spexpiretime(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spexpiretime(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
+
+  /**
    * Returns one or more random members from a set after removing them. Deletes the set if the last member was popped.
    * - _group_: set
    * - _complexity_: Without the count argument O(1), otherwise O(N) where N is the value of the passed count.
@@ -4119,6 +4339,17 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   spopBuffer(key: RedisKey, callback?: Callback<Buffer | null>): Result<Buffer | null, Context>;
   spop(key: RedisKey, count: number | string, callback?: Callback<string[]>): Result<string[], Context>;
   spopBuffer(key: RedisKey, count: number | string, callback?: Callback<Buffer[]>): Result<Buffer[], Context>;
+
+  /**
+   * Returns the TTL in milliseconds of a set member.
+   * - _group_: set
+   * - _complexity_: O(N) where N is the number of specified members
+   * - _since_: 8.12.0
+   */
+  spttl(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spttl(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  spttl(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  spttl(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
 
   /**
    * Post a message to a shard channel
@@ -4181,6 +4412,17 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
    * - _since_: 2.2.0
    */
   strlen(key: RedisKey, callback?: Callback<number>): Result<number, Context>;
+
+  /**
+   * Returns the TTL in seconds of a set member.
+   * - _group_: set
+   * - _complexity_: O(N) where N is the number of specified members
+   * - _since_: 8.12.0
+   */
+  sttl(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sttl(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[], callback: Callback<number[]>]): Result<number[], Context>;
+  sttl(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, ...members: (string | Buffer | number)[]]): Result<number[], Context>;
+  sttl(...args: [key: RedisKey, membersToken: 'MEMBERS', nummembers: number | string, members: (string | Buffer | number)[]]): Result<number[], Context>;
 
   /**
    * Listens for messages published to channels.

@@ -192,6 +192,34 @@ expectType<Promise<number>>(
   redis.sunioncard(2, "s1", "s2", "APPROX", "LIMIT", 1)
 );
 
+// Set member expiration commands
+expectType<Promise<number>>(redis.saddex("key", "MEMBERS", 1, "member"));
+expectType<Promise<number>>(
+  redis.saddex("key", "MNX", "EX", 60, "MEMBERS", 2, "m1", "m2")
+);
+expectType<Promise<number>>(
+  redis.saddex("key", "MXX", "KEEPTTL", "MEMBERS", 2, ["m1", "m2"])
+);
+expectType<Promise<number[]>>(
+  redis.sexpire("key", 60, "NX", "MEMBERS", 1, "member")
+);
+expectType<Promise<number[]>>(
+  redis.sexpireat("key", 1_700_000_000, "MEMBERS", 1, "member")
+);
+expectType<Promise<number[]>>(redis.sexpiretime("key", "MEMBERS", 1, "member"));
+expectType<Promise<number[]>>(redis.spersist("key", "MEMBERS", 1, "member"));
+expectType<Promise<number[]>>(
+  redis.spexpire("key", 60_000, "GT", "MEMBERS", 1, "member")
+);
+expectType<Promise<number[]>>(
+  redis.spexpireat("key", 1_700_000_000_000, "MEMBERS", 1, "member")
+);
+expectType<Promise<number[]>>(
+  redis.spexpiretime("key", "MEMBERS", 1, "member")
+);
+expectType<Promise<number[]>>(redis.spttl("key", "MEMBERS", 1, "member"));
+expectType<Promise<number[]>>(redis.sttl("key", "MEMBERS", 2, ["m1", "m2"]));
+
 // ZADD
 expectType<Promise<number>>(redis.zadd("key", 1, "member"));
 expectType<Promise<number>>(redis.zadd("key", "CH", 1, "member"));
@@ -299,6 +327,11 @@ redis.hgetdelBuffer("key", "FIELDS", 1, "field", (err, res) => {
 redis.hgetexBuffer("key", "EX", 60, "FIELDS", 1, "field", (err, res) => {
   expectType<Error | null | undefined>(err);
   expectType<(Buffer | null)[] | undefined>(res);
+});
+
+redis.sttl("key", "MEMBERS", 1, "member", (err, res) => {
+  expectType<Error | null | undefined>(err);
+  expectType<number[] | undefined>(res);
 });
 
 redis.hmget("key", ["foo", "bar"], (err, res) => {
