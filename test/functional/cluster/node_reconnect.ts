@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { Socket } from "net";
 import * as calculateSlot from "../../../lib/utils/calculateSlot";
 import * as sinon from "sinon";
 import MockServer from "../../helpers/mock_server";
@@ -182,5 +183,69 @@ describe("cluster:node_reconnect", () => {
         }, 30);
       });
     });
+  });
+
+  it("does not split an auto-pipeline batch when a node is still connecting and enableOfflineQueue is false", async () => {
+    // One shard, a master and a replica. The master answers nothing on connections
+    // opened after `stall` is set, so its replacement connection stays in "connect".
+    const slotTable = [[0, 16383, ["127.0.0.1", 30001], ["127.0.0.1", 30002]]];
+    const stalled = new Set<Socket>();
+    let stall = false;
+    const handler = (argv: string[], socket: Socket, flags: any) => {
+      if (stalled.has(socket)) {
+        flags.hang = true;
+        return;
+      }
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") return slotTable;
+      if (argv[0] === "get") return "v" + argv[1];
+    };
+    const master = new MockServer(30001, handler);
+    new MockServer(30002, handler);
+    master.on("connect", (socket: Socket) => {
+      if (stall) stalled.add(socket);
+    });
+
+    // The first command of the batch goes to the master, all others to the replica.
+    let routed = 0;
+    const cluster = new Cluster([{ host: "127.0.0.1", port: 30001 }], {
+      enableAutoPipelining: true,
+      enableOfflineQueue: false,
+      clusterRetryStrategy: null,
+      scaleReads: (nodes) => (routed++ === 0 ? nodes[0] : nodes[1]),
+    });
+    await new Promise<void>((resolve) => cluster.once("ready", resolve));
+    const replica = cluster.nodes("slave")[0];
+    await replica.ping();
+
+    // Replace the master connection, as a circular MOVED does (#2135).
+    stall = true;
+    const connecting = cluster.connectionPool.recreate(
+      { host: "127.0.0.1", port: 30001 },
+      false
+    );
+    connecting.connect().catch(() => {});
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(connecting.status).to.equal("connect");
+
+    const settle = (promise: Promise<unknown>) =>
+      Promise.race([
+        promise.then(
+          (value) => "ok:" + value,
+          () => "error"
+        ),
+        new Promise((resolve) => setTimeout(() => resolve("pending"), 300)),
+      ]);
+
+    routed = 0;
+    const batch = Array.from({ length: 20 }, (_, i) => cluster.get("key" + i));
+    await settle(Promise.all(batch));
+
+    // The unsent commands must not stay in the replica's queue: every reply on its
+    // connection has to reach the command it was meant for.
+    const keys = Array.from({ length: 25 }, (_, i) => "direct" + i);
+    const results = await Promise.all(keys.map((k) => settle(replica.get(k))));
+    expect(results).to.eql(keys.map((k) => "ok:v" + k));
+
+    cluster.disconnect();
   });
 });
