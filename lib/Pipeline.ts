@@ -10,6 +10,7 @@ import { constants } from "buffer";
 import { noop } from "./utils";
 import Commander from "./utils/Commander";
 import { interceptHimportPipeline } from "./himport/HimportCoordinator";
+import { flushAutoPipelines, kExec } from "./autoPipelining";
 
 /*
   This function derives from the cluster-key-slot implementation.
@@ -376,6 +377,13 @@ Pipeline.prototype.exec = function (callback: Callback): Promise<Array<any>> {
       // Send the pipeline to a random node
       pipelineSlot = (Math.random() * 16384) | 0;
     }
+  }
+
+  // Commands issued before this pipeline may still be waiting in an auto
+  // pipeline: send them first so they reach Redis before this batch. Auto
+  // pipelines themselves (which carry kExec) are sent in order already.
+  if (!(kExec in this)) {
+    flushAutoPipelines(this.redis);
   }
 
   const _this = this;

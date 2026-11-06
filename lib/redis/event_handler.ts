@@ -485,9 +485,7 @@ export function readyHandler(self, flushOfflineQueue: () => void) {
         // `SELECT` command is not valid in sub mode.
         if (self.condition.select !== finalSelect) {
           debug("connect to db [%d]", finalSelect);
-          self
-            .select(finalSelect)
-            .catch((err) => self.silentEmit("error", err));
+          self.replaySelect(finalSelect);
         }
         const subscribeChannels = condition.subscriber.channels("subscribe");
         if (subscribeChannels.length) {
@@ -524,9 +522,7 @@ export function readyHandler(self, flushOfflineQueue: () => void) {
             item.select !== self.condition.select &&
             item.command.name !== "select"
           ) {
-            self
-              .select(item.select)
-              .catch((err) => self.silentEmit("error", err));
+            self.replaySelect(item.select);
           }
           self.sendCommand(item.command, item.stream);
         }
@@ -544,7 +540,7 @@ export function readyHandler(self, flushOfflineQueue: () => void) {
 
     if (self.condition.select !== finalSelect) {
       debug("connect to db [%d]", finalSelect);
-      self.select(finalSelect).catch((err) => self.silentEmit("error", err));
+      self.replaySelect(finalSelect);
     }
   };
 }

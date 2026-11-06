@@ -160,7 +160,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
 
   // Prepare autopipelines structures
   private _autoPipelines = new Map();
-  private _runningAutoPipelines = new Set();
+  private _runningAutoPipelines: Map<string, number> = new Map();
 
   // The `replyMapping` intersection on the options-bearing overloads lets the
   // `ReplyMapping` class type parameter be inferred from the literal passed at
@@ -977,10 +977,24 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
         item.select !== this.condition.select &&
         item.command.name !== "select"
       ) {
-        this.select(item.select).catch((err) => this.silentEmit("error", err));
+        this.replaySelect(item.select);
       }
       this.sendCommand(item.command, item.stream);
     }
+  }
+
+  /**
+   * Select `db` again for commands that are replayed (offline queue,
+   * unfulfilled commands after a reconnect) or to restore the selected db.
+   *
+   * Sent with `sendCommand()` rather than `select()`: the command methods
+   * first send what is still waiting in an auto pipeline, and those commands
+   * were issued after the ones being replayed.
+   */
+  private replaySelect(db: number): void {
+    const command = new Command("select", [db]);
+    command.promise.catch((err) => this.silentEmit("error", err));
+    this.sendCommand(command);
   }
 
   /**

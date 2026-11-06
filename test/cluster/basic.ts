@@ -151,6 +151,19 @@ describe("cluster", () => {
         expect(await cluster.get(`foo${i}`)).to.eql("bar");
       }
     });
+
+    it("does not let a transaction overtake earlier commands", async () => {
+      const cluster = new Cluster([{ host: "127.0.0.1", port: masters[0] }], {
+        enableAutoPipelining: true,
+      });
+      await cluster.set("foo", "init");
+
+      const set = cluster.set("foo", "first");
+      const result = await cluster.multi().set("foo", "second").exec();
+      expect(await set).to.eql("OK");
+      expect(result).to.eql([[null, "OK"]]);
+      expect(await cluster.get("foo")).to.eql("second");
+    });
   });
 
   describe("key prefixing", () => {

@@ -1,6 +1,7 @@
 import { list } from "@ioredis/commands";
 import {
   executeWithAutoPipelining,
+  flushAutoPipelines,
   shouldUseAutoPipelining,
 } from "../autoPipelining";
 import Command, { ArgumentType } from "../Command";
@@ -149,6 +150,9 @@ function generateFunction(
 
     // No auto pipeline, use regular command sending
     if (!shouldUseAutoPipelining(this, functionName, commandName)) {
+      // Keep the order: commands issued earlier may still be queued in an
+      // auto pipeline.
+      flushAutoPipelines(this);
       return this.sendCommand(
         // @ts-expect-error
         new Command(commandName, args, options, callback)
@@ -190,6 +194,7 @@ function generateScriptingFunction(
 
     // No auto pipeline, use regular command sending
     if (!shouldUseAutoPipelining(this, functionName, commandName)) {
+      flushAutoPipelines(this);
       return script.execute(this, args, options, callback);
     }
 
