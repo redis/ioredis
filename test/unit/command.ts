@@ -217,11 +217,88 @@ describe("Command", () => {
       expect(
         getKeys("zinterstore", ["out", 2, "zset1", "zset2", "WEIGHTS", 2, 3])
       ).to.eql(["out", "zset1", "zset2"]);
+      // numkeys commands: the count is not a key, and trailing options are not keys.
+      expect(getKeys("zdiff", [2, "key1", "key2", "WITHSCORES"])).to.eql([
+        "key1",
+        "key2",
+      ]);
+      expect(getKeys("zdiffstore", ["out", 2, "key1", "key2"])).to.eql([
+        "out",
+        "key1",
+        "key2",
+      ]);
+      expect(getKeys("zinter", [2, "s1", "s2"])).to.eql(["s1", "s2"]);
+      expect(getKeys("zunion", [2, "s1", "s2", "AGGREGATE", "MIN"])).to.eql([
+        "s1",
+        "s2",
+      ]);
+      expect(getKeys("zintercard", [2, "s1", "s2", "LIMIT", 1])).to.eql([
+        "s1",
+        "s2",
+      ]);
+      expect(getKeys("zmpop", [2, "s1", "s2", "MAX"])).to.eql(["s1", "s2"]);
 
       function getKeys(commandName, args) {
         const command = new Command(commandName, args);
         return command.getKeys();
       }
+    });
+  });
+
+  describe("keyPrefix", () => {
+    function prefixedArgs(name: string, args: any[]) {
+      return new Command(name, args, { keyPrefix: "myKeyPrefix:" }).args;
+    }
+
+    // https://github.com/redis/ioredis/issues/1591
+    it("should prefix zdiff keys and leave numkeys and options alone", () => {
+      expect(prefixedArgs("zdiff", [2, "key1", "key2"])).to.eql([
+        "2",
+        "myKeyPrefix:key1",
+        "myKeyPrefix:key2",
+      ]);
+      expect(prefixedArgs("zdiff", [2, ["key1", "key2"], "WITHSCORES"])).to.eql(
+        ["2", "myKeyPrefix:key1", "myKeyPrefix:key2", "WITHSCORES"]
+      );
+      expect(prefixedArgs("ZDIFF", [2, "key1", "key2"])).to.eql([
+        "2",
+        "myKeyPrefix:key1",
+        "myKeyPrefix:key2",
+      ]);
+    });
+
+    it("should prefix keys for other numkeys sorted-set commands", () => {
+      expect(prefixedArgs("zdiffstore", ["out", 2, "key1", "key2"])).to.eql([
+        "myKeyPrefix:out",
+        "2",
+        "myKeyPrefix:key1",
+        "myKeyPrefix:key2",
+      ]);
+      expect(prefixedArgs("zinter", [2, "key1", "key2", "WITHSCORES"])).to.eql([
+        "2",
+        "myKeyPrefix:key1",
+        "myKeyPrefix:key2",
+        "WITHSCORES",
+      ]);
+      expect(
+        prefixedArgs("zunion", [2, "key1", "key2", "WEIGHTS", 2, 3])
+      ).to.eql([
+        "2",
+        "myKeyPrefix:key1",
+        "myKeyPrefix:key2",
+        "WEIGHTS",
+        "2",
+        "3",
+      ]);
+      expect(
+        prefixedArgs("zintercard", [2, "key1", "key2", "LIMIT", 1])
+      ).to.eql(["2", "myKeyPrefix:key1", "myKeyPrefix:key2", "LIMIT", "1"]);
+      expect(prefixedArgs("zmpop", [2, "key1", "key2", "MIN"])).to.eql([
+        "2",
+        "myKeyPrefix:key1",
+        "myKeyPrefix:key2",
+        "MIN",
+      ]);
     });
   });
 

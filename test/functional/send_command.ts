@@ -208,6 +208,48 @@ describe("send command", () => {
     );
   });
 
+  it("should support key prefixing for zdiff", async () => {
+    const redis = new Redis({ keyPrefix: "foo:" });
+    await redis.zadd("zset1", 1, "one", 2, "two");
+    await redis.zadd("zset2", 1, "one", 3, "three");
+
+    expect(await redis.zdiff(2, "zset1", "zset2")).to.eql(["two"]);
+    expect(await redis.zdiff(2, ["zset1", "zset2"], "WITHSCORES")).to.eql([
+      "two",
+      "2",
+    ]);
+
+    const pipelined = await redis.pipeline().zdiff(2, "zset1", "zset2").exec();
+    expect(pipelined[0][1]).to.eql(["two"]);
+
+    expect(await redis.keys("*")).to.have.members(["foo:zset1", "foo:zset2"]);
+  });
+
+  it("should support key prefixing for zdiffstore, zinter, zunion, zintercard, and zmpop", async () => {
+    const redis = new Redis({ keyPrefix: "foo:" });
+    await redis.zadd("zset1", 1, "one", 2, "two");
+    await redis.zadd("zset2", 1, "one", 3, "three");
+
+    expect(await redis.zdiffstore("out", 2, "zset1", "zset2")).to.eql(1);
+    expect(await redis.zrange("out", 0, -1)).to.eql(["two"]);
+    expect(await redis.zinter(2, "zset1", "zset2")).to.eql(["one"]);
+    expect(await redis.zunion(2, "zset1", "zset2")).to.eql([
+      "one",
+      "two",
+      "three",
+    ]);
+    expect(await redis.zintercard(2, "zset1", "zset2", "LIMIT", 10)).to.eql(1);
+
+    const popped = await redis.zmpop(2, "zset1", "zset2", "MIN");
+    expect(popped[0]).to.eql("foo:zset1");
+
+    expect(await redis.keys("*")).to.have.members([
+      "foo:zset1",
+      "foo:zset2",
+      "foo:out",
+    ]);
+  });
+
   it("should support key prefixing for sort", (done) => {
     const redis = new Redis({ keyPrefix: "foo:" });
     redis.hset("object_1", "name", "better");
