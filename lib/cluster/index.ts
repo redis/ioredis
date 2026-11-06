@@ -882,8 +882,12 @@ class Cluster<
           if (!redis) {
             redis = _this.connectionPool.getSampleInstance("all");
           }
+          // Commands of a pipeline are not rejected one by one: a batch that loses
+          // a command here never flushes, and the commands that did reach a
+          // connection stay in its queue and take the replies of later commands.
           if (
             redis &&
+            !stream &&
             !_this.options.enableOfflineQueue &&
             redis.status !== "ready" &&
             redis.status !== "wait"
