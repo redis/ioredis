@@ -616,7 +616,10 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       return command.promise;
     }
 
-    if (typeof this.options.commandTimeout === "number") {
+    if (
+      typeof this.options.commandTimeout === "number" &&
+      !this.isBlockingCommand(command)
+    ) {
       const policy = this.maintenanceManager?.commandTimeoutPolicy();
       if (policy) {
         command.setTimeout(policy.timeout, policy.createTimeoutError);
@@ -841,6 +844,17 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
         this.staleWatch = false;
         break;
     }
+  }
+
+  /**
+   * Whether the command waits on the server by design. XREAD and XREADGROUP
+   * only block when they carry a BLOCK option.
+   */
+  private isBlockingCommand(command: Command): boolean {
+    return (
+      Command.checkFlag("BLOCKING_COMMANDS", command.name) &&
+      typeof command.extractBlockingTimeout() === "number"
+    );
   }
 
   private getBlockingTimeoutInMs(command: Command): number | undefined {

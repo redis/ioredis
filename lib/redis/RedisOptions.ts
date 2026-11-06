@@ -28,6 +28,10 @@ export interface CommonRedisOptions extends CommanderOptions {
   /**
    * If a command does not return a reply within a set number of milliseconds,
    * a "Command timed out" error will be thrown.
+   *
+   * Blocking commands, such as BLPOP or XREAD with the BLOCK option, are not
+   * subject to this timeout because they wait on the server by design. Use
+   * `blockingTimeout` to protect them on the client side.
    */
   commandTimeout?: number | undefined;
 
