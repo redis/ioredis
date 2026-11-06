@@ -1,4 +1,4 @@
-import { expectType } from "tsd";
+import { expectError, expectType } from "tsd";
 import { Cluster, Redis } from "../../built";
 
 const r2 = new Redis({ protocol: 2 });
@@ -141,6 +141,17 @@ expectType<Promise<string[]>>(r2.zdiff(2, "key1", "key2", "WITHSCORES"));
 expectType<Promise<ScoredMember[]>>(
   r3.zdiff(2, ["key1", "key2"], "WITHSCORES"),
 );
+// Spread calls without WITHSCORES stay on the member-list overload. The scores
+// overload has to keep WITHSCORES required, otherwise it also matches this call.
+expectType<Promise<string[]>>(r3.zdiff(1, "key"));
+expectType<Promise<ScoredMember[]>>(r3.zdiff(2, "key1", "key2", "WITHSCORES"));
+expectType<Promise<string[]>>(r3.zinter(2, "key1", "key2"));
+expectType<Promise<ScoredMember[]>>(r3.zinter(2, "key1", "WITHSCORES"));
+expectType<Promise<ScoredMember[]>>(
+  r3.zinter(2, "key1", "key2", "AGGREGATE", "SUM", "WITHSCORES"),
+);
+expectType<Promise<string[]>>(r3.zunion(2, "key1", "key2"));
+expectType<Promise<ScoredMember[]>>(r3.zunion(2, "key1", "key2", "WITHSCORES"));
 
 expectType<Promise<string[]>>(r2.zinter(2, "key1", "key2", "WITHSCORES"));
 expectType<Promise<ScoredMember[]>>(
@@ -177,6 +188,37 @@ expectType<Promise<Record<string, string | null>>>(
 );
 expectType<Promise<Record<string, VsimAttributes>>>(
   r3.vsim("key", "ELE", "member", "WITHSCORES", "WITHATTRIBS"),
+);
+
+// Callback overloads keep the option tuple inferable, including WITHSCORES
+// and WITHATTRIBS. The value is optional because the callback may be invoked
+// with no result when `err` is set.
+r3.vsim("key", "ELE", "member", (err, value) => {
+  expectType<Error | null | undefined>(err);
+  expectType<string[] | undefined>(value);
+});
+r3.vsim("key", "ELE", "member", "WITHSCORES", (err, value) => {
+  expectType<Error | null | undefined>(err);
+  expectType<Record<string, number> | undefined>(value);
+});
+r3.vsim("key", "ELE", "member", "WITHATTRIBS", (err, value) => {
+  expectType<Error | null | undefined>(err);
+  expectType<Record<string, string | null> | undefined>(value);
+});
+r3.vsim("key", "ELE", "member", "WITHSCORES", "WITHATTRIBS", (err, value) => {
+  expectType<Error | null | undefined>(err);
+  expectType<Record<string, VsimAttributes> | undefined>(value);
+});
+r3.vsimBuffer(
+  "key",
+  "ELE",
+  "member",
+  "WITHSCORES",
+  "WITHATTRIBS",
+  (err, value) => {
+    expectType<Error | null | undefined>(err);
+    expectType<Record<string, VsimBufferAttributes> | undefined>(value);
+  },
 );
 
 // Callback values use the same protocol-selected reply shapes.
@@ -304,6 +346,8 @@ expectType<Promise<(string | null)[]>>(r2.mget("key1", "key2"));
 expectType<Promise<(string | null)[]>>(r3.mget("key1", "key2"));
 expectType<Promise<[string, string] | null>>(r2.blpop("key", 1));
 expectType<Promise<[string, string] | null>>(r3.blpop("key", 1));
+expectType<Promise<[string, string] | null>>(r3.blpop("key1", "key2", 1));
+expectError(r3.blpop());
 expectType<Promise<Record<string, string>>>(r2.hgetall("key"));
 expectType<Promise<Record<string, string>>>(r3.hgetall("key"));
 expectType<Promise<Record<string, Buffer>>>(r2.hgetallBuffer("key"));

@@ -2,10 +2,12 @@
 
 // TypeScript 4.1 rejects tuple rest elements that are not last (TS1256).
 // Command overloads are written as [prefix..., ...rest, suffix..., callback].
-// Folding the suffix types into the rest element keeps that rest last, which
-// is valid on TypeScript 4.1, and still accepts the original argument order
-// (including a trailing callback). Moving the suffix in front of the rest
-// would typecheck only calls that pass those arguments first.
+// A generic spread `[...Rest, ...suffix]` is valid on TypeScript 4.0+ and keeps
+// each suffix required and ordered, so a WITHSCORES overload does not also
+// match calls that omit WITHSCORES. Unioning the suffix into the rest element
+// is not used: that makes the suffix optional, and when the rest element
+// already accepts the suffix (RedisKey includes string) the scores overload
+// steals the plain call.
 
 function skipString(source, start) {
   const quote = source[start];
@@ -87,38 +89,6 @@ function splitTopLevel(source, separator) {
   return parts;
 }
 
-function unwrapParens(type) {
-  let value = type.trim();
-  while (value.startsWith("(") && value.endsWith(")")) {
-    const close = findClosing(value, 0, "(", ")");
-    if (close !== value.length - 1) break;
-    value = value.slice(1, -1).trim();
-  }
-  return value;
-}
-
-function splitUnion(type) {
-  return splitTopLevel(unwrapParens(type), "|")
-    .map((part) => part.trim())
-    .filter(Boolean);
-}
-
-function stripTrailingArray(type) {
-  if (!type.endsWith("[]")) return null;
-  const element = type.slice(0, -2).trim();
-  if (!element) return null;
-  return element;
-}
-
-function restElementTypes(restType) {
-  const arrayElement = stripTrailingArray(restType.trim());
-  if (arrayElement !== null) return splitUnion(arrayElement);
-  if (/^[A-Za-z_$][\w$]*$/.test(restType.trim())) {
-    return [`${restType.trim()}[number]`];
-  }
-  return splitUnion(`${restType.trim()}[number]`);
-}
-
 function parseElement(element) {
   const trimmed = element.trim();
   if (!trimmed) return null;
@@ -138,9 +108,24 @@ function formatElement(element) {
   return `${element.name}${element.optional ? "?" : ""}: ${element.type}`;
 }
 
-// Returns the rewritten tuple interior, or null when the tuple is already valid
-// or cannot be parsed safely.
-function foldTuple(inner) {
+function isTypeParamReference(type) {
+  return /^[A-Za-z_$][\w$]*$/.test(type);
+}
+
+// Unlabeled so the inner `[...Rest, ...suffix]` tuple stays homogeneous.
+// TypeScript 4.1 rejects a mix of named and unnamed tuple members (TS5084).
+function formatSuffix(element) {
+  if (!element.optional) return element.type;
+  return /[|&]/.test(element.type) ? `(${element.type})?` : `${element.type}?`;
+}
+
+// Returns a rewrite for a tuple whose rest element is not last, or null when
+// the tuple is already valid or cannot be parsed safely.
+//
+// Array rests (`...keys: (RedisKey)[]`) introduce a fresh type parameter.
+// Type-parameter rests (`...args: T`) are spread in place so `T` stays the
+// tuple of values before the suffix and callback inference still sees it.
+function foldTuple(inner, nextToken) {
   const elements = splitTopLevel(inner, ",")
     .map((part) => part.trim())
     .filter(Boolean)
@@ -158,23 +143,24 @@ function foldTuple(inner) {
 
   const prefix = elements.slice(0, restIndex);
   const rest = elements[restIndex];
-  const suffix = elements.slice(restIndex + 1);
-  const types = [];
-  for (const type of [
-    ...restElementTypes(rest.type),
-    ...suffix.flatMap((element) => splitUnion(element.type)),
-  ]) {
-    if (!types.includes(type)) types.push(type);
-  }
-
-  return [
+  const suffix = elements.slice(restIndex + 1).map(formatSuffix);
+  const reuseTypeParam = isTypeParamReference(rest.type);
+  const spread = reuseTypeParam ? rest.type : nextToken();
+  const parts = [
     ...prefix.map(formatElement),
-    `...${rest.name}: (${types.join(" | ")})[]`,
-  ].join(", ");
+    `...${rest.name}: [${["..." + spread, ...suffix].join(", ")}]`,
+  ];
+  return {
+    interior: parts.join(", "),
+    binding: reuseTypeParam
+      ? null
+      : { token: spread, constraint: rest.type.trim() },
+  };
 }
 
-function transformTuples(source) {
+function transformTuples(source, state) {
   let out = "";
+  const nextToken = () => `___RestParam_${state.nextId++}___`;
   for (let i = 0; i < source.length; i++) {
     const c = source[i];
     if (c === "'" || c === '"' || c === "`") {
@@ -199,13 +185,136 @@ function transformTuples(source) {
     }
     if (c === "[") {
       const close = findClosing(source, i, "[", "]");
-      const inner = transformTuples(source.slice(i + 1, close));
-      const folded = foldTuple(inner);
-      out += `[${folded == null ? inner : folded}]`;
+      const inner = transformTuples(source.slice(i + 1, close), state);
+      const folded = foldTuple(inner, nextToken);
+      if (folded == null) {
+        out += `[${inner}]`;
+      } else {
+        if (folded.binding) state.bindings.push(folded.binding);
+        out += `[${folded.interior}]`;
+      }
       i = close;
       continue;
     }
     out += c;
+  }
+  return out;
+}
+
+function findFunctionParenBefore(source, index) {
+  let square = 0;
+  let paren = 0;
+  let angle = 0;
+  let brace = 0;
+  for (let i = index - 1; i >= 0; i--) {
+    const c = source[i];
+    if (c === "'" || c === '"' || c === "`") {
+      i = skipStringBackward(source, i);
+      continue;
+    }
+    if (c === "]") square++;
+    else if (c === "[") square = Math.max(0, square - 1);
+    else if (c === ")") paren++;
+    else if (c === "(") {
+      if (paren === 0 && square === 0 && angle === 0 && brace === 0) return i;
+      paren = Math.max(0, paren - 1);
+    } else if (c === ">") angle++;
+    else if (c === "<") angle = Math.max(0, angle - 1);
+    else if (c === "}") brace++;
+    else if (c === "{") brace = Math.max(0, brace - 1);
+  }
+  return -1;
+}
+
+function skipStringBackward(source, end) {
+  const quote = source[end];
+  for (let i = end - 1; i >= 0; i--) {
+    let slashes = 0;
+    while (i - slashes >= 0 && source[i - slashes] === "\\") slashes++;
+    if (source[i] === quote && slashes % 2 === 0) return i;
+  }
+  return 0;
+}
+
+function existingTypeParamNames(source, parenIndex) {
+  let j = parenIndex - 1;
+  while (j >= 0 && /\s/.test(source[j])) j--;
+  if (source[j] !== ">") return [];
+  let depth = 0;
+  let open = -1;
+  for (let k = j; k >= 0; k--) {
+    if (source[k] === ">") depth++;
+    else if (source[k] === "<") {
+      depth--;
+      if (depth === 0) {
+        open = k;
+        break;
+      }
+    }
+  }
+  if (open < 0) return [];
+  return splitTopLevel(source.slice(open + 1, j), ",")
+    .map((part) => {
+      const match = part.trim().match(/^([A-Za-z_$][\w$]*)/);
+      return match ? match[1] : null;
+    })
+    .filter(Boolean);
+}
+
+function insertTypeParam(source, parenIndex, constraint) {
+  const names = existingTypeParamNames(source, parenIndex);
+  let chosen = "Rest";
+  let n = 2;
+  while (names.includes(chosen)) {
+    chosen = `Rest${n}`;
+    n++;
+  }
+  let j = parenIndex - 1;
+  while (j >= 0 && /\s/.test(source[j])) j--;
+  if (source[j] === ">") {
+    return {
+      text:
+        source.slice(0, j) +
+        `, ${chosen} extends ${constraint}` +
+        source.slice(j),
+      chosen,
+    };
+  }
+  return {
+    text:
+      source.slice(0, parenIndex) +
+      `<${chosen} extends ${constraint}>` +
+      source.slice(parenIndex),
+    chosen,
+  };
+}
+
+function bindRestParams(source, bindings) {
+  let out = source;
+  for (const binding of bindings) {
+    const idx = out.indexOf(binding.token);
+    if (idx < 0) {
+      throw new Error(`Missing rest placeholder ${binding.token}`);
+    }
+    const paren = findFunctionParenBefore(out, idx);
+    if (paren < 0) {
+      throw new Error(
+        `No function signature for rest placeholder ${binding.token}`
+      );
+    }
+    const inserted = insertTypeParam(out, paren, binding.constraint);
+    const shift = inserted.text.length - out.length;
+    const tokenIdx = idx + shift;
+    if (
+      inserted.text.slice(tokenIdx, tokenIdx + binding.token.length) !==
+      binding.token
+    ) {
+      throw new Error(`Rest placeholder ${binding.token} moved unexpectedly`);
+    }
+    out =
+      inserted.text.slice(0, tokenIdx) +
+      inserted.chosen +
+      inserted.text.slice(tokenIdx + binding.token.length);
   }
   return out;
 }
@@ -261,7 +370,9 @@ function reorderLooseOverloads(source) {
 }
 
 function ensureRestElementsLast(source) {
-  return reorderLooseOverloads(transformTuples(source));
+  const state = { nextId: 0, bindings: [] };
+  const transformed = transformTuples(source, state);
+  return reorderLooseOverloads(bindRestParams(transformed, state.bindings));
 }
 
 module.exports = ensureRestElementsLast;

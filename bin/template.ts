@@ -93,10 +93,14 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
     callback?: Callback<unknown>,
   ): Result<unknown, Context>;
   call(
-    ...args: [command: string, ...args: (string | Buffer | number)[]]
+    ...args: [
+      command: string,
+      ...args: (string | Buffer | number)[],
+      callback: Callback<unknown>,
+    ]
   ): Result<unknown, Context>;
   call(
-    ...args: [command: string, ...args: (string | Buffer | number | Callback<unknown>)[]]
+    ...args: [command: string, ...args: (string | Buffer | number)[]]
   ): Result<unknown, Context>;
   callBuffer(
     command: string,
@@ -108,10 +112,14 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
     callback?: Callback<unknown>,
   ): Result<unknown, Context>;
   callBuffer(
-    ...args: [command: string, ...args: (string | Buffer | number)[]]
+    ...args: [
+      command: string,
+      ...args: (string | Buffer | number)[],
+      callback: Callback<unknown>,
+    ]
   ): Result<unknown, Context>;
   callBuffer(
-    ...args: [command: string, ...args: (string | Buffer | number | Callback<unknown>)[]]
+    ...args: [command: string, ...args: (string | Buffer | number)[]]
   ): Result<unknown, Context>;
 
   ////

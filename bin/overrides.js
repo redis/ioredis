@@ -47,21 +47,21 @@ module.exports = {
     overwrite: true,
     defs: [
       "$1(key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, callback: Callback<number[]>): Result<number[], Context>;",
+      "$1(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: RedisValue[], callback: Callback<number[] | Array<[index: number, value: string]>>]): Result<number[] | Array<[index: number, value: string]>, Context>;",
       "$1<T extends RedisValue[]>(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: T]): Result<'WITHVALUES' extends T[number] ? Array<[index: number, value: string]> : number[], Context>;",
-      "$1(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: (RedisValue | Callback<number[] | Array<[index: number, value: string]>>)[]]): Result<number[] | Array<[index: number, value: string]>, Context>;",
       "$1Buffer(key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, callback: Callback<number[]>): Result<number[], Context>;",
+      "$1Buffer(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: RedisValue[], callback: Callback<number[] | Array<[index: number, value: Buffer]>>]): Result<number[] | Array<[index: number, value: Buffer]>, Context>;",
       "$1Buffer<T extends RedisValue[]>(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: T]): Result<'WITHVALUES' extends T[number] ? Array<[index: number, value: Buffer]> : number[], Context>;",
-      "$1Buffer(...args: [key: RedisKey, start: number | string, end: number | string, predicate: 'EXACT' | 'MATCH' | 'GLOB' | 'RE', value: RedisValue, ...args: (RedisValue | Callback<number[] | Array<[index: number, value: Buffer]>>)[]]): Result<number[] | Array<[index: number, value: Buffer]>, Context>;",
     ],
   },
   vsim: {
     overwrite: true,
     // Return shape lives in `VsimReply` (bin/template.ts) so it stays readable.
     defs: [
+      "$1<T extends RedisValue[]>(...args: [key: RedisKey, ...args: T, callback: Callback<VsimReply<T, string, Context>>]): Result<VsimReply<T, string, Context>, Context>;",
+      "$1Buffer<T extends RedisValue[]>(...args: [key: RedisKey, ...args: T, callback: Callback<VsimReply<T, Buffer, Context>>]): Result<VsimReply<T, Buffer, Context>, Context>;",
       "$1<T extends RedisValue[]>(...args: [key: RedisKey, ...args: T]): Result<VsimReply<T, string, Context>, Context>;",
       "$1Buffer<T extends RedisValue[]>(...args: [key: RedisKey, ...args: T]): Result<VsimReply<T, Buffer, Context>, Context>;",
-      "$1<T extends RedisValue[]>(...args: [key: RedisKey, ...args: (T[number] | Callback<VsimReply<T, string, Context>>)[]]): Result<VsimReply<T, string, Context>, Context>;",
-      "$1Buffer<T extends RedisValue[]>(...args: [key: RedisKey, ...args: (T[number] | Callback<VsimReply<T, Buffer, Context>>)[]]): Result<VsimReply<T, Buffer, Context>, Context>;",
     ],
   },
   exec: {
