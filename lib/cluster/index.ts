@@ -667,6 +667,11 @@ class Cluster<
         to = "master";
       }
     }
+    // A pipeline goes to one node, so its first command picks the role.
+    if (node) {
+      node.to = node.to || to;
+      to = node.to;
+    }
 
     let targetSlot = node ? node.slot : command.getSlot();
     const ttl = {};
@@ -858,12 +863,24 @@ class Cluster<
               redis = _this.connectionPool.getInstanceByKey(asking);
             }
           }
+          if (!redis && typeof to !== "function") {
+            redis = _this.connectionPool.getSampleInstance(to);
+          }
+          if (!redis && to === "master" && _this.status === "ready") {
+            // A replica would run a script instead of answering MOVED, so
+            // handle this like a lost connection. handleError() only refreshes
+            // the slots when it retries.
+            if (
+              !(_this.options.retryDelayOnFailover > 0) ||
+              !(_this.options.maxRedirections > 0)
+            ) {
+              _this.refreshSlotsCache();
+            }
+            command.reject(new Error(CONNECTION_CLOSED_ERROR_MSG));
+            return;
+          }
           if (!redis) {
-            redis =
-              (typeof to === "function"
-                ? null
-                : _this.connectionPool.getSampleInstance(to)) ||
-              _this.connectionPool.getSampleInstance("all");
+            redis = _this.connectionPool.getSampleInstance("all");
           }
           if (
             redis &&
