@@ -55,7 +55,7 @@ export default class ClusterSubscriberGroup {
       sub
         .start()
         .then(() => {
-          this.handleSubscriberConnectSucceeded(sub.getNodeKey());
+          this.handleSubscriberConnectSucceeded(sub);
         })
         .catch((err) => {
           this.handleSubscriberConnectFailed(err, sub.getNodeKey());
@@ -202,7 +202,7 @@ export default class ClusterSubscriberGroup {
           s
             .start()
             .then(() => {
-              this.handleSubscriberConnectSucceeded(s.getNodeKey());
+              this.handleSubscriberConnectSucceeded(s);
             })
             .catch((err) => {
               this.handleSubscriberConnectFailed(err, s.getNodeKey());
@@ -274,7 +274,7 @@ export default class ClusterSubscriberGroup {
               existingSubscriber
                 .start()
                 .then(() => {
-                  this.handleSubscriberConnectSucceeded(nodeKey);
+                  this.handleSubscriberConnectSucceeded(existingSubscriber);
                 })
                 .catch((error) => {
                   this.handleSubscriberConnectFailed(error, nodeKey);
@@ -308,6 +308,7 @@ export default class ClusterSubscriberGroup {
           this.subscriberGroupEmitter,
           redis.options,
           this.options.redisOptions,
+          this.options.shardedSubscriberHealthCheckInterval,
         );
 
         this.shardedSubscribers.set(nodeKey, sub);
@@ -317,7 +318,7 @@ export default class ClusterSubscriberGroup {
             sub
               .start()
               .then(() => {
-                this.handleSubscriberConnectSucceeded(nodeKey);
+                this.handleSubscriberConnectSucceeded(sub);
               })
               .catch((error) => {
                 this.handleSubscriberConnectFailed(error, nodeKey);
@@ -502,11 +503,14 @@ export default class ClusterSubscriberGroup {
 
   /**
    * Handles successful subscriber connections by resetting the failed attempts counter.
+   * A start that stop() cut short also settles, but it never connected.
    *
-   * @param nodeKey
+   * @param sub
    */
-  private handleSubscriberConnectSucceeded = (nodeKey: string) => {
-    this.failedAttemptsByNode.delete(nodeKey);
+  private handleSubscriberConnectSucceeded = (sub: ShardedSubscriber) => {
+    if (sub.subscriberStatus === "connected") {
+      this.failedAttemptsByNode.delete(sub.getNodeKey());
+    }
   };
 
   private shouldStartSubscriber(sub: ShardedSubscriber): boolean {
