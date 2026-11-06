@@ -3,6 +3,7 @@ const argumentTypes = require("./argumentTypes");
 const sortArguments = require("./sortArguments");
 const typeMaps = require("./typeMaps");
 const overrides = require("./overrides");
+const ensureRestElementsLast = require("./restElement");
 const { getCommanderInterface } = require("@ioredis/interface-generator");
 
 const HEADER = `/**
@@ -49,7 +50,7 @@ async function main() {
 
   fs.writeFileSync(
     path.join(__dirname, "..", "lib/utils/RedisCommander.ts"),
-    HEADER + template.replace("////", () => interface)
+    ensureRestElementsLast(HEADER + template.replace("////", () => interface))
   );
 }
 
