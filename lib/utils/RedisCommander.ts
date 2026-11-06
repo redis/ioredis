@@ -563,6 +563,25 @@ interface RedisCommander<Context extends ClientContext = { type: "default" }> {
   bitpos(key: RedisKey, bit: number | string, start: number | string, end: number | string, callback?: Callback<number>): Result<number, Context>;
 
   /**
+   * Returns the offsets of the set or clear bits in a range of a bitmap.
+   * - _group_: bitmap
+   * - _complexity_: O(N + M) where N is the number of bytes in the range for a string, or the number of bitmap containers in the range (and of runs of set bits in it, with ZEROS), and M is the number of returned integers. With LIMIT, the scan stops after count matches, or after completing their last byte in BYTE units.
+   * - _since_: 8.12.0
+   */
+  bitrangeintarray(key: RedisKey, start: number | string, end: number | string, byte: 'BYTE', countToken: 'LIMIT', count: number | string, zeros: 'ZEROS', callback?: Callback<number[]>): Result<number[], Context>;
+  bitrangeintarray(key: RedisKey, start: number | string, end: number | string, bit: 'BIT', countToken: 'LIMIT', count: number | string, zeros: 'ZEROS', callback?: Callback<number[]>): Result<number[], Context>;
+  bitrangeintarray(key: RedisKey, start: number | string, end: number | string, countToken: 'LIMIT', count: number | string, zeros: 'ZEROS', callback?: Callback<number[]>): Result<number[], Context>;
+  bitrangeintarray(key: RedisKey, start: number | string, end: number | string, byte: 'BYTE', zeros: 'ZEROS', callback?: Callback<number[]>): Result<number[], Context>;
+  bitrangeintarray(key: RedisKey, start: number | string, end: number | string, byte: 'BYTE', countToken: 'LIMIT', count: number | string, callback?: Callback<number[]>): Result<number[], Context>;
+  bitrangeintarray(key: RedisKey, start: number | string, end: number | string, bit: 'BIT', zeros: 'ZEROS', callback?: Callback<number[]>): Result<number[], Context>;
+  bitrangeintarray(key: RedisKey, start: number | string, end: number | string, bit: 'BIT', countToken: 'LIMIT', count: number | string, callback?: Callback<number[]>): Result<number[], Context>;
+  bitrangeintarray(key: RedisKey, start: number | string, end: number | string, zeros: 'ZEROS', callback?: Callback<number[]>): Result<number[], Context>;
+  bitrangeintarray(key: RedisKey, start: number | string, end: number | string, countToken: 'LIMIT', count: number | string, callback?: Callback<number[]>): Result<number[], Context>;
+  bitrangeintarray(key: RedisKey, start: number | string, end: number | string, byte: 'BYTE', callback?: Callback<number[]>): Result<number[], Context>;
+  bitrangeintarray(key: RedisKey, start: number | string, end: number | string, bit: 'BIT', callback?: Callback<number[]>): Result<number[], Context>;
+  bitrangeintarray(key: RedisKey, start: number | string, end: number | string, callback?: Callback<number[]>): Result<number[], Context>;
+
+  /**
    * Removes protection flags from a key.
    * - _group_: generic
    * - _complexity_: O(1)

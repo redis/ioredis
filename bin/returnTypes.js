@@ -133,6 +133,7 @@ module.exports = {
   bitfield_ro: "unknown[]",
   bitop: "number",
   bitpos: "number",
+  bitrangeintarray: "number[]",
   blpop: "[string, string] | null",
   brpop: "[string, string] | null",
   brpoplpush: "string | null",
