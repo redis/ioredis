@@ -132,7 +132,7 @@ class Cluster<
   private isRefreshing = false;
   private _refreshSlotsCacheCallbacks = [];
   private _autoPipelines: Map<string, typeof Pipeline> = new Map();
-  private _runningAutoPipelines: Set<string> = new Set();
+  private _runningAutoPipelines: Map<string, number> = new Map();
   private _readyDelayedCallbacks: Callback[] = [];
   private subscriberGroupEmitter: EventEmitter | null;
 

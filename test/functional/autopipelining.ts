@@ -1,6 +1,7 @@
 import { expect, use } from "chai";
 import Redis from "../../lib/Redis";
 import { getCommandsFromMonitor } from "../helpers/util";
+import * as sinon from "sinon";
 
 use(require("chai-as-promised"));
 
@@ -369,5 +370,234 @@ describe("autoPipelining for single node", () => {
     });
 
     expect(redis.autoPipelineQueueSize).to.eql(2);
+  });
+
+  describe("order of commands that bypass auto pipelining", () => {
+    it("should not let a transaction overtake earlier commands", async () => {
+      const redis = new Redis({ enableAutoPipelining: true });
+      await redis.set("foo", "init");
+
+      const set = redis.set("foo", "first");
+      const result = await redis.multi().set("foo", "second").exec();
+      expect(await set).to.eql("OK");
+      expect(result).to.eql([[null, "OK"]]);
+      expect(await redis.get("foo")).to.eql("second");
+      redis.disconnect();
+    });
+
+    it("should not let a pipeline overtake earlier commands", async () => {
+      const redis = new Redis({ enableAutoPipelining: true });
+      await redis.set("counter", "10");
+
+      const del = redis.del("counter");
+      const result = await redis.pipeline().incr("counter").exec();
+      expect(await del).to.eql(1);
+      expect(result).to.eql([[null, 1]]);
+      redis.disconnect();
+    });
+
+    it("should not let SELECT overtake earlier commands", async () => {
+      const redis = new Redis({ enableAutoPipelining: true });
+      await redis.flushall();
+
+      const set = redis.set("foo", "db0");
+      await redis.select(1);
+      expect(await set).to.eql("OK");
+      expect(await redis.get("foo")).to.eql(null);
+      await redis.select(0);
+      expect(await redis.get("foo")).to.eql("db0");
+      redis.disconnect();
+    });
+
+    it("should not let an ignored command overtake earlier commands", async () => {
+      const redis = new Redis({
+        enableAutoPipelining: true,
+        autoPipeliningIgnoredCommands: ["incr"],
+      });
+      await redis.del("counter");
+
+      const set = redis.set("counter", "5");
+      expect(await redis.incr("counter")).to.eql(6);
+      expect(await set).to.eql("OK");
+      redis.disconnect();
+    });
+
+    it("should send commands waiting for a running auto pipeline first", async () => {
+      const redis = new Redis({ enableAutoPipelining: true });
+      await redis.set("foo", "init");
+
+      // The first auto pipeline is written on the next event loop iteration.
+      const first = redis.set("foo", "first");
+      await new Promise((resolve) => setImmediate(resolve));
+      // This one waits for the first auto pipeline to finish...
+      const second = redis.set("foo", "second");
+      expect(redis.autoPipelineQueueSize).to.eql(1);
+      // ...but must still reach Redis before the transaction.
+      const result = await redis.multi().get("foo").exec();
+      expect(result).to.eql([[null, "second"]]);
+      expect(await first).to.eql("OK");
+      expect(await second).to.eql("OK");
+      expect(redis.autoPipelineQueueSize).to.eql(0);
+      redis.disconnect();
+    });
+
+    it("should keep the order on the wire", async () => {
+      const redis = new Redis({ enableAutoPipelining: true });
+      await redis.ping();
+
+      const commands = await getCommandsFromMonitor(redis, 5, () =>
+        Promise.all([
+          redis.set("foo", "1"),
+          redis.get("foo"),
+          redis.multi().get("foo").exec(),
+          redis.set("foo", "2"),
+        ])
+      );
+      expect(commands).to.eql([
+        ["set", "foo", "1"],
+        ["get", "foo"],
+        ["multi"],
+        ["get", "foo"],
+        ["exec"],
+      ]);
+      redis.disconnect();
+    });
+
+    it("should support multi({ pipeline: false })", async () => {
+      const redis = new Redis({ enableAutoPipelining: true });
+      await redis.del("foo");
+
+      const results = await Promise.all([
+        redis.multi({ pipeline: false }),
+        redis.set("foo", "bar"),
+        redis.get("foo"),
+        redis.exec(),
+        redis.get("foo"),
+      ]);
+      expect(results).to.eql([
+        "OK",
+        "QUEUED",
+        "QUEUED",
+        [
+          [null, "OK"],
+          [null, "bar"],
+        ],
+        "bar",
+      ]);
+      redis.disconnect();
+    });
+
+    it("should not send waiting auto pipelined commands while restoring the db after the offline queue", async () => {
+      const admin = new Redis();
+      await admin.flushall();
+      const redis = new Redis({
+        enableAutoPipelining: true,
+        enableReadyCheck: false,
+      });
+
+      // Queued offline in db 2. The auto pipeline holding the GET is running.
+      const select = redis.select(2);
+      const get = redis.get("foo");
+      await new Promise((resolve) => setImmediate(resolve));
+
+      const pending = await new Promise<Promise<unknown>[]>((resolve) => {
+        redis.once("connect", () => {
+          // SELECT is written during the handshake, so the ready handler
+          // selects db 0 again after replaying the offline queue in db 2.
+          const select0 = redis.select(0);
+          // Issued in db 0, it waits for the running auto pipeline.
+          const set = redis.set("foo", "bar");
+          resolve([select, get, select0, set]);
+        });
+      });
+      expect(await Promise.all(pending)).to.eql(["OK", null, "OK", "OK"]);
+
+      expect(await admin.get("foo")).to.eql("bar");
+      await admin.select(2);
+      expect(await admin.get("foo")).to.eql(null);
+      admin.disconnect();
+      redis.disconnect();
+    });
+
+    it("should keep the order of commands issued before the connection is ready", async () => {
+      const admin = new Redis();
+      await admin.flushall();
+      admin.disconnect();
+      const redis = new Redis({
+        enableAutoPipelining: true,
+        lazyConnect: true,
+      });
+      expect(redis.status).to.eql("wait");
+
+      const results = await Promise.all([
+        redis.set("foo", "db0"),
+        redis.select(1),
+        redis.set("foo", "db1"),
+        redis.multi().get("foo").exec(),
+        redis.select(0),
+        redis.get("foo"),
+      ]);
+      expect(results).to.eql(["OK", "OK", "OK", [[null, "db1"]], "OK", "db0"]);
+      redis.disconnect();
+    });
+
+    it("should not send waiting auto pipelines when retrying a command after reconnectOnError", async () => {
+      const admin = new Redis();
+      await admin.flushall();
+      await admin.select(1);
+      await admin.set("str", "x");
+      admin.disconnect();
+
+      let retried = false;
+      const redis = new Redis({
+        enableAutoPipelining: true,
+        reconnectOnError: (err) => {
+          if (!retried && err.message.startsWith("WRONGTYPE")) {
+            retried = true;
+            return 2;
+          }
+          return false;
+        },
+      });
+      await redis.select(1);
+      // The retry must re-select the db without going through select(),
+      // which would first send the commands waiting in auto pipelines.
+      const selectSpy = sinon.spy(redis, "select");
+      const replaySpy = sinon.spy(redis as any, "replaySelect");
+      // LPUSH fails in db 1 after SELECT 0 was sent, so the retry has to
+      // select db 1 again first.
+      const failed = redis.lpush("str", "a").catch((err) => err.message);
+      const select = redis.select(0);
+      expect(await failed).to.match(/^WRONGTYPE/);
+      expect(await select).to.eql("OK");
+      expect(retried).to.eql(true);
+      const retrySelects = selectSpy
+        .getCalls()
+        .filter((call) => /handleReconnection/.test(call.stack || ""));
+      expect(retrySelects).to.have.length(0);
+      expect(replaySpy.called).to.eql(true);
+      redis.disconnect();
+    });
+
+    it("should not send waiting auto pipelines when resubscribing after a reconnect", async () => {
+      const redis = new Redis({ enableAutoPipelining: true });
+      await redis.subscribe("chan");
+      const subscribeSpy = sinon.spy(redis, "subscribe");
+      await new Promise<void>((resolve) => {
+        redis.once("ready", () => resolve());
+        redis.stream.destroy();
+      });
+      // Wait for the SUBSCRIBE reply after the reconnect.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(subscribeSpy.called).to.eql(false);
+      const pub = new Redis();
+      const received = new Promise((resolve) =>
+        redis.once("message", (channel, message) => resolve([channel, message]))
+      );
+      await pub.publish("chan", "hello");
+      expect(await received).to.eql(["chan", "hello"]);
+      pub.disconnect();
+      redis.disconnect();
+    });
   });
 });

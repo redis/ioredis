@@ -14,6 +14,8 @@ export const notAllowedAutoPipelineCommands = [
   "cluster",
   "pipeline",
   "multi",
+  // Pipeline#exec runs the pipeline instead of queueing an EXEC command.
+  "exec",
   "subscribe",
   "psubscribe",
   "unsubscribe",
@@ -25,12 +27,13 @@ export const notAllowedAutoPipelineCommands = [
   "himport",
 ];
 
-function executeAutoPipeline(client, slotKey: string) {
+function executeAutoPipeline(client, slotKey: string, force = false) {
   /*
     If a pipeline is already executing, keep queueing up commands
-    since ioredis won't serve two pipelines at the same time
+    since ioredis won't serve two pipelines at the same time.
+    `force` skips this wait: see flushAutoPipelines().
   */
-  if (client._runningAutoPipelines.has(slotKey)) {
+  if (!force && client._runningAutoPipelines.has(slotKey)) {
     return;
   }
   if (!client._autoPipelines.has(slotKey)) {
@@ -44,7 +47,12 @@ function executeAutoPipeline(client, slotKey: string) {
     return;
   }
 
-  client._runningAutoPipelines.add(slotKey);
+  // Count the running pipelines: a forced flush can start one while another
+  // is still executing on the same slot key.
+  client._runningAutoPipelines.set(
+    slotKey,
+    (client._runningAutoPipelines.get(slotKey) || 0) + 1
+  );
 
   // Get the pipeline and immediately delete it so that new commands are queued on a new pipeline
   const pipeline = client._autoPipelines.get(slotKey);
@@ -58,7 +66,12 @@ function executeAutoPipeline(client, slotKey: string) {
 
   // Perform the call
   pipeline.exec(function (err, results) {
-    client._runningAutoPipelines.delete(slotKey);
+    const running = client._runningAutoPipelines.get(slotKey) - 1;
+    if (running > 0) {
+      client._runningAutoPipelines.set(slotKey, running);
+    } else {
+      client._runningAutoPipelines.delete(slotKey);
+    }
 
     /*
       Invoke all callback in nextTick so the stack is cleared 
@@ -75,10 +88,37 @@ function executeAutoPipeline(client, slotKey: string) {
     }
 
     // If there is another pipeline on the same node, immediately execute it without waiting for nextTick
-    if (client._autoPipelines.has(slotKey)) {
+    if (running <= 0 && client._autoPipelines.has(slotKey)) {
       executeAutoPipeline(client, slotKey);
     }
   });
+}
+
+/**
+ * Send the commands still waiting in the auto pipelines of `client` now.
+ *
+ * Called before a command that does not go through auto pipelining (an
+ * explicit pipeline or transaction, a command that can't be auto pipelined
+ * such as SELECT or MULTI, or one in `autoPipeliningIgnoredCommands`) is
+ * sent. Without this, such a command is written right away while commands
+ * issued before it wait for the next event loop iteration (or for the
+ * running auto pipeline to finish), so it would reach Redis first.
+ */
+export function flushAutoPipelines(client): void {
+  const autoPipelines: Map<string, unknown> | undefined = client._autoPipelines;
+  if (!autoPipelines || autoPipelines.size === 0) {
+    return;
+  }
+  // In Cluster mode a running auto pipeline can be retried after a delay
+  // (TRYAGAIN, CLUSTERDOWN, MOVED/ASK), so starting the next pipeline for the
+  // same slot key next to it could let later writes land first. Keep the
+  // existing one-pipeline-at-a-time rule there and only send pipelines that
+  // are not waiting behind a running one. On a single connection, commands
+  // are written and answered in order, so the queued pipeline can go now.
+  const force = !client.isCluster;
+  for (const slotKey of Array.from(autoPipelines.keys())) {
+    executeAutoPipeline(client, slotKey, force);
+  }
 }
 
 export function shouldUseAutoPipelining(
