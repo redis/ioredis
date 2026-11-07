@@ -476,6 +476,14 @@ export function readyHandler(self, flushOfflineQueue: () => void) {
       return;
     }
     const finalSelect = self.condition.select;
+    // Sent with sendCommand() rather than subscribe(): the command methods
+    // first send what is still waiting in an auto pipeline, and those
+    // commands were issued after the ones replayed below.
+    const resubscribe = (name: string, channels: (string | Buffer)[]) => {
+      const command = new Command(name, channels);
+      command.promise.catch((err) => self.silentEmit("error", err));
+      self.sendCommand(command);
+    };
 
     if (self.prevCondition) {
       const condition = self.prevCondition;
@@ -490,24 +498,18 @@ export function readyHandler(self, flushOfflineQueue: () => void) {
         const subscribeChannels = condition.subscriber.channels("subscribe");
         if (subscribeChannels.length) {
           debug("subscribe %d channels", subscribeChannels.length);
-          self
-            .subscribe(subscribeChannels)
-            .catch((err) => self.silentEmit("error", err));
+          resubscribe("subscribe", subscribeChannels);
         }
         const psubscribeChannels = condition.subscriber.channels("psubscribe");
         if (psubscribeChannels.length) {
           debug("psubscribe %d channels", psubscribeChannels.length);
-          self
-            .psubscribe(psubscribeChannels)
-            .catch((err) => self.silentEmit("error", err));
+          resubscribe("psubscribe", psubscribeChannels);
         }
         const ssubscribeChannels = condition.subscriber.channels("ssubscribe");
         if (ssubscribeChannels.length) {
           debug("ssubscribe %s", ssubscribeChannels.length);
           for (const channel of ssubscribeChannels) {
-            self
-              .ssubscribe(channel)
-              .catch((err) => self.silentEmit("error", err));
+            resubscribe("ssubscribe", [channel]);
           }
         }
       }

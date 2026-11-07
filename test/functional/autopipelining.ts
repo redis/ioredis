@@ -1,6 +1,7 @@
 import { expect, use } from "chai";
 import Redis from "../../lib/Redis";
 import { getCommandsFromMonitor } from "../helpers/util";
+import * as sinon from "sinon";
 
 use(require("chai-as-promised"));
 
@@ -537,6 +538,65 @@ describe("autoPipelining for single node", () => {
         redis.get("foo"),
       ]);
       expect(results).to.eql(["OK", "OK", "OK", [[null, "db1"]], "OK", "db0"]);
+      redis.disconnect();
+    });
+
+    it("should not send waiting auto pipelines when retrying a command after reconnectOnError", async () => {
+      const admin = new Redis();
+      await admin.flushall();
+      await admin.select(1);
+      await admin.set("str", "x");
+      admin.disconnect();
+
+      let retried = false;
+      const redis = new Redis({
+        enableAutoPipelining: true,
+        reconnectOnError: (err) => {
+          if (!retried && err.message.startsWith("WRONGTYPE")) {
+            retried = true;
+            return 2;
+          }
+          return false;
+        },
+      });
+      await redis.select(1);
+      // The retry must re-select the db without going through select(),
+      // which would first send the commands waiting in auto pipelines.
+      const selectSpy = sinon.spy(redis, "select");
+      const replaySpy = sinon.spy(redis as any, "replaySelect");
+      // LPUSH fails in db 1 after SELECT 0 was sent, so the retry has to
+      // select db 1 again first.
+      const failed = redis.lpush("str", "a").catch((err) => err.message);
+      const select = redis.select(0);
+      expect(await failed).to.match(/^WRONGTYPE/);
+      expect(await select).to.eql("OK");
+      expect(retried).to.eql(true);
+      const retrySelects = selectSpy
+        .getCalls()
+        .filter((call) => /handleReconnection/.test(call.stack || ""));
+      expect(retrySelects).to.have.length(0);
+      expect(replaySpy.called).to.eql(true);
+      redis.disconnect();
+    });
+
+    it("should not send waiting auto pipelines when resubscribing after a reconnect", async () => {
+      const redis = new Redis({ enableAutoPipelining: true });
+      await redis.subscribe("chan");
+      const subscribeSpy = sinon.spy(redis, "subscribe");
+      await new Promise<void>((resolve) => {
+        redis.once("ready", () => resolve());
+        redis.stream.destroy();
+      });
+      // Wait for the SUBSCRIBE reply after the reconnect.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(subscribeSpy.called).to.eql(false);
+      const pub = new Redis();
+      const received = new Promise((resolve) =>
+        redis.once("message", (channel, message) => resolve([channel, message]))
+      );
+      await pub.publish("chan", "hello");
+      expect(await received).to.eql(["chan", "hello"]);
+      pub.disconnect();
       redis.disconnect();
     });
   });

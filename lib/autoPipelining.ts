@@ -109,8 +109,15 @@ export function flushAutoPipelines(client): void {
   if (!autoPipelines || autoPipelines.size === 0) {
     return;
   }
+  // In Cluster mode a running auto pipeline can be retried after a delay
+  // (TRYAGAIN, CLUSTERDOWN, MOVED/ASK), so starting the next pipeline for the
+  // same slot key next to it could let later writes land first. Keep the
+  // existing one-pipeline-at-a-time rule there and only send pipelines that
+  // are not waiting behind a running one. On a single connection, commands
+  // are written and answered in order, so the queued pipeline can go now.
+  const force = !client.isCluster;
   for (const slotKey of Array.from(autoPipelines.keys())) {
-    executeAutoPipeline(client, slotKey, true);
+    executeAutoPipeline(client, slotKey, force);
   }
 }
 

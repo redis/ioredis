@@ -1367,9 +1367,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
           this.condition?.select !== item.select &&
           item.command.name !== "select"
         ) {
-          this.select(item.select).catch((err) =>
-            this.silentEmit("error", err)
-          );
+          this.replaySelect(item.select);
         }
         // TODO
         // @ts-expect-error

@@ -1520,7 +1520,7 @@ This feature can dramatically improve throughput and avoids HOL blocking. In our
 
 While an automatic pipeline is executing, all new commands will be enqueued in a new pipeline which will be executed as soon as the previous finishes.
 
-Commands that are not auto pipelined (such as `multi`, `select`, explicit pipelines and transactions, or commands listed in `autoPipeliningIgnoredCommands`) first send the commands still waiting in an auto pipeline, so commands reach Redis in the order they were issued.
+Commands that are not auto pipelined (such as `multi`, `select`, explicit pipelines and transactions, or commands listed in `autoPipeliningIgnoredCommands`) first send the commands still waiting in an auto pipeline, so commands reach Redis in the order they were issued. In Cluster mode this holds once the slots are known and no auto pipeline for the same node is still running; otherwise such a command can still reach the node before auto pipelined commands issued earlier.
 
 When using Redis Cluster, one pipeline per node is created. Commands are assigned to pipelines according to which node serves the slot.
 
