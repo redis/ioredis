@@ -4,6 +4,9 @@ function applyMixin(
   mixinConstructor: Constructor
 ) {
   Object.getOwnPropertyNames(mixinConstructor.prototype).forEach((name) => {
+    if (name === "constructor") {
+      return;
+    }
     Object.defineProperty(
       derivedConstructor.prototype,
       name,

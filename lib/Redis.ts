@@ -493,7 +493,8 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
   duplicate<Override extends Partial<RedisOptions> | undefined = undefined>(
     override?: Override
   ): Redis<ReplyMappingFromOptions<ReplyMapping, Override>> {
-    return new Redis({
+    const Ctor = (this.constructor as typeof Redis) || Redis;
+    return new Ctor({
       ...this.options,
       ...(override ?? {}),
     }) as Redis<ReplyMappingFromOptions<ReplyMapping, Override>>;

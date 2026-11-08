@@ -58,6 +58,19 @@ describe("cluster", () => {
     expect(duplicate.options.subscriberNodeRole).to.eql("slave");
   });
 
+  it("creates an instance of the subclass when duplicated", () => {
+    class CustomCluster extends Cluster {
+      customMethod() {
+        return "custom";
+      }
+    }
+    const cluster = new CustomCluster([{}], { lazyConnect: true });
+    const duplicate = cluster.duplicate();
+
+    expect(duplicate).to.be.instanceOf(CustomCluster);
+    expect((duplicate as CustomCluster).customMethod()).to.eql("custom");
+  });
+
   it("disables slotsRefreshInterval by default", () => {
     const cluster = new Cluster([{}]);
     expect(cluster.options.slotsRefreshInterval).to.eql(undefined);

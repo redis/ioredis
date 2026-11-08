@@ -14,4 +14,16 @@ describe("duplicate", () => {
     redis.options.port = 1234;
     expect(duplicatedRedis.options.port).to.eql(6379);
   });
+
+  it("creates an instance of the subclass when duplicated", () => {
+    class CustomRedis extends Redis {
+      customMethod() {
+        return "custom";
+      }
+    }
+    const redis = new CustomRedis({ lazyConnect: true });
+    const duplicated = redis.duplicate();
+    expect(duplicated).to.be.instanceOf(CustomRedis);
+    expect((duplicated as CustomRedis).customMethod()).to.eql("custom");
+  });
 });

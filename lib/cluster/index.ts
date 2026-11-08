@@ -532,7 +532,8 @@ class Cluster<
         overrideOptions.redisOptions
       );
     }
-    return new Cluster(startupNodes, options) as Cluster<
+    const Ctor = (this.constructor as typeof Cluster) || Cluster;
+    return new Ctor(startupNodes, options) as Cluster<
       ReplyMappingFromClusterOptions<ReplyMapping, OverrideOptions>
     >;
   }
