@@ -220,6 +220,17 @@ expectType<Promise<number[]>>(
 expectType<Promise<number[]>>(redis.spttl("key", "MEMBERS", 1, "member"));
 expectType<Promise<number[]>>(redis.sttl("key", "MEMBERS", 2, ["m1", "m2"]));
 
+// BITRANGEINTARRAY
+expectType<Promise<number[]>>(redis.bitrangeintarray("key", 0, -1));
+expectType<Promise<number[]>>(redis.bitrangeintarray("key", 0, -1, "BIT"));
+expectType<Promise<number[]>>(
+  redis.bitrangeintarray("key", 0, -1, "BYTE", "LIMIT", 10)
+);
+expectType<Promise<number[]>>(
+  redis.bitrangeintarray("key", 0, -1, "BIT", "LIMIT", 10, "ZEROS")
+);
+expectType<Promise<number[]>>(redis.bitrangeintarray("key", 0, -1, "ZEROS"));
+
 // ZADD
 expectType<Promise<number>>(redis.zadd("key", 1, "member"));
 expectType<Promise<number>>(redis.zadd("key", "CH", 1, "member"));
