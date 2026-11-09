@@ -1191,6 +1191,89 @@ describe("sentinel", () => {
       });
 
       ([2, 3] as const).forEach((protocol) => {
+        it(`should stay connected when +switch-master announces the current master - RESP ${protocol}`, async () => {
+          // Sentinel announces internal addresses; the client maps them.
+          const natMap = {
+            "10.0.0.1:17380": { host: "127.0.0.1", port: 17380 },
+            "10.0.0.2:17381": { host: "127.0.0.1", port: 17381 },
+          };
+          const sentinel = new MockServer(27379, (argv) => {
+            if (
+              argv[0] === "sentinel" &&
+              argv[1] === "get-master-addr-by-name"
+            ) {
+              return ["10.0.0.1", "17380"];
+            }
+            if (argv[0] === "subscribe") {
+              return pubSubReply(protocol, "subscribe", "+switch-master");
+            }
+          });
+          const master = new MockServer(17380);
+          const newMaster = new MockServer(17381);
+
+          const redis = new Redis({
+            sentinels: [{ host: "127.0.0.1", port: 27379 }],
+            failoverDetector: true,
+            name: "master",
+            natMap,
+            protocol,
+          });
+
+          await Promise.all([
+            once(master, "connect"),
+            once(redis, "failoverSubscribed"),
+          ]);
+
+          const close = sinon.spy();
+          redis.on("close", close);
+
+          // A repeated announcement of the switch to the current master,
+          // and a failover of another master.
+          for (const message of [
+            "master 10.0.0.9 17379 10.0.0.1 17380",
+            "other 10.0.0.1 17380 10.0.0.2 17381",
+          ]) {
+            sentinel.broadcast(
+              pubSubReply(protocol, "message", "+switch-master", message)
+            );
+          }
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          expect(close.called).to.equal(false);
+
+          sentinel.handler = function (argv) {
+            if (
+              argv[0] === "sentinel" &&
+              argv[1] === "get-master-addr-by-name"
+            ) {
+              return ["10.0.0.2", "17381"];
+            }
+          };
+          sentinel.broadcast(
+            pubSubReply(
+              protocol,
+              "message",
+              "+switch-master",
+              "master 10.0.0.1 17380 10.0.0.2 17381"
+            )
+          );
+
+          await Promise.all([
+            once(redis, "close"),
+            once(master, "disconnect"),
+            once(newMaster, "connect"),
+          ]);
+
+          redis.disconnect();
+
+          await Promise.all([
+            sentinel.disconnectPromise(),
+            master.disconnectPromise(),
+            newMaster.disconnectPromise(),
+          ]);
+        });
+      });
+
+      ([2, 3] as const).forEach((protocol) => {
         it(`should detect failover from secondary sentinel - RESP ${protocol}`, async () => {
           const sentinel1 = new MockServer(27379, (argv) => {
             if (
