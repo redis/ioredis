@@ -75,6 +75,8 @@ export default class SentinelConnector extends AbstractConnector {
   protected sentinelIterator: SentinelIterator;
   private retryAttempts: number;
   private failoverDetector: FailoverDetector | null = null;
+  // The master the current stream connects to, for the failover detector.
+  private masterAddress: SentinelAddress | null = null;
 
   constructor(protected options: SentinelConnectionOptions) {
     super(options.disconnectTimeout);
@@ -174,6 +176,10 @@ export default class SentinelConnector extends AbstractConnector {
           resolved.port,
           endpointAddress
         );
+        this.masterAddress =
+          this.options.role === "slave"
+            ? null
+            : { host: resolved.host, port: resolved.port };
 
         if (this.options.enableTLSForSentinelMode && this.options.tls) {
           Object.assign(resolved, this.options.tls);
@@ -223,6 +229,29 @@ export default class SentinelConnector extends AbstractConnector {
         }
       }
     })();
+  }
+
+  /**
+   * Whether a +switch-master message ("<name> <old-ip> <old-port> <new-ip> <new-port>")
+   * means the current stream no longer points to the master.
+   *
+   * Sentinels announce the same failover more than once: each other Sentinel
+   * when it learns the new configuration, the leader again at +failover-end.
+   * A stream that already reconnected to the announced master stays.
+   */
+  isSwitchedAway(message: string): boolean {
+    const [name, , , host, port] = message.split(" ");
+    if (name !== this.options.name) {
+      return false;
+    }
+    if (!this.masterAddress) {
+      return true;
+    }
+    const announced = this.sentinelNatResolve({ host, port: Number(port) });
+    return (
+      announced.host !== this.masterAddress.host ||
+      announced.port !== this.masterAddress.port
+    );
   }
 
   private async updateSentinels(client: RedisClient): Promise<void> {

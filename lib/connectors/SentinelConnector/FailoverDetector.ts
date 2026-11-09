@@ -47,9 +47,14 @@ export class FailoverDetector {
 
       promises.push(promise);
 
-      sentinel.client.on("message", (channel: string) => {
-        if (!this.isDisconnected && channel === CHANNEL_NAME) {
+      sentinel.client.on("message", (channel: string, message: string) => {
+        if (this.isDisconnected || channel !== CHANNEL_NAME) {
+          return;
+        }
+        if (this.connector.isSwitchedAway(message)) {
           this.disconnect();
+        } else {
+          debug("Ignoring %s %s", CHANNEL_NAME, message);
         }
       });
     }
