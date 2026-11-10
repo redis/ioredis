@@ -1,21 +1,30 @@
 import { EventEmitter } from "events";
-import Deque = require("denque");
+import { ReplyError } from "redis-errors";
+import Command from "../Command";
 import { Debug } from "../utils";
-import { CommandItem } from "../types";
 const debug = Debug("cluster:subscriberGroup:shardedSubscriber:healthCheck");
 
 export interface HealthCheckedConnection extends EventEmitter {
-  readonly commandQueue: Deque<CommandItem>;
-  readonly status: string;
-  ping(): Promise<unknown>;
+  sendCommand(command: Command): unknown;
   disconnect(): void;
 }
 
+/**
+ * Disconnects a connection that stops answering commands.
+ *
+ * Before ready, the handshake must complete within one interval. After ready,
+ * PING is sent once per interval and must be answered before the next one.
+ * A `commandTimeout` shorter than the interval is extended for the PING, so
+ * the interval alone decides. Replies arrive in order, so a PING queued behind
+ * a stuck command hangs too. Sharded messages are ignored because a node can
+ * keep pushing them while it answers no commands. A server error reply (for
+ * example NOPERM) still proves the node answers, while a local rejection does
+ * not, so only the former counts as an answer.
+ */
 export default class ShardedSubscriberHealthCheck {
   private timer: NodeJS.Timeout | undefined;
-  // Head of commandQueue seen at the previous fire. Same object at the next
-  // fire means that command waited a full interval with no reply.
-  private suspect: CommandItem | undefined;
+  private ready = false;
+  private pendingPing: Command | undefined;
 
   constructor(
     private readonly instance: HealthCheckedConnection,
@@ -23,14 +32,15 @@ export default class ShardedSubscriberHealthCheck {
     private readonly nodeKey: string,
   ) {
     instance.on("connect", this.arm);
-    instance.on("ready", this.touch);
-    instance.on("smessageBuffer", this.onMessage);
+    instance.on("ready", this.onReady);
+    instance.on("close", this.stop);
   }
 
   stop = () => {
     clearTimeout(this.timer);
     this.timer = undefined;
-    this.suspect = undefined;
+    this.ready = false;
+    this.pendingPing = undefined;
   };
 
   private arm = () => {
@@ -38,36 +48,39 @@ export default class ShardedSubscriberHealthCheck {
     this.timer = setTimeout(this.onFire, this.intervalMs);
   };
 
-  private touch = () => {
+  private onReady = () => {
+    this.ready = true;
     this.timer?.refresh();
   };
 
-  // A stuck proxy still delivers smessage, so a message proves liveness only
-  // while nothing waits for a reply.
-  private onMessage = () => {
-    if (this.instance.commandQueue.length === 0) {
-      this.touch();
-    }
-  };
-
   private onFire = () => {
-    const head = this.instance.commandQueue.peekFront();
-    if (head !== undefined && head === this.suspect) {
+    if (!this.ready || this.pendingPing) {
+      const what = this.ready ? "PING" : "handshake";
       this.stop();
       debug(
-        "%s left %s unanswered, disconnecting",
+        "%s left %s unanswered for %dms, disconnecting",
         this.nodeKey,
-        head.command.name,
+        what,
+        this.intervalMs,
       );
       this.instance.disconnect();
       return;
     }
 
-    if (head === undefined && this.instance.status === "ready") {
-      this.instance.ping().catch(() => {});
-    }
-
-    this.suspect = this.instance.commandQueue.peekFront();
+    const ping = new Command("ping");
+    this.pendingPing = ping;
+    const answered = () => {
+      if (this.pendingPing === ping) {
+        this.pendingPing = undefined;
+      }
+    };
+    ping.promise.then(answered, (err) => {
+      if (err instanceof ReplyError) {
+        answered();
+      }
+    });
+    this.instance.sendCommand(ping);
+    ping.extendTimeout(this.intervalMs);
     this.timer?.refresh();
   };
 }

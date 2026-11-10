@@ -197,7 +197,6 @@ export default class ShardedSubscriber {
   }
 
   private onEnd = () => {
-    this.healthCheck?.stop();
     this.updateStatus(SubscriberStatus.ENDED);
     this.emitter.emit("-node", this.instance, this.nodeKey);
   };

@@ -1,33 +1,40 @@
 import { expect } from "chai";
 import { EventEmitter } from "events";
 import * as sinon from "sinon";
-import Deque = require("denque");
+import { ReplyError } from "redis-errors";
+import Command from "../../../lib/Command";
 import ShardedSubscriberHealthCheck, {
   HealthCheckedConnection,
 } from "../../../lib/cluster/ShardedSubscriberHealthCheck";
-import { CommandItem } from "../../../lib/types";
 
 const INTERVAL = 1000;
 const realSetImmediate = setImmediate;
-
-const commandItem = (name: string) =>
-  ({ command: { name } } as unknown as CommandItem);
+const flushPromises = () => new Promise((resolve) => realSetImmediate(resolve));
 
 class FakeConnection extends EventEmitter implements HealthCheckedConnection {
-  commandQueue = new Deque<CommandItem>();
-  status = "ready";
-  ping = sinon.stub().callsFake(() => {
-    this.write("ping");
-    return Promise.resolve("PONG");
+  private pending: Command[] = [];
+  // Mirrors Redis.sendCommand() applying the `commandTimeout` option.
+  commandTimeout: number | undefined;
+  sendCommand = sinon.stub().callsFake((command: Command) => {
+    expect(command.name).to.equal("ping");
+    if (this.commandTimeout !== undefined) {
+      command.setTimeout(this.commandTimeout);
+    }
+    this.pending.push(command);
+    return command.promise;
   });
   disconnect = sinon.stub();
 
-  write(name: string) {
-    this.commandQueue.push(commandItem(name));
+  get ping() {
+    return this.sendCommand;
   }
 
   answer() {
-    this.commandQueue.shift();
+    this.pending.shift()?.resolve("PONG");
+  }
+
+  fail(err: Error) {
+    this.pending.shift()?.reject(err);
   }
 }
 
@@ -73,7 +80,39 @@ describe("ShardedSubscriberHealthCheck", () => {
     ).to.equal(false);
   });
 
-  it("pings an idle connection once per interval and keeps it while pings are answered", () => {
+  it("disconnects a connection whose handshake stays unanswered for an interval", () => {
+    connection.emit("connect");
+
+    clock.tick(INTERVAL - 1);
+    expect(connection.disconnect.called, "disconnected early").to.equal(false);
+
+    clock.tick(1);
+    expect(connection.disconnect.callCount).to.equal(1);
+    expect(connection.ping.called, "pinged before ready").to.equal(false);
+  });
+
+  it("restarts the countdown on ready", () => {
+    connection.emit("connect");
+    clock.tick(INTERVAL - 1);
+    connection.emit("ready");
+
+    clock.tick(INTERVAL - 1);
+    expect(connection.disconnect.called, "disconnected after ready").to.equal(
+      false
+    );
+    expect(
+      connection.ping.called,
+      "pinged before a full interval after ready"
+    ).to.equal(false);
+
+    clock.tick(1);
+    expect(
+      connection.ping.callCount,
+      "pings a full interval after ready"
+    ).to.equal(1);
+  });
+
+  it("pings once per interval and keeps the connection while pings are answered", async () => {
     connect();
 
     for (let fire = 1; fire <= 5; fire++) {
@@ -82,29 +121,12 @@ describe("ShardedSubscriberHealthCheck", () => {
         fire
       );
       connection.answer();
+      await flushPromises();
     }
     expect(connection.disconnect.called).to.equal(false);
   });
 
-  it("sends no ping while messages keep arriving on an idle connection", () => {
-    connect();
-
-    streamMessages(10);
-
-    expect(connection.ping.called).to.equal(false);
-    expect(connection.disconnect.called).to.equal(false);
-  });
-
-  it("disconnects once when a command stays unanswered while messages keep arriving", () => {
-    connect();
-    connection.write("ssubscribe");
-
-    streamMessages(10);
-
-    expect(connection.disconnect.callCount).to.equal(1);
-  });
-
-  it("disconnects at the second fire when a ping stays unanswered", () => {
+  it("disconnects at the next fire when a ping stays unanswered", () => {
     connect();
 
     clock.tick(INTERVAL);
@@ -123,76 +145,119 @@ describe("ShardedSubscriberHealthCheck", () => {
     ).to.equal(1);
   });
 
-  it("disconnects only once even as time passes and messages keep arriving", () => {
+  it("disconnects a connection that keeps delivering messages but answers no ping", () => {
     connect();
-    clock.tick(2 * INTERVAL);
 
     streamMessages(10);
-    clock.tick(10 * INTERVAL);
 
     expect(connection.disconnect.callCount).to.equal(1);
   });
 
-  it("keeps a connection whose command written just before a fire is answered before the next", () => {
+  it("disconnects only once even as time passes", () => {
     connect();
 
-    clock.tick(INTERVAL - 1);
-    connection.write("ssubscribe");
-    clock.tick(1);
-    connection.answer();
-    clock.tick(INTERVAL);
+    clock.tick(10 * INTERVAL);
 
-    expect(connection.disconnect.called).to.equal(false);
+    expect(connection.ping.callCount).to.equal(1);
+    expect(connection.disconnect.callCount).to.equal(1);
   });
 
-  it("keeps a busy connection whose queue head changes between fires", () => {
+  it("keeps a connection whose ping is answered just before the next fire", async () => {
     connect();
-    connection.write("ssubscribe");
+
+    clock.tick(INTERVAL);
+    clock.tick(INTERVAL - 1);
+    connection.answer();
+    await flushPromises();
+    clock.tick(1);
+
+    expect(connection.disconnect.called).to.equal(false);
+    expect(connection.ping.callCount).to.equal(2);
+  });
+
+  it("disconnects at the next fire when a ping is rejected by a local command timeout", async () => {
+    connect();
+
+    clock.tick(INTERVAL);
+    connection.fail(new Error("Command timed out"));
+    await flushPromises();
+    expect(
+      connection.disconnect.called,
+      "disconnected before the next fire"
+    ).to.equal(false);
+
+    clock.tick(INTERVAL);
+    expect(connection.disconnect.callCount).to.equal(1);
+    expect(connection.ping.callCount, "pinged again").to.equal(1);
+  });
+
+  it("gives a ping the full interval when commandTimeout is shorter", async () => {
+    connection.commandTimeout = INTERVAL / 10;
+    connect();
+
+    clock.tick(INTERVAL);
+    clock.tick(INTERVAL - 1);
+    connection.answer();
+    await flushPromises();
+    clock.tick(1);
+
+    expect(connection.disconnect.called).to.equal(false);
+    expect(connection.ping.callCount).to.equal(2);
+  });
+
+  it("keeps a connection whose ping gets a server error reply", async () => {
+    connect();
 
     for (let fire = 1; fire <= 5; fire++) {
       clock.tick(INTERVAL);
-      connection.answer();
-      connection.write("ssubscribe");
+      connection.fail(
+        new ReplyError(
+          "NOPERM this user has no permissions to run the 'ping' command"
+        )
+      );
+      await flushPromises();
     }
 
+    expect(connection.ping.callCount).to.equal(5);
     expect(connection.disconnect.called).to.equal(false);
   });
 
-  it("does not ping an idle connection that is not ready", () => {
-    connection.status = "connect";
-    connection.emit("connect");
+  it("swallows a rejected ping", async () => {
+    const unhandled = sinon.spy();
+    process.on("unhandledRejection", unhandled);
 
+    try {
+      connect();
+      clock.tick(INTERVAL);
+      connection.fail(new Error("Connection is closed."));
+      await flushPromises();
+    } finally {
+      process.removeListener("unhandledRejection", unhandled);
+    }
+
+    expect(unhandled.called, "rejection surfaced as unhandled").to.equal(false);
+  });
+
+  it("stops on close", async () => {
+    connect();
+    clock.tick(INTERVAL);
+
+    connection.emit("close");
+    connection.fail(new Error("Connection is closed."));
+    await flushPromises();
     clock.tick(5 * INTERVAL);
 
-    expect(connection.ping.called).to.equal(false);
+    expect(connection.ping.callCount).to.equal(1);
+    expect(connection.disconnect.called).to.equal(false);
   });
 
-  it("disconnects when a handshake command queued at connect stays unanswered", () => {
-    connection.status = "connect";
-    connection.write("client");
+  it("stops on close during the handshake", () => {
     connection.emit("connect");
 
-    clock.tick(2 * INTERVAL);
+    connection.emit("close");
+    clock.tick(5 * INTERVAL);
 
-    expect(connection.disconnect.callCount).to.equal(1);
-  });
-
-  it("restarts the countdown on ready", () => {
-    connection.emit("connect");
-    clock.tick(INTERVAL - 1);
-    connection.emit("ready");
-
-    clock.tick(INTERVAL - 1);
-    expect(
-      connection.ping.called,
-      "pinged before a full interval after ready"
-    ).to.equal(false);
-
-    clock.tick(1);
-    expect(
-      connection.ping.callCount,
-      "pings a full interval after ready"
-    ).to.equal(1);
+    expect(connection.disconnect.called).to.equal(false);
   });
 
   it("cancels a pending check on stop", () => {
@@ -205,13 +270,11 @@ describe("ShardedSubscriberHealthCheck", () => {
     expect(connection.disconnect.called).to.equal(false);
   });
 
-  it("stays stopped when ready and messages arrive after stop", () => {
+  it("stays stopped when messages arrive after stop", () => {
     connect();
     healthCheck.stop();
 
-    connection.emit("ready");
-    streamMessages(1);
-    clock.tick(5 * INTERVAL);
+    streamMessages(5);
 
     expect(connection.ping.called).to.equal(false);
     expect(connection.disconnect.called).to.equal(false);
@@ -227,22 +290,22 @@ describe("ShardedSubscriberHealthCheck", () => {
     expect(connection.ping.callCount).to.equal(1);
   });
 
-  it("swallows a rejected ping", async () => {
-    const unhandled = sinon.spy();
-    process.on("unhandledRejection", unhandled);
-    connection.ping.callsFake(() =>
-      Promise.reject(new Error("Connection is closed."))
+  it("ignores a ping from before stop that is answered after a new connect", async () => {
+    connect();
+    clock.tick(INTERVAL);
+    healthCheck.stop();
+
+    connect();
+    clock.tick(INTERVAL);
+    expect(connection.ping.callCount, "pings after the new connect").to.equal(
+      2
     );
 
-    try {
-      connect();
-      clock.tick(INTERVAL);
-      await new Promise((resolve) => realSetImmediate(resolve));
-    } finally {
-      process.removeListener("unhandledRejection", unhandled);
-    }
+    // Answer the stale ping only. The new ping stays unanswered.
+    connection.answer();
+    await flushPromises();
+    clock.tick(INTERVAL);
 
-    expect(connection.ping.callCount, "ping sent").to.equal(1);
-    expect(unhandled.called, "rejection surfaced as unhandled").to.equal(false);
+    expect(connection.disconnect.callCount).to.equal(1);
   });
 });

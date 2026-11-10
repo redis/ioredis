@@ -154,10 +154,11 @@ export interface ClusterOptions extends CommanderOptions {
    * Interval in milliseconds for a liveness check on sharded subscriber
    * connections. Disabled when unset.
    *
-   * A subscriber that receives no sharded message for one interval sends PING.
-   * If the same command is still unanswered at the next check, the subscriber
-   * disconnects and the cluster replaces it. A subscriber that keeps receiving
-   * messages never sends PING.
+   * Each subscriber sends PING once per interval. If a PING is still
+   * unanswered at the next interval, or the connection handshake takes
+   * longer than one interval, the subscriber disconnects and the cluster
+   * replaces it. The PING gets the full interval to answer even when
+   * `commandTimeout` is shorter.
    *
    * @default undefined
    */
