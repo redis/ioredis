@@ -1212,6 +1212,13 @@ cluster.get("foo", (err, res) => {
 
     - `dnsLookup`: Alternative DNS lookup function (`dns.lookup()` is used by default). It may be useful to override this in special cases, such as when AWS ElastiCache used with TLS enabled.
     - `enableOfflineQueue`: Similar to the `enableOfflineQueue` option of `Redis` class.
+    - `commandTimeoutIncludesOfflineQueue`: When enabled, `redisOptions.commandTimeout` starts when a command enters the cluster offline
+      queue, where commands wait while the cluster is not ready. By default the timeout starts when the command is handed to a node, so
+      it already covers that node's own offline queue but not the cluster's. A command that times out in the cluster offline queue is
+      rejected with `Command timed out` and is never sent. Commands batched by a pipeline, `multi()` or `enableAutoPipelining` are
+      excluded and keep waiting. Their timeout starts when they reach a node. The option has no effect unless
+      `redisOptions.commandTimeout` is set. The default is `false`. This option is removed in the next major version, where this
+      becomes the default behavior.
     - `enableReadyCheck`: When enabled, "ready" event will only be emitted when `CLUSTER INFO` command
       reporting the cluster is ready for handling commands. Otherwise, it will be emitted immediately after "connect" is emitted.
     - `scaleReads`: Config where to send the read queries. See below for more details.
@@ -1229,8 +1236,6 @@ cluster.get("foo", (err, res) => {
       the command instantly to the node returned together with the `MOVED` error. However, sometimes it takes time for a cluster to become
       state stabilized after a failover, so adding a delay before resending can prevent a ping pong effect.
     - `redisOptions`: Default options passed to the constructor of `Redis` when connecting to a node.
-      `redisOptions.commandTimeout` also covers the time a command waits in the offline queue for the cluster to become ready.
-      Commands sent through a pipeline (including `multi` and `enableAutoPipelining`) are excluded: their timeout starts when they reach a node.
     - `slotsRefreshTimeout`: Milliseconds before a timeout occurs while refreshing slots from the cluster (default `1000`).
     - `slotsRefreshInterval`: Milliseconds between every automatic slots refresh (by default, it is disabled).
 

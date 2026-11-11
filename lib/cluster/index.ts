@@ -879,14 +879,16 @@ class Cluster<
         }
       }
       if (!redis && _this.options.enableOfflineQueue) {
-        // commandTimeout limits the whole lifetime of a command, so it also
-        // covers the time spent waiting here for the cluster to be ready.
         // Redis#sendCommand keeps a running timer, so the deadline does not
         // restart once the command reaches a node. Pipelined commands (with a
         // stream) are left alone: Pipeline#fillResult retries them by resetting
         // their promises, so a timed out one would still be sent later.
         const commandTimeout = _this.options.redisOptions?.commandTimeout;
-        if (!stream && typeof commandTimeout === "number") {
+        if (
+          _this.options.commandTimeoutIncludesOfflineQueue &&
+          !stream &&
+          typeof commandTimeout === "number"
+        ) {
           command.setTimeout(commandTimeout);
         }
         _this.offlineQueue.push({
@@ -1159,8 +1161,12 @@ class Cluster<
       let item: OfflineQueueItem;
       while ((item = offlineQueue.shift())) {
         // A command that timed out while queued has already been rejected,
-        // so it must not be sent anymore.
-        if (item.command.isSettled) {
+        // so it must not be sent anymore. Pipelined commands are never settled
+        // here, because they get no timer while queued.
+        if (
+          this.options.commandTimeoutIncludesOfflineQueue &&
+          item.command.isSettled
+        ) {
           continue;
         }
         this.sendCommand(item.command, item.stream, item.node);

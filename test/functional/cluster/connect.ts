@@ -1,6 +1,6 @@
 import MockServer from "../../helpers/mock_server";
 import { expect } from "chai";
-import { Cluster } from "../../../lib";
+import { Cluster, ClusterOptions } from "../../../lib";
 import * as sinon from "sinon";
 
 describe("cluster:connect", () => {
@@ -480,10 +480,17 @@ describe("cluster:connect", () => {
   describe("commandTimeout", () => {
     const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
     let cluster: Cluster;
+    let serverTimers: NodeJS.Timeout[] = [];
 
     afterEach(() => {
+      serverTimers.forEach(clearTimeout);
+      serverTimers = [];
       cluster?.disconnect();
     });
+
+    function startServerAfter(ms: number, handler = createHandler([])) {
+      serverTimers.push(setTimeout(() => new MockServer(30001, handler), ms));
+    }
 
     // Records the commands a node receives, apart from the cluster commands
     // used to load the slots.
@@ -502,15 +509,66 @@ describe("cluster:connect", () => {
       };
     }
 
-    function createCluster(commandTimeout: number) {
+    function createCluster(
+      commandTimeout: number,
+      options: ClusterOptions = {}
+    ) {
       return new Cluster([{ host: "127.0.0.1", port: "30001" }], {
         clusterRetryStrategy: () => 50,
         redisOptions: { commandTimeout },
+        ...options,
       });
     }
 
-    it("rejects a command that waits too long for the cluster to be ready", (done) => {
+    const optIn = { commandTimeoutIncludesOfflineQueue: true };
+
+    it("lets a queued command outlast the timeout by default", (done) => {
       cluster = createCluster(100);
+
+      cluster.get("foo", (err, res) => {
+        expect(err).to.eql(null);
+        expect(res).to.eql("bar");
+        done();
+      });
+      startServerAfter(300);
+    });
+
+    // The node takes the SET, never answers and closes. The command goes back
+    // to the cluster offline queue with the timer the node started.
+    async function timeOutAfterNodeCloses(options: ClusterOptions) {
+      const received: string[] = [];
+      const handler = createHandler(received);
+      const server = new MockServer(30001, (argv, socket, flags) => {
+        if (argv[0] === "set") {
+          received.push("set");
+          flags.hang = true;
+          server.disconnect();
+          return;
+        }
+        return handler(argv);
+      });
+      cluster = createCluster(300, options);
+
+      const error = cluster.set("foo", "bar").catch((err: Error) => err);
+      startServerAfter(600, createHandler(received));
+      expect((await error).message).to.eql("Command timed out");
+      await new Promise((resolve) => cluster.once("ready", resolve));
+
+      // The GET runs after anything replayed from the offline queue.
+      expect(await cluster.get("foo")).to.eql("bar");
+      return received.filter((name) => name === "set").length;
+    }
+
+    it("still replays a command that timed out after its node closed by default", async () => {
+      expect(await timeOutAfterNodeCloses({})).to.eql(2);
+    });
+
+    it("does not replay a command that timed out after its node closed", async () => {
+      expect(await timeOutAfterNodeCloses(optIn)).to.eql(1);
+    });
+
+    it("rejects a command that waits too long for the cluster to be ready", (done) => {
+      cluster = createCluster(100, optIn);
 
       const start = Date.now();
       cluster.get("foo", (err) => {
@@ -522,7 +580,7 @@ describe("cluster:connect", () => {
 
     it("does not send a timed out command once the cluster is ready", (done) => {
       const received: string[] = [];
-      cluster = createCluster(100);
+      cluster = createCluster(100, optIn);
 
       cluster.set("foo", "bar", (err) => {
         expect(err.message).to.eql("Command timed out");
@@ -539,20 +597,20 @@ describe("cluster:connect", () => {
     });
 
     it("sends a queued command once the cluster is ready within the timeout", (done) => {
-      cluster = createCluster(2000);
+      cluster = createCluster(2000, optIn);
 
       cluster.get("foo", (err, res) => {
         expect(err).to.eql(null);
         expect(res).to.eql("bar");
         done();
       });
-      setTimeout(() => new MockServer(30001, createHandler([])), 100);
+      startServerAfter(100);
     });
 
     it("does not send a command that timed out while the cluster reconnects", (done) => {
       const received: string[] = [];
       const server = new MockServer(30001, createHandler(received));
-      cluster = createCluster(100);
+      cluster = createCluster(100, optIn);
 
       cluster.once("ready", () => {
         cluster.once("reconnecting", () => {
@@ -576,7 +634,7 @@ describe("cluster:connect", () => {
     it("lets pipelined commands wait while the cluster reconnects", (done) => {
       const received: string[] = [];
       const server = new MockServer(30001, createHandler(received));
-      cluster = createCluster(100);
+      cluster = createCluster(100, optIn);
 
       cluster.once("ready", () => {
         cluster.once("reconnecting", () => {
@@ -592,7 +650,7 @@ describe("cluster:connect", () => {
               expect(sets).to.have.length(1);
               done();
             });
-          setTimeout(() => new MockServer(30001, createHandler(received)), 300);
+          startServerAfter(300, createHandler(received));
         });
         server.disconnect();
       });
