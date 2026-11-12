@@ -116,6 +116,35 @@ describe("cluster", () => {
       expect(sendCommand.callCount).to.eql(1);
       expect(sendCommand.firstCall.args).to.eql([pipelined, stream, node]);
     });
+
+    it("drops commands that timed out while queued as the queue grows", () => {
+      const cluster = new Cluster([], {
+        commandTimeoutIncludesOfflineQueue: true,
+        redisOptions: { commandTimeout: 1000 },
+      });
+      const stream = { isPipeline: true } as unknown as WriteableStream;
+      const pipelined = new Command("set", ["foo", "bar"]);
+      const pending = new Command("get", ["foo"]);
+      pipelined.promise.catch(() => {});
+      pending.promise.catch(() => {});
+      cluster.sendCommand(pipelined, stream, { slot: 0 });
+      cluster.sendCommand(pending);
+      pipelined.reject(new Error("settled while queued"));
+
+      // Like a caller that sends the next command once one times out.
+      for (let i = 0; i < 500; i++) {
+        const command = new Command("get", ["foo"]);
+        command.promise.catch(() => {});
+        cluster.sendCommand(command);
+        command.reject(new Error("Command timed out"));
+      }
+
+      const queued = cluster["offlineQueue"].toArray();
+      expect(queued.length).to.be.below(100);
+      expect(queued[0].command).to.equal(pipelined);
+      expect(queued[1].command).to.equal(pending);
+      pending.reject(new Error("done"));
+    });
   });
 
   describe("natMapper", () => {
