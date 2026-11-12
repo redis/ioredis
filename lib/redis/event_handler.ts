@@ -8,7 +8,10 @@ import { CommandItem, Respondable } from "../types";
 import { Debug, noop, CONNECTION_CLOSED_ERROR_MSG } from "../utils";
 import { PACKAGE_VERSION } from "../utils/version";
 import DataHandler from "../DataHandler";
-import { getHimportBinding } from "../himport/HimportCoordinator";
+import {
+  getHimportBinding,
+  isInternalHimportCommand,
+} from "../himport/HimportCoordinator";
 import { getMaintNotificationsHandshakeCommand } from "../maintNotifications";
 
 const debug = Debug("connection");
@@ -347,6 +350,46 @@ function abortIncompletePipelines(commandQueue: Deque<CommandItem>) {
 // If only a partial transaction result was received before connection close,
 // we have to abort any transaction fragments that may have ended up in the
 // offline queue
+function isReplayableUnfulfilledCommand(command: Command): boolean {
+  return (
+    !Command.checkFlag("HANDSHAKE_COMMANDS", command.name) &&
+    !isInternalHimportCommand(command)
+  );
+}
+
+// During a connect-phase drop, handshake commands are retried on the next
+// connection. User commands that were already resent (e.g. a blocking command
+// from prevCommandQueue) must be merged into the stash instead of replacing it.
+function stashConnectPhaseUnfulfilledCommands(
+  commandQueue: Deque<CommandItem>,
+  prevCommandQueue?: Deque<CommandItem>
+): Deque<CommandItem> | undefined {
+  const replayable = new Deque<CommandItem>();
+  for (let i = 0; i < commandQueue.length; ) {
+    const item = commandQueue.peekAt(i) as CommandItem;
+    const command = item.command as Command;
+    if (!isReplayableUnfulfilledCommand(command)) {
+      commandQueue.remove(i, 1);
+      command.reject(abortError(command));
+      continue;
+    }
+    replayable.push(commandQueue.shift() as CommandItem);
+  }
+
+  if (replayable.length === 0) {
+    return prevCommandQueue;
+  }
+
+  if (!prevCommandQueue) {
+    return replayable;
+  }
+
+  while (replayable.length > 0) {
+    prevCommandQueue.push(replayable.shift() as CommandItem);
+  }
+  return prevCommandQueue;
+}
+
 function abortTransactionFragments(commandQueue: Deque<CommandItem>) {
   for (let i = 0; i < commandQueue.length; ) {
     const command = commandQueue.peekAt(i)?.command as Command;
@@ -392,6 +435,11 @@ export function closeHandler(self) {
       if (self.commandQueue.length) {
         self.prevCommandQueue = self.commandQueue;
       }
+    } else if (prevStatus === "connect" || prevStatus === "connecting") {
+      self.prevCommandQueue = stashConnectPhaseUnfulfilledCommands(
+        self.commandQueue,
+        self.prevCommandQueue
+      );
     }
 
     if (self.manuallyClosing) {
@@ -414,6 +462,11 @@ export function closeHandler(self) {
     }
 
     debug("reconnect in %sms", retryDelay);
+
+    if (self.reconnectTimeout) {
+      clearTimeout(self.reconnectTimeout);
+      self.reconnectTimeout = null;
+    }
 
     self.setStatus("reconnecting", retryDelay);
     self.reconnectTimeout = setTimeout(function () {
@@ -530,6 +583,7 @@ export function readyHandler(self, flushOfflineQueue: () => void) {
           }
           self.sendCommand(item.command, item.stream);
         }
+        self.prevCommandQueue = null;
       } else {
         debug("abort %d unfulfilled commands", self.prevCommandQueue.length);
         while (self.prevCommandQueue.length > 0) {
