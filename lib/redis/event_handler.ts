@@ -435,7 +435,7 @@ export function closeHandler(self) {
       if (self.commandQueue.length) {
         self.prevCommandQueue = self.commandQueue;
       }
-    } else if (prevStatus === "connect" || prevStatus === "connecting") {
+    } else if (prevStatus === "connect") {
       self.prevCommandQueue = stashConnectPhaseUnfulfilledCommands(
         self.commandQueue,
         self.prevCommandQueue

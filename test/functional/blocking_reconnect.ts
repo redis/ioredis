@@ -16,7 +16,7 @@ describe("blocking command reconnect (#1285)", function () {
     const server = new MockServer(PORT, (argv, _socket, flags) => {
       if (argv[0] === "brpoplpush") {
         brpoplpushAttempts += 1;
-        if (brpoplpushAttempts < 2) {
+        if (brpoplpushAttempts < 3) {
           flags.hang = true;
           return;
         }
@@ -43,7 +43,7 @@ describe("blocking command reconnect (#1285)", function () {
         .brpoplpush(`src:${Date.now()}`, `dst:${Date.now()}`, 4)
         .then((res) => {
           expect(res).to.eql(null);
-          expect(brpoplpushAttempts).to.be.at.least(2);
+          expect(brpoplpushAttempts).to.be.at.least(3);
           redis.disconnect();
           server.disconnect(() => done());
         })
