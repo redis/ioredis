@@ -616,19 +616,6 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
       return command.promise;
     }
 
-    if (typeof this.options.commandTimeout === "number") {
-      const policy = this.maintenanceManager?.commandTimeoutPolicy();
-      if (policy) {
-        command.setTimeout(policy.timeout, policy.createTimeoutError);
-        // A command re-entering sendCommand (e.g. resent from
-        // prevCommandQueue after a reconnect) already has a running timer,
-        // making setTimeout() a no-op; extend its deadline instead.
-        command.extendTimeout(policy.timeout, policy.createTimeoutError);
-      } else {
-        command.setTimeout(this.options.commandTimeout);
-      }
-    }
-
     if (
       !stream &&
       this[hasHimportCoordinator] &&
@@ -714,6 +701,24 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
         }
       }
     } else {
+      // Arm commandTimeout only once the command is actually written.
+      // Starting the timer earlier lets queued commands time out while they
+      // are still sitting in offlineQueue, before any bytes reach Redis
+      // (see #2130). Commands flushed from the queue re-enter sendCommand
+      // and get a timer here when they become writable.
+      if (typeof this.options.commandTimeout === "number") {
+        const policy = this.maintenanceManager?.commandTimeoutPolicy();
+        if (policy) {
+          command.setTimeout(policy.timeout, policy.createTimeoutError);
+          // A command re-entering sendCommand (e.g. resent from
+          // prevCommandQueue after a reconnect) already has a running timer,
+          // making setTimeout() a no-op; extend its deadline instead.
+          command.extendTimeout(policy.timeout, policy.createTimeoutError);
+        } else {
+          command.setTimeout(this.options.commandTimeout);
+        }
+      }
+
       // @ts-expect-error
       if (debug.enabled) {
         debug(
