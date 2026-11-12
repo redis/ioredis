@@ -1,4 +1,7 @@
-import MockServer, { pubSubReply } from "../../helpers/mock_server";
+import MockServer, {
+  MockServerHandler,
+  pubSubReply,
+} from "../../helpers/mock_server";
 import { expect } from "chai";
 import { Cluster, ClusterOptions } from "../../../lib";
 import * as sinon from "sinon";
@@ -488,7 +491,10 @@ describe("cluster:connect", () => {
       cluster?.disconnect();
     });
 
-    function startServerAfter(ms: number, handler = createHandler([])) {
+    function startServerAfter(
+      ms: number,
+      handler: MockServerHandler = createHandler([])
+    ) {
       serverTimers.push(setTimeout(() => new MockServer(30001, handler), ms));
     }
 
@@ -594,6 +600,29 @@ describe("cluster:connect", () => {
           });
         });
       });
+    });
+
+    it("keeps the deadline from the offline queue once the command reaches a node", async () => {
+      const received: string[] = [];
+      const handler = createHandler(received);
+      const start = Date.now();
+      // The node takes the GET but never answers it.
+      startServerAfter(100, (argv, socket, flags) => {
+        if (argv[0] === "get") {
+          received.push("get");
+          flags.hang = true;
+          return;
+        }
+        return handler(argv);
+      });
+      cluster = createCluster(400, optIn);
+
+      const error = await cluster.get("foo").catch((err: Error) => err);
+      expect(error.message).to.eql("Command timed out");
+      expect(received).to.include("get");
+      // A timeout restarted by the node would end 400 ms after the GET
+      // reached it, and the node only starts 100 ms in.
+      expect(Date.now() - start).to.be.below(500);
     });
 
     it("sends a queued command once the cluster is ready within the timeout", (done) => {
