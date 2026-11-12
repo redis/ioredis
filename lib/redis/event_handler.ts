@@ -127,6 +127,20 @@ function getHandshakeCommands(self: any): HandshakeCommand[] {
   return commands;
 }
 
+function invokeHandshakeErrorHandler(
+  err: Error,
+  errorHandler: ((err: Error) => void) | undefined
+) {
+  if (err instanceof AbortError) {
+    return;
+  }
+  if (errorHandler) {
+    errorHandler(err);
+    return;
+  }
+  throw err;
+}
+
 async function sendHandshake(
   commands: HandshakeCommand[],
   protocol: number
@@ -134,7 +148,9 @@ async function sendHandshake(
   if (protocol !== 3) {
     await Promise.all(
       commands.map(({ send, errorHandler }) =>
-        errorHandler ? send().catch(errorHandler) : send()
+        errorHandler
+          ? send().catch((err) => invokeHandshakeErrorHandler(err, errorHandler))
+          : send()
       )
     );
     return;
@@ -157,11 +173,8 @@ async function sendHandshake(
     const result = results[i];
     if (result.status === "rejected") {
       const { errorHandler } = commands[i];
-      if (errorHandler) {
-        errorHandler(result.reason as Error);
-        continue;
-      }
-      throw result.reason;
+      invokeHandshakeErrorHandler(result.reason as Error, errorHandler);
+      continue;
     }
   }
 }

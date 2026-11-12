@@ -26,7 +26,7 @@ describe("blocking command reconnect (#1285)", function () {
 
     server.on("connect", (socket: Socket) => {
       connections += 1;
-      if (connections === 2) {
+      if (connections > 1 && brpoplpushAttempts < 3) {
         setTimeout(() => socket.destroy(), 10);
       }
     });
