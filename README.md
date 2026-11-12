@@ -1216,7 +1216,8 @@ cluster.get("foo", (err, res) => {
       queue, where commands wait while the cluster is not ready. By default the timeout starts when the command is handed to a node, so
       it already covers that node's own offline queue but not the cluster's. A command that times out in the cluster offline queue is
       rejected with `Command timed out` and is never sent. Commands batched by a pipeline, `multi()` or `enableAutoPipelining` are
-      excluded and keep waiting. Their timeout starts when they reach a node. The option has no effect unless
+      excluded and keep waiting. Their timeout starts when they reach a node. Subscribe and unsubscribe commands handled by the
+      cluster subscriber connection are excluded too, because that connection never times them out. The option has no effect unless
       `redisOptions.commandTimeout` is set. The default is `false`. This option is removed in the next major version, where this
       becomes the default behavior.
     - `enableReadyCheck`: When enabled, "ready" event will only be emitted when `CLUSTER INFO` command

@@ -63,6 +63,8 @@ export interface ClusterOptions extends CommanderOptions {
    * A command that times out in the cluster offline queue is rejected and
    * never sent. Commands batched by a pipeline, `multi()` or auto pipelining
    * are excluded and keep waiting. Their timeout starts when they reach a node.
+   * Subscribe and unsubscribe commands handled by the cluster subscriber
+   * connection are excluded too, because that connection never times them out.
    *
    * Has no effect unless `redisOptions.commandTimeout` is set.
    *

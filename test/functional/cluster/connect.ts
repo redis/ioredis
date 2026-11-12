@@ -1,4 +1,4 @@
-import MockServer from "../../helpers/mock_server";
+import MockServer, { pubSubReply } from "../../helpers/mock_server";
 import { expect } from "chai";
 import { Cluster, ClusterOptions } from "../../../lib";
 import * as sinon from "sinon";
@@ -654,6 +654,40 @@ describe("cluster:connect", () => {
         });
         server.disconnect();
       });
+    });
+
+    // Without shardedSubscribers, SSUBSCRIBE goes to the cluster subscriber
+    // connection as well.
+    const subscriberCommands = [
+      "subscribe",
+      "psubscribe",
+      "ssubscribe",
+      "unsubscribe",
+    ] as const;
+    subscriberCommands.forEach((name) => {
+      it(`lets ${name.toUpperCase()} wait for the cluster to be ready`, async () => {
+        const count = name === "unsubscribe" ? 0 : 1;
+        const handler = createHandler([]);
+        startServerAfter(300, (argv) =>
+          argv[0] === name
+            ? pubSubReply(2, name, argv[1], count)
+            : handler(argv)
+        );
+        cluster = createCluster(100, optIn);
+
+        // The cluster subscriber connection never times it out once the
+        // cluster is ready, so it does not time out while queued either.
+        expect(await cluster[name]("foo")).to.eql(count);
+      });
+    });
+
+    it("rejects a sharded SSUBSCRIBE that waits too long for the cluster to be ready", async () => {
+      cluster = createCluster(100, { ...optIn, shardedSubscribers: true });
+
+      // Sharded subscribers are created with redisOptions, so their
+      // commands time out like any other.
+      const error = await cluster.ssubscribe("foo").catch((err: Error) => err);
+      expect(error.message).to.eql("Command timed out");
     });
   });
 });
