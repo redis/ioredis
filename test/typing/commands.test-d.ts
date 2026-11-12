@@ -75,9 +75,7 @@ expectType<Promise<Record<string, Buffer>>>(redis.hgetallBuffer("key"));
 expectType<Promise<"OK">>(
   redis.himport("PREPARE", "fieldset", "field1", Buffer.from("field2"))
 );
-expectType<Promise<"OK">>(
-  redis.himport("SET", "key", "fieldset", "value1", 2)
-);
+expectType<Promise<"OK">>(redis.himport("SET", "key", "fieldset", "value1", 2));
 expectType<Promise<number>>(redis.himport("DISCARD", "fieldset"));
 expectType<Promise<number>>(redis.himport("DISCARDALL"));
 expectError(redis.himport("UNKNOWN", "fieldset"));
@@ -128,15 +126,7 @@ expectType<Promise<string[] | null>>(
   redis.lmovem("source", "destination", "LEFT", "RIGHT")
 );
 expectType<Promise<string[] | null>>(
-  redis.lmovem(
-    "source",
-    "destination",
-    "LEFT",
-    "RIGHT",
-    "COUNT",
-    2,
-    "BULK"
-  )
+  redis.lmovem("source", "destination", "LEFT", "RIGHT", "COUNT", 2, "BULK")
 );
 expectType<Promise<Buffer[] | null>>(
   redis.lmovemBuffer(
@@ -150,16 +140,7 @@ expectType<Promise<Buffer[] | null>>(
   )
 );
 expectType<Promise<string[] | null>>(
-  redis.blmovem(
-    "source",
-    "destination",
-    "LEFT",
-    "RIGHT",
-    0,
-    "COUNT",
-    2,
-    "BULK"
-  )
+  redis.blmovem("source", "destination", "LEFT", "RIGHT", 0, "COUNT", 2, "BULK")
 );
 expectType<Promise<Buffer[] | null>>(
   redis.blmovemBuffer("source", "destination", "RIGHT", "LEFT", "0")
@@ -230,6 +211,36 @@ expectType<Promise<number[]>>(
   redis.bitrangeintarray("key", 0, -1, "BIT", "LIMIT", 10, "ZEROS")
 );
 expectType<Promise<number[]>>(redis.bitrangeintarray("key", 0, -1, "ZEROS"));
+
+// ZMOVE / BZMOVE / ZMOVEMEMBER
+expectType<Promise<[member: string, score: string][] | null>>(
+  redis.zmove("src", "dst", "MIN")
+);
+expectType<Promise<[member: string, score: string][] | null>>(
+  redis.zmove("src", "dst", "MAX", "COUNT", 2)
+);
+expectType<Promise<[member: string, score: string][] | null>>(
+  redis.zmove("src", "dst", "BYSCORE", "(1", "+inf", "COUNT", 2)
+);
+expectType<Promise<[member: Buffer, score: Buffer][] | null>>(
+  redis.zmoveBuffer("src", "dst", "MIN")
+);
+expectError(redis.zmove("src", "dst"));
+expectType<Promise<[member: string, score: string][] | null>>(
+  redis.bzmove("src", "dst", "MIN", 1)
+);
+expectType<Promise<[member: string, score: string][] | null>>(
+  redis.bzmove("src", "dst", "MAX", 1, "COUNT", 2)
+);
+expectType<Promise<[member: string, score: string][] | null>>(
+  redis.zmovemember("src", "dst", "MEMBERS", 2, "a", "b")
+);
+expectType<Promise<[member: string, score: string][] | null>>(
+  redis.zmovemember("src", "dst", "NX", "MEMBERS", 2, ["a", "b"])
+);
+expectType<Promise<[member: Buffer, score: Buffer][] | null>>(
+  redis.zmovememberBuffer("src", "dst", "XX", "MEMBERS", 1, "a")
+);
 
 // ZADD
 expectType<Promise<number>>(redis.zadd("key", 1, "member"));
@@ -303,7 +314,9 @@ expectType<Promise<(string | number)[]>>(redis.arinfo("key"));
 expectType<Promise<(Buffer | number)[]>>(redis.arinfoBuffer("key", "FULL"));
 expectType<Promise<number>>(redis.arinsert("key", "a", "b"));
 expectType<Promise<(string | null)[]>>(redis.arlastitems("key", 2));
-expectType<Promise<(Buffer | null)[]>>(redis.arlastitemsBuffer("key", 2, "REV"));
+expectType<Promise<(Buffer | null)[]>>(
+  redis.arlastitemsBuffer("key", 2, "REV")
+);
 expectType<Promise<number>>(redis.arlen("key"));
 expectType<Promise<(string | null)[]>>(redis.armget("key", 0, 1));
 expectType<Promise<(Buffer | null)[]>>(redis.armgetBuffer("key", 0, 1));
