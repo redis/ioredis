@@ -261,6 +261,7 @@ describe("Command", () => {
       );
       expect(Command.checkFlag("WILL_DISCONNECT", "quit")).to.eql(true);
       expect(Command.checkFlag("BLOCKING_COMMANDS", "blmovem")).to.eql(true);
+      expect(Command.checkFlag("BLOCKING_COMMANDS", "bzmove")).to.eql(true);
     });
 
     it("should be case insensitive for command name", () => {
@@ -458,6 +459,30 @@ describe("Command", () => {
 
       it("handles fractional seconds", () => {
         const command = new Command("blpop", ["key", "1.5"]);
+        expect(command.extractBlockingTimeout()).to.equal(1500);
+      });
+    });
+
+    describe("BZMOVE", () => {
+      it("extracts timeout without trailing COUNT", () => {
+        const command = new Command("bzmove", [
+          "source",
+          "destination",
+          "MIN",
+          "5",
+        ]);
+        expect(command.extractBlockingTimeout()).to.equal(5000);
+      });
+
+      it("extracts timeout with trailing COUNT", () => {
+        const command = new Command("BZMOVE", [
+          "source",
+          "destination",
+          "MAX",
+          "1.5",
+          "COUNT",
+          "2",
+        ]);
         expect(command.extractBlockingTimeout()).to.equal(1500);
       });
     });

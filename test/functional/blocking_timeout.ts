@@ -129,6 +129,41 @@ describe("blocking command recovery", function () {
     }
   });
 
+  it("resolves stalled BZMOVE with trailing COUNT after its timeout", async () => {
+    const server = new MockServer(30001, (argv, _socket, flags) => {
+      if (argv[0] === "bzmove") {
+        flags.hang = true;
+      }
+    });
+
+    const redis = new Redis({
+      port: 30001,
+      blockingTimeout: 1000,
+      lazyConnect: true,
+      enableReadyCheck: false,
+    });
+    redis.on("error", () => {});
+
+    try {
+      await redis.connect();
+      const start = Date.now();
+      const result = await redis.bzmove(
+        "source",
+        "destination",
+        "MIN",
+        0.01,
+        "COUNT",
+        2
+      );
+
+      expect(result).to.be.null;
+      expect(Date.now() - start).to.be.lessThan(500);
+    } finally {
+      redis.disconnect();
+      await server.disconnectPromise();
+    }
+  });
+
   it("arms blocking timer for finite-timeout commands in offline queue when blockingTimeout is set", async () => {
     // When blockingTimeout is set (feature opt-in), we arm the timer
     // for blocking commands with finite timeout in offline queue
