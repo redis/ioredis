@@ -1,6 +1,7 @@
 import { nodeKeyToRedisOptions } from "../../../lib/cluster/util";
 import { Cluster } from "../../../lib";
 import Command from "../../../lib/Command";
+import { WriteableStream } from "../../../lib/types";
 import * as sinon from "sinon";
 import { expect } from "chai";
 
@@ -87,6 +88,33 @@ describe("cluster", () => {
         command.resolve(Buffer.from("value"));
         getNodes.restore();
       }
+    });
+  });
+
+  describe("offline queue", () => {
+    it("replays a settled pipelined command with the rest of its batch", () => {
+      const cluster = new Cluster([], {
+        commandTimeoutIncludesOfflineQueue: true,
+        redisOptions: { commandTimeout: 1000 },
+      });
+      const stream = { isPipeline: true } as unknown as WriteableStream;
+      const node = { slot: 0 };
+      const pipelined = new Command("set", ["foo", "bar"]);
+      const single = new Command("get", ["foo"]);
+      pipelined.promise.catch(() => {});
+      single.promise.catch(() => {});
+      cluster.sendCommand(pipelined, stream, node);
+      cluster.sendCommand(single);
+
+      // Its batch is written once all of its commands are, so a pipelined
+      // command is sent even when settled. A single command is skipped.
+      pipelined.reject(new Error("settled while queued"));
+      single.reject(new Error("settled while queued"));
+      const sendCommand = sinon.stub(cluster, "sendCommand");
+      cluster["executeOfflineCommands"]();
+
+      expect(sendCommand.callCount).to.eql(1);
+      expect(sendCommand.firstCall.args).to.eql([pipelined, stream, node]);
     });
   });
 

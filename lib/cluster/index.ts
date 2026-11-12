@@ -69,8 +69,8 @@ const REJECT_OVERWRITTEN_PROMISES = new WeakSet<Promise<unknown>>();
 
 type OfflineQueueItem = {
   command: Command;
-  stream: WriteableStream;
-  node: unknown;
+  stream?: WriteableStream;
+  node?: unknown;
 };
 
 export type ClusterNode =
@@ -1164,10 +1164,12 @@ class Cluster<
       let item: OfflineQueueItem;
       while ((item = offlineQueue.shift())) {
         // A command that timed out while queued has already been rejected,
-        // so it must not be sent anymore. Pipelined commands are never settled
-        // here, because they get no timer while queued.
+        // so it must not be sent anymore. Pipelined commands get no timer
+        // while queued and are always sent: dropping one would keep the rest
+        // of its batch from being written while their replies are expected.
         if (
           this.options.commandTimeoutIncludesOfflineQueue &&
+          !item.stream &&
           item.command.isSettled
         ) {
           continue;
