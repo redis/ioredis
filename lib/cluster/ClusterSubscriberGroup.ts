@@ -439,9 +439,11 @@ export default class ClusterSubscriberGroup {
                 }
 
                 // A reply can land after stop() or reset() dropped this
-                // subscriber. It no longer says anything about the slot.
+                // subscriber, or after the slot moved to another one. It no
+                // longer says anything about the slot.
                 const isCurrent = () =>
-                  this.shardedSubscribers.get(nodeKey) === s;
+                  this.shardedSubscribers.get(nodeKey) === s &&
+                  this.clusterSlots[ss]?.[0] === nodeKey;
                 const ssubscribe = () => {
                   redis.ssubscribe(...channels).then(
                     () => {
