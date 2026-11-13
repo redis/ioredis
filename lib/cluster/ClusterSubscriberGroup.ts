@@ -1,3 +1,4 @@
+import { ReplyError } from "redis-errors";
 import { Debug } from "../utils";
 import { getNodeKey } from "./util";
 import * as calculateSlot from "../utils/calculateSlot";
@@ -5,6 +6,16 @@ import * as EventEmitter from "events";
 import ShardedSubscriber from "./ShardedSubscriber";
 import { ClusterOptions } from "./ClusterOptions";
 const debug = Debug("cluster:subscriberGroup");
+
+// Error replies that go away once the cluster settles. Any other error reply
+// (for example NOPERM) would fail the same way on every retry.
+const TRANSIENT_REPLY_ERROR = /^(MOVED|ASK|TRYAGAIN|CLUSTERDOWN|LOADING) /;
+
+function isRetryableResubscribeError(err: Error): boolean {
+  return (
+    !(err instanceof ReplyError) || TRANSIENT_REPLY_ERROR.test(err.message)
+  );
+}
 
 /**
  * Redis distinguishes between "normal" and sharded PubSub. When using the normal PubSub feature,
@@ -22,6 +33,15 @@ export default class ClusterSubscriberGroup {
   private subscriberToSlotsIndex: Map<string, number[]> = new Map();
   private channels: Map<number, Array<string | Buffer>> = new Map();
   private failedAttemptsByNode: Map<string, number> = new Map();
+
+  // Slots whose channels a resubscribe failed to restore. While any remain,
+  // a slots refresh is retried with backoff. Only that retry makes reset()
+  // resubscribe when the topology looks unchanged, so a refresh triggered by
+  // the MOVED reply itself cannot start an unthrottled loop.
+  private unsubscribedSlots: Set<number> = new Set();
+  private resubscribeAttempts = 0;
+  private resubscribeRetryTimer: NodeJS.Timeout | null = null;
+  private isResubscribeRetryDue = false;
 
   // Only latest pending reset kept; throttled by refreshSlotsCache's isRefreshing + backoff delay
   private isResetting = false;
@@ -120,6 +140,10 @@ export default class ClusterSubscriberGroup {
           ),
       );
       this.channels.set(slot, updatedChannels);
+
+      if (updatedChannels.length === 0) {
+        this.markSlotResubscribed(slot);
+      }
     }
 
     return Array.from(this.channels.values()).reduce(
@@ -172,6 +196,7 @@ export default class ClusterSubscriberGroup {
     }
 
     this.channels.clear();
+    this.clearResubscribeRetry();
 
     return 0;
   }
@@ -187,6 +212,7 @@ export default class ClusterSubscriberGroup {
     // Clear subscriber instances and pending operations.
     // Channels are preserved for resubscription on reconnect.
     this.pendingReset = null;
+    this.clearResubscribeRetry();
     this.shardedSubscribers.clear();
     this.subscriberToSlotsIndex.clear();
   }
@@ -229,8 +255,14 @@ export default class ClusterSubscriberGroup {
     try {
       const hasTopologyChanged = this._refreshSlots(clusterSlots);
       const hasFailedSubscribers = this.hasUnhealthySubscribers();
+      const isResubscribeRetryDue = this.isResubscribeRetryDue;
+      this.isResubscribeRetryDue = false;
 
-      if (!hasTopologyChanged && !hasFailedSubscribers) {
+      if (
+        !hasTopologyChanged &&
+        !hasFailedSubscribers &&
+        !isResubscribeRetryDue
+      ) {
         debug(
           "No topology change detected or failed subscribers. Skipping reset.",
         );
@@ -406,22 +438,17 @@ export default class ClusterSubscriberGroup {
                   return;
                 }
 
+                const ssubscribe = () => {
+                  redis.ssubscribe(...channels).then(
+                    () => this.markSlotResubscribed(ss),
+                    (err) => this.handleResubscribeFailed(err, ss, nodeKey),
+                  );
+                };
+
                 if (redis.status === "ready") {
-                  redis.ssubscribe(...channels).catch((err) => {
-                    // TODO: Should we emit an error event here?
-                    debug("Failed to ssubscribe on node %s: %s", nodeKey, err);
-                  });
+                  ssubscribe();
                 } else {
-                  redis.once("ready", () => {
-                    redis.ssubscribe(...channels).catch((err) => {
-                      // TODO: Should we emit an error event here?
-                      debug(
-                        "Failed to ssubscribe on node %s: %s",
-                        nodeKey,
-                        err,
-                      );
-                    });
-                  });
+                  redis.once("ready", ssubscribe);
                 }
               }
             });
@@ -466,6 +493,77 @@ export default class ClusterSubscriberGroup {
     return hasFailedSubscribers || hasMissingSubscribers;
   }
 
+  private backoffDelay(failedAttempts: number): number {
+    const attempts = Math.min(
+      failedAttempts,
+      ClusterSubscriberGroup.MAX_RETRY_ATTEMPTS,
+    );
+    const backoff = Math.min(
+      ClusterSubscriberGroup.BASE_BACKOFF_MS * 2 ** attempts,
+      ClusterSubscriberGroup.MAX_BACKOFF_MS,
+    );
+    const jitter = Math.floor((Math.random() - 0.5) * (backoff * 0.5));
+    return Math.max(0, backoff + jitter);
+  }
+
+  private markSlotResubscribed(slot: number): void {
+    this.unsubscribedSlots.delete(slot);
+
+    if (this.unsubscribedSlots.size === 0) {
+      this.clearResubscribeRetry();
+    }
+  }
+
+  private clearResubscribeRetry(): void {
+    this.unsubscribedSlots.clear();
+    this.resubscribeAttempts = 0;
+    this.isResubscribeRetryDue = false;
+
+    if (this.resubscribeRetryTimer) {
+      clearTimeout(this.resubscribeRetryTimer);
+      this.resubscribeRetryTimer = null;
+    }
+  }
+
+  /**
+   * Handles a failed resubscribe. The slot stays marked until a later
+   * resubscribe succeeds, and a slots refresh is requested after a backoff so
+   * that reset() runs again. A node can answer MOVED while still listing
+   * itself as the slot owner, so the refresh may need several attempts.
+   */
+  private handleResubscribeFailed(
+    error: Error,
+    slot: number,
+    nodeKey: string,
+  ): void {
+    debug("Failed to ssubscribe on node %s: %s", nodeKey, error);
+
+    if (!this.channels.get(slot)?.length) {
+      return;
+    }
+
+    if (!isRetryableResubscribeError(error)) {
+      this.subscriberGroupEmitter.emit("nodeError", error, nodeKey);
+      return;
+    }
+
+    this.unsubscribedSlots.add(slot);
+
+    if (this.resubscribeRetryTimer) {
+      return;
+    }
+
+    this.resubscribeAttempts += 1;
+    const delay = this.backoffDelay(this.resubscribeAttempts);
+    debug("Retrying resubscribe by refreshing slots in %dms", delay);
+
+    this.resubscribeRetryTimer = setTimeout(() => {
+      this.resubscribeRetryTimer = null;
+      this.isResubscribeRetryDue = true;
+      this.subscriberGroupEmitter.emit("resubscribeFailed");
+    }, delay);
+  }
+
   /**
    * Handles failed subscriber connections by emitting an event to refresh the slots cache
    * after a backoff period.
@@ -478,16 +576,7 @@ export default class ClusterSubscriberGroup {
     const failedAttempts = currentAttempts + 1;
     this.failedAttemptsByNode.set(nodeKey, failedAttempts);
 
-    const attempts = Math.min(
-      failedAttempts,
-      ClusterSubscriberGroup.MAX_RETRY_ATTEMPTS,
-    );
-    const backoff = Math.min(
-      ClusterSubscriberGroup.BASE_BACKOFF_MS * 2 ** attempts,
-      ClusterSubscriberGroup.MAX_BACKOFF_MS,
-    );
-    const jitter = Math.floor((Math.random() - 0.5) * (backoff * 0.5));
-    const delay = Math.max(0, backoff + jitter);
+    const delay = this.backoffDelay(failedAttempts);
 
     debug(
       "Failed to connect subscriber for %s. Refreshing slots in %dms",

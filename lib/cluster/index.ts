@@ -1481,6 +1481,10 @@ class Cluster<
       }
     );
 
+    this.subscriberGroupEmitter.on("resubscribeFailed", () => {
+      this.refreshSlotsCache(refreshSlotsCacheCallback);
+    });
+
     this.subscriberGroupEmitter.on("moved", () => {
       this.refreshSlotsCache(refreshSlotsCacheCallback);
     });
