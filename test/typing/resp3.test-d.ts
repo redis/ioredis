@@ -74,6 +74,24 @@ expectType<Promise<[key: string, member: string, score: number] | null>>(
   r3.bzpopmax("key", 1),
 );
 
+expectType<Promise<[member: string, score: string][] | null>>(
+  r2.zmove("src", "dst", "MIN"),
+);
+expectType<Promise<ScoredMember[] | null>>(r3.zmove("src", "dst", "MIN"));
+expectType<Promise<ScoredBufferMember[] | null>>(
+  r3.zmoveBuffer("src", "dst", "BYSCORE", 1, 2, "COUNT", 2),
+);
+expectType<Promise<[member: string, score: string][] | null>>(
+  r2.bzmove("src", "dst", "MIN", 1),
+);
+expectType<Promise<ScoredMember[] | null>>(r3.bzmove("src", "dst", "MIN", 1));
+expectType<Promise<[member: string, score: string][] | null>>(
+  r2.zmovemember("src", "dst", "MEMBERS", 1, "member"),
+);
+expectType<Promise<ScoredMember[] | null>>(
+  r3.zmovemember("src", "dst", "MEMBERS", 1, "member"),
+);
+
 expectType<Promise<[rank: number, score: string] | null>>(
   r2.zrank("key", "member", "WITHSCORE"),
 );

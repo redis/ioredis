@@ -141,6 +141,10 @@ module.exports = {
   blmovem: "string[] | null",
   lmpop: "[key: string, members: string[]] | null",
   blmpop: "[key: string, members: string[]] | null",
+  bzmove: {
+    resp2: "[member: string, score: string][] | null",
+    resp3: "[member: string, score: Resp3Double<string>][] | null",
+  },
   bzpopmin: {
     resp2: "[key: string, member: string, score: string] | null",
     resp3: "[key: string, member: string, score: Resp3Double<string>] | null",
@@ -412,6 +416,14 @@ module.exports = {
   zintercard: "number",
   zinterstore: "number",
   zlexcount: "number",
+  zmove: {
+    resp2: "[member: string, score: string][] | null",
+    resp3: "[member: string, score: Resp3Double<string>][] | null",
+  },
+  zmovemember: {
+    resp2: "[member: string, score: string][] | null",
+    resp3: "[member: string, score: Resp3Double<string>][] | null",
+  },
   zpopmax: (types) =>
     types.length > 1
       ? { resp2: "string[]", resp3: "[member: string, score: Resp3Double<string>][]" }

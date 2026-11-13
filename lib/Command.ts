@@ -91,6 +91,7 @@ export interface CommandNameFlags {
     "brpoplpush",
     "blmove",
     "blmovem",
+    "bzmove",
     "bzpopmin",
     "bzpopmax",
     "bzmpop",
@@ -175,6 +176,7 @@ export default class Command implements Respondable {
       "brpoplpush",
       "blmove",
       "blmovem",
+      "bzmove",
       "bzpopmin",
       "bzpopmax",
       "bzmpop",
@@ -667,6 +669,11 @@ export default class Command implements Respondable {
     // BLMOVEM may have trailing options, but its timeout is always the fifth argument.
     if (name === "blmovem") {
       return parseSecondsArgument(args[4]);
+    }
+
+    // BZMOVE may have a trailing COUNT, but its timeout is always the fourth argument.
+    if (name === "bzmove") {
+      return parseSecondsArgument(args[3]);
     }
 
     if (Command.checkFlag("LAST_ARG_TIMEOUT_COMMANDS", name)) {
