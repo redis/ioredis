@@ -542,6 +542,10 @@ export default class ClusterSubscriberGroup {
    * resubscribe succeeds, and a slots refresh is requested after a backoff so
    * that reset() runs again. A node can answer MOVED while still listing
    * itself as the slot owner, so the refresh may need several attempts.
+   *
+   * An error reply that a retry cannot fix (for example NOPERM) means the
+   * slot's channels stay unsubscribed, so it is reported to the application
+   * instead of being retried.
    */
   private handleResubscribeFailed(
     error: Error,
@@ -555,7 +559,7 @@ export default class ClusterSubscriberGroup {
     }
 
     if (!isRetryableResubscribeError(error)) {
-      this.subscriberGroupEmitter.emit("nodeError", error, nodeKey);
+      this.subscriberGroupEmitter.emit("resubscribeError", error);
       return;
     }
 
@@ -572,7 +576,7 @@ export default class ClusterSubscriberGroup {
     this.resubscribeRetryTimer = setTimeout(() => {
       this.resubscribeRetryTimer = null;
       this.isResubscribeRetryDue = true;
-      this.subscriberGroupEmitter.emit("resubscribeRetryDue");
+      this.subscriberGroupEmitter.emit("resubscribeRetry");
     }, delay);
   }
 
