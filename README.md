@@ -686,9 +686,10 @@ Redis.Command.setReplyTransformer("hgetall", (result) => {
 });
 ```
 
-There are three built-in transformers, two argument transformers for `hmset` & `mset` and
+There are built-in argument transformers for `hset`, `hmset`, `mset` & `msetnx` and
 a reply transformer for `hgetall`. Transformers for `hmset` and `hgetall` were mentioned
-above, and the transformer for `mset` is similar to the one for `hmset`:
+above, `hset` uses the same one as `hmset`, and the transformer for `mset` and `msetnx`
+is similar to the one for `hmset`:
 
 ```javascript
 redis.mset({ k1: "v1", k2: "v2" });
