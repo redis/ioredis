@@ -42,6 +42,18 @@ describe("cluster:connect", () => {
     });
   });
 
+  it("should pass the retry delay to the reconnecting event", (done) => {
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      clusterRetryStrategy: () => 50,
+    });
+
+    cluster.once("reconnecting", (delay) => {
+      expect(delay).to.eql(50);
+      cluster.disconnect();
+      done();
+    });
+  });
+
   it("should reset retry times when connect() is called after giving up", (done) => {
     const timesSeen: number[] = [];
 
