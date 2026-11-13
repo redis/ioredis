@@ -1215,6 +1215,14 @@ cluster.get("foo", (err, res) => {
 
     - `dnsLookup`: Alternative DNS lookup function (`dns.lookup()` is used by default). It may be useful to override this in special cases, such as when AWS ElastiCache used with TLS enabled.
     - `enableOfflineQueue`: Similar to the `enableOfflineQueue` option of `Redis` class.
+    - `commandTimeoutIncludesOfflineQueue`: When enabled, `redisOptions.commandTimeout` starts when a command enters the cluster offline
+      queue, where commands wait while the cluster is not ready. By default the timeout starts when the command is handed to a node, so
+      it already covers that node's own offline queue but not the cluster's. A command that times out in the cluster offline queue is
+      rejected with `Command timed out` and is never sent. Commands batched by a pipeline, `multi()` or `enableAutoPipelining` are
+      excluded and keep waiting. Their timeout starts when they reach a node. Subscribe and unsubscribe commands handled by the
+      cluster subscriber connection are excluded too, because that connection never times them out. The option has no effect unless
+      `redisOptions.commandTimeout` is set. The default is `false`. This option is removed in the next major version, where this
+      becomes the default behavior.
     - `enableReadyCheck`: When enabled, "ready" event will only be emitted when `CLUSTER INFO` command
       reporting the cluster is ready for handling commands. Otherwise, it will be emitted immediately after "connect" is emitted.
     - `scaleReads`: Config where to send the read queries. See below for more details.

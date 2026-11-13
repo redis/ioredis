@@ -92,6 +92,12 @@ expectType<Cluster>(
     subscriberNodeRole: "master",
   })
 );
+expectType<Cluster>(
+  new Cluster([30001], { commandTimeoutIncludesOfflineQueue: true })
+);
+expectError(
+  new Cluster([30001], { commandTimeoutIncludesOfflineQueue: "yes" })
+);
 
 expectAssignable<NatMap>({
   "10.0.1.230:30001": { host: "203.0.113.73", port: 30001 },

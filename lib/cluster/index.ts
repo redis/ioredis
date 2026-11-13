@@ -67,10 +67,14 @@ const debug = Debug("cluster");
 // wrapped again when they are resent on their own.
 const REJECT_OVERWRITTEN_PROMISES = new WeakSet<Promise<unknown>>();
 
+// The offline queue length at which commands that timed out in it are first
+// dropped, see Cluster#compactOfflineQueue.
+const MIN_OFFLINE_QUEUE_COMPACTION_LENGTH = 64;
+
 type OfflineQueueItem = {
   command: Command;
-  stream: WriteableStream;
-  node: unknown;
+  stream?: WriteableStream;
+  node?: unknown;
 };
 
 export type ClusterNode =
@@ -125,6 +129,7 @@ class Cluster<
   private retryAttempts = 0;
   private delayQueue: DelayQueue = new DelayQueue();
   private offlineQueue = new Deque<OfflineQueueItem>();
+  private offlineQueueCompactionLength = MIN_OFFLINE_QUEUE_COMPACTION_LENGTH;
   private subscriber: ClusterSubscriber;
   private shardedSubscribers: ClusterSubscriberGroup;
   private slotsTimer: ReturnType<typeof setTimeout> | null;
@@ -901,11 +906,32 @@ class Cluster<
         }
       }
       if (!redis && _this.options.enableOfflineQueue) {
+        // Redis#sendCommand keeps a running timer, so the deadline does not
+        // restart once the command reaches a node. Pipelined commands (with a
+        // stream) are left alone: Pipeline#fillResult retries them by resetting
+        // their promises, so a timed out one would still be sent later.
+        // Commands for the cluster subscriber are left alone too, since that
+        // connection never times them out once the cluster is ready.
+        const commandTimeout = _this.options.redisOptions?.commandTimeout;
+        if (
+          _this.options.commandTimeoutIncludesOfflineQueue &&
+          !stream &&
+          typeof commandTimeout === "number" &&
+          !_this.isSentOnClusterSubscriber(command)
+        ) {
+          command.setTimeout(commandTimeout);
+        }
         _this.offlineQueue.push({
           command: command,
           stream: stream,
           node: node,
         });
+        if (
+          _this.options.commandTimeoutIncludesOfflineQueue &&
+          _this.offlineQueue.length >= _this.offlineQueueCompactionLength
+        ) {
+          _this.compactOfflineQueue();
+        }
         return;
       }
 
@@ -1173,9 +1199,61 @@ class Cluster<
       this.resetOfflineQueue();
       let item: OfflineQueueItem;
       while ((item = offlineQueue.shift())) {
+        // A command that timed out while queued has already been rejected,
+        // so it must not be sent anymore. Pipelined commands get no timer
+        // while queued and are always sent: dropping one would keep the rest
+        // of its batch from being written while their replies are expected.
+        if (
+          this.options.commandTimeoutIncludesOfflineQueue &&
+          !item.stream &&
+          item.command.isSettled
+        ) {
+          continue;
+        }
         this.sendCommand(item.command, item.stream, item.node);
       }
     }
+  }
+
+  /**
+   * Drop the commands that timed out in the offline queue, which would be
+   * skipped on replay anyway. Otherwise a caller that retries after each
+   * timeout keeps adding to the queue for as long as the cluster is down.
+   * The next compaction waits until the queue has doubled, so the cost per
+   * queued command stays constant.
+   */
+  private compactOfflineQueue() {
+    const items = this.offlineQueue
+      .toArray()
+      .filter((item) => item.stream || !item.command.isSettled);
+    debug(
+      "drop %d timed out commands from offline queue",
+      this.offlineQueue.length - items.length
+    );
+    this.offlineQueue = new Deque(items);
+    this.offlineQueueCompactionLength = Math.max(
+      MIN_OFFLINE_QUEUE_COMPACTION_LENGTH,
+      items.length * 2
+    );
+  }
+
+  /**
+   * Whether the command is sent on the cluster subscriber connection, which
+   * is created without `redisOptions` and so never times out its commands.
+   * Sharded (un)subscribes go to the sharded subscribers instead, which are
+   * created with `redisOptions`.
+   */
+  private isSentOnClusterSubscriber(command: Command): boolean {
+    if (
+      !Command.checkFlag("ENTER_SUBSCRIBER_MODE", command.name) &&
+      !Command.checkFlag("EXIT_SUBSCRIBER_MODE", command.name)
+    ) {
+      return false;
+    }
+    return !(
+      this.options.shardedSubscribers &&
+      (command.name === "ssubscribe" || command.name === "sunsubscribe")
+    );
   }
 
   private natMapper(nodeKey: NodeKey | RedisOptions): RedisOptions {

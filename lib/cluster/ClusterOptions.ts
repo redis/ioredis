@@ -55,6 +55,27 @@ export interface ClusterOptions extends CommanderOptions {
   enableOfflineQueue?: boolean | undefined;
 
   /**
+   * Start `redisOptions.commandTimeout` when a command enters the cluster
+   * offline queue, where commands wait while the cluster is not ready. By
+   * default the timeout starts when the command is handed to a node, so it
+   * already covers that node's own offline queue but not the cluster's.
+   *
+   * A command that times out in the cluster offline queue is rejected and
+   * never sent. Commands batched by a pipeline, `multi()` or auto pipelining
+   * are excluded and keep waiting. Their timeout starts when they reach a node.
+   * Subscribe and unsubscribe commands handled by the cluster subscriber
+   * connection are excluded too, because that connection never times them out.
+   *
+   * Has no effect unless `redisOptions.commandTimeout` is set.
+   *
+   * This option is removed in the next major version, where this becomes the
+   * default behavior.
+   *
+   * @default false
+   */
+  commandTimeoutIncludesOfflineQueue?: boolean | undefined;
+
+  /**
    * When enabled, ioredis only emits "ready" event when `CLUSTER INFO`
    * command reporting the cluster is ready for handling commands.
    *
@@ -291,6 +312,7 @@ export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = {
   clusterRetryStrategy: (times) => Math.min(100 + times * 2, 2000),
   clusterNodeRetryStrategy: null,
   enableOfflineQueue: true,
+  commandTimeoutIncludesOfflineQueue: false,
   enableReadyCheck: true,
   scaleReads: "master",
   subscriberNodeRole: "all",

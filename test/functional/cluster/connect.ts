@@ -1,6 +1,9 @@
-import MockServer from "../../helpers/mock_server";
+import MockServer, {
+  MockServerHandler,
+  pubSubReply,
+} from "../../helpers/mock_server";
 import { expect } from "chai";
-import { Cluster } from "../../../lib";
+import { Cluster, ClusterOptions } from "../../../lib";
 import * as sinon from "sinon";
 
 describe("cluster:connect", () => {
@@ -474,6 +477,246 @@ describe("cluster:connect", () => {
           });
         });
       });
+    });
+  });
+
+  describe("commandTimeout", () => {
+    const slotTable = [[0, 16383, ["127.0.0.1", 30001]]];
+    let cluster: Cluster;
+    let serverTimers: NodeJS.Timeout[] = [];
+
+    afterEach(() => {
+      serverTimers.forEach(clearTimeout);
+      serverTimers = [];
+      cluster?.disconnect();
+    });
+
+    function startServerAfter(
+      ms: number,
+      handler: MockServerHandler = createHandler([])
+    ) {
+      serverTimers.push(setTimeout(() => new MockServer(30001, handler), ms));
+    }
+
+    // Records the commands a node receives, apart from the cluster commands
+    // used to load the slots.
+    function createHandler(received: string[]) {
+      return (argv) => {
+        if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+          return slotTable;
+        }
+        if (argv[0] === "cluster" && argv[1] === "INFO") {
+          return "cluster_state:ok";
+        }
+        received.push(argv[0]);
+        if (argv[0] === "get") {
+          return "bar";
+        }
+      };
+    }
+
+    function createCluster(
+      commandTimeout: number,
+      options: ClusterOptions = {}
+    ) {
+      return new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+        clusterRetryStrategy: () => 50,
+        redisOptions: { commandTimeout },
+        ...options,
+      });
+    }
+
+    const optIn = { commandTimeoutIncludesOfflineQueue: true };
+
+    it("lets a queued command outlast the timeout by default", (done) => {
+      cluster = createCluster(100);
+
+      cluster.get("foo", (err, res) => {
+        expect(err).to.eql(null);
+        expect(res).to.eql("bar");
+        done();
+      });
+      startServerAfter(300);
+    });
+
+    // The node takes the SET, never answers and closes. The command goes back
+    // to the cluster offline queue with the timer the node started.
+    async function timeOutAfterNodeCloses(options: ClusterOptions) {
+      const received: string[] = [];
+      const handler = createHandler(received);
+      const server = new MockServer(30001, (argv, socket, flags) => {
+        if (argv[0] === "set") {
+          received.push("set");
+          flags.hang = true;
+          server.disconnect();
+          return;
+        }
+        return handler(argv);
+      });
+      cluster = createCluster(300, options);
+
+      const error = cluster.set("foo", "bar").catch((err: Error) => err);
+      startServerAfter(600, createHandler(received));
+      expect((await error).message).to.eql("Command timed out");
+      await new Promise((resolve) => cluster.once("ready", resolve));
+
+      // The GET runs after anything replayed from the offline queue.
+      expect(await cluster.get("foo")).to.eql("bar");
+      return received.filter((name) => name === "set").length;
+    }
+
+    it("still replays a command that timed out after its node closed by default", async () => {
+      expect(await timeOutAfterNodeCloses({})).to.eql(2);
+    });
+
+    it("does not replay a command that timed out after its node closed", async () => {
+      expect(await timeOutAfterNodeCloses(optIn)).to.eql(1);
+    });
+
+    it("rejects a command that waits too long for the cluster to be ready", (done) => {
+      cluster = createCluster(100, optIn);
+
+      const start = Date.now();
+      cluster.get("foo", (err) => {
+        expect(err.message).to.eql("Command timed out");
+        expect(Date.now() - start).to.be.below(1000);
+        done();
+      });
+    });
+
+    it("does not send a timed out command once the cluster is ready", (done) => {
+      const received: string[] = [];
+      cluster = createCluster(100, optIn);
+
+      cluster.set("foo", "bar", (err) => {
+        expect(err.message).to.eql("Command timed out");
+        new MockServer(30001, createHandler(received));
+        cluster.once("ready", () => {
+          cluster.get("foo", (getErr, res) => {
+            expect(getErr).to.eql(null);
+            expect(res).to.eql("bar");
+            expect(received).to.not.include("set");
+            done();
+          });
+        });
+      });
+    });
+
+    it("keeps the deadline from the offline queue once the command reaches a node", async () => {
+      const received: string[] = [];
+      const handler = createHandler(received);
+      const start = Date.now();
+      // The node takes the GET but never answers it.
+      startServerAfter(100, (argv, socket, flags) => {
+        if (argv[0] === "get") {
+          received.push("get");
+          flags.hang = true;
+          return;
+        }
+        return handler(argv);
+      });
+      cluster = createCluster(400, optIn);
+
+      const error = await cluster.get("foo").catch((err: Error) => err);
+      expect(error.message).to.eql("Command timed out");
+      expect(received).to.include("get");
+      // A timeout restarted by the node would end 400 ms after the GET
+      // reached it, and the node only starts 100 ms in.
+      expect(Date.now() - start).to.be.below(500);
+    });
+
+    it("sends a queued command once the cluster is ready within the timeout", (done) => {
+      cluster = createCluster(2000, optIn);
+
+      cluster.get("foo", (err, res) => {
+        expect(err).to.eql(null);
+        expect(res).to.eql("bar");
+        done();
+      });
+      startServerAfter(100);
+    });
+
+    it("does not send a command that timed out while the cluster reconnects", (done) => {
+      const received: string[] = [];
+      const server = new MockServer(30001, createHandler(received));
+      cluster = createCluster(100, optIn);
+
+      cluster.once("ready", () => {
+        cluster.once("reconnecting", () => {
+          cluster.set("foo", "bar", (err) => {
+            expect(err.message).to.eql("Command timed out");
+            new MockServer(30001, createHandler(received));
+            cluster.once("ready", () => {
+              cluster.get("foo", (getErr, res) => {
+                expect(getErr).to.eql(null);
+                expect(res).to.eql("bar");
+                expect(received).to.not.include("set");
+                done();
+              });
+            });
+          });
+        });
+        server.disconnect();
+      });
+    });
+
+    it("lets pipelined commands wait while the cluster reconnects", (done) => {
+      const received: string[] = [];
+      const server = new MockServer(30001, createHandler(received));
+      cluster = createCluster(100, optIn);
+
+      cluster.once("ready", () => {
+        cluster.once("reconnecting", () => {
+          // A pipeline retries commands that fail with the same error, so a
+          // timeout here would not stop the SET from running later. It waits.
+          cluster
+            .pipeline()
+            .set("foo", "bar")
+            .exec((err, res) => {
+              expect(err).to.eql(null);
+              expect(res).to.eql([[null, "OK"]]);
+              const sets = received.filter((name) => name === "set");
+              expect(sets).to.have.length(1);
+              done();
+            });
+          startServerAfter(300, createHandler(received));
+        });
+        server.disconnect();
+      });
+    });
+
+    // Without shardedSubscribers, SSUBSCRIBE goes to the cluster subscriber
+    // connection as well.
+    const subscriberCommands = [
+      "subscribe",
+      "psubscribe",
+      "ssubscribe",
+      "unsubscribe",
+    ] as const;
+    subscriberCommands.forEach((name) => {
+      it(`lets ${name.toUpperCase()} wait for the cluster to be ready`, async () => {
+        const count = name === "unsubscribe" ? 0 : 1;
+        const handler = createHandler([]);
+        startServerAfter(300, (argv) =>
+          argv[0] === name
+            ? pubSubReply(2, name, argv[1], count)
+            : handler(argv)
+        );
+        cluster = createCluster(100, optIn);
+
+        // The cluster subscriber connection never times it out once the
+        // cluster is ready, so it does not time out while queued either.
+        expect(await cluster[name]("foo")).to.eql(count);
+      });
+    });
+
+    it("rejects a sharded SSUBSCRIBE that waits too long for the cluster to be ready", async () => {
+      cluster = createCluster(100, { ...optIn, shardedSubscribers: true });
+
+      // Sharded subscribers are created with redisOptions, so their
+      // commands time out like any other.
+      const error = await cluster.ssubscribe("foo").catch((err: Error) => err);
+      expect(error.message).to.eql("Command timed out");
     });
   });
 });

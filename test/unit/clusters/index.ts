@@ -1,6 +1,7 @@
 import { nodeKeyToRedisOptions } from "../../../lib/cluster/util";
 import { Cluster } from "../../../lib";
 import Command from "../../../lib/Command";
+import { WriteableStream } from "../../../lib/types";
 import * as sinon from "sinon";
 import { expect } from "chai";
 
@@ -87,6 +88,62 @@ describe("cluster", () => {
         command.resolve(Buffer.from("value"));
         getNodes.restore();
       }
+    });
+  });
+
+  describe("offline queue", () => {
+    it("replays a settled pipelined command with the rest of its batch", () => {
+      const cluster = new Cluster([], {
+        commandTimeoutIncludesOfflineQueue: true,
+        redisOptions: { commandTimeout: 1000 },
+      });
+      const stream = { isPipeline: true } as unknown as WriteableStream;
+      const node = { slot: 0 };
+      const pipelined = new Command("set", ["foo", "bar"]);
+      const single = new Command("get", ["foo"]);
+      pipelined.promise.catch(() => {});
+      single.promise.catch(() => {});
+      cluster.sendCommand(pipelined, stream, node);
+      cluster.sendCommand(single);
+
+      // Its batch is written once all of its commands are, so a pipelined
+      // command is sent even when settled. A single command is skipped.
+      pipelined.reject(new Error("settled while queued"));
+      single.reject(new Error("settled while queued"));
+      const sendCommand = sinon.stub(cluster, "sendCommand");
+      cluster["executeOfflineCommands"]();
+
+      expect(sendCommand.callCount).to.eql(1);
+      expect(sendCommand.firstCall.args).to.eql([pipelined, stream, node]);
+    });
+
+    it("drops commands that timed out while queued as the queue grows", () => {
+      const cluster = new Cluster([], {
+        commandTimeoutIncludesOfflineQueue: true,
+        redisOptions: { commandTimeout: 1000 },
+      });
+      const stream = { isPipeline: true } as unknown as WriteableStream;
+      const pipelined = new Command("set", ["foo", "bar"]);
+      const pending = new Command("get", ["foo"]);
+      pipelined.promise.catch(() => {});
+      pending.promise.catch(() => {});
+      cluster.sendCommand(pipelined, stream, { slot: 0 });
+      cluster.sendCommand(pending);
+      pipelined.reject(new Error("settled while queued"));
+
+      // Like a caller that sends the next command once one times out.
+      for (let i = 0; i < 500; i++) {
+        const command = new Command("get", ["foo"]);
+        command.promise.catch(() => {});
+        cluster.sendCommand(command);
+        command.reject(new Error("Command timed out"));
+      }
+
+      const queued = cluster["offlineQueue"].toArray();
+      expect(queued.length).to.be.below(100);
+      expect(queued[0].command).to.equal(pipelined);
+      expect(queued[1].command).to.equal(pending);
+      pending.reject(new Error("done"));
     });
   });
 
