@@ -438,10 +438,22 @@ export default class ClusterSubscriberGroup {
                   return;
                 }
 
+                // A reply can land after stop() or reset() dropped this
+                // subscriber. It no longer says anything about the slot.
+                const isCurrent = () =>
+                  this.shardedSubscribers.get(nodeKey) === s;
                 const ssubscribe = () => {
                   redis.ssubscribe(...channels).then(
-                    () => this.markSlotResubscribed(ss),
-                    (err) => this.handleResubscribeFailed(err, ss, nodeKey),
+                    () => {
+                      if (isCurrent()) {
+                        this.markSlotResubscribed(ss);
+                      }
+                    },
+                    (err) => {
+                      if (isCurrent()) {
+                        this.handleResubscribeFailed(err, ss, nodeKey);
+                      }
+                    },
                   );
                 };
 
@@ -560,7 +572,7 @@ export default class ClusterSubscriberGroup {
     this.resubscribeRetryTimer = setTimeout(() => {
       this.resubscribeRetryTimer = null;
       this.isResubscribeRetryDue = true;
-      this.subscriberGroupEmitter.emit("resubscribeFailed");
+      this.subscriberGroupEmitter.emit("resubscribeRetryDue");
     }, delay);
   }
 

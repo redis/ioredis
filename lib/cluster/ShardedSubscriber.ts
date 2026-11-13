@@ -68,7 +68,6 @@ export default class ShardedSubscriber {
            * The ClusterSubscriberGroup will handle the reconnection.
            */
           retryStrategy: null,
-          enableAutoPipelining: false,
           lazyConnect: true,
           // Maintenance notifications are currently only supported on
           // standalone clients.

@@ -1481,7 +1481,7 @@ class Cluster<
       }
     );
 
-    this.subscriberGroupEmitter.on("resubscribeFailed", () => {
+    this.subscriberGroupEmitter.on("resubscribeRetryDue", () => {
       this.refreshSlotsCache(refreshSlotsCacheCallback);
     });
 
