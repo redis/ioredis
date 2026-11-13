@@ -1502,6 +1502,16 @@ class Cluster<
       }
     );
 
+    this.subscriberGroupEmitter.on("resubscribeRetry", () => {
+      this.refreshSlotsCache(refreshSlotsCacheCallback);
+    });
+
+    // Same as autoResubscribe on a standalone client: a resubscribe that
+    // cannot succeed is reported through the "error" event.
+    this.subscriberGroupEmitter.on("resubscribeError", (error) => {
+      Redis.prototype.silentEmit.call(this, "error", error);
+    });
+
     this.subscriberGroupEmitter.on("moved", () => {
       this.refreshSlotsCache(refreshSlotsCacheCallback);
     });

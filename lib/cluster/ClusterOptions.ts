@@ -151,6 +151,20 @@ export interface ClusterOptions extends CommanderOptions {
   shardedSubscribers?: boolean | undefined;
 
   /**
+   * Interval in milliseconds for a liveness check on sharded subscriber
+   * connections. Disabled when unset.
+   *
+   * Each subscriber sends PING once per interval. If a PING is still
+   * unanswered at the next interval, or the connection handshake takes
+   * longer than one interval, the subscriber disconnects and the cluster
+   * replaces it. The PING gets the full interval to answer even when
+   * `commandTimeout` is shorter.
+   *
+   * @default undefined
+   */
+  shardedSubscriberHealthCheckInterval?: number | undefined;
+
+  /**
    * When a cluster node connection is closed, this function will be called
    * to determine the retry delay (in ms). Returning `null` or a non-number
    * disables reconnection for that node.

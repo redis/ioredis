@@ -1,6 +1,8 @@
 import { expect } from "chai";
 import { EventEmitter } from "events";
+import * as sinon from "sinon";
 import ClusterSubscriberGroup from "../../../lib/cluster/ClusterSubscriberGroup";
+import Redis from "../../../lib/Redis";
 
 describe("ClusterSubscriberGroup", () => {
   it("removes every copy of a channel with equal bytes", () => {
@@ -30,5 +32,41 @@ describe("ClusterSubscriberGroup", () => {
 
     expect(group.removeChannels(["news{tag}", "news{other}"])).to.equal(-1);
     expect(group.removeChannels(["news{tag}"])).to.equal(0);
+  });
+
+  describe("connect backoff", () => {
+    afterEach(() => {
+      sinon.restore();
+    });
+
+    it("keeps growing when a start is cut short by stop", async () => {
+      const connect = sinon.stub(Redis.prototype, "connect");
+      connect.onCall(0).rejects(new Error("connect failed"));
+      connect.onCall(1).returns(new Promise<void>(() => {}));
+      connect.onCall(2).rejects(new Error("connect failed"));
+
+      const emitter = new EventEmitter();
+      const delays: number[] = [];
+      emitter.on("subscriberConnectFailed", ({ delay }) => delays.push(delay));
+
+      const group = new ClusterSubscriberGroup(emitter, {});
+      group.addChannels(["news{tag}"]);
+      const slots = new Array(16384).fill(["127.0.0.1:30001"]);
+      const nodes = [{ options: { host: "127.0.0.1", port: 30001 } }];
+
+      await group.reset(slots, nodes);
+      expect(delays, "first failure").to.have.length(1);
+
+      const hungReset = group.reset(slots, nodes);
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(connect.callCount, "second start is pending").to.equal(2);
+      group.stop();
+      await hungReset;
+
+      await group.reset(slots, nodes);
+      expect(connect.callCount, "third start ran").to.equal(3);
+      expect(delays, "second failure").to.have.length(2);
+      expect(delays[1], "second backoff step").to.be.at.least(300);
+    });
   });
 });

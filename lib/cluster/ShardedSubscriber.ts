@@ -3,6 +3,7 @@ import { getConnectionName, getNodeKey, RedisOptions } from "./util";
 import { Debug, defaults } from "../utils";
 import Redis from "../Redis";
 import { ClusterOptions } from "./ClusterOptions";
+import ShardedSubscriberHealthCheck from "./ShardedSubscriberHealthCheck";
 const debug = Debug("cluster:subscriberGroup:shardedSubscriber");
 
 const SubscriberStatus = {
@@ -40,6 +41,8 @@ export default class ShardedSubscriber {
   private instance: Redis | null = null;
   private connectPromise: Promise<void> | null = null;
   private lazyConnect: boolean;
+  private finishStart: (() => void) | null = null;
+  private readonly healthCheck: ShardedSubscriberHealthCheck | null;
 
   // Store listener references for cleanup
   private readonly messageListeners: Map<string, (...args: any[]) => void> =
@@ -49,6 +52,7 @@ export default class ShardedSubscriber {
     private readonly emitter: EventEmitter,
     options: RedisOptions,
     redisOptions?: ClusterOptions["redisOptions"],
+    healthCheckInterval?: number,
   ) {
     this.instance = new Redis(
       defaults(
@@ -90,6 +94,14 @@ export default class ShardedSubscriber {
       this.messageListeners.set(event, listener);
       this.instance.on(event, listener);
     }
+
+    this.healthCheck = healthCheckInterval
+      ? new ShardedSubscriberHealthCheck(
+          this.instance,
+          healthCheckInterval,
+          this.nodeKey,
+        )
+      : null;
   }
 
   async start(): Promise<void> {
@@ -111,7 +123,12 @@ export default class ShardedSubscriber {
     }
 
     this.updateStatus(SubscriberStatus.STARTING);
-    this.connectPromise = this.instance.connect();
+    // stop() removes the instance's listeners, so connect() would never
+    // settle. Finish the start instead, so a reset waiting on it can finish.
+    const stopped = new Promise<void>((resolve) => {
+      this.finishStart = resolve;
+    });
+    this.connectPromise = Promise.race([this.instance.connect(), stopped]);
 
     try {
       await this.connectPromise;
@@ -120,12 +137,18 @@ export default class ShardedSubscriber {
       this.updateStatus(SubscriberStatus.ENDED);
       throw err;
     } finally {
+      this.finishStart = null;
       this.connectPromise = null;
     }
   }
 
   stop(): void {
+    this.healthCheck?.stop();
     this.updateStatus(SubscriberStatus.STOPPING);
+
+    if (this.finishStart) {
+      this.finishStart();
+    }
 
     if (this.instance) {
       this.instance.disconnect();
