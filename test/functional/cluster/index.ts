@@ -298,6 +298,71 @@ describe("cluster", () => {
     });
   });
 
+  it("should remove a node when a failover role change cannot enable readonly", (done) => {
+    let failover = false;
+    let slotTable = [[0, 16383, ["127.0.0.1", 30001], ["127.0.0.1", 30002]]];
+
+    function handler(port, argv) {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return slotTable;
+      }
+      if (argv[0] === "cluster" && argv[1] === "INFO") {
+        return "cluster_state:ok";
+      }
+      if (port === 30001 && argv[0] === "readonly" && failover) {
+        return new Error("LOADING Redis is loading the dataset in memory");
+      }
+      if (argv[0] === "set") {
+        return "OK";
+      }
+      if (argv[0] === "get") {
+        return port;
+      }
+    }
+
+    new MockServer(30001, handler.bind(null, 30001));
+    new MockServer(30002, handler.bind(null, 30002));
+
+    const cluster = new Cluster([{ host: "127.0.0.1", port: "30001" }], {
+      scaleReads: "slave",
+      clusterRetryStrategy: null,
+    });
+
+    cluster.set("foo", "bar", (err) => {
+      if (err) {
+        return done(err);
+      }
+
+      failover = true;
+      slotTable = [[0, 16383, ["127.0.0.1", 30002], ["127.0.0.1", 30001]]];
+
+      cluster.once("-node", (redis) => {
+        if (redis.options.port !== 30001) {
+          return;
+        }
+
+        expect(cluster.nodes("all")).to.have.lengthOf(1);
+        expect(cluster.nodes("all")[0].options.port).to.eql(30002);
+        expect(cluster.nodes("slave")).to.have.lengthOf(0);
+
+        cluster.get("foo", (getErr, result) => {
+          if (getErr) {
+            return done(getErr);
+          }
+          expect(result).to.eql(30002);
+          cluster.disconnect();
+          done();
+        });
+      });
+
+      cluster.refreshSlotsCache((refreshErr) => {
+        if (refreshErr) {
+          done(refreshErr);
+        }
+      });
+    });
+  });
+
   describe("#nodes()", () => {
     it("should return the corrent nodes", (done) => {
       const slotTable = [
