@@ -1085,11 +1085,11 @@ class Cluster<
   /**
    * Change cluster instance's status
    */
-  private setStatus(status: ClusterStatus): void {
+  private setStatus(status: ClusterStatus, arg?: unknown): void {
     debug("status: %s -> %s", this.status || "[empty]", status);
     this.status = status;
     process.nextTick(() => {
-      this.emit(status);
+      this.emit(status, arg);
     });
   }
 
@@ -1138,7 +1138,7 @@ class Cluster<
       );
     }
     if (typeof retryDelay === "number") {
-      this.setStatus("reconnecting");
+      this.setStatus("reconnecting", retryDelay);
       this.reconnectTimeout = setTimeout(() => {
         this.reconnectTimeout = null;
         debug("Cluster is disconnected. Retrying after %dms", retryDelay);
