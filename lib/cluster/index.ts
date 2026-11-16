@@ -68,7 +68,8 @@ const debug = Debug("cluster");
 const REJECT_OVERWRITTEN_PROMISES = new WeakSet<Promise<unknown>>();
 
 // The offline queue length at which commands that timed out in it are first
-// dropped, see Cluster#compactOfflineQueue.
+// dropped, see Cluster#compactOfflineQueue. The threshold goes back to it
+// whenever the queue is emptied.
 const MIN_OFFLINE_QUEUE_COMPACTION_LENGTH = 64;
 
 type OfflineQueueItem = {
@@ -906,6 +907,7 @@ class Cluster<
         });
         if (
           _this.options.commandTimeoutIncludesOfflineQueue &&
+          typeof commandTimeout === "number" &&
           _this.offlineQueue.length >= _this.offlineQueueCompactionLength
         ) {
           _this.compactOfflineQueue();
@@ -1056,6 +1058,7 @@ class Cluster<
 
   private resetOfflineQueue() {
     this.offlineQueue = new Deque();
+    this.offlineQueueCompactionLength = MIN_OFFLINE_QUEUE_COMPACTION_LENGTH;
   }
 
   private clearNodesRefreshInterval() {
@@ -1165,6 +1168,7 @@ class Cluster<
     while ((item = this.offlineQueue.shift())) {
       item.command.reject(error);
     }
+    this.offlineQueueCompactionLength = MIN_OFFLINE_QUEUE_COMPACTION_LENGTH;
   }
 
   private executeOfflineCommands() {

@@ -145,6 +145,74 @@ describe("cluster", () => {
       expect(queued[1].command).to.equal(pending);
       pending.reject(new Error("done"));
     });
+
+    const queueGet = (cluster: Cluster) => {
+      const command = new Command("get", ["foo"]);
+      command.promise.catch(() => {});
+      cluster.sendCommand(command);
+      return command;
+    };
+
+    it("compacts from the first threshold again once the queue is replayed", () => {
+      const cluster = new Cluster([], {
+        commandTimeoutIncludesOfflineQueue: true,
+        redisOptions: { commandTimeout: 1000 },
+      });
+      // A burst of pending commands raises the threshold.
+      const burst = Array.from({ length: 1000 }, () => queueGet(cluster));
+      expect(cluster["offlineQueueCompactionLength"]).to.be.above(100);
+      const sendCommand = sinon.stub(cluster, "sendCommand");
+      cluster["executeOfflineCommands"]();
+      sendCommand.restore();
+      expect(cluster["offlineQueue"].length).to.eql(0);
+
+      // The next outage.
+      for (let i = 0; i < 100; i++) {
+        queueGet(cluster).reject(new Error("Command timed out"));
+      }
+
+      expect(cluster["offlineQueue"].length).to.be.below(64);
+      burst.forEach((command) => command.reject(new Error("done")));
+    });
+
+    it("compacts from the first threshold again once the queue is flushed", () => {
+      const cluster = new Cluster([], {
+        commandTimeoutIncludesOfflineQueue: true,
+        redisOptions: { commandTimeout: 1000 },
+      });
+      for (let i = 0; i < 1000; i++) {
+        queueGet(cluster);
+      }
+      expect(cluster["offlineQueueCompactionLength"]).to.be.above(100);
+      cluster["flushQueue"](new Error("None of startup nodes is available"));
+      expect(cluster["offlineQueue"].length).to.eql(0);
+
+      for (let i = 0; i < 100; i++) {
+        queueGet(cluster).reject(new Error("Command timed out"));
+      }
+
+      expect(cluster["offlineQueue"].length).to.be.below(64);
+    });
+
+    [
+      {
+        when: "the option is off",
+        options: { redisOptions: { commandTimeout: 1000 } },
+      },
+      {
+        when: "commandTimeout is not set",
+        options: { commandTimeoutIncludesOfflineQueue: true },
+      },
+    ].forEach(({ when, options }) => {
+      it(`keeps settled commands in the queue when ${when}`, () => {
+        const cluster = new Cluster([], options);
+        for (let i = 0; i < 100; i++) {
+          queueGet(cluster).reject(new Error("settled while queued"));
+        }
+
+        expect(cluster["offlineQueue"].length).to.eql(100);
+      });
+    });
   });
 
   describe("natMapper", () => {
