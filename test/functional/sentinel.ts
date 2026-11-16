@@ -1191,6 +1191,70 @@ describe("sentinel", () => {
       });
 
       ([2, 3] as const).forEach((protocol) => {
+        it(`should rediscover the master when +switch-master arrives during discovery after the master closed the connection - RESP ${protocol}`, async () => {
+          const subscriptions = new Set<Socket>();
+          let announceDuringDiscovery = false;
+          const sentinel = new MockServer(27379, (argv, socket, flags) => {
+            if (argv[0] === "subscribe") {
+              subscriptions.add(socket);
+              socket.once("close", () => subscriptions.delete(socket));
+              return pubSubReply(protocol, "subscribe", "+switch-master");
+            }
+            if (
+              argv[0] === "sentinel" &&
+              argv[1] === "get-master-addr-by-name"
+            ) {
+              if (!announceDuringDiscovery) {
+                return ["127.0.0.1", "17380"];
+              }
+              announceDuringDiscovery = false;
+              // Another Sentinel's +switch-master reaches the open
+              // subscriptions while this Sentinel is still answering.
+              for (const subscription of subscriptions) {
+                sentinel.write(subscription, sentinelMessage(protocol));
+              }
+              flags.hang = true;
+              setTimeout(
+                () => sentinel.write(socket, ["127.0.0.1", "17380"]),
+                50
+              );
+            }
+          });
+          const master = new MockServer(17380);
+          const redis = new Redis({
+            sentinels: [{ host: "127.0.0.1", port: 27379 }],
+            failoverDetector: true,
+            name: "master",
+            protocol,
+          });
+
+          try {
+            await Promise.all([
+              once(redis, "ready"),
+              once(redis, "failoverSubscribed"),
+            ]);
+
+            announceDuringDiscovery = true;
+            const outcome = new Promise((resolve) => {
+              redis.once("ready", () => resolve("ready"));
+              redis.once("end", () => resolve("end"));
+            });
+            // The server closes the connection, as a demoted master's
+            // CLIENT KILL or a network drop does; ioredis reconnects itself.
+            master.getAllClients().forEach((client) => client.destroy());
+
+            expect(await outcome).to.equal("ready");
+          } finally {
+            redis.disconnect();
+            await Promise.all([
+              sentinel.disconnectPromise(),
+              master.disconnectPromise(),
+            ]);
+          }
+        });
+      });
+
+      ([2, 3] as const).forEach((protocol) => {
         it(`should detect failover from secondary sentinel - RESP ${protocol}`, async () => {
           const sentinel1 = new MockServer(27379, (argv) => {
             if (
