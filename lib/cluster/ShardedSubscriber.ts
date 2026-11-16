@@ -52,7 +52,7 @@ export default class ShardedSubscriber {
     private readonly emitter: EventEmitter,
     options: RedisOptions,
     redisOptions?: ClusterOptions["redisOptions"],
-    healthCheckInterval?: number,
+    healthCheckInterval?: number | null,
   ) {
     this.instance = new Redis(
       defaults(
