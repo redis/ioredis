@@ -11,12 +11,6 @@ const debug = Debug("cluster:subscriberGroup");
 // (for example NOPERM) would fail the same way on every retry.
 const TRANSIENT_REPLY_ERROR = /^(MOVED|ASK|TRYAGAIN|CLUSTERDOWN|LOADING) /;
 
-function isRetryableResubscribeError(err: Error): boolean {
-  return (
-    !(err instanceof ReplyError) || TRANSIENT_REPLY_ERROR.test(err.message)
-  );
-}
-
 /**
  * Redis distinguishes between "normal" and sharded PubSub. When using the normal PubSub feature,
  * exactly one subscriber exists per cluster instance because the Redis cluster bus forwards
@@ -42,6 +36,9 @@ export default class ClusterSubscriberGroup {
   private resubscribeAttempts = 0;
   private resubscribeRetryTimer: NodeJS.Timeout | null = null;
   private isResubscribeRetryDue = false;
+
+  // Subscribers with a pending "ready" listener that will resubscribe them.
+  private subscribersAwaitingReady: WeakSet<ShardedSubscriber> = new WeakSet();
 
   // Only latest pending reset kept; throttled by refreshSlotsCache's isRefreshing + backoff delay
   private isResetting = false;
@@ -419,53 +416,70 @@ export default class ClusterSubscriberGroup {
   /**
    * Resubscribes to the previous channels
    *
+   * A subscriber that is still connecting gets a single "ready" listener, no
+   * matter how many resets run before it is ready. Its slots and channels are
+   * read when it becomes ready, so they reflect the latest state.
+   *
    * @private
    */
   private _resubscribe() {
-    if (this.shardedSubscribers) {
-      this.shardedSubscribers.forEach(
-        (s: ShardedSubscriber, nodeKey: string) => {
-          const subscriberSlots = this.subscriberToSlotsIndex.get(nodeKey);
-          if (subscriberSlots) {
-            //Resubscribe on the underlying connection
-            subscriberSlots.forEach((ss) => {
-              //Might return null if being disconnected
-              const redis = s.getInstance();
-              const channels = this.channels.get(ss);
+    for (const [nodeKey, s] of this.shardedSubscribers) {
+      //Might return null if being disconnected
+      const redis = s.getInstance();
 
-              if (channels && channels.length > 0) {
-                if (!redis || redis.status === "end") {
-                  return;
-                }
+      if (
+        !redis ||
+        redis.status === "end" ||
+        !this.hasSubscribedChannels(nodeKey)
+      ) {
+        continue;
+      }
 
-                // A reply can land after stop() or reset() dropped this
-                // subscriber, or after the slot moved to another one. It no
-                // longer says anything about the slot.
-                const isCurrent = () =>
-                  this.shardedSubscribers.get(nodeKey) === s &&
-                  this.clusterSlots[ss]?.[0] === nodeKey;
-                const ssubscribe = () => {
-                  redis.ssubscribe(...channels).then(
-                    () => {
-                      if (isCurrent()) {
-                        this.markSlotResubscribed(ss);
-                      }
-                    },
-                    (err) => {
-                      if (isCurrent()) {
-                        this.handleResubscribeFailed(err, ss, nodeKey);
-                      }
-                    },
-                  );
-                };
+      if (redis.status === "ready") {
+        this.resubscribeSubscriber(s, nodeKey);
+      } else if (!this.subscribersAwaitingReady.has(s)) {
+        this.subscribersAwaitingReady.add(s);
+        redis.once("ready", () => {
+          this.subscribersAwaitingReady.delete(s);
+          this.resubscribeSubscriber(s, nodeKey);
+        });
+      }
+    }
+  }
 
-                if (redis.status === "ready") {
-                  ssubscribe();
-                } else {
-                  redis.once("ready", ssubscribe);
-                }
-              }
-            });
+  /**
+   * Sends SSUBSCRIBE for every slot of the subscriber that has channels.
+   */
+  private resubscribeSubscriber(s: ShardedSubscriber, nodeKey: string): void {
+    const redis = s.getInstance();
+
+    if (!redis) {
+      return;
+    }
+
+    for (const ss of this.subscriberToSlotsIndex.get(nodeKey) ?? []) {
+      const channels = this.channels.get(ss);
+
+      if (!channels?.length) {
+        continue;
+      }
+
+      // A reply can land after stop() or reset() dropped this subscriber, or
+      // after the slot moved to another one. It no longer says anything about
+      // the slot.
+      const isCurrent = () =>
+        this.shardedSubscribers.get(nodeKey) === s &&
+        this.clusterSlots[ss]?.[0] === nodeKey;
+
+      redis.ssubscribe(...channels).then(
+        () => {
+          if (isCurrent()) {
+            this.markSlotResubscribed(ss);
+          }
+        },
+        (err) => {
+          if (isCurrent()) {
+            this.handleResubscribeFailed(err, ss, nodeKey);
           }
         },
       );
@@ -548,6 +562,12 @@ export default class ClusterSubscriberGroup {
    * An error reply that a retry cannot fix (for example NOPERM) means the
    * slot's channels stay unsubscribed, so it is reported to the application
    * instead of being retried.
+   *
+   * A local error is not retried. A closed connection ends the subscriber,
+   * and the reset that follows replaces it and resubscribes its slots. A
+   * timed-out SSUBSCRIBE still runs if the node is alive, and if the node is
+   * stuck, a resend would only queue behind it. Finding a stuck connection is
+   * the job of the health check.
    */
   private handleResubscribeFailed(
     error: Error,
@@ -560,7 +580,11 @@ export default class ClusterSubscriberGroup {
       return;
     }
 
-    if (!isRetryableResubscribeError(error)) {
+    if (!(error instanceof ReplyError)) {
+      return;
+    }
+
+    if (!TRANSIENT_REPLY_ERROR.test(error.message)) {
       this.subscriberGroupEmitter.emit("resubscribeError", error);
       return;
     }
