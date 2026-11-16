@@ -611,3 +611,314 @@ describe("cluster: sharded unsubscribe channel identity", () => {
     }
   }
 });
+
+const isSubscriberSocket = (socket: Socket) =>
+  getConnectionName(socket)?.includes("ssubscriber") ?? false;
+
+const waitFor = async (condition: () => boolean, timeoutMs = 5000) => {
+  const deadline = Date.now() + timeoutMs;
+  while (!condition()) {
+    if (Date.now() > deadline) {
+      throw new Error(`Condition not met within ${timeoutMs}ms`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+};
+
+describe("cluster: sharded resubscribe retry", () => {
+  it("resubscribes after a MOVED reply from a node that still owns the slot", async () => {
+    const ssubscribedOn: Socket[] = [];
+    const server = new MockServer(30001, (argv, socket) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return [[0, 16383, ["127.0.0.1", 30001]]];
+      }
+      if (argv[0] === "ssubscribe") {
+        ssubscribedOn.push(socket);
+        // The first resubscribe lands while the slot looks like it is
+        // migrating, but CLUSTER SLOTS still lists this node as the owner.
+        if (ssubscribedOn.length === 2) {
+          return new Error("MOVED 12182 127.0.0.1:30001");
+        }
+        return pubSubReply(3, "ssubscribe", argv[1]);
+      }
+    });
+    const cluster = new Cluster([{ host: "127.0.0.1", port: 30001 }], {
+      shardedSubscribers: true,
+      slotsRefreshInterval: 0,
+    });
+
+    try {
+      await cluster.ssubscribe("foo");
+      server
+        .getAllClients()
+        .filter(isSubscriberSocket)
+        .forEach((socket) => socket.destroy());
+
+      await waitFor(() => ssubscribedOn.length === 3);
+      expect(ssubscribedOn[2], "retried on the replacement").to.equal(
+        ssubscribedOn[1]
+      );
+
+      const received = new Promise<string[]>((resolve) => {
+        cluster.once("smessage", (channel, message) =>
+          resolve([channel, message])
+        );
+      });
+      server.write(
+        ssubscribedOn[2],
+        pubSubReply(3, "smessage", "foo", "after retry")
+      );
+      expect(await received).to.eql(["foo", "after retry"]);
+    } finally {
+      cluster.disconnect();
+    }
+  });
+
+  it("does not flood CLUSTER SLOTS while the resubscribe keeps failing", async () => {
+    let ssubscribeCount = 0;
+    let clusterSlotsCount = 0;
+    const server = new MockServer(30001, (argv) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        clusterSlotsCount += 1;
+        return [[0, 16383, ["127.0.0.1", 30001]]];
+      }
+      if (argv[0] === "ssubscribe") {
+        ssubscribeCount += 1;
+        if (ssubscribeCount > 1) {
+          return new Error("MOVED 12182 127.0.0.1:30001");
+        }
+        return pubSubReply(3, "ssubscribe", argv[1]);
+      }
+    });
+    const cluster = new Cluster([{ host: "127.0.0.1", port: 30001 }], {
+      shardedSubscribers: true,
+      slotsRefreshInterval: 0,
+    });
+
+    try {
+      await cluster.ssubscribe("foo");
+      const clusterSlotsBefore = clusterSlotsCount;
+      server
+        .getAllClients()
+        .filter(isSubscriberSocket)
+        .forEach((socket) => socket.destroy());
+
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Retries back off at about 200, 400 and 800 ms. Each one sends a
+      // resubscribe and costs two refreshes: one for the retry, one for the
+      // MOVED reply.
+      expect(ssubscribeCount - 1, "resubscribes").to.be.within(3, 5);
+      expect(
+        clusterSlotsCount - clusterSlotsBefore,
+        "CLUSTER SLOTS refreshes"
+      ).to.be.at.most(12);
+    } finally {
+      cluster.disconnect();
+    }
+  });
+});
+
+describe("cluster: sharded subscriber health check", () => {
+  const INTERVAL = 200;
+
+  // Counts PINGs on subscriber connections. While `hangPing` is set, the
+  // node keeps the socket open but leaves PING unanswered.
+  const createServer = () => {
+    const state = {
+      hangPing: false,
+      hangHandshake: false,
+      pings: 0,
+      ssubscribedOn: [] as Socket[],
+    };
+    const server = new MockServer(30001, (argv, socket, flags) => {
+      if (argv[0] === "cluster" && argv[1] === "SLOTS") {
+        return [[0, 16383, ["127.0.0.1", 30001]]];
+      }
+      if (
+        state.hangHandshake &&
+        argv[0] === "client" &&
+        String(argv[1]).toLowerCase() === "setname" &&
+        String(argv[2]).includes("ssubscriber")
+      ) {
+        flags.hang = true;
+        return;
+      }
+      if (argv[0] === "ssubscribe") {
+        state.ssubscribedOn.push(socket);
+        return pubSubReply(3, "ssubscribe", argv[1]);
+      }
+      if (argv[0].toLowerCase() === "ping" && isSubscriberSocket(socket)) {
+        state.pings += 1;
+        if (state.hangPing) {
+          flags.hang = true;
+        }
+        return "PONG";
+      }
+    });
+    return { server, state };
+  };
+
+  const createCluster = (
+    shardedSubscriberHealthCheckInterval: number | null = INTERVAL
+  ) =>
+    new Cluster([{ host: "127.0.0.1", port: 30001 }], {
+      shardedSubscribers: true,
+      shardedSubscriberHealthCheckInterval,
+      slotsRefreshInterval: 0,
+    });
+
+  it("defaults the interval to 10 seconds", () => {
+    const cluster = new Cluster([], { lazyConnect: true });
+    expect(cluster.options.shardedSubscriberHealthCheckInterval).to.equal(
+      10000
+    );
+  });
+
+  it("replaces a subscriber whose node stops answering PING", async () => {
+    const { server, state } = createServer();
+    const cluster = createCluster();
+
+    try {
+      await cluster.ssubscribe("foo");
+      await waitFor(() => state.pings >= 1);
+
+      const removed = new Promise((resolve) => {
+        cluster.once("-node", (_redis, nodeKey) => resolve(nodeKey));
+      });
+      state.hangPing = true;
+      expect(await removed).to.equal("127.0.0.1:30001");
+      state.hangPing = false;
+
+      await waitFor(() => state.ssubscribedOn.length === 2);
+      const [original, replacement] = state.ssubscribedOn;
+      expect(replacement, "resubscribed on a new connection").to.not.equal(
+        original
+      );
+      expect(original.destroyed, "old connection closed").to.equal(true);
+
+      const received = new Promise<string[]>((resolve) => {
+        cluster.once("smessage", (channel, message) =>
+          resolve([channel, message])
+        );
+      });
+      server.write(
+        replacement,
+        pubSubReply(3, "smessage", "foo", "after replace")
+      );
+      expect(await received).to.eql(["foo", "after replace"]);
+    } finally {
+      cluster.disconnect();
+    }
+  });
+
+  it("keeps a subscriber whose node answers PING", async () => {
+    const { server, state } = createServer();
+    const cluster = createCluster();
+    const removed = sinon.spy();
+    cluster.on("-node", removed);
+
+    try {
+      await cluster.ssubscribe("foo");
+      await new Promise((resolve) => setTimeout(resolve, 6 * INTERVAL));
+
+      expect(state.pings, "pings sent").to.be.at.least(4);
+      expect(removed.called, "subscriber replaced").to.equal(false);
+      expect(
+        server.getAllClients().filter(isSubscriberSocket),
+        "subscriber connections"
+      ).to.have.length(1);
+    } finally {
+      cluster.disconnect();
+    }
+  });
+
+  it("does not ping when the interval is null", async () => {
+    const { state } = createServer();
+    state.hangPing = true;
+    const cluster = createCluster(null);
+    const removed = sinon.spy();
+    cluster.on("-node", removed);
+
+    try {
+      await cluster.ssubscribe("foo");
+      await new Promise((resolve) => setTimeout(resolve, 5 * INTERVAL));
+
+      expect(state.pings, "pings sent").to.equal(0);
+      expect(removed.called, "subscriber replaced").to.equal(false);
+    } finally {
+      cluster.disconnect();
+    }
+  });
+
+  it("disconnects a subscriber whose handshake stays unanswered", async () => {
+    const { server, state } = createServer();
+    state.hangHandshake = true;
+    const cluster = createCluster();
+    const errors: Error[] = [];
+    cluster.on("error", (err) => errors.push(err));
+
+    try {
+      await new Promise((resolve) => cluster.once("ready", resolve));
+      const startedAt = Date.now();
+      cluster.ssubscribe("foo").catch(noop);
+
+      await waitFor(() => errors.length > 0);
+      expect(Date.now() - startedAt, "time to detect").to.be.within(
+        INTERVAL - 50,
+        3 * INTERVAL
+      );
+      expect(errors[0].message).to.equal("Connection is closed.");
+      expect(state.pings, "pings before ready").to.equal(0);
+
+      // The failed start is retried with backoff once the handshake works.
+      state.hangHandshake = false;
+      await waitFor(() => state.ssubscribedOn.length > 0);
+      expect(
+        server.getAllClients().filter(isSubscriberSocket),
+        "subscriber connections"
+      ).to.have.length(1);
+    } finally {
+      cluster.disconnect();
+    }
+  });
+
+  it("stops the health check when the subscriber stops", () => {
+    const clock = sinon.useFakeTimers({
+      toFake: ["setTimeout", "clearTimeout"],
+    });
+    const subscriber = new ShardedSubscriber(
+      new EventEmitter(),
+      { host: "127.0.0.1", port: 30001 },
+      undefined,
+      INTERVAL
+    );
+    const instance = subscriber.getInstance()!;
+    const sendCommand = sinon.spy(instance, "sendCommand");
+
+    try {
+      instance.emit("connect");
+      instance.emit("ready");
+      subscriber.stop();
+      clock.tick(5 * INTERVAL);
+
+      expect(clock.countTimers(), "pending timers").to.equal(0);
+      expect(sendCommand.called, "pinged after stop").to.equal(false);
+    } finally {
+      clock.restore();
+    }
+  });
+
+  it("stops pinging after the cluster disconnects", async () => {
+    const { state } = createServer();
+    const cluster = createCluster();
+
+    await cluster.ssubscribe("foo");
+    await waitFor(() => state.pings >= 1);
+    cluster.disconnect();
+    const pingsAtDisconnect = state.pings;
+
+    await new Promise((resolve) => setTimeout(resolve, 3 * INTERVAL));
+    expect(state.pings).to.equal(pingsAtDisconnect);
+  });
+});

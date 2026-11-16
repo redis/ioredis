@@ -16,7 +16,7 @@ class FakeConnection extends EventEmitter implements HealthCheckedConnection {
   // Mirrors Redis.sendCommand() applying the `commandTimeout` option.
   commandTimeout: number | undefined;
   sendCommand = sinon.stub().callsFake((command: Command) => {
-    expect(command.name).to.equal("ping");
+    expect(command.name).to.equal("PING");
     if (this.commandTimeout !== undefined) {
       command.setTimeout(this.commandTimeout);
     }

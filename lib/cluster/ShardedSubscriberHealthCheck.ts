@@ -67,7 +67,7 @@ export default class ShardedSubscriberHealthCheck {
       return;
     }
 
-    const ping = new Command("ping");
+    const ping = new Command("PING");
     this.pendingPing = ping;
     const answered = () => {
       if (this.pendingPing === ping) {
