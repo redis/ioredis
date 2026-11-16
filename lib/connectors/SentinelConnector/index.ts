@@ -418,7 +418,9 @@ export default class SentinelConnector extends AbstractConnector {
     };
     emitter?.once("ready", onReady);
 
-    // QUIT closes the stream without calling the connector's disconnect().
+    // QUIT and server-side closes end the stream without calling the
+    // connector's disconnect(). A +switch-master reaching this detector while
+    // the reconnect resolves the master would otherwise end the client.
     stream.once("close", () => {
       emitter?.removeListener("ready", onReady);
       failoverDetector.cleanup();
