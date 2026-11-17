@@ -158,7 +158,9 @@ export interface ClusterOptions extends CommanderOptions {
    * unanswered at the next interval, or the connection handshake takes
    * longer than one interval, the subscriber disconnects and the cluster
    * replaces it. The PING gets the full interval to answer even when
-   * `commandTimeout` is shorter.
+   * `commandTimeout` is shorter. The first PING after connecting waits a
+   * random 50-200ms longer, so subscribers that connect together do not ping
+   * in lockstep. Values below 1000 are raised to 1000.
    *
    * @default 10000
    */

@@ -8,6 +8,9 @@ import ShardedSubscriberHealthCheck, {
 } from "../../../lib/cluster/ShardedSubscriberHealthCheck";
 
 const INTERVAL = 1000;
+// The first ping's minimum extra delay, which is the whole delay while
+// Math.random is stubbed to 0.
+const FIRST_PING_JITTER = 50;
 const realSetImmediate = setImmediate;
 const flushPromises = () => new Promise((resolve) => realSetImmediate(resolve));
 
@@ -45,6 +48,8 @@ describe("ShardedSubscriberHealthCheck", () => {
 
   beforeEach(() => {
     clock = sinon.useFakeTimers();
+    // Fixed jitter, so the first ping fires FIRST_PING_JITTER after an interval.
+    sinon.stub(Math, "random").returns(0);
     connection = new FakeConnection();
     healthCheck = new ShardedSubscriberHealthCheck(
       connection,
@@ -58,9 +63,12 @@ describe("ShardedSubscriberHealthCheck", () => {
     clock.restore();
   });
 
+  // Leaves the clock one interval before the first ping, so every later
+  // tick(INTERVAL) lands on a ping.
   const connect = () => {
     connection.emit("connect");
     connection.emit("ready");
+    clock.tick(FIRST_PING_JITTER);
   };
 
   const streamMessages = (intervals: number) => {
@@ -96,7 +104,7 @@ describe("ShardedSubscriberHealthCheck", () => {
     clock.tick(INTERVAL - 1);
     connection.emit("ready");
 
-    clock.tick(INTERVAL - 1);
+    clock.tick(INTERVAL + FIRST_PING_JITTER - 1);
     expect(connection.disconnect.called, "disconnected after ready").to.equal(
       false
     );

@@ -4,6 +4,14 @@ import Command from "../Command";
 import { Debug } from "../utils";
 const debug = Debug("cluster:subscriberGroup:shardedSubscriber:healthCheck");
 
+// Below this, a PING cannot reliably be answered within one interval, and
+// event loop pauses would disconnect healthy connections.
+const MIN_INTERVAL_MS = 1000;
+
+// Random delay range added before the first PING.
+const FIRST_PING_JITTER_MIN_MS = 50;
+const FIRST_PING_JITTER_MAX_MS = 200;
+
 export interface HealthCheckedConnection extends EventEmitter {
   sendCommand(command: Command): unknown;
   disconnect(): void;
@@ -12,8 +20,10 @@ export interface HealthCheckedConnection extends EventEmitter {
 /**
  * Disconnects a connection that stops answering commands.
  *
- * Before ready, the handshake must complete within one interval. After ready,
- * PING is sent once per interval and must be answered before the next one.
+ * The interval is at least 1000ms. Before ready, the handshake must complete
+ * within one interval. After ready, PING is sent once per interval and must be
+ * answered before the next one. The first PING waits a random 50-200ms longer,
+ * so subscribers that become ready together do not ping in lockstep.
  * A `commandTimeout` shorter than the interval is extended for the PING, so
  * the interval alone decides. Replies arrive in order, so a PING queued behind
  * a stuck command hangs too. Sharded messages are ignored because a node can
@@ -25,12 +35,22 @@ export default class ShardedSubscriberHealthCheck {
   private timer: NodeJS.Timeout | undefined;
   private ready = false;
   private pendingPing: Command | undefined;
+  private readonly intervalMs: number;
 
   constructor(
     private readonly instance: HealthCheckedConnection,
-    private readonly intervalMs: number,
+    intervalMs: number,
     private readonly nodeKey: string,
   ) {
+    this.intervalMs = Math.max(intervalMs, MIN_INTERVAL_MS);
+    if (this.intervalMs !== intervalMs) {
+      debug(
+        "%s health check interval %dms raised to the %dms minimum",
+        nodeKey,
+        intervalMs,
+        MIN_INTERVAL_MS,
+      );
+    }
     instance.on("connect", this.arm);
     instance.on("ready", this.onReady);
     instance.on("close", this.stop);
@@ -50,7 +70,16 @@ export default class ShardedSubscriberHealthCheck {
 
   private onReady = () => {
     this.ready = true;
-    this.timer?.refresh();
+    if (!this.timer) {
+      return;
+    }
+    clearTimeout(this.timer);
+    const jitterMs =
+      FIRST_PING_JITTER_MIN_MS +
+      Math.floor(
+        Math.random() * (FIRST_PING_JITTER_MAX_MS - FIRST_PING_JITTER_MIN_MS),
+      );
+    this.timer = setTimeout(this.onFire, this.intervalMs + jitterMs);
   };
 
   private onFire = () => {
@@ -81,6 +110,7 @@ export default class ShardedSubscriberHealthCheck {
     });
     this.instance.sendCommand(ping);
     ping.extendTimeout(this.intervalMs);
-    this.timer?.refresh();
+    // A new timer, as refresh() would repeat the first PING's jittered delay.
+    this.timer = setTimeout(this.onFire, this.intervalMs);
   };
 }

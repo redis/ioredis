@@ -720,7 +720,10 @@ describe("cluster: sharded resubscribe retry", () => {
 });
 
 describe("cluster: sharded subscriber health check", () => {
-  const INTERVAL = 200;
+  // The smallest interval the health check accepts.
+  const INTERVAL = 1000;
+  // Long enough for the first PING, which waits up to 200ms past an interval.
+  const FIRST_PING_WAIT = 1.5 * INTERVAL;
 
   // Counts PINGs on subscriber connections. While `hangPing` is set, the
   // node keeps the socket open but leaves PING unanswered.
@@ -820,9 +823,10 @@ describe("cluster: sharded subscriber health check", () => {
 
     try {
       await cluster.ssubscribe("foo");
-      await new Promise((resolve) => setTimeout(resolve, 6 * INTERVAL));
+      await new Promise((resolve) => setTimeout(resolve, 5 * INTERVAL));
 
-      expect(state.pings, "pings sent").to.be.at.least(4);
+      // PINGs at about 1, 2, 3 and 4 intervals, each up to 200ms late.
+      expect(state.pings, "pings sent").to.be.at.least(3);
       expect(removed.called, "subscriber replaced").to.equal(false);
       expect(
         server.getAllClients().filter(isSubscriberSocket),
@@ -842,7 +846,7 @@ describe("cluster: sharded subscriber health check", () => {
 
     try {
       await cluster.ssubscribe("foo");
-      await new Promise((resolve) => setTimeout(resolve, 5 * INTERVAL));
+      await new Promise((resolve) => setTimeout(resolve, FIRST_PING_WAIT));
 
       expect(state.pings, "pings sent").to.equal(0);
       expect(removed.called, "subscriber replaced").to.equal(false);
@@ -866,7 +870,7 @@ describe("cluster: sharded subscriber health check", () => {
       await waitFor(() => errors.length > 0);
       expect(Date.now() - startedAt, "time to detect").to.be.within(
         INTERVAL - 50,
-        3 * INTERVAL
+        2 * INTERVAL
       );
       expect(errors[0].message).to.equal("Connection is closed.");
       expect(state.pings, "pings before ready").to.equal(0);
@@ -918,7 +922,8 @@ describe("cluster: sharded subscriber health check", () => {
     cluster.disconnect();
     const pingsAtDisconnect = state.pings;
 
-    await new Promise((resolve) => setTimeout(resolve, 3 * INTERVAL));
+    // The next PING would have come one interval after the last.
+    await new Promise((resolve) => setTimeout(resolve, FIRST_PING_WAIT));
     expect(state.pings).to.equal(pingsAtDisconnect);
   });
 });
