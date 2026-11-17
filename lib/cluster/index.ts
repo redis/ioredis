@@ -202,6 +202,25 @@ class Cluster<
           '". Expected "all", "master" or "slave"'
       );
     }
+    // Below this, a PING cannot reliably be answered within one interval, and
+    // event loop pauses would disconnect healthy subscribers.
+    const MIN_HEALTH_CHECK_INTERVAL_MS = 1000;
+    const healthCheckInterval =
+      this.options.shardedSubscriberHealthCheckInterval;
+    if (
+      healthCheckInterval !== null &&
+      !(
+        typeof healthCheckInterval === "number" &&
+        Number.isFinite(healthCheckInterval) &&
+        healthCheckInterval >= MIN_HEALTH_CHECK_INTERVAL_MS
+      )
+    ) {
+      throw new Error(
+        'Invalid option shardedSubscriberHealthCheckInterval "' +
+          healthCheckInterval +
+          `". Expected null or a number of at least ${MIN_HEALTH_CHECK_INTERVAL_MS}`
+      );
+    }
 
     const redisOptions = { ...(this.options.redisOptions ?? {}) };
     delete (redisOptions as Partial<RedisOptions>).himportFieldsets;

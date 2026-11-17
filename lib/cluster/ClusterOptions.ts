@@ -152,7 +152,7 @@ export interface ClusterOptions extends CommanderOptions {
 
   /**
    * Interval in milliseconds for a liveness check on sharded subscriber
-   * connections. Set to `null` to disable.
+   * connections. Must be at least 1000. Set to `null` to disable.
    *
    * Each subscriber sends PING once per interval. If a PING is still
    * unanswered at the next interval, or the connection handshake takes
@@ -160,7 +160,7 @@ export interface ClusterOptions extends CommanderOptions {
    * replaces it. The PING gets the full interval to answer even when
    * `commandTimeout` is shorter. The first PING after connecting waits a
    * random 50-200ms longer, so subscribers that connect together do not ping
-   * in lockstep. Values below 1000 are raised to 1000.
+   * in lockstep.
    *
    * @default 10000
    */
