@@ -196,8 +196,14 @@ export default class ShardedSubscriber {
   }
 
   private onEnd = () => {
+    const wasConnected = this.status === SubscriberStatus.CONNECTED;
     this.updateStatus(SubscriberStatus.ENDED);
     this.emitter.emit("-node", this.instance, this.nodeKey);
+    // A failed start already requests a slots refresh after a backoff, so
+    // only a subscriber that was connected asks for an immediate one.
+    if (wasConnected) {
+      this.emitter.emit("subscriberLost", this.nodeKey);
+    }
   };
 
   private onError = (error: Error) => {

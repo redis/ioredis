@@ -1466,16 +1466,25 @@ class Cluster<
 
     this.subscriberGroupEmitter.on("-node", (redis, nodeKey) => {
       this.emit("-node", redis, nodeKey);
+    });
 
+    this.subscriberGroupEmitter.on("subscriberLost", () => {
       this.refreshSlotsCache(refreshSlotsCacheCallback);
     });
 
+    // One refresh repairs every failed subscriber, so failures while a retry
+    // is pending join it instead of starting retry chains of their own.
+    let connectFailedRetry: NodeJS.Timeout | null = null;
     this.subscriberGroupEmitter.on(
       "subscriberConnectFailed",
       ({ delay, error }) => {
         Redis.prototype.silentEmit.call(this, "error", error);
 
-        setTimeout(() => {
+        if (connectFailedRetry) {
+          return;
+        }
+        connectFailedRetry = setTimeout(() => {
+          connectFailedRetry = null;
           this.refreshSlotsCache(refreshSlotsCacheCallback);
         }, delay);
       }
