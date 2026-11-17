@@ -34,7 +34,7 @@ export default class ScanStream extends Readable {
     if (this.opt.match !== undefined) {
       args.push("MATCH", this.opt.match);
     }
-    if (this.opt.type) {
+    if (this.opt.type !== undefined) {
       args.push("TYPE", this.opt.type);
     }
     if (this.opt.count) {
