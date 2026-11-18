@@ -202,6 +202,25 @@ class Cluster<
           '". Expected "all", "master" or "slave"'
       );
     }
+    // Below this, a PING cannot reliably be answered within one interval, and
+    // event loop pauses would disconnect healthy subscribers.
+    const MIN_HEALTH_CHECK_INTERVAL_MS = 1000;
+    const healthCheckInterval =
+      this.options.shardedSubscriberHealthCheckInterval;
+    if (
+      healthCheckInterval !== null &&
+      !(
+        typeof healthCheckInterval === "number" &&
+        Number.isFinite(healthCheckInterval) &&
+        healthCheckInterval >= MIN_HEALTH_CHECK_INTERVAL_MS
+      )
+    ) {
+      throw new Error(
+        'Invalid option shardedSubscriberHealthCheckInterval "' +
+          healthCheckInterval +
+          `". Expected null or a number of at least ${MIN_HEALTH_CHECK_INTERVAL_MS}`
+      );
+    }
 
     const redisOptions = { ...(this.options.redisOptions ?? {}) };
     delete (redisOptions as Partial<RedisOptions>).himportFieldsets;
@@ -1487,20 +1506,39 @@ class Cluster<
 
     this.subscriberGroupEmitter.on("-node", (redis, nodeKey) => {
       this.emit("-node", redis, nodeKey);
+    });
 
+    this.subscriberGroupEmitter.on("subscriberLost", () => {
       this.refreshSlotsCache(refreshSlotsCacheCallback);
     });
 
+    // One refresh repairs every failed subscriber, so failures while a retry
+    // is pending join it instead of starting retry chains of their own.
+    let connectFailedRetry: NodeJS.Timeout | null = null;
     this.subscriberGroupEmitter.on(
       "subscriberConnectFailed",
       ({ delay, error }) => {
         Redis.prototype.silentEmit.call(this, "error", error);
 
-        setTimeout(() => {
+        if (connectFailedRetry) {
+          return;
+        }
+        connectFailedRetry = setTimeout(() => {
+          connectFailedRetry = null;
           this.refreshSlotsCache(refreshSlotsCacheCallback);
         }, delay);
       }
     );
+
+    this.subscriberGroupEmitter.on("resubscribeRetry", () => {
+      this.refreshSlotsCache(refreshSlotsCacheCallback);
+    });
+
+    // Same as autoResubscribe on a standalone client: a resubscribe that
+    // cannot succeed is reported through the "error" event.
+    this.subscriberGroupEmitter.on("resubscribeError", (error) => {
+      Redis.prototype.silentEmit.call(this, "error", error);
+    });
 
     this.subscriberGroupEmitter.on("moved", () => {
       this.refreshSlotsCache(refreshSlotsCacheCallback);

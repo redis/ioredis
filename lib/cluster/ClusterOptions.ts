@@ -151,6 +151,22 @@ export interface ClusterOptions extends CommanderOptions {
   shardedSubscribers?: boolean | undefined;
 
   /**
+   * Interval in milliseconds for a liveness check on sharded subscriber
+   * connections. Must be at least 1000. Set to `null` to disable.
+   *
+   * Each subscriber sends PING once per interval. If a PING is still
+   * unanswered at the next interval, or the connection handshake takes
+   * longer than one interval, the subscriber disconnects and the cluster
+   * replaces it. The PING gets the full interval to answer even when
+   * `commandTimeout` is shorter. The first PING after connecting waits a
+   * random 50-200ms longer, so subscribers that connect together do not ping
+   * in lockstep.
+   *
+   * @default 10000
+   */
+  shardedSubscriberHealthCheckInterval?: number | null | undefined;
+
+  /**
    * When a cluster node connection is closed, this function will be called
    * to determine the retry delay (in ms). Returning `null` or a non-number
    * disables reconnection for that node.
@@ -306,4 +322,5 @@ export const DEFAULT_CLUSTER_OPTIONS: ClusterOptions = {
   enableAutoPipelining: false,
   autoPipeliningIgnoredCommands: [],
   shardedSubscribers: false,
+  shardedSubscriberHealthCheckInterval: 10000,
 };
