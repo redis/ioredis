@@ -807,6 +807,8 @@ stream.on("end", () => {
 });
 ```
 
+For Redis Cluster, `scanStream` is available on the individual node connections, not on the `Cluster` instance. A `SCAN` cursor belongs to one node and does not visit the whole cluster. See [running commands on multiple cluster nodes](#running-commands-to-multiple-nodes) for a per-master scanning example.
+
 `scanStream` accepts an option, with which you can specify the `MATCH` pattern, the `TYPE` filter, and the `COUNT` argument:
 
 ```javascript
@@ -1306,12 +1308,23 @@ Sometimes you may want to send a command to multiple nodes (masters or slaves) o
 const slaves = cluster.nodes("slave");
 Promise.all(slaves.map((node) => node.ping()));
 
-// Get keys of all the masters:
-const masters = cluster.nodes("master");
-Promise.all(masters.map((node) => node.keys("*"))).then((keys) => {
-  // keys: [['key1', 'key2'], ['key3', 'key4']]
+// Incrementally scan keys on every master after the cluster is ready:
+async function scanClusterKeys() {
+  for (const node of cluster.nodes("master")) {
+    for await (const keys of node.scanStream({ match: "user:*", count: 100 })) {
+      for (const key of keys) {
+        console.log(key);
+      }
+    }
+  }
+}
+
+cluster.once("ready", () => {
+  scanClusterKeys().catch(console.error);
 });
 ```
+
+`cluster.scan()` is a keyless command and is routed to a random node, so reusing its cursor across calls cannot scan the entire cluster reliably. Keep each scan on the same node connection, as above, and scan masters rather than replicas to avoid visiting replicated copies. Empty batches and duplicate keys are normal `SCAN` behavior; process keys idempotently when needed. The master list is a snapshot: a scan during resharding or failover is not a consistent cluster-wide snapshot and may need to be repeated once the topology stabilizes.
 
 ### NAT Mapping
 
