@@ -300,6 +300,7 @@ class Cluster<
       if (this.status === "end") {
         this.retryAttempts = 0;
         if (this.options.shardedSubscribers) {
+          this.subscriberGroupEmitter.removeAllListeners();
           this.addSubscriberGroupListeners();
         }
       }
