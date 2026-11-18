@@ -835,6 +835,8 @@ const stream = redis.zscanStream("myhash", {
 });
 ```
 
+The key passed to `hscanStream`, `sscanStream`, `zscanStream` and their `BufferStream` variants can be a string or a `Buffer`. Use a `Buffer` for binary keys; the `BufferStream` suffix controls the reply encoding, independently of the key type. This also applies to these methods on a `Cluster`.
+
 The `hscanStream` also accepts the `noValues` option to specify whether Redis should return only the keys in the hash table without their corresponding values.
 
 ```javascript

@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import * as sinon from "sinon";
 import Redis from "../../lib/Redis";
+import Cluster from "../../lib/cluster";
 
 describe("ScanStream", () => {
   afterEach(() => sinon.restore());
@@ -19,6 +20,42 @@ describe("ScanStream", () => {
         expect(scan.calledOnce).to.eql(true);
         expect(scan.firstCall.args[0]).to.eql(["", "0"]);
       });
+    }
+  }
+
+  for (const command of ["hscan", "sscan", "zscan"]) {
+    for (const suffix of ["", "Buffer"]) {
+      for (const mode of ["standalone", "cluster"]) {
+        it(`preserves binary keys across ${command}${suffix}Stream pages in ${mode}`, async () => {
+          const client =
+            mode === "standalone"
+              ? new Redis({ lazyConnect: true })
+              : new Cluster([], { lazyConnect: true });
+          const key = Buffer.from([0xff, 0x00, 0x80]);
+          const scan = sinon.stub(client, `${command}${suffix}` as any);
+          scan
+            .onFirstCall()
+            .callsFake((_args, callback) => callback(null, ["42", []]));
+          scan
+            .onSecondCall()
+            .callsFake((_args, callback) =>
+              callback(null, [Buffer.from("0"), []])
+            );
+
+          try {
+            for await (const _ of client[`${command}${suffix}Stream`](key)) {
+              // Consume both pages, including the empty intermediate one.
+            }
+            expect(scan.calledTwice).to.eql(true);
+            expect(scan.firstCall.args[0]).to.eql([key, "0"]);
+            expect(scan.secondCall.args[0]).to.eql([key, "42"]);
+            expect(scan.firstCall.args[0][0]).to.equal(key);
+            expect(scan.secondCall.args[0][0]).to.equal(key);
+          } finally {
+            client.disconnect();
+          }
+        });
+      }
     }
   }
 

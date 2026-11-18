@@ -1,7 +1,8 @@
 import { Readable, ReadableOptions } from "stream";
+import type { RedisKey } from "./utils/RedisCommander";
 
 interface Options extends ReadableOptions {
-  key?: string;
+  key?: RedisKey;
   match?: string;
   type?: string;
   command: string;
@@ -27,7 +28,7 @@ export default class ScanStream extends Readable {
       return;
     }
 
-    const args: string[] = [this._redisCursor];
+    const args: (string | Buffer)[] = [this._redisCursor];
     if (this.opt.key !== undefined) {
       args.unshift(this.opt.key);
     }
