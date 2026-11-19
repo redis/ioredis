@@ -48,6 +48,7 @@ import {
 } from "./tracing";
 import applyMixin from "./utils/applyMixin";
 import Commander from "./utils/Commander";
+import type { RedisKey } from "./utils/RedisCommander";
 import { defaults, noop } from "./utils/lodash";
 import HimportCoordinator, {
   bindHimportCoordinator,
@@ -1249,27 +1250,27 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     return this.createScanStream("scanBuffer", { options });
   }
 
-  sscanStream(key: string, options?: ScanStreamOptions) {
+  sscanStream(key: RedisKey, options?: ScanStreamOptions) {
     return this.createScanStream("sscan", { key, options });
   }
 
-  sscanBufferStream(key: string, options?: ScanStreamOptions) {
+  sscanBufferStream(key: RedisKey, options?: ScanStreamOptions) {
     return this.createScanStream("sscanBuffer", { key, options });
   }
 
-  hscanStream(key: string, options?: ScanStreamOptions) {
+  hscanStream(key: RedisKey, options?: ScanStreamOptions) {
     return this.createScanStream("hscan", { key, options });
   }
 
-  hscanBufferStream(key: string, options?: ScanStreamOptions) {
+  hscanBufferStream(key: RedisKey, options?: ScanStreamOptions) {
     return this.createScanStream("hscanBuffer", { key, options });
   }
 
-  zscanStream(key: string, options?: ScanStreamOptions) {
+  zscanStream(key: RedisKey, options?: ScanStreamOptions) {
     return this.createScanStream("zscan", { key, options });
   }
 
-  zscanBufferStream(key: string, options?: ScanStreamOptions) {
+  zscanBufferStream(key: RedisKey, options?: ScanStreamOptions) {
     return this.createScanStream("zscanBuffer", { key, options });
   }
 
@@ -1496,7 +1497,7 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
 
   private createScanStream(
     command: string,
-    { key, options = {} }: { key?: string; options?: ScanStreamOptions }
+    { key, options = {} }: { key?: RedisKey; options?: ScanStreamOptions }
   ) {
     return new ScanStream({
       objectMode: true,
