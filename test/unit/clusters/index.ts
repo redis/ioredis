@@ -117,6 +117,33 @@ describe("cluster", () => {
       expect(sendCommand.firstCall.args).to.eql([pipelined, stream, node]);
     });
 
+    [
+      {
+        when: "the option is off",
+        options: { redisOptions: { commandTimeout: 1000 } },
+      },
+      {
+        when: "commandTimeout is not set",
+        options: { commandTimeoutIncludesOfflineQueue: true },
+      },
+    ].forEach(({ when, options }) => {
+      it(`replays a settled command when ${when}`, () => {
+        const cluster = new Cluster([], options);
+        const command = new Command("blpop", ["foo", "1"]);
+        cluster.sendCommand(command);
+
+        // Like a BLPOP that resolved through its blocking timeout while
+        // queued after its node disconnected. Nothing timed out in the
+        // queue, so it is resent as with the option off.
+        command.resolve(null);
+        const sendCommand = sinon.stub(cluster, "sendCommand");
+        cluster["executeOfflineCommands"]();
+
+        expect(sendCommand.callCount).to.eql(1);
+        expect(sendCommand.firstCall.args[0]).to.equal(command);
+      });
+    });
+
     [false, true].forEach((shardedSubscribers) => {
       it(`does not time out queued subscribe and unsubscribe commands ${
         shardedSubscribers ? "with" : "without"

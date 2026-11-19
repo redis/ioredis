@@ -885,7 +885,7 @@ class Cluster<
         // their promises, so a timed out one would still be sent later.
         // Subscribe and unsubscribe commands, sharded or not, are left alone
         // too: a subscriber connection still sends one that timed out in its
-        // own offline queue, which would leave the caller subscribed.
+        // own offline queue, after the caller was told it timed out.
         const commandTimeout = _this.options.redisOptions?.commandTimeout;
         if (
           _this.options.commandTimeoutIncludesOfflineQueue &&
@@ -1169,8 +1169,11 @@ class Cluster<
         // so it must not be sent anymore. Pipelined commands get no timer
         // while queued and are always sent: dropping one would keep the rest
         // of its batch from being written while their replies are expected.
+        // Without a commandTimeout no deadline is armed here, so replay stays
+        // as it is with the option off.
         if (
           this.options.commandTimeoutIncludesOfflineQueue &&
+          typeof this.options.redisOptions?.commandTimeout === "number" &&
           !item.stream &&
           item.command.isSettled
         ) {
