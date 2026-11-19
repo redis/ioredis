@@ -23,6 +23,21 @@ describe("ScanStream", () => {
   }
 
   for (const suffix of ["", "Buffer"]) {
+    it(`preserves an empty TYPE filter in scan${suffix}Stream`, async () => {
+      const redis = new Redis({ lazyConnect: true });
+      const scan = sinon.stub(redis, `scan${suffix}` as any);
+      scan.callsFake((_args, callback) => callback(null, ["0", []]));
+
+      for await (const _ of redis[`scan${suffix}Stream`]({ type: "" })) {
+        // Consume the stream to send the scan command.
+      }
+
+      expect(scan.calledOnce).to.eql(true);
+      expect(scan.firstCall.args[0]).to.eql(["0", "TYPE", ""]);
+    });
+  }
+
+  for (const suffix of ["", "Buffer"]) {
     it(`preserves an empty MATCH pattern in scan${suffix}Stream`, async () => {
       const redis = new Redis({ lazyConnect: true });
       const scan = sinon.stub(redis, `scan${suffix}` as any);
