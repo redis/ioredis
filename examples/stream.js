@@ -11,7 +11,7 @@ const processMessage = (message) => {
 async function listenForMessage(lastId = "$") {
   // `results` is an array, each element of which corresponds to a key.
   // Because we only listen to one key (mystream) here, `results` only contains
-  // a single element. See more: https://redis.io/commands/xread#return-value
+  // a single element. See more: https://redis.io/docs/latest/commands/xread/#return-information
   const results = await sub.xread("BLOCK", 0, "STREAMS", "user-stream", lastId);
   const [key, messages] = results[0]; // `key` equals to "user-stream"
 

@@ -2,7 +2,7 @@
 
 [![Build Status](https://github.com/redis/ioredis/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/redis/ioredis/actions/workflows/release.yml?query=branch%3Amain)
 [![Coverage Status](https://coveralls.io/repos/github/luin/ioredis/badge.svg?branch=main)](https://coveralls.io/github/luin/ioredis?branch=main)
-[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
+[![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](https://commitizen.github.io/cz-cli/)
 [![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)
 
 [![Discord](https://img.shields.io/discord/697882427875393627.svg?style=social&logo=discord)](https://discord.gg/redis)
@@ -10,7 +10,7 @@
 [![YouTube](https://img.shields.io/youtube/channel/views/UCD78lHSwYqMlyetR0_P4Vig?style=social)](https://www.youtube.com/redisinc)
 [![Twitter](https://img.shields.io/twitter/follow/redisinc?style=social)](https://twitter.com/redisinc)
 
-A robust, performance-focused and full-featured [Redis](http://redis.io) client for [Node.js](https://nodejs.org).
+A robust, performance-focused and full-featured [Redis](https://redis.io) client for [Node.js](https://nodejs.org).
 
 Supports Redis >= 2.6.12. Completely compatible with Redis 7.x.
 
@@ -21,7 +21,7 @@ ioredis is a stable project and maintenance is done on a best-effort basis for r
 ioredis is a robust, full-featured Redis client that is
 used in the world's biggest online commerce company [Alibaba](http://www.alibaba.com/) and many other awesome companies.
 
-0. Full-featured. It supports [Cluster](http://redis.io/topics/cluster-tutorial), [Sentinel](https://redis.io/docs/latest/operate/oss_and_stack/management/sentinel/), [Streams](https://redis.io/topics/streams-intro), [Pipelining](http://redis.io/topics/pipelining), and of course [Lua scripting](http://redis.io/commands/eval), [Redis Functions](https://redis.io/topics/functions-intro), [Pub/Sub](http://redis.io/topics/pubsub) (with the support of binary messages).
+0. Full-featured. It supports [Cluster](https://redis.io/docs/latest/operate/oss_and_stack/management/scaling/), [Sentinel](https://redis.io/docs/latest/operate/oss_and_stack/management/sentinel/), [Streams](https://redis.io/docs/latest/develop/data-types/streams/), [Pipelining](https://redis.io/docs/latest/develop/using-commands/pipelining/), and of course [Lua scripting](https://redis.io/docs/latest/commands/eval/), [Redis Functions](https://redis.io/docs/latest/develop/programmability/functions-intro/), [Pub/Sub](https://redis.io/docs/latest/develop/pubsub/) (with the support of binary messages).
 1. High performance 🚀.
 2. Delightful API 😄. It works with Node callbacks and Native promises.
 3. Transformation of command arguments and replies.
@@ -154,7 +154,7 @@ new Redis({
 ```
 
 You can also pass a connection string as the first constructor argument.
-Use a [`redis://` URL](http://www.iana.org/assignments/uri-schemes/prov/redis) or [`rediss://` URL](https://www.iana.org/assignments/uri-schemes/prov/rediss) when using [TLS encryption](#tls-options):
+Use a [`redis://` URL](https://www.iana.org/assignments/uri-schemes/prov/redis) or [`rediss://` URL](https://www.iana.org/assignments/uri-schemes/prov/rediss) when using [TLS encryption](#tls-options):
 
 ```javascript
 // Connect to 127.0.0.1:6380, db 4, using password "authpassword":
@@ -252,7 +252,7 @@ redis.on("pmessageBuffer", (pattern, channel, message) => {});
 
 ## Streams
 
-Redis v5 introduces a new data type called streams. It doubles as a communication channel for building streaming architectures and as a log-like data structure for persisting data. With ioredis, the usage can be pretty straightforward. Say we have a producer publishes messages to a stream with `redis.xadd("mystream", "*", "randomValue", Math.random())` (You may find the [official documentation of Streams](https://redis.io/topics/streams-intro) as a starter to understand the parameters used), to consume the messages, we'll have a consumer with the following code:
+Redis v5 introduces a new data type called streams. It doubles as a communication channel for building streaming architectures and as a log-like data structure for persisting data. With ioredis, the usage can be pretty straightforward. Say we have a producer publishes messages to a stream with `redis.xadd("mystream", "*", "randomValue", Math.random())` (You may find the [official documentation of Streams](https://redis.io/docs/latest/develop/data-types/streams/) as a starter to understand the parameters used), to consume the messages, we'll have a consumer with the following code:
 
 ```javascript
 const Redis = require("ioredis");
@@ -265,7 +265,7 @@ const processMessage = (message) => {
 async function listenForMessage(lastId = "$") {
   // `results` is an array, each element of which corresponds to a key.
   // Because we only listen to one key (mystream) here, `results` only contains
-  // a single element. See more: https://redis.io/commands/xread#return-value
+  // a single element. See more: https://redis.io/docs/latest/commands/xread/#return-information
   const results = await redis.xread("BLOCK", 0, "STREAMS", "mystream", lastId);
   const [key, messages] = results[0]; // `key` equals to "mystream"
 
@@ -280,7 +280,7 @@ listenForMessage();
 
 ## Expiration
 
-Redis can set a timeout to expire your key, after the timeout has expired the key will be automatically deleted. (You can find the [official Expire documentation](https://redis.io/commands/expire/) to understand better the different parameters you can use), to set your key to expire in 60 seconds, we will have the following code:
+Redis can set a timeout to expire your key, after the timeout has expired the key will be automatically deleted. (You can find the [official Expire documentation](https://redis.io/docs/latest/commands/expire/) to understand better the different parameters you can use), to set your key to expire in 60 seconds, we will have the following code:
 
 ```javascript
 redis.set("key", "data", "EX", 60);
@@ -296,7 +296,7 @@ Binary data support is out of the box. Pass buffers to send binary data:
 redis.set("foo", Buffer.from([0x62, 0x75, 0x66]));
 ```
 
-Every command that returns a [bulk string](https://redis.io/docs/reference/protocol-spec/#resp-bulk-strings)
+Every command that returns a [bulk string](https://redis.io/docs/latest/develop/reference/protocol-spec/#bulk-strings)
 has a variant command with a `Buffer` suffix. The variant command returns a buffer instead of a UTF-8 string:
 
 ```javascript
@@ -615,7 +615,7 @@ This feature allows you to specify a string that will automatically be prepended
 to all the keys in a command, which makes it easier to manage your key
 namespaces.
 
-**Warning** This feature won't apply to commands like [KEYS](http://redis.io/commands/KEYS) and [SCAN](http://redis.io/commands/scan) that take patterns rather than actual keys([#239](https://github.com/redis/ioredis/issues/239)),
+**Warning** This feature won't apply to commands like [KEYS](https://redis.io/docs/latest/commands/keys/) and [SCAN](https://redis.io/docs/latest/commands/scan/) that take patterns rather than actual keys([#239](https://github.com/redis/ioredis/issues/239)),
 and this feature also won't apply to the replies of commands even if they are key names ([#325](https://github.com/redis/ioredis/issues/325)).
 
 ```javascript
@@ -844,7 +844,7 @@ const stream = redis.hscanStream("myhash", {
 });
 ```
 
-You can learn more from the [Redis documentation](http://redis.io/commands/scan).
+You can learn more from the [Redis documentation](https://redis.io/docs/latest/commands/scan/).
 
 **Useful Tips**
 It's pretty common that doing an async task in the `data` handler. We'd like the scanning process to be paused until the async task to be finished. `Stream#pause()` and `Stream#resume()` do the trick. For example if we want to migrate data in Redis to MySQL:
