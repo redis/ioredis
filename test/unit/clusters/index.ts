@@ -116,6 +116,45 @@ describe("cluster", () => {
       expect(sendCommand.callCount).to.eql(1);
       expect(sendCommand.firstCall.args).to.eql([pipelined, stream, node]);
     });
+
+    [false, true].forEach((shardedSubscribers) => {
+      it(`does not time out queued subscribe and unsubscribe commands ${
+        shardedSubscribers ? "with" : "without"
+      } shardedSubscribers`, () => {
+        const cluster = new Cluster([], {
+          shardedSubscribers,
+          commandTimeoutIncludesOfflineQueue: true,
+          redisOptions: { commandTimeout: 1000 },
+        });
+        const clock = sinon.useFakeTimers();
+        try {
+          const queue = (name: string) => {
+            const command = new Command(name, ["foo"]);
+            command.promise.catch(() => {});
+            cluster.sendCommand(command);
+            return command;
+          };
+          const get = queue("get");
+          const subscribes = [
+            "subscribe",
+            "psubscribe",
+            "ssubscribe",
+            "unsubscribe",
+            "punsubscribe",
+            "sunsubscribe",
+          ].map((name) => queue(name));
+
+          clock.tick(1000);
+
+          expect(get.isSettled).to.eql(true);
+          subscribes.forEach((command) => {
+            expect(command.isSettled, command.name).to.eql(false);
+          });
+        } finally {
+          clock.restore();
+        }
+      });
+    });
   });
 
   describe("natMapper", () => {

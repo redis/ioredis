@@ -685,8 +685,6 @@ describe("cluster:connect", () => {
       });
     });
 
-    // Without shardedSubscribers, SSUBSCRIBE goes to the cluster subscriber
-    // connection as well.
     const subscriberCommands = [
       "subscribe",
       "psubscribe",
@@ -704,19 +702,9 @@ describe("cluster:connect", () => {
         );
         cluster = createCluster(100, optIn);
 
-        // The cluster subscriber connection never times it out once the
-        // cluster is ready, so it does not time out while queued either.
+        // Subscribe and unsubscribe commands get no deadline while queued.
         expect(await cluster[name]("foo")).to.eql(count);
       });
-    });
-
-    it("rejects a sharded SSUBSCRIBE that waits too long for the cluster to be ready", async () => {
-      cluster = createCluster(100, { ...optIn, shardedSubscribers: true });
-
-      // Sharded subscribers are created with redisOptions, so their
-      // commands time out like any other.
-      const error = await cluster.ssubscribe("foo").catch((err: Error) => err);
-      expect(error.message).to.eql("Command timed out");
     });
   });
 });

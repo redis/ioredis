@@ -883,14 +883,16 @@ class Cluster<
         // restart once the command reaches a node. Pipelined commands (with a
         // stream) are left alone: Pipeline#fillResult retries them by resetting
         // their promises, so a timed out one would still be sent later.
-        // Commands for the cluster subscriber are left alone too, since that
-        // connection never times them out once the cluster is ready.
+        // Subscribe and unsubscribe commands, sharded or not, are left alone
+        // too: a subscriber connection still sends one that timed out in its
+        // own offline queue, which would leave the caller subscribed.
         const commandTimeout = _this.options.redisOptions?.commandTimeout;
         if (
           _this.options.commandTimeoutIncludesOfflineQueue &&
           !stream &&
           typeof commandTimeout === "number" &&
-          !_this.isSentOnClusterSubscriber(command)
+          !Command.checkFlag("ENTER_SUBSCRIBER_MODE", command.name) &&
+          !Command.checkFlag("EXIT_SUBSCRIBER_MODE", command.name)
         ) {
           command.setTimeout(commandTimeout);
         }
@@ -1177,25 +1179,6 @@ class Cluster<
         this.sendCommand(item.command, item.stream, item.node);
       }
     }
-  }
-
-  /**
-   * Whether the command is sent on the cluster subscriber connection, which
-   * is created without `redisOptions` and so never times out its commands.
-   * Sharded (un)subscribes go to the sharded subscribers instead, which are
-   * created with `redisOptions`.
-   */
-  private isSentOnClusterSubscriber(command: Command): boolean {
-    if (
-      !Command.checkFlag("ENTER_SUBSCRIBER_MODE", command.name) &&
-      !Command.checkFlag("EXIT_SUBSCRIBER_MODE", command.name)
-    ) {
-      return false;
-    }
-    return !(
-      this.options.shardedSubscribers &&
-      (command.name === "ssubscribe" || command.name === "sunsubscribe")
-    );
   }
 
   private natMapper(nodeKey: NodeKey | RedisOptions): RedisOptions {
