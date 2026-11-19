@@ -1,6 +1,7 @@
 import { nodeKeyToRedisOptions } from "../../../lib/cluster/util";
 import { Cluster } from "../../../lib";
 import Command from "../../../lib/Command";
+import { WriteableStream } from "../../../lib/types";
 import * as sinon from "sinon";
 import { expect } from "chai";
 
@@ -87,6 +88,99 @@ describe("cluster", () => {
         command.resolve(Buffer.from("value"));
         getNodes.restore();
       }
+    });
+  });
+
+  describe("offline queue", () => {
+    it("replays a settled pipelined command with the rest of its batch", () => {
+      const cluster = new Cluster([], {
+        commandTimeoutIncludesOfflineQueue: true,
+        redisOptions: { commandTimeout: 1000 },
+      });
+      const stream = { isPipeline: true } as unknown as WriteableStream;
+      const node = { slot: 0 };
+      const pipelined = new Command("set", ["foo", "bar"]);
+      const single = new Command("get", ["foo"]);
+      pipelined.promise.catch(() => {});
+      single.promise.catch(() => {});
+      cluster.sendCommand(pipelined, stream, node);
+      cluster.sendCommand(single);
+
+      // Its batch is written once all of its commands are, so a pipelined
+      // command is sent even when settled. A single command is skipped.
+      pipelined.reject(new Error("settled while queued"));
+      single.reject(new Error("settled while queued"));
+      const sendCommand = sinon.stub(cluster, "sendCommand");
+      cluster["executeOfflineCommands"]();
+
+      expect(sendCommand.callCount).to.eql(1);
+      expect(sendCommand.firstCall.args).to.eql([pipelined, stream, node]);
+    });
+
+    [
+      {
+        when: "the option is off",
+        options: { redisOptions: { commandTimeout: 1000 } },
+      },
+      {
+        when: "commandTimeout is not set",
+        options: { commandTimeoutIncludesOfflineQueue: true },
+      },
+    ].forEach(({ when, options }) => {
+      it(`replays a settled command when ${when}`, () => {
+        const cluster = new Cluster([], options);
+        const command = new Command("blpop", ["foo", "1"]);
+        cluster.sendCommand(command);
+
+        // Like a BLPOP that resolved through its blocking timeout while
+        // queued after its node disconnected. Nothing timed out in the
+        // queue, so it is resent as with the option off.
+        command.resolve(null);
+        const sendCommand = sinon.stub(cluster, "sendCommand");
+        cluster["executeOfflineCommands"]();
+
+        expect(sendCommand.callCount).to.eql(1);
+        expect(sendCommand.firstCall.args[0]).to.equal(command);
+      });
+    });
+
+    [false, true].forEach((shardedSubscribers) => {
+      it(`does not time out queued subscribe and unsubscribe commands ${
+        shardedSubscribers ? "with" : "without"
+      } shardedSubscribers`, () => {
+        const cluster = new Cluster([], {
+          shardedSubscribers,
+          commandTimeoutIncludesOfflineQueue: true,
+          redisOptions: { commandTimeout: 1000 },
+        });
+        const clock = sinon.useFakeTimers();
+        try {
+          const queue = (name: string) => {
+            const command = new Command(name, ["foo"]);
+            command.promise.catch(() => {});
+            cluster.sendCommand(command);
+            return command;
+          };
+          const get = queue("get");
+          const subscribes = [
+            "subscribe",
+            "psubscribe",
+            "ssubscribe",
+            "unsubscribe",
+            "punsubscribe",
+            "sunsubscribe",
+          ].map((name) => queue(name));
+
+          clock.tick(1000);
+
+          expect(get.isSettled).to.eql(true);
+          subscribes.forEach((command) => {
+            expect(command.isSettled, command.name).to.eql(false);
+          });
+        } finally {
+          clock.restore();
+        }
+      });
     });
   });
 
