@@ -1,7 +1,7 @@
 const Redis = require("ioredis");
 const redis = new Redis();
 
-// you may find this read https://redis.io/topics/streams-intro
+// you may find this read https://redis.io/docs/latest/develop/data-types/streams/
 // very helpfull as a starter to understand the usescases and the parameters used
 
 async function main() {
