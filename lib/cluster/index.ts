@@ -67,11 +67,6 @@ const debug = Debug("cluster");
 // wrapped again when they are resent on their own.
 const REJECT_OVERWRITTEN_PROMISES = new WeakSet<Promise<unknown>>();
 
-// The offline queue length at which commands that timed out in it are first
-// dropped, see Cluster#compactOfflineQueue. The threshold goes back to it
-// whenever the queue is emptied.
-const MIN_OFFLINE_QUEUE_COMPACTION_LENGTH = 64;
-
 type OfflineQueueItem = {
   command: Command;
   stream?: WriteableStream;
@@ -130,7 +125,6 @@ class Cluster<
   private retryAttempts = 0;
   private delayQueue: DelayQueue = new DelayQueue();
   private offlineQueue = new Deque<OfflineQueueItem>();
-  private offlineQueueCompactionLength = MIN_OFFLINE_QUEUE_COMPACTION_LENGTH;
   private subscriber: ClusterSubscriber;
   private shardedSubscribers: ClusterSubscriberGroup;
   private slotsTimer: ReturnType<typeof setTimeout> | null;
@@ -905,13 +899,6 @@ class Cluster<
           stream: stream,
           node: node,
         });
-        if (
-          _this.options.commandTimeoutIncludesOfflineQueue &&
-          typeof commandTimeout === "number" &&
-          _this.offlineQueue.length >= _this.offlineQueueCompactionLength
-        ) {
-          _this.compactOfflineQueue();
-        }
         return;
       }
 
@@ -1058,7 +1045,6 @@ class Cluster<
 
   private resetOfflineQueue() {
     this.offlineQueue = new Deque();
-    this.offlineQueueCompactionLength = MIN_OFFLINE_QUEUE_COMPACTION_LENGTH;
   }
 
   private clearNodesRefreshInterval() {
@@ -1168,7 +1154,6 @@ class Cluster<
     while ((item = this.offlineQueue.shift())) {
       item.command.reject(error);
     }
-    this.offlineQueueCompactionLength = MIN_OFFLINE_QUEUE_COMPACTION_LENGTH;
   }
 
   private executeOfflineCommands() {
@@ -1192,28 +1177,6 @@ class Cluster<
         this.sendCommand(item.command, item.stream, item.node);
       }
     }
-  }
-
-  /**
-   * Drop the commands that timed out in the offline queue, which would be
-   * skipped on replay anyway. Otherwise a caller that retries after each
-   * timeout keeps adding to the queue for as long as the cluster is down.
-   * The next compaction waits until the queue has doubled, so the cost per
-   * queued command stays constant.
-   */
-  private compactOfflineQueue() {
-    const items = this.offlineQueue
-      .toArray()
-      .filter((item) => item.stream || !item.command.isSettled);
-    debug(
-      "drop %d timed out commands from offline queue",
-      this.offlineQueue.length - items.length
-    );
-    this.offlineQueue = new Deque(items);
-    this.offlineQueueCompactionLength = Math.max(
-      MIN_OFFLINE_QUEUE_COMPACTION_LENGTH,
-      items.length * 2
-    );
   }
 
   /**
