@@ -475,12 +475,19 @@ export class Decoder {
     }
 
     const slice = chunk.subarray(this.#cursor, end);
-    return this.#decodeStringEnd(
-      type === Buffer ? slice : slice.toString(),
-      end,
-      skip,
-      chunk
-    );
+    const value = type === Buffer ? slice : slice.toString();
+    // Fast path: the whole terminator is in this chunk and is valid.
+    if (
+      skip === 2 &&
+      end + 1 < chunk.length &&
+      chunk[end] === ASCII["\r"] &&
+      chunk[end + 1] === ASCII["\n"]
+    ) {
+      this.#cursor = end + 2;
+      return value;
+    }
+
+    return this.#decodeStringEnd(value, end, skip, chunk);
   }
 
   #continueDecodeStringWithLength(length, chunks, skip, type, chunk) {
@@ -517,6 +524,16 @@ export class Decoder {
       return value;
     }
 
+    if (
+      end + 1 < chunk.length &&
+      chunk[end] === ASCII["\r"] &&
+      chunk[end + 1] === ASCII["\n"]
+    ) {
+      this.#cursor = end + 2;
+      return value;
+    }
+
+    // The terminator is invalid or crosses a chunk boundary.
     this.#cursor = end;
     return this.#decodeCRLF(value, 0, chunk);
   }
