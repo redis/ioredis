@@ -1,6 +1,10 @@
 import * as sinon from "sinon";
 import { expect } from "chai";
 import * as utils from "../../lib/utils";
+import {
+  parseBlockOption,
+  parseSecondsArgument,
+} from "../../lib/utils/argumentParsers";
 import TLSProfiles from "../../lib/constants/TLSProfiles";
 
 describe("utils", () => {
@@ -571,6 +575,29 @@ describe("utils", () => {
           }
         }
       }
+    });
+  });
+
+  describe("argumentParsers", () => {
+    it("returns undefined for non-finite numbers and blank strings/buffers", () => {
+      for (const invalid of [
+        Number.NaN,
+        Number.POSITIVE_INFINITY,
+        Number.NEGATIVE_INFINITY,
+        "",
+        "   ",
+        Buffer.from(""),
+        Buffer.from("   "),
+      ]) {
+        expect(parseSecondsArgument(invalid)).to.eql(undefined);
+        expect(parseBlockOption(["BLOCK", invalid])).to.eql(undefined);
+      }
+
+      expect(parseSecondsArgument(0)).to.eql(0);
+      expect(parseSecondsArgument("0")).to.eql(0);
+      expect(parseSecondsArgument("2.5")).to.eql(2500);
+      expect(parseBlockOption(["BLOCK", "0"])).to.eql(0);
+      expect(parseBlockOption(["BLOCK", "1500"])).to.eql(1500);
     });
   });
 });
