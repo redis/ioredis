@@ -9,7 +9,7 @@ const parseNumberArgument = (
   arg: CommandParameter | undefined
 ): number | undefined => {
   if (typeof arg === "number") {
-    return arg;
+    return Number.isFinite(arg) ? arg : undefined;
   }
 
   if (Buffer.isBuffer(arg)) {
@@ -17,6 +17,9 @@ const parseNumberArgument = (
   }
 
   if (typeof arg === "string") {
+    if (arg.trim() === "") {
+      return undefined;
+    }
     const value = Number(arg);
     return Number.isFinite(value) ? value : undefined;
   }
