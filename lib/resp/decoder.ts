@@ -31,6 +31,7 @@ export const RESP_TYPES = {
 
 const ASCII = {
   "\r": 13,
+  "\n": 10,
   t: 116,
   "+": 43,
   "-": 45,
@@ -474,8 +475,12 @@ export class Decoder {
     }
 
     const slice = chunk.subarray(this.#cursor, end);
-    this.#cursor = end + skip;
-    return type === Buffer ? slice : slice.toString();
+    return this.#decodeStringEnd(
+      type === Buffer ? slice : slice.toString(),
+      end,
+      skip,
+      chunk
+    );
   }
 
   #continueDecodeStringWithLength(length, chunks, skip, type, chunk) {
@@ -494,9 +499,46 @@ export class Decoder {
     }
 
     chunks.push(chunk.subarray(this.#cursor, end));
-    this.#cursor = end + skip;
     const buffer = Buffer.concat(chunks);
-    return type === Buffer ? buffer : buffer.toString();
+    return this.#decodeStringEnd(
+      type === Buffer ? buffer : buffer.toString(),
+      end,
+      skip,
+      chunk
+    );
+  }
+
+  // A length-prefixed string must be followed by \r\n. Skipping those bytes
+  // blindly would hand junk to the next pending command when the server sends
+  // a malformed or truncated reply, so check them (across chunks if needed).
+  #decodeStringEnd(value, end, skip, chunk) {
+    if (skip !== 2) {
+      this.#cursor = end + skip;
+      return value;
+    }
+
+    this.#cursor = end;
+    return this.#decodeCRLF(value, 0, chunk);
+  }
+
+  #decodeCRLF(value, matched, chunk) {
+    for (; matched < 2; matched++) {
+      if (this.#cursor >= chunk.length) {
+        return this.#decodeCRLF.bind(this, value, matched);
+      }
+
+      const byte = chunk[this.#cursor];
+      if (byte !== (matched === 0 ? ASCII["\r"] : ASCII["\n"])) {
+        throw new Error(
+          `Expected CRLF after length-prefixed string, got byte ${byte} "${String.fromCharCode(
+            byte
+          )}"`
+        );
+      }
+      this.#cursor++;
+    }
+
+    return value;
   }
 
   #decodeBlobStringWithLength(length, type, chunk) {

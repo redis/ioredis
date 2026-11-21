@@ -307,6 +307,38 @@ describe("RESP Decoder", () => {
       toWrite: Buffer.from("$2\r\né\r\n"),
       replies: ["é"],
     });
+
+    describe("without a CRLF terminator", () => {
+      // A truncated reply ("$1\r\n") followed by the next reply must not be
+      // decoded as "$" for the next command.
+      const toWrite = Buffer.from("$1\r\n$1\r\ne\r\n");
+
+      it("throws on a single chunk", () => {
+        const setup = setupTest({ toWrite });
+        assert.throws(() => setup.decoder.write(toWrite), /Expected CRLF/);
+        assert.equal(setup.onReplySpy.callCount, 0);
+      });
+
+      it("throws when split at every byte boundary", () => {
+        for (let split = 1; split < toWrite.length; split++) {
+          const setup = setupTest({ toWrite });
+          assert.throws(() => {
+            setup.decoder.write(toWrite.subarray(0, split));
+            setup.decoder.write(toWrite.subarray(split));
+          }, /Expected CRLF/);
+          assert.equal(setup.onReplySpy.callCount, 0);
+        }
+      });
+
+      it("throws when only \\n is wrong", () => {
+        const setup = setupTest({ toWrite });
+        assert.throws(
+          () => setup.decoder.write(Buffer.from("$2\r\nOK\rX")),
+          /Expected CRLF/
+        );
+        assert.equal(setup.onReplySpy.callCount, 0);
+      });
+    });
   });
 
   describe("VerbatimString", () => {
