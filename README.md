@@ -1535,7 +1535,7 @@ In auto pipelining mode, all commands issued during an event loop are enqueued i
 
 This feature can dramatically improve throughput and avoids HOL blocking. In our benchmarks, the improvement was between 35% and 50%.
 
-While an automatic pipeline is executing, all new commands will be enqueued in a new pipeline which will be executed as soon as the previous finishes.
+While an automatic pipeline is executing, other commands that use the same automatic queue wait for the next pipeline. Explicit `pipeline()` and `multi()` batches are sent separately when you call `exec()`. A transaction created with `multi()` keeps its own `MULTI`/`EXEC` boundary.
 
 When using Redis Cluster, one pipeline per node is created. Commands are assigned to pipelines according to which node serves the slot.
 
