@@ -130,11 +130,21 @@ export function isInt(value: any): value is string {
  * ```
  */
 export function packObject(array: any[]): Record<string, any> {
-  const result = {};
+  const result: Record<string, any> = {};
   const length = array.length;
 
   for (let i = 1; i < length; i += 2) {
-    result[array[i - 1]] = array[i];
+    const key = array[i - 1];
+    if (key === "__proto__" || key === "constructor") {
+      Object.defineProperty(result, key, {
+        value: array[i],
+        configurable: true,
+        enumerable: true,
+        writable: true,
+      });
+    } else {
+      result[key] = array[i];
+    }
   }
 
   return result;

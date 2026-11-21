@@ -103,6 +103,24 @@ describe("utils", () => {
         abc: "def",
       });
     });
+
+    it("should define __proto__ and constructor as own properties without mutating prototype", () => {
+      const packed = utils.packObject([
+        "__proto__",
+        { polluted: true },
+        "constructor",
+        "custom",
+        "foo",
+        "bar",
+      ]);
+      expect(Object.getPrototypeOf(packed)).to.equal(Object.prototype);
+      expect(Object.prototype.hasOwnProperty.call(packed, "__proto__")).to.equal(true);
+      expect(packed["__proto__"]).to.eql({ polluted: true });
+      expect(Object.prototype.hasOwnProperty.call(packed, "constructor")).to.equal(true);
+      expect(packed.constructor).to.equal("custom");
+      expect((packed as any).polluted).to.equal(undefined);
+      expect(packed.foo).to.equal("bar");
+    });
   });
 
   describe(".timeout", () => {
