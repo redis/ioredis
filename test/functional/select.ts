@@ -114,6 +114,26 @@ describe("select", function () {
     redis.disconnect();
   });
 
+  it("should keep the current db when a SELECT is rejected", async () => {
+    const redis = new Redis({ db: 2 });
+    redis.on("error", () => {});
+
+    let error: Error | undefined;
+    try {
+      await redis.select(100000);
+    } catch (err) {
+      error = err;
+    }
+    expect(error).to.be.instanceOf(Error);
+    expect(redis.condition.select).to.eql(2);
+
+    redis.stream.destroy();
+    await new Promise<void>((resolve) => redis.once("ready", resolve));
+
+    expect(await redis.client("INFO")).to.match(/\bdb=2\b/);
+    redis.disconnect();
+  });
+
   it("should be sent on the connect event", (done) => {
     const redis = new Redis({ db: 2 });
     const select = redis.select;

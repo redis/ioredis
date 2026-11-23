@@ -1,5 +1,6 @@
 import { exists, hasFlag } from "@ioredis/commands";
 import { EventEmitter } from "events";
+import { ReplyError } from "redis-errors";
 import asCallback from "standard-as-callback";
 import Cluster from "./cluster";
 import Command from "./Command";
@@ -765,9 +766,23 @@ class Redis<ReplyMapping extends ReplyMappingMode = "legacy">
     if (command.name.toLowerCase() === "select" && isInt(command.args[0])) {
       const db = parseInt(command.args[0], 10);
       if (this.condition.select !== db) {
+        const previousDb = this.condition.select;
         this.condition.select = db;
         this.emit("select", db);
         debug("switch to db [%d]", this.condition.select);
+
+        // Redis rejected the SELECT (e.g. an out-of-range index), so the
+        // connection is still on the previous db. Keep tracking that one,
+        // otherwise the next reconnect selects the rejected db, fails again
+        // and leaves the new connection on db 0.
+        const reject = command.reject;
+        command.reject = (err: Error) => {
+          if (err instanceof ReplyError && this.condition.select === db) {
+            this.condition.select = previousDb;
+            debug("select %d rejected, back to db [%d]", db, previousDb);
+          }
+          reject(err);
+        };
       }
     }
 
