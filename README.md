@@ -1424,7 +1424,9 @@ For sharded Pub/Sub, use the `spublish` and `ssubscribe` commands instead of the
 The following basic example shows you how to use sharded Pub/Sub:
 
 ```javascript
-const cluster: Cluster = new Cluster([{ host: host, port: port }], {
+const Redis = require("ioredis");
+
+const cluster = new Redis.Cluster([{ host: "127.0.0.1", port: 6380 }], {
   shardedSubscribers: true,
 });
 
@@ -1436,7 +1438,7 @@ cluster.on("smessage", (channel, message) => {
 //Subscribe to the channels on the same slot
 cluster
   .ssubscribe("channel{my}:1", "channel{my}:2")
-  .then((count: number) => {
+  .then((count) => {
     console.log(count);
   })
   .catch((err) => {
@@ -1446,7 +1448,7 @@ cluster
 //Publish a message
 cluster
   .spublish("channel{my}:1", "This is a test message to my first channel.")
-  .then((value: number) => {
+  .then(() => {
     console.log("Published a message to channel{my}:1");
   });
 ```
