@@ -24,4 +24,30 @@ describe("fatal_error", () => {
       });
     });
   });
+
+  it("should not pass a truncated reply on to the next command", async () => {
+    let calls = 0;
+    new MockServer(30000, (argv) => {
+      if (argv[0] === "get") {
+        calls += 1;
+        // The first reply is followed by a truncated "$1\r\n".
+        return MockServer.raw(
+          calls === 1 ? `$1\r\n${argv[1]}\r\n$1\r\n` : `$1\r\n${argv[1]}\r\n`
+        );
+      }
+    });
+    const redis = new Redis(30000);
+    redis.on("error", () => {});
+
+    expect(await redis.get("a")).to.eql("a");
+    let error: Error | undefined;
+    try {
+      await redis.get("b");
+    } catch (err) {
+      error = err;
+    }
+    expect(error && error.message).to.match(/Expected CRLF/);
+    expect(await redis.get("c")).to.eql("c");
+    redis.disconnect();
+  });
 });
