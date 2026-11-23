@@ -1,5 +1,6 @@
 import Redis from "../../lib/Redis";
 import { expect } from "chai";
+import { isReCluster } from "../helpers/re-config";
 
 describe("pub/sub", function () {
   it("should invoke the callback when subscribe successfully", (done) => {
@@ -228,7 +229,12 @@ describe("pub/sub", function () {
   });
 
   [3, 2].forEach((protocol) => {
-    it(`should resolve argument-less (p)unsubscribe while the other kind stays subscribed (RESP${protocol})`, async () => {
+    it(`should resolve argument-less (p)unsubscribe while the other kind stays subscribed (RESP${protocol})`, async function () {
+      // The Redis Enterprise proxy stops answering commands on the connection
+      // after an argument-less (P)UNSUBSCRIBE of a kind with no subscriptions.
+      if (isReCluster()) {
+        return this.skip();
+      }
       const redis = new Redis({ protocol });
       await redis.subscribe("foo");
       expect(await redis.punsubscribe()).to.eql(1);
