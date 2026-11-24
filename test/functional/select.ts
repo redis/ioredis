@@ -117,6 +117,7 @@ describe("select", function () {
   it("should keep the current db when a SELECT is rejected", async () => {
     const redis = new Redis({ db: 2 });
     redis.on("error", () => {});
+    await new Promise<void>((resolve) => redis.once("ready", resolve));
 
     let error: Error | undefined;
     try {
