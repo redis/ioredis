@@ -247,6 +247,14 @@ export default class DataHandler {
       case "smessage":
         this.handleSubscriberReply(reply);
         break;
+      case "invalidate":
+        // RESP2 subscribers get the same invalidation as a pub/sub message.
+        this.handleSubscriberReply([
+          "message",
+          Buffer.from("__redis__:invalidate"),
+          reply[1],
+        ]);
+        break;
       case "ssubscribe":
       case "subscribe":
       case "psubscribe": {
