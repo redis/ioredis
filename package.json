@@ -51,6 +51,8 @@
   },
   "devDependencies": {
     "@ioredis/interface-generator": "1.4.0",
+    "@microsoft/api-extractor": "7.60.1",
+    "@microsoft/api-extractor-model": "7.33.16",
     "@semantic-release/changelog": "6.0.3",
     "@semantic-release/commit-analyzer": "13.0.1",
     "@semantic-release/exec": "7.1.0",
