@@ -1,0 +1,67 @@
+name: Public API guard
+
+# Compares the public API of the PR with its base (bin/api-compare.sh) and
+# reports a difference as a PR comment and the "guard: needs review" label.
+# Report only: the job fails only when the check itself fails.
+#
+# The PR head is compared with its merge base with the base branch as
+# fetched now, so only the PR's own commits count. Changes that land on the
+# base branch, before or after the PR branched, are never reported. (The
+# default pull_request checkout is a merge commit that GitHub may build on a
+# newer base than github.event.pull_request.base.sha, and that is missing
+# when the PR has conflicts.)
+#
+# Runs on pull_request, so the token is read-only for PRs from forks and
+# the comment and label step fails there. The comment and label are made
+# by bin/public-api-guard-report.sh.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions: {}
+
+jobs:
+  public-api-guard:
+    name: public-api-guard
+    # "edited" also fires for title and body edits; only a base change matters.
+    if: github.event.action != 'edited' || github.event.changes.base
+    # On the job, not the workflow: a skipped run (a title edit) must not
+    # cancel a running one.
+    concurrency:
+      group: public-api-guard-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Git checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0 # fetches every branch, so origin/<base> is current
+          persist-credentials: false
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.x
+          cache: npm
+
+      - run: npm ci
+
+      - name: Compare with base
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: bash bin/api-compare.sh "origin/$BASE_REF" "$RUNNER_TEMP/api"
+
+      - name: Comment and label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bash bin/public-api-guard-report.sh "$RUNNER_TEMP/api"
