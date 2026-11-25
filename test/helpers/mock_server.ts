@@ -46,6 +46,7 @@ export type PubSubReplyType =
   | "subscribe"
   | "psubscribe"
   | "ssubscribe"
+  | "unsubscribe"
   | "message"
   | "smessage";
 

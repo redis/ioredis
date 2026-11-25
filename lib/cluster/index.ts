@@ -70,8 +70,8 @@ const REJECT_OVERWRITTEN_PROMISES = new WeakSet<Promise<unknown>>();
 
 type OfflineQueueItem = {
   command: Command;
-  stream: WriteableStream;
-  node: unknown;
+  stream?: WriteableStream;
+  node?: unknown;
 };
 
 export type ClusterNode =
@@ -925,6 +925,23 @@ class Cluster<
         }
       }
       if (!redis && _this.options.enableOfflineQueue) {
+        // Redis#sendCommand keeps a running timer, so the deadline does not
+        // restart once the command reaches a node. Pipelined commands (with a
+        // stream) are left alone: Pipeline#fillResult retries them by resetting
+        // their promises, so a timed out one would still be sent later.
+        // Subscribe and unsubscribe commands, sharded or not, are left alone
+        // too: a subscriber connection still sends one that timed out in its
+        // own offline queue, after the caller was told it timed out.
+        const commandTimeout = _this.options.redisOptions?.commandTimeout;
+        if (
+          _this.options.commandTimeoutIncludesOfflineQueue &&
+          !stream &&
+          typeof commandTimeout === "number" &&
+          !Command.checkFlag("ENTER_SUBSCRIBER_MODE", command.name) &&
+          !Command.checkFlag("EXIT_SUBSCRIBER_MODE", command.name)
+        ) {
+          command.setTimeout(commandTimeout);
+        }
         _this.offlineQueue.push({
           command: command,
           stream: stream,
@@ -1197,6 +1214,20 @@ class Cluster<
       this.resetOfflineQueue();
       let item: OfflineQueueItem;
       while ((item = offlineQueue.shift())) {
+        // A command that timed out while queued has already been rejected,
+        // so it must not be sent anymore. Pipelined commands get no timer
+        // while queued and are always sent: dropping one would keep the rest
+        // of its batch from being written while their replies are expected.
+        // Without a commandTimeout no deadline is armed here, so replay stays
+        // as it is with the option off.
+        if (
+          this.options.commandTimeoutIncludesOfflineQueue &&
+          typeof this.options.redisOptions?.commandTimeout === "number" &&
+          !item.stream &&
+          item.command.isSettled
+        ) {
+          continue;
+        }
         this.sendCommand(item.command, item.stream, item.node);
       }
     }
