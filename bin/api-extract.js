@@ -5,21 +5,20 @@
  *   <Kind> <Parent.name> :: <signature>
  *   Event <Emitter>.<event>
  *
- * Overloads produce one line each. Reads built/index.d.ts, so run
- * `npm run build` first.
+ * Overloads produce one line each. Reads <root>/built/index.d.ts, so build
+ * that checkout first. --root defaults to this repository; pass another
+ * checkout (e.g. the PR base) to extract its API with this script.
  *
- * Usage: node bin/api-extract.js [outFile]
+ * Usage: node bin/api-extract.js [--root <dir>] [outFile]
  */
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { parseArgs } = require("util");
 const { Extractor, ExtractorConfig } = require("@microsoft/api-extractor");
 const { ApiModel, ApiItemKind } = require("@microsoft/api-extractor-model");
 
-const root = path.resolve(__dirname, "..");
-const entryPoint = path.join(root, "built", "index.d.ts");
-
-function extractDocModel(apiJsonFilePath) {
+function extractDocModel(root, entryPoint, apiJsonFilePath) {
   const config = ExtractorConfig.prepare({
     configObject: {
       projectFolder: root,
@@ -106,7 +105,13 @@ function listApi(apiJsonFilePath) {
 }
 
 function main() {
-  const outFile = process.argv[2];
+  const { values, positionals } = parseArgs({
+    options: { root: { type: "string" } },
+    allowPositionals: true,
+  });
+  const root = path.resolve(values.root || path.join(__dirname, ".."));
+  const entryPoint = path.join(root, "built", "index.d.ts");
+  const [outFile] = positionals;
   if (!fs.existsSync(entryPoint)) {
     throw new Error(`${entryPoint} not found; run \`npm run build\` first`);
   }
@@ -114,7 +119,7 @@ function main() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ioredis-api-"));
   try {
     const apiJsonFilePath = path.join(tmp, "ioredis.api.json");
-    extractDocModel(apiJsonFilePath);
+    extractDocModel(root, entryPoint, apiJsonFilePath);
     const output = listApi(apiJsonFilePath).join("\n") + "\n";
     if (outFile) fs.writeFileSync(outFile, output);
     else process.stdout.write(output);
