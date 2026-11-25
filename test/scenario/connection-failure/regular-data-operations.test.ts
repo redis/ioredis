@@ -21,10 +21,13 @@ const RECOVERY_TIMEOUT_MS = 60_000;
 // Smart Client Handoff is disabled: the default `maintNotifications: "auto"`
 // would register for it on RESP3 and exercise the handoff path as well. The
 // short command timeout makes commands that wait out the fault fail, so the
-// workload shows the fault disrupted it.
+// workload shows the fault disrupted it. The socket timeout, shorter than the
+// network blackhole, makes the client close a connection that stopped
+// answering, so it reconnects whether or not the server closes it.
 const NO_SCH_OPTIONS: Partial<RedisOptions> = {
   maintNotifications: "disabled",
   commandTimeout: 100,
+  socketTimeout: 5_000,
 };
 
 describe("Regular Data Operations E2E", () => {
@@ -81,7 +84,7 @@ describe("Regular Data Operations E2E", () => {
     },
     {
       // network_failure blackholes the nodes (iptables DROP, no RST), so it
-      // only produces timeouts.
+      // only produces timeouts. It lasts longer than the socket timeout.
       name: "should keep regular data operations working through a network blackhole (connection timeout)",
       createAction: (bdbId) => ({
         type: "network_failure",
