@@ -205,12 +205,14 @@ export default class Command implements Respondable {
   };
 
   private static flagMap?: FlagMap;
+  // Looked up by command name, so the tables have no prototype for a planted
+  // Object.prototype property to surface as a transformer.
   private static _transformer: {
     argument: { [command: string]: ArgumentTransformer };
     reply: { [command: string]: ReplyTransformer };
   } = {
-    argument: {},
-    reply: {},
+    argument: Object.create(null),
+    reply: Object.create(null),
   };
 
   /**
@@ -347,13 +349,13 @@ export default class Command implements Respondable {
     if (!this.flagMap) {
       this.flagMap = Object.keys(Command.FLAGS).reduce(
         (map: FlagMap, flagName: string) => {
-          map[flagName] = {};
+          map[flagName] = Object.create(null);
           Command.FLAGS[flagName].forEach((commandName: string) => {
             map[flagName][commandName] = true;
           });
           return map;
         },
-        {}
+        Object.create(null)
       );
     }
     return this.flagMap;

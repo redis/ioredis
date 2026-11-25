@@ -297,6 +297,35 @@ describe("Command", () => {
     });
   });
 
+  describe("prototype pollution", () => {
+    afterEach(() => {
+      delete (Object.prototype as { get?: unknown }).get;
+    });
+
+    it("does not read a flag from Object.prototype", () => {
+      (Object.prototype as { get?: unknown }).get = true;
+      expect(Command.checkFlag("VALID_IN_SUBSCRIBER_MODE", "get")).to.eql(
+        false
+      );
+    });
+
+    it("does not read argument or reply transformers from Object.prototype", () => {
+      (Object.prototype as { get?: unknown }).get = "not a transformer";
+
+      let reply: unknown;
+      try {
+        const command = new Command("get", ["key"]);
+        command.setReplyContext({ protocol: 2, replyMapping: "legacy" });
+        reply = command.transformReply(Buffer.from("value"));
+        expect(command.toWritable()).to.eql("*2\r\n$3\r\nget\r\n$3\r\nkey\r\n");
+      } finally {
+        delete (Object.prototype as { get?: unknown }).get;
+      }
+
+      expect(reply.toString()).to.eql("value");
+    });
+  });
+
   describe("#setBlockingTimeout()", () => {
     it("should resolve command with null when timeout fires", async () => {
       const clock = sinon.useFakeTimers();
