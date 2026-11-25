@@ -3,13 +3,39 @@ import * as sinon from "sinon";
 import Command from "../../lib/Command";
 import Pipeline from "../../lib/Pipeline";
 import Redis from "../../lib/Redis";
-import { getFirstValueInFlattenedArray } from "../../lib/autoPipelining";
+import {
+  getFirstValueInFlattenedArray,
+  shouldUseAutoPipelining,
+} from "../../lib/autoPipelining";
 import MockServer from "../helpers/mock_server";
 
 describe("autoPipelining", function () {
   const expectGetFirstValueIs = (values, expected) => {
     expect(getFirstValueInFlattenedArray(values)).to.eql(expected);
   };
+
+  it("should keep subscriber-mode commands out of auto pipelines", function () {
+    const client = {
+      options: {
+        enableAutoPipelining: true,
+        autoPipeliningIgnoredCommands: [],
+      },
+      isPipeline: false,
+    };
+    for (const name of [
+      "subscribe",
+      "psubscribe",
+      "unsubscribe",
+      "punsubscribe",
+      "ssubscribe",
+      "sunsubscribe",
+    ]) {
+      expect(
+        shouldUseAutoPipelining(client, name, name),
+        `${name} must bypass auto pipelines`
+      ).to.equal(false);
+    }
+  });
 
   it("should be able to efficiently get array args", function () {
     expectGetFirstValueIs([], undefined);
