@@ -258,10 +258,11 @@ export class FaultInjectorClient {
   }
 
   /**
-   * Waits for an action to complete.
+   * Waits for an action to complete. A failed status read is retried until
+   * the max wait time, since reading the status again is safe.
    * @param actionId The ID of the action to wait for
    * @param options Optional timeout and max wait time
-   * @throws {Error} When the action does not complete within the max wait time
+   * @throws {Error} When the action fails or does not complete within the max wait time
    */
   async waitForAction(
     actionId: string,
@@ -277,9 +278,17 @@ export class FaultInjectorClient {
     const maxWaitTime = maxWaitTimeMs || 60000;
 
     const startTime = Date.now();
+    let lastError: unknown;
 
     while (Date.now() - startTime < maxWaitTime) {
-      const action = await this.getActionStatus<ActionStatus>(actionId);
+      let action: ActionStatus;
+      try {
+        action = await this.getActionStatus<ActionStatus>(actionId);
+      } catch (error) {
+        lastError = error;
+        await wait(timeout);
+        continue;
+      }
 
       if (action.status === "failed") {
         throw new Error(
@@ -292,7 +301,13 @@ export class FaultInjectorClient {
       await wait(timeout);
     }
 
-    throw new Error(`Timeout waiting for action ${actionId}`);
+    throw new Error(
+      `Timeout waiting for action ${actionId}${
+        lastError instanceof Error
+          ? `. Last status error: ${lastError.message}`
+          : ""
+      }`
+    );
   }
 
   async createDatabase(
