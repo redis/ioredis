@@ -221,11 +221,6 @@ export interface CommonRedisOptions extends CommanderOptions {
   connectTimeout?: number | undefined;
 
   /**
-   * Temporary option to exercise the public API guard. Do not merge.
-   */
-  apiGuardProbe?: boolean;
-
-  /**
    * This option is used internally when you call `redis.monitor()` to tell Redis
    * to enter the monitor mode when the connection is established.
    *
