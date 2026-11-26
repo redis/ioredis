@@ -372,6 +372,12 @@ export default class Command implements Respondable {
    * @ignore
    */
   redirection?: { error: Error; from: Redis };
+  /**
+   * Called with the reply EXEC returned for the command (an Error if it
+   * failed) when the command was queued in a transaction pipeline.
+   * @ignore
+   */
+  onExecReply?: (reply: unknown) => void;
   isTraced = false;
 
   isResolved = false;

@@ -27,12 +27,25 @@ export default class Script {
         };
 
         if (!socketHasScriptLoaded.has(socket)) {
-          socketHasScriptLoaded.add(socket);
+          // A queued EVAL loads nothing until EXEC runs it, so transactions
+          // mark the socket from the EXEC reply (see onExecReply below).
+          if (!this.inTransaction) {
+            socketHasScriptLoaded.add(socket);
+          }
           this.name = "eval";
           this.args[0] = lua;
         } else if (this.name === "eval") {
           this.name = "evalsha";
           this.args[0] = sha;
+        }
+        if (this.inTransaction) {
+          this.onExecReply = (reply) => {
+            if (!(reply instanceof Error)) {
+              socketHasScriptLoaded.add(socket);
+            } else if (reply.message.indexOf("NOSCRIPT") !== -1) {
+              socketHasScriptLoaded.delete(socket);
+            }
+          };
         }
         return super.toWritable(socket);
       }

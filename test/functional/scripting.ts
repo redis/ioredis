@@ -287,6 +287,90 @@ describe("scripting", () => {
     expect(commands.map((c) => c[0].toLowerCase())).to.have.members(expectedComands);
   });
 
+  describe("in a transaction", () => {
+    const defineTest = (redis: Redis) =>
+      redis.defineCommand("test", {
+        numberOfKeys: 1,
+        lua: 'return redis.call("incr", KEYS[1])',
+      });
+
+    it("sends EVAL again after a transaction aborted by WATCH", async () => {
+      const redis = new Redis();
+      const other = new Redis();
+      defineTest(redis);
+      await redis.script("flush");
+
+      await redis.watch("watched");
+      await other.set("watched", "changed");
+      // @ts-expect-error
+      expect(await redis.multi().test("foo").exec()).to.equal(null);
+
+      // @ts-expect-error
+      expect(await redis.multi().test("foo").set("bar", "1").exec()).to.eql([
+        [null, 1],
+        [null, "OK"],
+      ]);
+      other.disconnect();
+    });
+
+    it("sends EVAL again after a transaction discarded with EXECABORT", async () => {
+      const redis = new Redis();
+      defineTest(redis);
+      await redis.script("flush");
+
+      let error: Error;
+      try {
+        // @ts-expect-error
+        await redis.multi().test("foo").call("set", "bar").exec();
+      } catch (err) {
+        error = err;
+      }
+      expect(error.message).to.match(/^EXECABORT/);
+
+      // @ts-expect-error
+      expect(await redis.multi().test("foo").exec()).to.eql([[null, 1]]);
+    });
+
+    it("sends EVAL in the next transaction after NOSCRIPT inside EXEC", async () => {
+      const redis = new Redis();
+      defineTest(redis);
+      // @ts-expect-error
+      await redis.test("preload");
+      await redis.script("flush");
+
+      // @ts-expect-error
+      const [[noScript]] = await redis.multi().test("foo").exec();
+      expect(noScript.message).to.match(/^NOSCRIPT/);
+
+      // @ts-expect-error
+      expect(await redis.multi().test("foo").exec()).to.eql([[null, 1]]);
+      // @ts-expect-error
+      expect(await redis.multi().test("foo").exec()).to.eql([[null, 2]]);
+    });
+
+    it("uses EVALSHA once EXEC has run the script", async () => {
+      const redis = new Redis();
+      defineTest(redis);
+      await redis.script("flush");
+
+      // @ts-expect-error
+      expect(await redis.multi().test("foo").exec()).to.eql([[null, 1]]);
+
+      // The script's own INCR shows up in MONITOR too.
+      const commands = await getCommandsFromMonitor(redis, 6, async () => {
+        // @ts-expect-error
+        await redis.multi().test("foo").exec();
+        // @ts-expect-error
+        await redis.test("foo");
+      });
+      expect(
+        commands
+          .map((c) => c[0].toLowerCase())
+          .filter((name) => name !== "incr")
+      ).to.have.members(["multi", "evalsha", "exec", "evalsha"]);
+    });
+  });
+
   it("should support key prefixing", (done) => {
     const redis = new Redis({ keyPrefix: "foo:" });
 

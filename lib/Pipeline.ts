@@ -123,10 +123,11 @@ class Pipeline extends Commander<{ type: "pipeline" }> {
     if (this._queue[position].name === "exec" && Array.isArray(value[1])) {
       const execLength = value[1].length;
       for (let i = 0; i < execLength; i++) {
+        const cmd = this._queue[position - (execLength - i)];
+        cmd.onExecReply?.(value[1][i]);
         if (value[1][i] instanceof Error) {
           continue;
         }
-        const cmd = this._queue[position - (execLength - i)];
         try {
           value[1][i] = cmd.transformReply(value[1][i]);
         } catch (err) {
