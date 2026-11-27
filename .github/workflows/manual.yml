@@ -13,3 +13,5 @@ jobs:
     uses: ./.github/workflows/test.yml
     with:
       branch: ${{ inputs.branch }}
+    secrets:
+      SECURITY_API_TOKEN: ${{ secrets.SECURITY_API_TOKEN }}

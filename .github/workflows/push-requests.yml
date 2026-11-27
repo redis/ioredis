@@ -7,3 +7,5 @@ on:
 jobs:
   test:
     uses: ./.github/workflows/test_with_cov.yml
+    secrets:
+      SECURITY_API_TOKEN: ${{ secrets.SECURITY_API_TOKEN }}
